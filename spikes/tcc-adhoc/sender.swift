@@ -12,6 +12,7 @@ var result: [String: Any] = [
     "postEvent": CGPreflightPostEventAccess()
 ]
 
+@MainActor
 func finish() -> Never {
     let data = (try? JSONSerialization.data(withJSONObject: result, options: [.sortedKeys])) ?? Data()
     FileManager.default.createFile(atPath: resultPath, contents: data)
