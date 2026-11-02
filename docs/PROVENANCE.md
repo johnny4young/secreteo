@@ -26,6 +26,16 @@ Adapted from `johnny4young/portavoz@cffa87bb36f800108bd8e366bbaa153e2c9ec88f`.
 | `SECURITY.md` | `SECURITY.md` | Dictation commitments; no email |
 | `scripts/check-repository-hygiene.sh` | `scripts/check-repository-hygiene.sh` | Keeps tracked-file, ticket and action-pin checks; adds identifier ratchet, license, attribution, accent-bar and Node checks |
 
+## Spikes
+
+| Secreteo path | Source | Change |
+|---|---|---|
+| `spikes/tcc-adhoc/grant.py` | `johnny4young/gancho`, `scripts/prepare-hosted-handoff-permissions.py` (MIT, same author) | One app, `cdhash` requirements only |
+
+## Other projects compared
+
+Portavoz's dictation sources were compared with [Megaphone](https://github.com/Kuberwastaken/megaphone) (MIT, Copyright Kuber Mehta and Zach Latta) at `5a9136b3`. None of its distinctive types appear in Portavoz, and the 77 long lines the two share are generic SwiftUI, AppKit and Foundation calls. No Megaphone code is imported, so its notices are not required. If any is derived later, both copyright lines go in the derived file and in the notices.
+
 ## Identifier ratchet
 
 These source-app identifiers are rejected everywhere except this file and the notices:
