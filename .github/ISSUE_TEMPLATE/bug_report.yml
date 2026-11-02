@@ -1,0 +1,88 @@
+name: Bug report
+description: A crash, wrong output, or broken UI.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please don't paste audio or dictated text unless you're sure it contains nothing private. Redact names before sharing logs.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What went wrong, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Triggers (shortcut, Fn, mouse)
+        - Microphone
+        - Transcription
+        - Text delivery
+        - Polish, recipes, translation
+        - History and stats
+        - Settings and onboarding
+        - Shortcuts or MCP
+        - Models and downloads
+        - Updates
+        - Other or not sure
+    validations:
+      required: true
+  - type: input
+    id: target-app
+    attributes:
+      label: App receiving the text
+      placeholder: e.g. Notes, Slack, Safari
+    validations:
+      required: false
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: e.g. 26.1 (25B78)
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Secreteo version
+      placeholder: e.g. 0.1.0 (202611021200) or a commit
+    validations:
+      required: true
+  - type: input
+    id: mac-model
+    attributes:
+      label: Mac model and memory
+      placeholder: e.g. MacBook Air M3, 16 GB
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Redact anything private.
+      render: shell
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and this isn't a duplicate.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true
