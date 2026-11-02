@@ -77,3 +77,7 @@ GitHub's private reporting is the only channel. No email address is published un
 ## D17. Preference import by allowlist, no history import
 
 Import is typed and versioned, with a preview and an idempotent apply. Activation, login, ownership, active shortcuts, agent access, history saving, model consent and egress are never imported.
+
+## D18. The delivery lane signs ad-hoc
+
+The hosted delivery lane signs ad-hoc and grants TCC through `cdhash` rows, written after the final build, on the disposable VM only. It needs no secret. Developer ID signing happens only in `release.yml` ([evidence](spikes/tcc-adhoc-signing.md)).

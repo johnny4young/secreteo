@@ -36,4 +36,24 @@ If it fails, the fallback is an Environment restricted to branches of this repos
 
 ## Results
 
-Pending.
+Measured on 2026-11-02 on hosted `macos-26` (macOS 26.6.2, Xcode 26.6) at `9b6acaf`, in runs [41531669118](https://github.com/johnny4young/secreteo/actions/runs/41531669118), [41533157061](https://github.com/johnny4young/secreteo/actions/runs/41533157061) and [41533168511](https://github.com/johnny4young/secreteo/actions/runs/41533168511). An earlier run at `886ce8d` failed to compile, before any check ran, and does not count.
+
+| Check | Run 1 | Run 2 | Run 3 |
+|---|---|---|---|
+| Not trusted before the grant | Pass | Pass | Pass |
+| Trusted and able to post events after the grant | Pass | Pass | Pass |
+| Receiver holds the exact text, exactly once | Pass | Pass | Pass |
+| Accessibility readback matches | Pass | Pass | Pass |
+| Different `cdhash`, same bundle ID, not trusted | Pass | Pass | Pass |
+
+The workflow references no secrets, and the repository has none set. Each job took about 30 seconds.
+
+## Verdict
+
+**Passes.** The delivery lane can use ad-hoc signing with `cdhash` TCC rows, with no signing secret ([D18](../DECISIONS.md#d18-the-delivery-lane-signs-ad-hoc)). A rebuilt binary loses the grant, so the rows have to be written after the final build.
+
+## Not covered
+
+- A pull request from a real fork. The run has the same inputs as a fork, with no secrets, but no fork PR was run.
+- The XCUITest runner as a TCC client, and the Hardened Runtime. Both come up when the real lane is built.
+- Microphone and the cross-process Fn tap, which stay in the manual gate.
