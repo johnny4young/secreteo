@@ -42,4 +42,40 @@ Also written before measuring. The spike passes once this rule yields a defined 
 
 ## Results
 
-Pending.
+Measured on 2026-11-02 on an M4 Max with macOS 26.6.2, load average about 4.
+
+| Check | Result | Verdict |
+|---|---|---|
+| Spotlight | Control found after 5.2 s. Nothing under `.noindex` found during the 5-minute window | Pass |
+| Core ML | All loads succeeded with `0444` files. Cold p50 was 14.41 s at `.noindex` and 14.25 s plain, a 1.1% difference | Pass |
+| Time Machine | The nested file reports `[Excluded]` | Pass |
+
+| Load | n | p50 | Min | Max |
+|---|---|---|---|---|
+| Parakeet, cold, `.noindex` | 5 | 14.41 s | 13.54 s | 15.04 s |
+| Parakeet, cold, plain | 5 | 14.25 s | 13.32 s | 15.90 s |
+| Parakeet, warm, same path | 5 | 0.11 s | 0.10 s | 0.22 s |
+| Parakeet, second identity on a warmed path | 3 | 13.43 s | 12.96 s | 13.99 s |
+| Silero, cold | 5 | 0.09 s | 0.09 s | 0.10 s |
+
+The encoder accounts for nearly all of the cold time (13.4 to 14.9 s). A second identity pays 93% of cold p50, so the cache is per app even at the same path.
+
+## Verdict
+
+**Passes.** The layout `v1.noindex/models/.../payload/` stands, with `0444` files and the root excluded from Time Machine.
+
+The onboarding rule resolves to its two stronger rows:
+
+- Onboarding has an explicit warm-up step for Parakeet, with an indeterminate indicator and no time estimate. Silero needs no step.
+- The step runs even when the model is already in the store. "Installed" never reads as "ready".
+
+| Language | Message |
+|---|---|
+| English | Preparing the speech model for this Mac |
+| Spanish | Preparando el modelo de voz para esta Mac |
+
+## Not covered
+
+- Smaller chips and memory sizes, tracked in [G2](../GAPS.md#g2-8-and-16-gb-macs). This is why the message gives no estimate.
+- Parakeet Ultra, which is larger and needs its own measurement when the speech slice lands.
+- Re-specialization after a macOS update.

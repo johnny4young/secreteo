@@ -95,7 +95,7 @@ def wait_all(processes: list[subprocess.Popen]) -> None:
 
 
 def start_time() -> str:
-    return str(time.clock_gettime_ns(time.CLOCK_UPTIMERAW) + 500_000_000)
+    return str(time.clock_gettime_ns(time.CLOCK_UPTIME_RAW) + 500_000_000)
 
 
 def simultaneous(lab: Lab) -> dict:

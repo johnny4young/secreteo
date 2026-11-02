@@ -12,7 +12,7 @@ Measurements so far come from one 36 GB machine, which does not prove smaller Ma
 
 ## G3. Core ML compiles per app
 
-Even with one shared download, each app compiles its own Core ML copy, because the result depends on the path. This takes 14 seconds for the Parakeet encoder on an M4 Max and longer on smaller chips. Onboarding has to show it.
+Even with one shared download, each app compiles its own Core ML copy: the result depends on both the path and the app. Parakeet takes about 14 seconds on an M4 Max, and smaller chips are unmeasured. Onboarding shows a warm-up step ([measurements](spikes/model-path-and-specialization.md)).
 
 ## G4. Second download with an older Portavoz
 
