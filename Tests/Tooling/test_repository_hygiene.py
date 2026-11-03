@@ -137,6 +137,11 @@ class RepositoryHygieneTests(unittest.TestCase):
         self.fixture.write("a.txt", "/Users/" + "someone/file\n")
         self.assert_rejected("Private local paths")
 
+    def test_allows_the_hosted_runner_home(self) -> None:
+        self.fixture.write("a.py", 'path.startswith("/Users/' + 'runner/")\n')
+        result = self.fixture.run()
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_rejects_gpl_markers(self) -> None:
         self.fixture.write("a.swift", "// SPDX-License-Identifier: " + "GPL-3.0\n")
         self.assert_rejected("GPL license markers")

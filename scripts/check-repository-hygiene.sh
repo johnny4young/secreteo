@@ -55,7 +55,8 @@ if [[ -n "$leaked_identifiers" ]]; then
   report "Source-app identifiers belong only in docs/PROVENANCE.md and the notices:" "$leaked_identifiers"
 fi
 
-private_paths="$(git grep --untracked -nEI '/Users/[a-z0-9]|PortavozFiel[d]' -- . || true)"
+# The hosted runner's home is public and appears in VM-only guards.
+private_paths="$(git grep --untracked -nEI '/Users/[a-z0-9]|PortavozFiel[d]' -- . | grep -v '/Users/runner/' || true)"
 if [[ -n "$private_paths" ]]; then
   report "Private local paths:" "$private_paths"
 fi
