@@ -29,12 +29,14 @@ private struct MenuRow: View {
 
     var body: some View {
         Button(action: action) {
-            Text(title).frame(maxWidth: .infinity, alignment: .leading)
+            // Inside the label: a plain button only responds where its label has a shape.
+            Text(title)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .contentShape(Rectangle())
         .accessibilityIdentifier(identifier)
     }
 }
