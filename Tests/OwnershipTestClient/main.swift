@@ -17,16 +17,32 @@ func log(_ line: String) {
     close(descriptor)
 }
 
+/// Ends this process at the moment a test wants a crash.
+struct DyingTriggers: OwnershipTriggers {
+    let dieWhenArming: Bool
+
+    func arm() async -> Bool {
+        if dieWhenArming { kill(getpid(), SIGKILL) }
+        return true
+    }
+
+    func disarm() async {}
+}
+
 let ownership = DictationOwnership(
     participant: argument("participant") ?? "",
     root: URL(fileURLWithPath: argument("root") ?? ""),
     isSandboxed: false,
-    conditions: { ParticipantConditions(preferenceIsOn: true, missingForReadiness: nil, legacyPeerIsActive: false) })
+    conditions: { ParticipantConditions(preferenceIsOn: true, missingForReadiness: nil, legacyPeerIsActive: false) },
+    notificationName: argument("notification") ?? DictationOwnership.notificationName)
 let hold = useconds_t(argument("hold-us") ?? "100") ?? 100
 
 switch CommandLine.arguments.dropFirst().first {
 case "sessions":
-    for _ in 0..<(Int(argument("rounds") ?? "1") ?? 1) {
+    let stopFile = argument("until-file")
+    var remaining = Int(argument("rounds") ?? "1") ?? 1
+    while stopFile.map({ !FileManager.default.fileExists(atPath: $0) }) ?? (remaining > 0) {
+        remaining -= 1
         // The negative control: the same log with the lease skipped has to show overlaps.
         if CommandLine.arguments.contains("--skip-lease") {
             log("enter")
@@ -53,6 +69,11 @@ case "hold":
     withExtendedLifetime(lease) {
         while getppid() != 1 { sleep(1) }
     }
+
+case "handoff-then-die":
+    let triggers = DyingTriggers(dieWhenArming: argument("die-at") == "arm")
+    _ = await ownership.takeOwnership(userConfirmed: true, triggers: triggers)
+    kill(getpid(), SIGKILL)
 
 case "print-root":
     print(DictationOwnership.defaultRoot.path)

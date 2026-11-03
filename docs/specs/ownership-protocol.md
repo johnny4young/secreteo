@@ -4,7 +4,7 @@ Two apps that both listen for the same trigger would start two sessions and past
 
 It is cooperative and not a security boundary. Any process running as the user can ignore it or edit its files.
 
-**Status:** written ahead of the code. A [spike](../spikes/ownership-lock-and-discovery.md) proves the locks and discovery only. The reference implementation still has to prove the [acceptance matrix](#acceptance-matrix). If the two then disagree, that is a bug in one of them.
+**Status:** `Sources/DictationOwnership` is the reference implementation. `Tests/DictationOwnershipTests` proves the [acceptance matrix](#acceptance-matrix) in scratch folders, with a synthetic app standing in for sessions, triggers and delivery. No real app uses it yet, so it has not run against a real Portavoz, real triggers or a microphone, and each app still has to show that it keeps text and cancels as this document says. If the code and this document disagree, that is a bug in one of them. The locks and discovery come from a [spike](../spikes/ownership-lock-and-discovery.md).
 
 ## Terms
 
@@ -140,7 +140,7 @@ Ownership moves only on a user action, with one exception: [First run](#first-ru
 
 | Step | Who | What |
 |---|---|---|
-| 1 | `T` | Confirms it is `available` and the user asked for this. Refuses otherwise. A handoff to the current owner does nothing |
+| 1 | `T` | Confirms it is `available` and the user asked for this. Refuses otherwise. A handoff to the current owner does nothing. A participant runs one handoff at a time, through the end of its rollback |
 | 2 | `T` | Under the state lock: refuses `busy` if a live intent exists, otherwise publishes an intent with a new `id` and remembers `generation`. Posts the notification |
 | 3 | `P` | On seeing the intent, refuses new admissions, disarms, and handles its session by the table below. No change to its preference |
 | 4 | `T` | Polls the capture lock without blocking, until 10 seconds after step 2 on a clock that counts sleep |
@@ -163,7 +163,8 @@ The rename in step 6 is the commit. It means no one held a lease, because `T` he
 | Failure | Outcome | What the user sees |
 |---|---|---|
 | Another session still holds the lock at the deadline, even one that is only delivering | `timedOut`, nothing changes and nothing is interrupted | Another session is busy, and the way out is to retry or quit an app. `flock` does not reveal the holder, so no app is named. `T` never kills anything |
-| `T` cannot arm a trigger | `triggerConflict`, nothing changes | Which shortcut conflicts |
+| `T` cannot arm a trigger by the deadline | `triggerConflict`, nothing changes | Which shortcut conflicts |
+| The operation is cancelled before the commit | `cancelled`, nothing changes | Nothing |
 | `T`'s preference, readiness or row 2 changed | `targetNotReady`, nothing changes | What changed |
 | Intent replaced or expired, or generation changed | `superseded`, nothing changes | Retry |
 | `T` crashes before the commit | Lock freed. `P` rearms when the intent expires, at most 15 seconds later | Nothing, or a short `transferring` |
@@ -172,7 +173,7 @@ The rename in step 6 is the commit. It means no one held a lease, because `T` he
 
 **Other changes.** All are user actions. Those that write take both locks, re-read the state under them, and apply only if their condition still holds. Otherwise they change nothing.
 
-- **Turning on with no owner:** the same action runs a handoff if the participant is ready. If not, it offers one once it is `available`.
+- **Turning on with no owner:** the same action runs a handoff if the participant is ready, and step 2 refuses it if an owner appeared in the meantime. If not ready, it offers one once it is `available`.
 - **Turning off in the owner:** the app cancels its own session, takes the capture lock with a 10-second limit, and publishes `owner: null`, `previous: self`, `generation + 1`, if it is still the owner and its preference is still off. If the lock stays busy, the state is `off` anyway and the app retries on reevaluation.
 - **Reset after `corruptState`:** publishes `owner: null`, `generation: 1`, `previous: null`, if the file is still corrupt.
 
@@ -249,7 +250,7 @@ A change clients must understand raises `version`. An older client then fails cl
 
 ## Acceptance matrix
 
-Passing means: at most one global capture or delivery admitted among participants, no duplicate paste, explicit recovery, no text lost. The reference implementation has to prove each row without real triggers or a microphone.
+Passing means: at most one global capture or delivery admitted among participants, no duplicate paste, explicit recovery, no text lost. The reference implementation proves each row without real triggers or a microphone.
 
 | Scenario | Expected |
 |---|---|
