@@ -28,7 +28,7 @@ tmp="$(mktemp -d "${TMPDIR:-/tmp}/sparkle.XXXXXX")"
 trap 'rm -rf "$tmp"' EXIT
 
 printf '==> Downloading Sparkle %s\n' "$SPARKLE_VERSION"
-curl -fsSL "$url" -o "$tmp/sparkle.tar.xz"
+curl -fsSL --retry 3 --retry-all-errors "$url" -o "$tmp/sparkle.tar.xz"
 
 printf '==> Verifying checksum\n'
 actual="$(shasum -a 256 "$tmp/sparkle.tar.xz" | awk '{print $1}')"
