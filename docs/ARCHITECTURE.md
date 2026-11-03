@@ -9,6 +9,7 @@ The shell, with no dictation code yet:
 - An `NSStatusItem` with `.terminationOnRemoval` and a watchdog keep the app from running without a visible icon. Opening the app again shows Settings, which is the way back when macOS hides the icon.
 - `Apps/Secreteo/SparkleUpdater.swift` wraps Sparkle behind `UpdateChecking`, so `AppUI` does not link it. A scheduled update sets a menu row instead of showing an alert. `scripts/fetch-sparkle.sh` is the single source of the framework and its tools.
 - UI tests launch with `-use-temp-store`, which gives them their own instance lock and no real launch at login, and with `-show-menu-content`, which mounts the real menu content in a window.
+- `DictationOwnership` is the [ownership protocol](specs/ownership-protocol.md): state format, locks and admission. It imports only Foundation, Darwin and Synchronization, so Portavoz can copy it, and the app does not link it yet.
 - `Tests/Plans/Smoke.txt` lists the PR tests, and `scripts/run-ui-tests.sh full` runs everything.
 
 ## Target module graph
@@ -24,6 +25,7 @@ secreteo-mcp      stdio executable
   Triggers          Carbon hotkey, modifier and mouse push-to-talk
   Polish            prompts, ports, Apple Foundation Models, Ollama client, egress gateway
   DictationKit      domain, text rules, use cases
+  DictationOwnership  one global dictation at a time, shared with Portavoz
   DictationStore    GRDB, own database
   LiveSpeech        Parakeet, Silero. FluidAudio with traits: []
   MicCapture        microphone capture and permission
