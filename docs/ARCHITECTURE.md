@@ -2,7 +2,13 @@
 
 ## Implemented today
 
-Repository tooling, CI, and the first library, `AppUI`. There is no dictation code yet.
+The shell, with no dictation code yet:
+
+- `Apps/Secreteo` is the thin app target. `project.yml` generates its project.
+- `AppUI` holds the composition root, the status item, the menu content, Settings, launch at login, the single-instance lock and the move to Applications.
+- An `NSStatusItem` with `.terminationOnRemoval` and a watchdog keep the app from running without a visible icon. Opening the app again shows Settings, which is the way back when macOS hides the icon.
+- UI tests launch with `-use-temp-store`, which gives them their own instance lock and no real launch at login, and with `-show-menu-content`, which mounts the real menu content in a window.
+- `Tests/Plans/Smoke.txt` lists the PR tests, and `scripts/run-ui-tests.sh full` runs everything.
 
 ## Target module graph
 

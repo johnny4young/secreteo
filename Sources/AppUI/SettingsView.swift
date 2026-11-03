@@ -1,0 +1,38 @@
+import SwiftUI
+
+public struct SettingsView: View {
+    private let model: AppModel
+
+    public init(model: AppModel) {
+        self.model = model
+    }
+
+    public var body: some View {
+        Form {
+            Section {
+                Toggle("Open at Login", isOn: launchBinding)
+                    .accessibilityIdentifier("settings-launch-at-login")
+                if model.launchAtLoginFailed {
+                    Text("Could not change this setting.")
+                        .foregroundStyle(.red)
+                        .accessibilityIdentifier("settings-launch-at-login-error")
+                }
+            }
+            Section {
+                LabeledContent("Version", value: model.versionDescription)
+                    .accessibilityIdentifier("settings-version")
+                Button("Third-Party Notices") { model.openNotices() }
+                    .accessibilityIdentifier("settings-open-notices")
+            }
+        }
+        .formStyle(.grouped)
+        .frame(width: 420)
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("settings-root")
+    }
+
+    private var launchBinding: Binding<Bool> {
+        Binding(get: { model.launchAtLogin }, set: { model.setLaunchAtLogin($0) })
+    }
+}

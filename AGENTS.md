@@ -23,6 +23,9 @@ swift build -Xswiftc -warnings-as-errors
 swift test --parallel -Xswiftc -warnings-as-errors
 swiftlint lint --strict --no-cache
 scripts/check-repository-hygiene.sh
+make project        # generate Secreteo.xcodeproj from project.yml; never edit it by hand
+make test-ui-smoke  # takes over the screen; CI runs it on every PR
+make install        # installs the Dev identity to /Applications/Secreteo Dev.app
 ```
 
 ## Rules for every change
