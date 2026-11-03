@@ -35,7 +35,8 @@ xcodebuild "${common[@]}" test-without-building -parallel-testing-enabled NO \
 # `-quiet` names failing tests but not why, so print the reasons.
 if [[ "$status" -ne 0 ]]; then
   xcrun xcresulttool get test-results summary --path "$results" --compact \
-    | python3 -c 'import json,sys; [print(f"{t[\"testName\"]}: {t[\"failureText\"]}") for t in json.load(sys.stdin).get("testFailures", [])]' || true
+    | python3 -c 'import json,sys
+for t in json.load(sys.stdin).get("testFailures", []): print(t["testName"] + ": " + t["failureText"])' || true
 fi
 
 scratch="$(mktemp -d)"
