@@ -123,5 +123,6 @@ public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
         window.makeKeyAndOrderFront(nil)
         menuContentWindow = window
         NSApp.activate()
+        NSRunningApplication.current.activate(options: [.activateAllWindows])
     }
 }

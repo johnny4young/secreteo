@@ -23,6 +23,8 @@ public final class SettingsWindowController {
             window = created
         }
         window?.makeKeyAndOrderFront(nil)
+        // An agent app needs both, or the window can open behind the active app.
         NSApp.activate()
+        NSRunningApplication.current.activate(options: [.activateAllWindows])
     }
 }

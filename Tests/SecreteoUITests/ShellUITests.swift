@@ -23,12 +23,20 @@ final class ShellUITests: XCTestCase {
         add(attachment)
     }
 
+    /// A click on an app in the background only activates it, and synthesized input is
+    /// global, so nothing is clicked until this app is in front.
+    private func launchInFront() {
+        app.launch()
+        app.activate()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 30))
+    }
+
     private func element(_ identifier: String) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: identifier).firstMatch
     }
 
     func testMenuContentShowsItsCommands() {
-        app.launch()
+        launchInFront()
         XCTAssertTrue(element("menu-content").waitForExistence(timeout: 30))
         XCTAssertTrue(element("menu-settings").exists)
         XCTAssertTrue(element("menu-quit").exists)
@@ -36,7 +44,7 @@ final class ShellUITests: XCTestCase {
     }
 
     func testSettingsOpensFromTheMenuAndTogglesLaunchAtLogin() {
-        app.launch()
+        launchInFront()
         XCTAssertTrue(element("menu-settings").waitForExistence(timeout: 30))
         element("menu-settings").click()
 
@@ -55,7 +63,7 @@ final class ShellUITests: XCTestCase {
 
     func testAFailedLaunchAtLoginChangeIsShown() {
         app.launchArguments.append("-fail-launch-at-login")
-        app.launch()
+        launchInFront()
         XCTAssertTrue(element("menu-settings").waitForExistence(timeout: 30))
         element("menu-settings").click()
 
@@ -69,7 +77,7 @@ final class ShellUITests: XCTestCase {
     }
 
     func testQuitEndsTheApp() {
-        app.launch()
+        launchInFront()
         XCTAssertTrue(element("menu-quit").waitForExistence(timeout: 30))
         element("menu-quit").click()
         XCTAssertTrue(app.wait(for: .notRunning, timeout: 10))
