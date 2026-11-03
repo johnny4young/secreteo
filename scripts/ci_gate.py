@@ -10,6 +10,7 @@ import sys
 ALWAYS = ("hygiene", "lint", "changes")
 WHEN_CODE = ("unit", "ui-smoke")
 WHEN_DELIVERY = ("signed-handoff",)
+WHEN_RELEASE = ("release-dryrun",)
 
 
 def failures(needs: dict) -> list[str]:
@@ -20,7 +21,7 @@ def failures(needs: dict) -> list[str]:
             problems.append(f"{job}: {result}")
 
     scope = needs.get("changes", {}).get("outputs", {})
-    for jobs, flag in ((WHEN_CODE, "code"), (WHEN_DELIVERY, "delivery")):
+    for jobs, flag in ((WHEN_CODE, "code"), (WHEN_DELIVERY, "delivery"), (WHEN_RELEASE, "release")):
         # Anything but an explicit "false" means the job had to run.
         may_skip = scope.get(flag) == "false"
         for job in jobs:

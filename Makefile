@@ -2,7 +2,7 @@
 SIGN_IDENTITY ?= Developer ID Application: Johnny IV Young (JGWX5ZT2N2)
 DEV_APP := /Applications/Secreteo Dev.app
 
-.PHONY: project build test lint hygiene test-ui-smoke test-ui-full install
+.PHONY: project build test lint hygiene test-ui-smoke test-ui-full release-dryrun install
 
 project:
 	scripts/fetch-sparkle.sh
@@ -25,6 +25,10 @@ test-ui-smoke:
 
 test-ui-full:
 	scripts/run-ui-tests.sh full
+
+# Packages two versions and a feed with a throwaway key. The update itself runs in CI.
+release-dryrun:
+	scripts/release-dryrun.sh package
 
 # Installs the Dev identity only, signed for real so permissions survive reinstalls.
 install: project

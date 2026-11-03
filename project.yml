@@ -16,7 +16,8 @@ options:
 settings:
   base:
     MARKETING_VERSION: "0.0.1"
-    CURRENT_PROJECT_VERSION: "1"
+    # One source for the version, so the number Sparkle compares can never be forgotten.
+    CURRENT_PROJECT_VERSION: $(MARKETING_VERSION)
     SWIFT_VERSION: "6.0"
     ARCHS: arm64
     # One Debug binary: the launcher stub detaches from a menu bar agent.
@@ -28,7 +29,7 @@ settings:
     DEVELOPMENT_TEAM: ""
     ENABLE_HARDENED_RUNTIME: NO
     SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
-    # Empty until the release key exists. The release workflow refuses to ship without it.
+    # Empty until the release key exists. scripts/package-release.sh refuses to ship without it.
     SPARKLE_PUBLIC_ED_KEY: ""
 
 packages:

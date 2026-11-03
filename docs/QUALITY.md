@@ -6,7 +6,7 @@ Hosted CI is green on the final head, no mechanical review threads are open, and
 
 ## CI
 
-`gate` is the only required check. `scripts/ci_gate.py` decides it: a job may be skipped only when the validated scope from `scripts/ci_changes.py` says so, and never because of who authored a change. A docs-only change skips the macOS jobs. The signed lane runs only when delivery or triggers change.
+`gate` is the only required check. `scripts/ci_gate.py` decides it: a job may be skipped only when the validated scope from `scripts/ci_changes.py` says so, and never because of who authored a change. A docs-only change skips the macOS jobs. The handoff lane runs only when delivery or triggers change, and the release dry run only when packaging changes. `nightly.yml` runs both, plus the Full UI plan, every night.
 
 ## Local gates
 
@@ -20,6 +20,7 @@ Run in series.
 | Hygiene | `scripts/check-repository-hygiene.sh` | Always |
 | UI | Smoke plan | UI or its owners change |
 | Install | `make install`, to the Dev identity | UI changes |
+| Release | `make release-dryrun` | Packaging or the updater change |
 | Models | `make test-model-gated` | Engines, catalog or FluidAudio change |
 | Regression | The test fails without the fix: revert, run, restore | Every bug fix |
 | Negative | Combinations that must fail, in `Tests/Tooling` | CI, `gate`, or hygiene changes |

@@ -29,9 +29,7 @@ public final class AppModel {
     public init(launchController: any LaunchAtLoginControlling, bundle: Bundle = .main) {
         self.launchController = launchController
         self.launchAtLogin = launchController.isEnabled
-        let version = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
-        let build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
-        self.versionDescription = "\(version) (\(build))"
+        self.versionDescription = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
     }
 
     public func setLaunchAtLogin(_ enabled: Bool) {

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Classifies a change for CI. Prints `code=` and `delivery=` lines for GITHUB_OUTPUT.
+"""Classifies a change for CI. Prints `code=`, `delivery=` and `release=` lines for GITHUB_OUTPUT.
 
 Usage: ci_changes.py [path ...], or paths on stdin. An empty list counts as code,
 so a failed diff can never skip a job.
@@ -9,7 +9,12 @@ import sys
 
 DOCS_ONLY = ("docs/*", "*.md", "LICENSE", "site/*", ".github/ISSUE_TEMPLATE/*")
 DELIVERY = ("Sources/Delivery/*", "Sources/Triggers/*", "Tests/DeliveryTests/*", "Tests/TriggersTests/*",
+            "spikes/tcc-adhoc/*", "scripts/run-signed-handoff.sh",
             ".github/workflows/ci.yml", "scripts/ci_changes.py", "scripts/ci_gate.py")
+RELEASE = ("scripts/package-release.sh", "scripts/release-dryrun.sh", "scripts/generate-appcast.sh",
+           "scripts/verify_release.py", "scripts/verify_appcast.py", "scripts/fetch-sparkle.sh",
+           "scripts/throwaway-sparkle-key.swift", "project.yml", "Apps/Secreteo/*",
+           ".github/workflows/ci.yml", "scripts/ci_changes.py", "scripts/ci_gate.py")
 
 
 def matches(path: str, patterns: tuple[str, ...]) -> bool:
@@ -18,10 +23,11 @@ def matches(path: str, patterns: tuple[str, ...]) -> bool:
 
 def classify(paths: list[str]) -> dict[str, bool]:
     if not paths:
-        return {"code": True, "delivery": True}
+        return {"code": True, "delivery": True, "release": True}
     return {
         "code": not all(matches(path, DOCS_ONLY) for path in paths),
         "delivery": any(matches(path, DELIVERY) for path in paths),
+        "release": any(matches(path, RELEASE) for path in paths),
     }
 
 
