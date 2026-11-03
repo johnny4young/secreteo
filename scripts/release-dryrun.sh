@@ -140,6 +140,12 @@ update() {
 
   pkill -x Secreteo
   scripts/smoke-launch.sh "dist/Secreteo-$new_version.dmg"
+
+  scripts/enable-gatekeeper.sh
+  if spctl -a -t exec "$installed" 2>/dev/null; then
+    echo "error: Gatekeeper accepted an ad-hoc app" >&2
+    exit 1
+  fi
 }
 
 case "$stage" in

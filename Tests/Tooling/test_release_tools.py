@@ -1,7 +1,9 @@
 import importlib.util
+import os
 import re
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -119,6 +121,10 @@ class AppcastTests(unittest.TestCase):
     def test_a_correct_item_passes(self):
         self.assertEqual(feed_problems(feed()), [])
 
+    def test_a_newer_item_in_the_feed_fails(self):
+        newer = re.search(r"<item>.*</item>", feed(short="1.10.0", build="1.10.0", url=""), re.DOTALL).group(0)
+        self.assertTrue(feed_problems(feed().replace("</channel>", f"{newer}</channel>")))
+
     def test_older_items_are_ignored(self):
         older = re.search(r"<item>.*</item>", feed(short="1.2.2", build="1.2.2", url=""), re.DOTALL).group(0)
         two = feed().replace("</channel>", f"{older}</channel>")
@@ -201,6 +207,22 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertNotIn("contents: write", package)
         self.assertNotRegex(outside, r"secrets\.[A-Z]")
 
+    def test_each_workflow_reads_only_its_own_secrets(self):
+        expected = {"update-cask.yml": {"TAP_DEPLOY_KEY"},
+                    "pages.yml": {"CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"},
+                    "ci.yml": set(), "nightly.yml": set()}
+        for name, secrets in expected.items():
+            self.assertEqual(set(re.findall(r"secrets\.([A-Z0-9_]+)", self.workflow(name))), secrets, name)
+        self.assertIn("environment: homebrew", self.workflow("update-cask.yml"))
+        self.assertIn("environment: site", self.workflow("pages.yml"))
+
+    def test_the_cask_serves_only_final_releases(self):
+        self.assertIn(".isDraft or .isPrerelease", self.workflow("update-cask.yml"))
+
+    def test_signing_turns_gatekeeper_on_first(self):
+        text = (ROOT / "scripts/setup-release-signing.sh").read_text()
+        self.assertLess(text.index("enable-gatekeeper.sh"), text.index("security import"))
+
     def test_a_tag_only_creates_a_draft(self):
         text = self.workflow("release.yml")
         self.assertIn("--draft", text)
@@ -222,6 +244,86 @@ class WorkflowContractTests(unittest.TestCase):
         text = self.workflow("pages.yml")
         self.assertIn("node-version-file: .nvmrc", text)
         self.assertIn("check-latest: true", text)
+
+
+class AssessmentTests(unittest.TestCase):
+    def test_a_real_acceptance_passes(self):
+        output = "x: accepted\nsource=Notarized Developer ID\n"
+        self.assertEqual(verify_release.assessment_problem("spctl", 0, output), "")
+
+    def test_a_rejection_fails(self):
+        self.assertTrue(verify_release.assessment_problem("spctl", 3, "x: rejected\n"))
+
+    def test_an_acceptance_with_gatekeeper_off_fails(self):
+        output = "x: accepted\noverride=security disabled\n"
+        self.assertTrue(verify_release.assessment_problem("spctl", 0, output))
+
+
+class TapTests(unittest.TestCase):
+    sha = "b" * 64
+
+    def setUp(self):
+        self.scratch = tempfile.TemporaryDirectory()
+        self.addCleanup(self.scratch.cleanup)
+        self.root = Path(self.scratch.name)
+        self.bare = self.root / "tap.git"
+        self.git("init", "-q", "--bare", "-b", "main", str(self.bare))
+        self.seed = self.root / "seed"
+        self.git("clone", "-q", str(self.bare), str(self.seed))
+        (self.seed / "Casks").mkdir()
+        (self.seed / "Casks/other.rb").write_text("# another app\n")
+        self.push_seed("seed")
+
+    def git(self, *arguments, cwd=None):
+        subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.test", *arguments], cwd=cwd,
+                       check=True, capture_output=True)
+
+    def push_seed(self, message):
+        self.git("add", "-A", cwd=self.seed)
+        self.git("commit", "-q", "-m", message, cwd=self.seed)
+        self.git("push", "-q", "origin", "HEAD:main", cwd=self.seed)
+
+    def publish(self, version):
+        environment = os.environ | {"TAP_DEPLOY_KEY": "test", "TAP_URL": str(self.bare)}
+        return subprocess.run([str(ROOT / "scripts/update-homebrew-tap.sh"), version, self.sha], env=environment,
+                              capture_output=True, text=True, check=False)
+
+    def served(self):
+        self.git("pull", "-q", "origin", "main", cwd=self.seed)
+        path = self.seed / "Casks/secreteo.rb"
+        return path.read_text() if path.exists() else ""
+
+    def test_it_publishes_and_keeps_other_casks(self):
+        result = self.publish("1.2.3")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('version "1.2.3"', self.served())
+        self.assertTrue((self.seed / "Casks/other.rb").exists())
+
+    def test_a_rerun_changes_nothing(self):
+        self.publish("1.2.3")
+        self.assertIn("already serves", self.publish("1.2.3").stdout)
+
+    def test_a_delayed_run_cannot_go_back(self):
+        self.publish("1.10.0")
+        result = self.publish("1.9.0")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('version "1.10.0"', self.served())
+
+    def test_a_rejected_push_retries_from_a_fresh_clone(self):
+        hook = self.bare / "hooks/pre-receive"
+        marker = self.root / "rejected-once"
+        hook.write_text(f'#!/bin/sh\n[ -e "{marker}" ] && exit 0\ntouch "{marker}"\nexit 1\n')
+        hook.chmod(0o755)
+        result = self.publish("1.2.3")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("rejected", result.stdout)
+        self.assertIn('version "1.2.3"', self.served())
+
+    def test_it_refuses_to_run_without_a_key(self):
+        environment = {key: value for key, value in os.environ.items() if key != "TAP_DEPLOY_KEY"}
+        result = subprocess.run([str(ROOT / "scripts/update-homebrew-tap.sh"), "1.2.3", self.sha], env=environment,
+                                capture_output=True, text=True, check=False)
+        self.assertNotEqual(result.returncode, 0)
 
 
 class ContractTests(unittest.TestCase):

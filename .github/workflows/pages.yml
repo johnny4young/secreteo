@@ -40,4 +40,6 @@ jobs:
             echo "::error::site/appcast.xml must not exist"
             exit 1
           fi
+          : "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN is required}"
+          : "${CLOUDFLARE_ACCOUNT_ID:?CLOUDFLARE_ACCOUNT_ID is required}"
           npx --yes wrangler@4.151.0 pages deploy site --project-name=secreteo --branch=main

@@ -50,6 +50,8 @@ def problems(tag: str, project_yml: str, changelog: str, on_main: bool, arms_dic
 
 
 def main() -> None:
+    if len(sys.argv) != 3 or sys.argv[1] not in ("check", "notes"):
+        sys.exit(__doc__)
     command, argument = sys.argv[1], sys.argv[2]
     changelog = (ROOT / "CHANGELOG.md").read_text()
     if command == "notes":

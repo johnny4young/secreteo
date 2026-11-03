@@ -11,7 +11,7 @@ mount="$(mktemp -d)/mount"
 hdiutil attach -quiet -nobrowse -readonly -mountpoint "$mount" "$dmg"
 rm -rf "$installed"
 ditto "$mount/Secreteo.app" "$installed"
-hdiutil detach -quiet "$mount"
+hdiutil detach -quiet -force "$mount"
 
 open "$installed"
 sleep 10

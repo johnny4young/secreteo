@@ -11,10 +11,11 @@ A `v*` tag runs `release.yml`. The owner approves the `release` Environment, rev
 5. Notarize and staple the app.
 6. Build the DMG, then notarize and staple it.
 7. Verify distribution and the app payload.
-8. `generate_appcast --ed-key-file - --download-url-prefix .../releases/download/v<version>/ --embed-release-notes`.
-9. Verify the appcast.
-10. Launch the packaged app, then create the draft release.
-11. The owner publishes the draft, which runs `update-cask.yml`.
+8. Launch the packaged app, since only a launch proves hardened runtime can load Sparkle.
+9. `generate_appcast --ed-key-file - --download-url-prefix .../releases/download/v<version>/ --embed-release-notes`.
+10. Verify the appcast, including its signature against the shipped key.
+11. Create the draft release.
+12. The owner publishes the draft, which runs `update-cask.yml`.
 
 The feed stays at `releases/latest/download/appcast.xml`. Enclosures are versioned.
 
@@ -40,6 +41,45 @@ Each set lives in its own Environment, so a job can read only what it needs.
 `release` requires the owner's approval and accepts only `v*` tags. `homebrew` accepts `v*` tags and `main`, and `site` accepts only `main`. A ruleset limits creating `v*` tags to the owner.
 
 No provisioning profile is needed: the app uses neither iCloud nor Push.
+
+## First-time setup
+
+Run these once, in this order.
+
+1. Create the key under its own account, or `generate_keys` returns another app's key from the Keychain, then back it up:
+
+   ```sh
+   make project
+   Vendor/bin/generate_keys --account com.johnny4young.secreteo
+   Vendor/bin/generate_keys --account com.johnny4young.secreteo -x ~/secreteo-sparkle.key
+   ```
+
+2. Open a PR that sets the printed public key in `SPARKLE_PUBLIC_ED_KEY` in `project.yml`.
+3. Set the secrets. The P12 and the App Store Connect key go in as base64:
+
+   ```sh
+   gh secret set SPARKLE_EDDSA_PRIVATE_KEY --env release < ~/secreteo-sparkle.key
+   base64 -i developer-id.p12 | gh secret set MACOS_CERTIFICATE_P12 --env release
+   gh secret set MACOS_CERTIFICATE_PASSWORD --env release
+   gh secret set MACOS_CODE_SIGN_IDENTITY --env release --body "Developer ID Application: Johnny IV Young (JGWX5ZT2N2)"
+   gh secret set MACOS_NOTARY_KEY_ID --env release
+   gh secret set MACOS_NOTARY_KEY_ISSUER_ID --env release
+   base64 -i AuthKey.p8 | gh secret set MACOS_NOTARY_KEY_P8 --env release
+   ```
+
+4. Create a deploy key with write access on `johnny4young/homebrew-tap`, and set its private half:
+
+   ```sh
+   gh secret set TAP_DEPLOY_KEY --env homebrew < tap-deploy-key
+   ```
+
+5. For the site, create the project once, then set its two secrets with `--env site`:
+
+   ```sh
+   npx wrangler@4.151.0 pages project create secreteo --production-branch=main
+   ```
+
+Delete the local copies of the private keys once they are stored safely.
 
 ## Sparkle
 

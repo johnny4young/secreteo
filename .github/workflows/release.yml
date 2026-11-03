@@ -66,9 +66,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p dist/feed
-          # The first release has nothing to keep. A later one must have a feed.
-          if gh release view --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release download --repo "$GITHUB_REPOSITORY" --pattern appcast.xml --dir dist/feed
+          # Only a 404 means a first release. Any other failed lookup stops the job.
+          if latest="$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name 2>"$RUNNER_TEMP/latest.err")"; then
+            gh release download "$latest" --repo "$GITHUB_REPOSITORY" --pattern appcast.xml --dir dist/feed
+          elif ! grep -q 'HTTP 404' "$RUNNER_TEMP/latest.err"; then
+            cat "$RUNNER_TEMP/latest.err"
+            exit 1
           fi
 
       - name: Sign the feed
@@ -91,9 +94,10 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Remove the signing keychain
+      - name: Remove the signing material
         if: always()
         run: |
+          rm -f "$RUNNER_TEMP/notary-key.p8"
           if [ -f "$RUNNER_TEMP/signing.keychain-db" ]; then
             security delete-keychain "$RUNNER_TEMP/signing.keychain-db"
           fi
@@ -114,6 +118,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           version="${GITHUB_REF_NAME#v}"
-          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft --verify-tag \
-            --title "Secreteo $version" --notes-file artifact/notes.md \
-            "artifact/Secreteo-$version.dmg" "artifact/Secreteo-$version.dmg.sha256" artifact/feed/appcast.xml
+          files=("artifact/Secreteo-$version.dmg" "artifact/Secreteo-$version.dmg.sha256" artifact/feed/appcast.xml)
+          # A rerun finishes its own draft, and never touches what is already published.
+          state="$(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft 2>/dev/null || echo none)"
+          case "$state" in
+            true) gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber "${files[@]}" ;;
+            none) gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft --verify-tag \
+                    --title "Secreteo $version" --notes-file artifact/notes.md "${files[@]}" ;;
+            *) echo "::error::$GITHUB_REF_NAME is already published"; exit 1 ;;
+          esac
