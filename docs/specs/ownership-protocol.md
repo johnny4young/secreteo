@@ -46,6 +46,7 @@ A sandboxed process resolves that path into its container and would lock private
 
 - Never cache or `dup` the descriptor. `flock` does not conflict with a lock on the same open file description, so a reused one would admit twice.
 - `O_CLOEXEC` is required: a child that inherits the descriptor keeps the lock after the parent dies.
+- A release calls `flock(fd, LOCK_UN)` and then `close`. Closing alone can leave the lock held for a moment, because a child being spawned holds the open file description until its exec.
 - After locking, `fstat(fd)` and `stat(path)` must name the same device and inode. If not, the file was replaced between those calls: close and retry once, then report `ioError`.
 - `ENOTSUP` or `EOPNOTSUPP` from `flock` means `unavailable(lockUnsupported)`. This fails closed: a volume without `flock` cannot give this guarantee.
 - The state lock is polled for at most 1 second. After that the operation changes nothing and reports `ioError`.
@@ -255,6 +256,7 @@ Passing means: at most one global capture or delivery admitted among participant
 | Simultaneous launch | Only the owner is admitted. With no state file, at most one first-run claim lands |
 | First-run claim during a handoff from nobody | No claim while the intent is live. The handoff wins, or the claim lands after a rollback |
 | Second acquire in one process | Refused `busy`, while the first lease stays valid |
+| Release while the process spawns children | The lock is free at once |
 | Toggle, both alive, active and inactive | Generation rises by 1 per change, with no overlap |
 | Handoff during `preparing` | Session cancelled at once, handoff completes |
 | Handoff during `listening` | Ends or is cancelled within 5 seconds. Text kept, no late paste |
