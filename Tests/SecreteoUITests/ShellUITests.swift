@@ -17,6 +17,8 @@ final class ShellUITests: XCTestCase {
     }
 
     private func screenshot(_ name: String) {
+        // A toggle animates, and evidence has to show the state it settled on.
+        Thread.sleep(forTimeInterval: 1)
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name
         attachment.lifetime = .keepAlways
