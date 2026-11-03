@@ -4,7 +4,7 @@ Two apps that both listen for the same trigger would start two sessions and past
 
 It is cooperative and not a security boundary. Any process running as the user can ignore it or edit its files.
 
-**Status:** written ahead of the code. A [spike](../spikes/ownership-lock-and-discovery.md) proves the locks and discovery only. The reference implementation still has to prove the [acceptance matrix](#acceptance-matrix). If the two then disagree, that is a bug in one of them.
+**Status:** `Sources/DictationOwnership` is the reference implementation, and `Tests/DictationOwnershipTests` proves the [acceptance matrix](#acceptance-matrix) in scratch folders. No app uses it yet, so it has not run against a real Portavoz, real triggers or a microphone. If the code and this document disagree, that is a bug in one of them. The locks and discovery come from a [spike](../spikes/ownership-lock-and-discovery.md).
 
 ## Terms
 
@@ -249,7 +249,7 @@ A change clients must understand raises `version`. An older client then fails cl
 
 ## Acceptance matrix
 
-Passing means: at most one global capture or delivery admitted among participants, no duplicate paste, explicit recovery, no text lost. The reference implementation has to prove each row without real triggers or a microphone.
+Passing means: at most one global capture or delivery admitted among participants, no duplicate paste, explicit recovery, no text lost. The reference implementation proves each row without real triggers or a microphone.
 
 | Scenario | Expected |
 |---|---|

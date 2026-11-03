@@ -50,12 +50,15 @@ public final class OwnershipLease: Sendable {
 /// One participant's view of the protocol in `docs/specs/ownership-protocol.md`.
 public final class DictationOwnership: Sendable {
     public static let folderName = "com.johnny4young.dictation-ownership"
+    public static let notificationName = "com.johnny4young.dictation-ownership.changed"
 
     public let participant: String
     let files: OwnershipFiles
     private let isSandboxed: Bool
-    private let conditions: @Sendable () -> ParticipantConditions
+    let conditions: @Sendable () -> ParticipantConditions
     let now: @Sendable () -> Date
+    let changeNotificationName: String
+    let timings: OwnershipTimings
 
     /// The default folder, which is not usable from a sandboxed process.
     public static var defaultRoot: URL {
@@ -77,19 +80,23 @@ public final class DictationOwnership: Sendable {
         return URL(fileURLWithPath: String(cString: directory), isDirectory: true)
     }
 
-    /// `root` is a parameter so tests can use a scratch folder, and nothing else may move it.
+    /// `root` and `notificationName` are parameters so tests stay scratch, and nothing else may move them.
     public init(
         participant: String,
         root: URL = DictationOwnership.defaultRoot,
         isSandboxed: Bool = ProcessInfo.processInfo.environment["APP_SANDBOX_CONTAINER_ID"] != nil,
         conditions: @escaping @Sendable () -> ParticipantConditions,
-        now: @escaping @Sendable () -> Date = { Date() }
+        now: @escaping @Sendable () -> Date = { Date() },
+        notificationName: String = DictationOwnership.notificationName,
+        timings: OwnershipTimings = .standard
     ) {
         self.participant = participant
         files = OwnershipFiles(root: root)
         self.isSandboxed = isSandboxed
         self.conditions = conditions
         self.now = now
+        changeNotificationName = notificationName
+        self.timings = timings
     }
 
     public func status() -> ParticipantState {

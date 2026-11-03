@@ -257,6 +257,7 @@ struct AdmissionTests {
         #expect(files.stateFile.path == "/scratch/ownership.json")
         let root = DictationOwnership.defaultRoot.path
         #expect(root.hasSuffix("/Library/Application Support/com.johnny4young.dictation-ownership"))
+        #expect(DictationOwnership.notificationName == "com.johnny4young.dictation-ownership.changed")
     }
 
     @Test func noEnvironmentVariableMovesTheDefaultRoot() throws {
@@ -270,7 +271,7 @@ struct AdmissionTests {
         let sources = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("Sources/DictationOwnership")
-        let allowed: Set<String> = ["Darwin", "Foundation", "Synchronization"]
+        let allowed: Set<String> = ["CoreFoundation", "Darwin", "Foundation", "notify", "Synchronization"]
         for name in try FileManager.default.contentsOfDirectory(atPath: sources.path) {
             let text = try String(contentsOf: sources.appendingPathComponent(name), encoding: .utf8)
             let imports = text.split(separator: "\n").filter { $0.hasPrefix("import ") }.map { String($0.dropFirst(7)) }
