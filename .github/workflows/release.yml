@@ -1,0 +1,129 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - env:
+          GLOBAL_DICTATION_CLEARED: ${{ vars.GLOBAL_DICTATION_CLEARED }}
+        run: python3 scripts/check_release.py check "$GITHUB_REF_NAME"
+      - run: scripts/verify-ci-toolchain.sh 26 26.6
+      - run: scripts/check-repository-hygiene.sh
+      - run: swift build -Xswiftc -warnings-as-errors
+      - run: swift test --parallel -Xswiftc -warnings-as-errors
+      - run: scripts/install-ci-xcodegen.sh "$RUNNER_TEMP/xcodegen"
+      - run: scripts/run-ui-tests.sh full build/pr-screenshots
+
+  # The only job that can read the signing secrets. It has no write access to the repository.
+  package:
+    needs: verify
+    runs-on: macos-26
+    timeout-minutes: 90
+    environment: release
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: scripts/verify-ci-toolchain.sh 26 26.6
+      - run: scripts/install-ci-xcodegen.sh "$RUNNER_TEMP/xcodegen"
+
+      - name: Set up signing
+        env:
+          MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_NOTARY_KEY_P8: ${{ secrets.MACOS_NOTARY_KEY_P8 }}
+        run: scripts/setup-release-signing.sh
+
+      - name: Build, sign, notarize and verify
+        env:
+          MACOS_CODE_SIGN_IDENTITY: ${{ secrets.MACOS_CODE_SIGN_IDENTITY }}
+          MACOS_NOTARY_KEY_ID: ${{ secrets.MACOS_NOTARY_KEY_ID }}
+          MACOS_NOTARY_KEY_ISSUER_ID: ${{ secrets.MACOS_NOTARY_KEY_ISSUER_ID }}
+        run: MACOS_NOTARY_KEY_P8="$MACOS_NOTARY_KEY_FILE" scripts/package-release.sh "${GITHUB_REF_NAME#v}" production
+
+      - name: Launch the packaged app
+        run: scripts/smoke-launch.sh "dist/Secreteo-${GITHUB_REF_NAME#v}.dmg"
+
+      - name: Keep older feed items
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p dist/feed
+          # Only a 404 means a first release. Any other failed lookup stops the job.
+          if latest="$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name 2>"$RUNNER_TEMP/latest.err")"; then
+            gh release download "$latest" --repo "$GITHUB_REPOSITORY" --pattern appcast.xml --dir dist/feed
+          elif ! grep -q 'HTTP 404' "$RUNNER_TEMP/latest.err"; then
+            cat "$RUNNER_TEMP/latest.err"
+            exit 1
+          fi
+
+      - name: Sign the feed
+        env:
+          SPARKLE_EDDSA_PRIVATE_KEY: ${{ secrets.SPARKLE_EDDSA_PRIVATE_KEY }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          python3 scripts/check_release.py notes "$version" > dist/notes.md
+          scripts/generate-appcast.sh "$version" "dist/Secreteo-$version.dmg" dist/notes.md \
+            "https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/" dist/feed/appcast.xml
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release
+          path: |
+            dist/Secreteo-*.dmg
+            dist/Secreteo-*.dmg.sha256
+            dist/feed/appcast.xml
+            dist/notes.md
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Remove the signing material
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/notary-key.p8"
+          if [ -f "$RUNNER_TEMP/signing.keychain-db" ]; then
+            security delete-keychain "$RUNNER_TEMP/signing.keychain-db"
+          fi
+
+  # A draft: nothing reaches users until the owner publishes it.
+  draft:
+    needs: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: artifact
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          files=("artifact/Secreteo-$version.dmg" "artifact/Secreteo-$version.dmg.sha256" artifact/feed/appcast.xml)
+          # A rerun finishes its own draft, and never touches what is already published.
+          state="$(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft 2>/dev/null || echo none)"
+          case "$state" in
+            true) gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber "${files[@]}" ;;
+            none) gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft --verify-tag \
+                    --title "Secreteo $version" --notes-file artifact/notes.md "${files[@]}" ;;
+            *) echo "::error::$GITHUB_REF_NAME is already published"; exit 1 ;;
+          esac

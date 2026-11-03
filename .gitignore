@@ -5,6 +5,9 @@ Vendor/
 .DS_Store
 .build/
 .env
+*.key
+*.p12
+*.p8
 .swiftpm/
 DerivedData/
 __pycache__/
