@@ -8,7 +8,7 @@ On a disposable hosted `macos-26` runner, does an ad-hoc signed app with a TCC r
 
 ## Method
 
-`.github/workflows/spike-tcc-adhoc.yml` runs on `workflow_dispatch` and reads no secrets. The repository has none set, which is the same position as a fork.
+`scripts/run-signed-handoff.sh` runs the check in the `signed-handoff` job and reads no secrets. The repository has none set, which is the same position as a fork.
 
 1. Build a sender and a receiver with `swiftc`, wrap them as `.app` bundles, and sign both ad-hoc.
 2. Assert that the designated requirement is `cdhash H"…"` and that no signing authority is present.

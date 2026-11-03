@@ -17,6 +17,12 @@ A `v*` tag runs `release.yml`. The owner approves the `release` Environment and 
 
 The feed stays at `releases/latest/download/appcast.xml`. Enclosures are versioned.
 
+## Dry run
+
+`scripts/release-dryrun.sh` packages versions 9.0.0 and 9.0.1 through `scripts/package-release.sh` with ad-hoc signing and a throwaway key, and builds a feed that holds both. On a hosted runner it then installs 9.0.0, serves the feed locally, and waits for the real updater to replace the app with 9.0.1. CI runs it when packaging changes, and `nightly.yml` runs it every night. `make release-dryrun` runs the packaging half on any Mac.
+
+It cannot prove what needs the secrets: hardened runtime, notarization, stapling and Gatekeeper. Those stay in the real release.
+
 ## Secrets
 
 Scoped to the `release` Environment:
@@ -24,7 +30,7 @@ Scoped to the `release` Environment:
 | Secret | Use |
 |---|---|
 | `MACOS_CERTIFICATE_P12`, `MACOS_CERTIFICATE_PASSWORD` | Developer ID certificate |
-| `MACOS_CODE_SIGN_IDENTITY`, `MACOS_SIGN_TEAM_ID` | Signing identity |
+| `MACOS_CODE_SIGN_IDENTITY` | Signing identity. `scripts/verify_release.py` pins the team |
 | `MACOS_NOTARY_KEY_ID`, `MACOS_NOTARY_KEY_ISSUER_ID`, `MACOS_NOTARY_KEY_P8` | App Store Connect API key |
 | `SPARKLE_EDDSA_PRIVATE_KEY` | Appcast signature |
 | `TAP_DEPLOY_KEY` | Homebrew tap |

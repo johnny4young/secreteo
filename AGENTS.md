@@ -25,6 +25,7 @@ swiftlint lint --strict --no-cache
 scripts/check-repository-hygiene.sh
 make project        # generate Secreteo.xcodeproj from project.yml; never edit it by hand
 make test-ui-smoke  # takes over the screen; CI runs it on every PR
+make release-dryrun  # packages two versions and a feed with a throwaway key
 make install        # installs the Dev identity to /Applications/Secreteo Dev.app
 ```
 

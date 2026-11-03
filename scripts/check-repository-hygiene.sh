@@ -138,6 +138,7 @@ ignore_probes=(
   screenshots/local-smoke.png
   test-results/run.json
   Vendor/Sparkle.framework/Sparkle
+  dist/Secreteo-1.0.0.dmg
   local-ui.xcresult/Info.plist
   Secreteo.xcodeproj/project.pbxproj
 )
