@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hygiene:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - run: scripts/check-repository-hygiene.sh
+
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: scripts/run-ci-swiftlint.sh
+
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      code: ${{ steps.scope.outputs.code }}
+      delivery: ${{ steps.scope.outputs.delivery }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Outside a PR there is no diff, and an empty list counts as code.
+          if [ -n "$BASE_SHA" ]; then
+            git diff --name-only "$BASE_SHA...$HEAD_SHA" > changed.txt
+          else
+            : > changed.txt
+          fi
+          python3 scripts/ci_changes.py < changed.txt | tee -a "$GITHUB_OUTPUT"
+
+  unit:
+    needs: changes
+    if: needs.changes.outputs.code != 'false'
+    runs-on: macos-26
+    timeout-minutes: 6
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: scripts/verify-ci-toolchain.sh 26 26.6
+      - run: swift build -Xswiftc -warnings-as-errors
+      - run: swift test --parallel -Xswiftc -warnings-as-errors
+
+  gate:
+    if: always()
+    needs: [hygiene, lint, changes, unit]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: python3 scripts/ci_gate.py "$NEEDS"

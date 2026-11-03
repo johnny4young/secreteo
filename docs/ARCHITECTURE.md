@@ -2,7 +2,7 @@
 
 ## Implemented today
 
-Repository tooling only: `scripts/check-repository-hygiene.sh` and its tests in `Tests/Tooling`. There is no app code yet.
+Repository tooling, CI, and the first library, `AppUI`. There is no dictation code yet.
 
 ## Target module graph
 

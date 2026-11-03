@@ -4,6 +4,10 @@
 
 Hosted CI is green on the final head, no mechanical review threads are open, and the description matches that head. Tests, budgets and thresholds are never loosened to reach green.
 
+## CI
+
+`gate` is the only required check. `scripts/ci_gate.py` decides it: a job may be skipped only when the validated scope from `scripts/ci_changes.py` says so, and never because of who authored a change. A docs-only change skips the macOS jobs. The signed lane runs only when delivery or triggers change.
+
 ## Local gates
 
 Run in series.
