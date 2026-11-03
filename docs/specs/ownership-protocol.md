@@ -30,7 +30,7 @@ Three things stay separate: the durable owner (a file), whether a process is run
 
 ## Files
 
-All files live in `~/Library/Application Support/com.johnny4young.dictation-ownership/`, mode `0700`, excluded from backups so a restore cannot bring back an old owner. The name is permanent.
+All files live in `~/Library/Application Support/com.johnny4young.dictation-ownership/`, mode `0700`, excluded from backups so a restore cannot bring back an old owner. An existing folder with group or other access is repaired. Failing to set the backup exclusion does not stop anything, because a restore is the only cost. The name is permanent.
 
 A sandboxed process resolves that path into its container and would lock private files. It must detect the sandbox (`APP_SANDBOX_CONTAINER_ID` in its environment) and report `unavailable(sandboxed)` without creating anything.
 
@@ -76,11 +76,11 @@ A sandboxed process resolves that path into its container and would lock private
 | `owner` | A participant, or `null` for nobody |
 | `generation` | Starts at 0 and rises by exactly 1 with each change of `owner`. Marking or clearing an intent does not change it. Only a reset can lower it |
 | `previous` | The owner before the last change, or `null`. It only labels the UI's way back and grants nothing |
-| `intent` | `null` or as above. `from` is the owner when it was published, which may be `null`. Times are UTC in whole seconds: `createdAt` is rounded down and `expiresAt` is `createdAt` plus 15 seconds |
+| `intent` | `null` or as above. `from` is the owner when it was published, which may be `null`. `from` can differ from a later `owner`, because turning off leaves the intent for its target to discard. Times are UTC in whole seconds: `createdAt` is rounded down and `expiresAt` is `createdAt` plus 15 seconds |
 
 An intent is live until `now >= expiresAt`, or until `expiresAt` is more than 15 seconds ahead of `now`, so a clock moved far back cannot pin it. A small backward change can extend it by that amount, which delays recovery and affects nothing else.
 
-A missing file means `owner: null`, `generation: 0`. A file that exists and does not parse or validate, including an empty one, reports `unavailable(corruptState)`. Any other read failure reports `ioError`.
+A missing file means `owner: null`, `generation: 0`. A file that exists and does not parse or validate reports `unavailable(corruptState)`. That includes an empty file, one over 64 KiB, an empty `owner` or intent participant, and an `expiresAt` that is not `createdAt` plus 15 seconds. Any other read failure reports `ioError`.
 
 **Writes** happen under the state lock: write a temporary file in the same directory, `fcntl(F_FULLFSYNC)`, then `rename`. The rename is the commit point. Any leftover temporary file seen under the state lock is stale and may be removed. Reads need no lock, because the rename is atomic.
 
