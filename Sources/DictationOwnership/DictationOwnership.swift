@@ -59,6 +59,7 @@ public final class DictationOwnership: Sendable {
     let now: @Sendable () -> Date
     let changeNotificationName: String
     let timings: OwnershipTimings
+    let handoffInFlight = Mutex(false)
 
     /// The default folder, which is not usable from a sandboxed process.
     public static var defaultRoot: URL {
@@ -100,15 +101,34 @@ public final class DictationOwnership: Sendable {
     }
 
     public func status() -> ParticipantState {
-        if let reason = setupFailure() { return .unavailable(reason) }
-        guard files.canOpen(files.captureLock) else { return .unavailable(.ioError) }
+        evaluate().state
+    }
+
+    /// One read and one time, so the state and the intent it reports can never disagree.
+    func evaluate() -> (state: ParticipantState, file: OwnershipState?, time: Date) {
+        let time = now()
+        switch probeLocks() {
+        case .some(let reason): return (.unavailable(reason), nil, time)
+        case .none: break
+        }
+        let read = files.read()
+        let state = ParticipantState.derive(participant: participant, state: read, conditions: conditions(), now: time)
+        return (state, try? read.get(), time)
+    }
+
+    private func probeLocks() -> UnavailableReason? {
+        if let reason = setupFailure() { return reason }
+        guard files.canOpen(files.captureLock) else { return .ioError }
         // The state lock, because a writer waits for it and a key press would not wait for capture.
         switch files.tryLock(files.stateLock) {
-        case .held(let probe): probe.release()
-        case .busy: break
-        case .failed(let reason): return .unavailable(reason)
+        case .held(let probe):
+            probe.release()
+            return nil
+        case .busy:
+            return nil
+        case .failed(let reason):
+            return reason
         }
-        return .derive(participant: participant, state: files.read(), conditions: conditions(), now: now())
     }
 
     /// Never waits, and does file I/O, so it never runs in an audio or event tap callback.
@@ -129,7 +149,7 @@ public final class DictationOwnership: Sendable {
         }
     }
 
-    private func setupFailure() -> UnavailableReason? {
+    func setupFailure() -> UnavailableReason? {
         if isSandboxed { return .sandboxed }
         return files.prepareDirectory() ? nil : .ioError
     }

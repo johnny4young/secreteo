@@ -56,7 +56,8 @@ public struct OwnershipState: Codable, Equatable, Sendable {
     }
 
     private var isValid: Bool {
-        guard generation >= 0, owner?.isEmpty != true else { return false }
+        // At the maximum the next change could not count up.
+        guard generation >= 0, generation < Int.max, owner?.isEmpty != true else { return false }
         guard let intent else { return true }
         return !intent.to.isEmpty && intent.from?.isEmpty != true
             && intent.expiresAt == intent.createdAt.addingTimeInterval(OwnershipIntent.lifetime)

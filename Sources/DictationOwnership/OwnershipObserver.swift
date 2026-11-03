@@ -14,6 +14,7 @@ public actor OwnershipObserver {
 
     private let ownership: DictationOwnership
     private let onChange: @Sendable (Snapshot) -> Void
+    private var isRunning = false
     private var isHoldingLease = false
     private var last: Snapshot?
     private var timer: Task<Void, Never>?
@@ -24,7 +25,14 @@ public actor OwnershipObserver {
         self.onChange = onChange
     }
 
+    deinit {
+        if let token { notify_cancel(token) }
+        timer?.cancel()
+    }
+
     public func start() {
+        guard !isRunning else { return }
+        isRunning = true
         var registered: Int32 = 0
         let name = ownership.changeNotificationName
         let status = notify_register_dispatch(name, &registered, .global()) { [weak self] _ in
@@ -36,6 +44,7 @@ public actor OwnershipObserver {
     }
 
     public func stop() {
+        isRunning = false
         if let token { notify_cancel(token) }
         token = nil
         timer?.cancel()
@@ -50,19 +59,15 @@ public actor OwnershipObserver {
 
     /// Also call this on activation, wake, and any change of the preference or readiness.
     public func reevaluate() {
-        let time = ownership.now()
-        let intent: OwnershipIntent?
-        if case .success(let state) = ownership.files.read(), let live = state.intent, live.isLive(at: time) {
-            intent = live
-        } else {
-            intent = nil
-        }
-        let snapshot = Snapshot(state: ownership.status(), intent: intent)
+        guard isRunning else { return }
+        let evaluated = ownership.evaluate()
+        let intent = evaluated.file?.intent.flatMap { $0.isLive(at: evaluated.time) ? $0 : nil }
+        let snapshot = Snapshot(state: evaluated.state, intent: intent)
         if snapshot != last {
             last = snapshot
             onChange(snapshot)
         }
-        schedule(after: nextCheck(intent: intent, now: time))
+        schedule(after: nextCheck(intent: intent, now: evaluated.time))
     }
 
     private func nextCheck(intent: OwnershipIntent?, now: Date) -> TimeInterval? {

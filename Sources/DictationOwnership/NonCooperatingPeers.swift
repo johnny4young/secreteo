@@ -34,11 +34,13 @@ public enum ProtocolDeclaration: Equatable, Sendable {
         guard let plist = bundleURL?.appendingPathComponent("Contents/Info.plist"),
               let data = try? Data(contentsOf: plist),
               let info = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
-              let value = info[Self.infoKey] as? Int, value >= 0 else {
+              let number = info[Self.infoKey] as? NSNumber,
+              // `as? Int` would also accept a boolean or a float.
+              CFGetTypeID(number) == CFNumberGetTypeID(), !CFNumberIsFloatType(number), number.intValue >= 0 else {
             self = .absent
             return
         }
-        self = value == 0 ? .noGlobalCapture : .implements(version: value)
+        self = number.intValue == 0 ? .noGlobalCapture : .implements(version: number.intValue)
     }
 }
 
@@ -67,10 +69,11 @@ public struct NonCooperatingPeers: Sendable {
         return nil
     }
 
-    /// Reads and never writes. Reading a domain that does not exist does not create it.
+    /// Reads and never writes, with the same reading `UserDefaults.bool(forKey:)` gives the peer itself.
+    /// Reading a domain that does not exist does not create it.
     @Sendable public static func storedPreference(of peer: KnownPeer) -> Bool {
         let domain = peer.identifier as CFString
         CFPreferencesAppSynchronize(domain)
-        return (CFPreferencesCopyAppValue(peer.preferenceKey as CFString, domain) as? Bool) ?? false
+        return CFPreferencesGetAppBooleanValue(peer.preferenceKey as CFString, domain, nil)
     }
 }

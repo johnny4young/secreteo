@@ -15,6 +15,10 @@ final class FakeTriggers: OwnershipTriggers {
     var armed: Bool { state.withLock { $0.armed } }
     var armCalls: Int { state.withLock { $0.armCalls } }
 
+    func setArmed(_ armed: Bool) {
+        state.withLock { $0.armed = armed }
+    }
+
     func arm() async -> Bool {
         state.withLock { value in
             value.armCalls += 1
@@ -45,8 +49,12 @@ extension Scratch {
             root: root,
             isSandboxed: false,
             conditions: { conditions.current },
-            notificationName: "com.example.dictation-ownership-test.\(root.lastPathComponent)-\(root.deletingLastPathComponent().lastPathComponent)",
+            notificationName: notificationName,
             timings: timings)
+    }
+
+    var notificationName: String {
+        "com.example.dictation-ownership-test.\(root.deletingLastPathComponent().lastPathComponent)"
     }
 
     var state: OwnershipState? { try? files.read().get() }
@@ -117,7 +125,7 @@ struct HandoffTests {
         #expect(await handoff.value == .completed(generation: 2))
     }
 
-    @Test func anIdlePriorOwnerRefusesNewSessionsDuringAHandoff() async throws {
+    @Test func bothSidesReportTransferringDuringAHandoff() async throws {
         let scratch = try Scratch()
         defer { scratch.cleanUp() }
         try scratch.seedOwner()
@@ -277,9 +285,125 @@ struct HandoffTests {
         defer { scratch.cleanUp() }
         try scratch.seedOwner()
         let held = lease(from: scratch.participant().acquire(.global))
+        let intent = OwnershipIntent(from: ownerID, to: otherID, now: scratch.conditions.now)
+        try scratch.seed(OwnershipState(owner: ownerID, generation: 1, previous: nil, intent: intent))
+        #expect(scratch.participant().status() == .transferring)
         scratch.conditions.now = scratch.conditions.now.addingTimeInterval(3_600)
+        #expect(scratch.participant().status() == .owned)
         #expect(refusal(from: scratch.participant().acquire(.global)) == .busy)
         #expect(held?.revalidate() == true)
+    }
+
+    @Test func aCancelledOperationNeverCommitsEvenIfArmingSucceeds() async throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        try scratch.seedOwner()
+        let before = scratch.state
+        let triggers = GatedTriggers()
+        let handoff = Task { await scratch.live(otherID).takeOwnership(userConfirmed: true, triggers: triggers) }
+        try await waitUntil { triggers.isWaiting }
+        handoff.cancel()
+        triggers.open()
+        #expect(await handoff.value == .cancelled)
+        #expect(!triggers.armed)
+        #expect(scratch.state == before)
+    }
+
+    @Test func anAlreadyCancelledOperationPublishesNothing() async throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        try scratch.seedOwner()
+        let before = scratch.state
+        let triggers = FakeTriggers()
+        let handoff = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            return await scratch.live(otherID).takeOwnership(userConfirmed: true, triggers: triggers)
+        }
+        #expect(await handoff.value == .cancelled)
+        #expect(triggers.armCalls == 0)
+        #expect(scratch.state == before)
+    }
+
+    @Test func aParticipantRunsOneHandoffAtATimeThroughItsRollback() async throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        try scratch.seedOwner()
+        let target = scratch.live(otherID)
+        let triggers = GatedTriggers()
+        let first = Task { await target.takeOwnership(userConfirmed: true, triggers: triggers) }
+        try await waitUntil { triggers.isWaiting }
+        #expect(await target.takeOwnership(userConfirmed: true, triggers: FakeTriggers()) == .busy)
+        triggers.open()
+        #expect(await first.value == .completed(generation: 2))
+        #expect(await target.takeOwnership(userConfirmed: true, triggers: FakeTriggers()) == .alreadyOwner)
+    }
+
+    @Test func armingThatFinishesPastTheDeadlineRollsBack() async throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        try scratch.seedOwner()
+        let before = scratch.state
+        let triggers = GatedTriggers()
+        let handoff = Task { await scratch.live(otherID, timings: quick).takeOwnership(userConfirmed: true, triggers: triggers) }
+        try await waitUntil { triggers.isWaiting }
+        try await Task.sleep(for: .milliseconds(300))
+        triggers.open()
+        #expect(await handoff.value == .triggerConflict)
+        #expect(!triggers.armed)
+        #expect(scratch.state == before)
+    }
+
+    @Test func losingEligibilityWhileArmingRollsBackAfterArming() async throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        try scratch.seedOwner()
+        let conditions = scratch.conditions
+        let triggers = FakeArmingHook { conditions.current.preferenceIsOn = false }
+        let outcome = await scratch.live(otherID).takeOwnership(userConfirmed: true, triggers: triggers)
+        #expect(outcome == .targetNotReady)
+        #expect(!triggers.armed)
+        #expect(scratch.state?.owner == ownerID)
+    }
+
+    @Test func anUnusableNotificationNameDoesNotUndoACommit() async throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        try scratch.seedOwner()
+        let conditions = scratch.conditions
+        let target = DictationOwnership(
+            participant: otherID, root: scratch.root, isSandboxed: false,
+            conditions: { conditions.current }, notificationName: "")
+        let triggers = FakeTriggers()
+        #expect(await target.takeOwnership(userConfirmed: true, triggers: triggers) == .completed(generation: 2))
+        #expect(triggers.armed)
+        #expect(lease(from: target.acquire(.global)) != nil, "The capture lock was released")
+    }
+
+    @Test func aTargetKilledWhileArmingLeavesTheOwnerAndAnIntentThatExpires() async throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        try scratch.seedOwner()
+        let target = try scratch.client(
+            "handoff-then-die", participant: otherID, extra: ["--die-at", "arm", "--notification", scratch.notificationName])
+        await finish(target)
+        #expect(target.terminationReason == .uncaughtSignal)
+        let intent = try #require(scratch.state?.intent)
+        #expect(scratch.state?.owner == ownerID)
+        #expect(refusal(from: scratch.live(ownerID).acquire(.global)) == .transferring, "The lock is free, and the intent is live")
+        scratch.conditions.now = intent.expiresAt
+        #expect(lease(from: scratch.participant().acquire(.global)) != nil)
+    }
+
+    @Test func aTargetKilledAfterTheCommitStaysOwner() async throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        try scratch.seedOwner()
+        let target = try scratch.client(
+            "handoff-then-die", participant: otherID, extra: ["--die-at", "exit", "--notification", scratch.notificationName])
+        await finish(target)
+        #expect(target.terminationReason == .uncaughtSignal)
+        #expect(scratch.state == OwnershipState(owner: otherID, generation: 2, previous: ownerID, intent: nil))
+        #expect(refusal(from: scratch.live(ownerID).acquire(.global)) == .notOwner(otherID))
     }
 
     @Test func anUpgradeKeepsTheOwner() throws {
@@ -382,6 +506,55 @@ struct OtherChangeTests {
         #expect(scratch.state?.owner == otherID)
     }
 
+    @Test func turningOnDoesNotTakeOverAnOwnerThatAppearedMeanwhile() async throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        let files = scratch.files
+        // The state is read before the conditions, so this lands in between.
+        let target = DictationOwnership(
+            participant: ownerID, root: scratch.root, isSandboxed: false,
+            conditions: {
+                _ = files.write(OwnershipState(owner: otherID, generation: 1, previous: nil, intent: nil))
+                return .ready
+            },
+            notificationName: scratch.notificationName)
+        #expect(await target.preferenceTurnedOn(triggers: FakeTriggers()) == .notAvailable(.available))
+        #expect(scratch.state?.owner == otherID)
+    }
+
+    @Test func turningOnWithACorruptFileReportsItsState() async throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        try Data("{".utf8).write(to: scratch.files.stateFile)
+        let outcome = await scratch.live(ownerID).preferenceTurnedOn(triggers: FakeTriggers())
+        #expect(outcome == .notAvailable(.unavailable(.corruptState)))
+    }
+
+    @Test func aSandboxedProcessChangesAndCreatesNothing() async throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        let garbage = Data("{".utf8)
+        try garbage.write(to: scratch.files.stateFile)
+        let target = DictationOwnership(participant: ownerID, root: scratch.root, isSandboxed: true, conditions: { .ready })
+        #expect(await target.resetCorruptState() == .failed)
+        #expect(await target.turnOff() == .failed)
+        #expect(await target.relinquishForRemoval() == .failed)
+        #expect(target.claimAtFirstRun() == .noChange)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: scratch.root.path) == ["ownership.json"])
+        #expect(try Data(contentsOf: scratch.files.stateFile) == garbage)
+    }
+
+    @Test func aLockFailureIsNotReportedAsBusy() async throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        try scratch.seedOwner()
+        let target = scratch.root.appendingPathComponent("elsewhere")
+        FileManager.default.createFile(atPath: target.path, contents: nil)
+        try FileManager.default.createSymbolicLink(at: scratch.files.captureLock, withDestinationURL: target)
+        scratch.conditions.current.preferenceIsOn = false
+        #expect(await scratch.live(ownerID).turnOff() == .failed)
+    }
+
     @Test func turningOnBeforeBeingReadyDoesNotPublish() async throws {
         let scratch = try Scratch()
         defer { scratch.cleanUp() }
@@ -434,6 +607,34 @@ struct FirstRunTests {
         defer { scratch.cleanUp() }
         #expect(scratch.live("\(ownerID).dev").claimAtFirstRun() == .noChange)
         #expect(!FileManager.default.fileExists(atPath: scratch.files.stateFile.path))
+    }
+
+    @Test func simultaneousClaimsLandOnce() async throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        let outcomes = await withTaskGroup(of: OwnershipChange.self) { group in
+            for index in 0..<8 {
+                group.addTask { scratch.live("com.example.claimer\(index)").claimAtFirstRun() }
+            }
+            return await group.reduce(into: []) { $0.append($1) }
+        }
+        #expect(outcomes.filter { if case .changed = $0 { true } else { false } }.count <= 1)
+        #expect(outcomes.allSatisfy { if case .changed = $0 { true } else { $0 == .noChange || $0 == .busy } })
+        #expect((scratch.state?.generation ?? 0) <= 1)
+    }
+
+    @Test func aClaimRacingAHandoffFromNobodyLeavesOneOwnerAndCountsEachChange() async throws {
+        for _ in 0..<20 {
+            let scratch = try Scratch()
+            defer { scratch.cleanUp() }
+            let handoff = Task { await scratch.live(otherID).takeOwnership(userConfirmed: true, triggers: FakeTriggers()) }
+            let claim = scratch.live(ownerID).claimAtFirstRun()
+            let outcome = await handoff.value
+            let changes = (claim == .changed(generation: 1) ? 1 : 0) + (outcome == .alreadyOwner ? 0 : 1)
+            #expect(scratch.state?.owner == otherID, "A user's handoff lands last or alone")
+            #expect(scratch.state?.generation == changes)
+            #expect(scratch.state?.intent == nil)
+        }
     }
 
     @Test func thePreferenceOffMeansNoClaim() throws {
@@ -490,11 +691,13 @@ struct ObserverTests {
         let created = Date().addingTimeInterval(2 - OwnershipIntent.lifetime)
         let intent = OwnershipIntent(from: ownerID, to: otherID, now: created)
         try scratch.seed(OwnershipState(owner: ownerID, generation: 1, previous: nil, intent: intent))
-        let (watch, recorder) = observer(for: scratch.live(ownerID))
-        await watch.start()
-        #expect(recorder.latest?.state == .transferring)
-        try await waitUntil(seconds: 5) { recorder.latest?.state == .owned }
-        await watch.stop()
+        let app = SyntheticApp(ownership: scratch.live(ownerID))
+        await app.run()
+        #expect(app.latest?.state == .transferring)
+        #expect(!app.triggers.armed)
+        try await waitUntil(seconds: 5) { app.latest?.state == .owned }
+        #expect(app.triggers.armed, "It rearms with no other event")
+        await app.shutDown()
     }
 
     @Test func aHolderSeesAnIntentWithinASecondWithNoNotification() async throws {
@@ -506,7 +709,7 @@ struct ObserverTests {
         await watch.setHoldingLease(true)
         let intent = OwnershipIntent(from: ownerID, to: otherID, now: Date())
         try scratch.seed(OwnershipState(owner: ownerID, generation: 1, previous: nil, intent: intent))
-        try await waitUntil(seconds: 3) { recorder.latest?.intent?.id == intent.id }
+        try await waitUntil(seconds: 1.8) { recorder.latest?.intent?.id == intent.id }
         await watch.stop()
     }
 
@@ -541,10 +744,30 @@ struct ObserverTests {
         try scratch.seedOwner()
         let (watch, recorder) = observer(for: scratch.live(ownerID))
         await watch.start()
-        let outcome = await scratch.live(otherID, timings: quick).takeOwnership(userConfirmed: true, triggers: FakeTriggers(refusals: .max))
+        let slow = OwnershipTimings(changeDeadline: .seconds(1), capturePoll: .milliseconds(2), armRetry: .milliseconds(5))
+        let outcome = await scratch.live(otherID, timings: slow).takeOwnership(userConfirmed: true, triggers: FakeTriggers(refusals: .max))
         #expect(outcome == .triggerConflict)
         try await waitUntil(seconds: 3) { recorder.latest?.state == .owned && recorder.latest?.intent == nil }
+        #expect(recorder.history.contains { $0.state == .transferring }, "It has to have seen the intent to prove recovery")
         await watch.stop()
+    }
+
+    @Test func nothingIsReportedAfterStop() async throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        try scratch.seedOwner()
+        let (watch, recorder) = observer(for: scratch.live(ownerID))
+        await watch.start()
+        await watch.start()
+        await watch.setHoldingLease(true)
+        await watch.stop()
+        let reports = recorder.history.count
+        try scratch.seedOwner(otherID)
+        await watch.reevaluate()
+        await watch.setHoldingLease(true)
+        scratch.live(otherID).postChange()
+        try await Task.sleep(for: .milliseconds(1_200))
+        #expect(recorder.history.count == reports)
     }
 }
 
@@ -616,6 +839,26 @@ struct NonCooperatingPeerTests {
         defer { scratch.cleanUp() }
         #expect(ProtocolDeclaration(bundleURL: try bundle(in: scratch, declaring: "1")) == .absent)
         #expect(ProtocolDeclaration(bundleURL: try bundle(in: scratch, declaring: -1)) == .absent)
+        #expect(ProtocolDeclaration(bundleURL: try bundle(in: scratch, declaring: true)) == .absent)
+        #expect(ProtocolDeclaration(bundleURL: try bundle(in: scratch, declaring: 1.5)) == .absent)
+    }
+
+    // A path works as a domain, so the file stays in the scratch folder and out of the real preferences.
+    @Test func aStoredPreferenceReadsAsThePeerReadsIt() throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        let cases: [(stored: Any?, expected: Bool)] = [
+            (true, true), (false, false), ("YES", true), ("NO", false), (2, true), (0, false), (nil, false)
+        ]
+        for (index, entry) in cases.enumerated() {
+            let domain = scratch.root.appendingPathComponent("peer\(index)")
+            var info: [String: Any] = ["other": "value"]
+            if let stored = entry.stored { info["dictationOn"] = stored }
+            try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)
+                .write(to: domain.appendingPathExtension("plist"))
+            let peer = KnownPeer(identifier: domain.path, preferenceKey: "dictationOn")
+            #expect(NonCooperatingPeers.storedPreference(of: peer) == entry.expected, "\(String(describing: entry.stored))")
+        }
     }
 
     @Test func readingAMissingDomainCreatesNothing() throws {
@@ -632,8 +875,8 @@ struct ToggleTests {
         let scratch = try Scratch()
         defer { scratch.cleanUp() }
         try scratch.seedOwner(generation: 0)
-        // The clients keep the real clock and the protocol's fixed intent lifetime.
-        let arguments = ["--rounds", "2000", "--hold-us", "100"]
+        let stop = scratch.root.deletingLastPathComponent().appendingPathComponent("stop")
+        let arguments = ["--until-file", stop.path, "--hold-us", "100"]
         let clients = [
             try scratch.client("sessions", participant: ownerID, extra: arguments),
             try scratch.client("sessions", participant: otherID, extra: arguments)
@@ -645,11 +888,201 @@ struct ToggleTests {
             let outcome = await scratch.live(target, timings: timings).takeOwnership(userConfirmed: true, triggers: FakeTriggers())
             #expect(outcome == .completed(generation: expected + 1))
             expected += 1
+            try await Task.sleep(for: .milliseconds(1))
         }
+        FileManager.default.createFile(atPath: stop.path, contents: nil)
         for client in clients { await finishClean(client) }
 
-        #expect(violations(in: try scratch.events()).isEmpty)
+        let events = try scratch.events()
+        #expect(violations(in: events).isEmpty)
         #expect(scratch.state?.generation == expected)
+        for client in clients {
+            #expect(events.contains("enter \(client.processIdentifier)"), "Each client has to have run while it owned")
+        }
+    }
+}
+
+/// A minimal app on top of the protocol, connecting the observer to triggers, a session and delivery.
+final class SyntheticApp: Sendable {
+    private struct Session {
+        let token: SessionAttempts.Token
+        var phase: SessionPhase
+        let text: String
+        var intentSeen: Date?
+    }
+
+    let ownership: DictationOwnership
+    let triggers = FakeTriggers()
+    private let attempts: SessionAttempts
+    private let session = Mutex<Session?>(nil)
+    private let pastedTexts = Mutex<[String]>([])
+    private let keptTexts = Mutex<[String]>([])
+    private let observer = Mutex<OwnershipObserver?>(nil)
+    private let recorder = Recorder()
+
+    init(ownership: DictationOwnership) {
+        self.ownership = ownership
+        attempts = SessionAttempts(ownership: ownership)
+    }
+
+    var latest: OwnershipObserver.Snapshot? { recorder.latest }
+    var pasted: [String] { pastedTexts.withLock { $0 } }
+    var kept: [String] { keptTexts.withLock { $0 } }
+    var isInSession: Bool { session.withLock { $0 != nil } }
+
+    func run() async {
+        let created = OwnershipObserver(ownership: ownership) { [weak self] snapshot in self?.handle(snapshot) }
+        observer.withLock { $0 = created }
+        await created.start()
+    }
+
+    func shutDown() async {
+        await observer.withLock { $0 }?.stop()
+    }
+
+    func begin(_ phase: SessionPhase, text: String) async -> Bool {
+        let started = attempts.start(phase == .practice ? .practice : .global)
+        guard case .admitted = started.admission else { return false }
+        session.withLock { $0 = Session(token: started.token, phase: phase, text: text) }
+        await observer.withLock { $0 }?.setHoldingLease(true)
+        return true
+    }
+
+    /// A Stop reaches only this attempt's lease, and delivery revalidates first.
+    func deliver() async {
+        guard let current = session.withLock({ $0 }) else { return }
+        if attempts.lease(for: current.token)?.revalidate() == true {
+            pastedTexts.withLock { $0.append(current.text) }
+        } else {
+            keptTexts.withLock { $0.append(current.text) }
+        }
+        await end(current.token)
+    }
+
+    private func handle(_ snapshot: OwnershipObserver.Snapshot) {
+        recorder.add(snapshot)
+        triggers.setArmed(snapshot.state.armsTriggers)
+        guard snapshot.intent != nil else { return }
+        session.withLock { current in
+            if current?.intentSeen == nil { current?.intentSeen = Date() }
+        }
+        cancelIfDue()
+        if session.withLock({ $0?.phase }) == .listening {
+            DispatchQueue.global().asyncAfter(deadline: .now() + SessionPhase.listeningGrace) { [weak self] in
+                self?.cancelIfDue()
+            }
+        }
+    }
+
+    private func cancelIfDue() {
+        guard let current = session.withLock({ $0 }), let seen = current.intentSeen,
+              current.phase.shouldCancel(secondsSinceIntentSeen: Date().timeIntervalSince(seen)) else { return }
+        keptTexts.withLock { $0.append(current.text) }
+        Task { await end(current.token) }
+    }
+
+    private func end(_ token: SessionAttempts.Token) async {
+        session.withLock { $0 = nil }
+        attempts.finish(token)
+        await observer.withLock { $0 }?.setHoldingLease(false)
+    }
+}
+
+struct SessionFlowTests {
+    private func app(_ id: String, in scratch: Scratch) async -> SyntheticApp {
+        let app = SyntheticApp(ownership: scratch.live(id))
+        await app.run()
+        return app
+    }
+
+    private func handoff(_ scratch: Scratch) async -> HandoffOutcome {
+        await scratch.live(otherID).takeOwnership(userConfirmed: true, triggers: FakeTriggers())
+    }
+
+    @Test func aPreparingSessionIsCancelledAndTheHandoffCompletes() async throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        try scratch.seedOwner()
+        let prior = await app(ownerID, in: scratch)
+        #expect(await prior.begin(.preparing, text: "synthetic words"))
+        #expect(await handoff(scratch) == .completed(generation: 2))
+        try await waitUntil { !prior.isInSession && prior.latest?.state == .available }
+        #expect(prior.kept == ["synthetic words"])
+        await prior.deliver()
+        #expect(prior.pasted.isEmpty, "A cancelled session never pastes later")
+        #expect(!prior.triggers.armed)
+        await prior.shutDown()
+    }
+
+    @Test func aListeningSessionGetsItsGraceThenIsCancelledWithItsTextKept() async throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        try scratch.seedOwner()
+        let prior = await app(ownerID, in: scratch)
+        #expect(await prior.begin(.listening, text: "synthetic words"))
+        let started = ContinuousClock.now
+        #expect(await handoff(scratch) == .completed(generation: 2))
+        let elapsed = started.duration(to: .now)
+        #expect(elapsed >= .seconds(SessionPhase.listeningGrace - 1), "It was not cut off at once")
+        #expect(elapsed < .seconds(SessionPhase.listeningGrace + 3))
+        #expect(prior.kept == ["synthetic words"])
+        #expect(prior.pasted.isEmpty)
+        await prior.shutDown()
+    }
+
+    @Test func aSessionPastTheMicrophoneDeliversAndThenTheHandoffCompletes() async throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        try scratch.seedOwner()
+        let prior = await app(ownerID, in: scratch)
+        #expect(await prior.begin(.microphoneClosed, text: "synthetic words"))
+        let pending = Task { await handoff(scratch) }
+        try await waitUntil { prior.latest?.intent != nil }
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(prior.isInSession, "It is not cancelled")
+        await prior.deliver()
+        #expect(prior.pasted == ["synthetic words"], "A Stop after the handoff began still ends its own session")
+        #expect(await pending.value == .completed(generation: 2))
+        await prior.shutDown()
+    }
+
+    @Test func aLongDeliveryEndsInTimeoutAndIsNotInterrupted() async throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        try scratch.seedOwner()
+        let prior = await app(ownerID, in: scratch)
+        #expect(await prior.begin(.microphoneClosed, text: "synthetic words"))
+        #expect(await scratch.live(otherID, timings: quick).takeOwnership(userConfirmed: true, triggers: FakeTriggers()) == .timedOut)
+        await prior.deliver()
+        #expect(prior.pasted == ["synthetic words"])
+        #expect(scratch.state?.owner == ownerID)
+        await prior.shutDown()
+    }
+
+    @Test func practiceInAThirdParticipantIsCancelledForAHandoffItIsNotNamedIn() async throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        try scratch.seedOwner()
+        let third = await app("com.example.third", in: scratch)
+        #expect(await third.begin(.practice, text: "synthetic words"))
+        #expect(await handoff(scratch) == .completed(generation: 2))
+        #expect(third.kept == ["synthetic words"])
+        await third.shutDown()
+    }
+
+    @Test func thePriorOwnerDisarmsAndRearmsAroundAFailedHandoff() async throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        try scratch.seedOwner()
+        let prior = await app(ownerID, in: scratch)
+        #expect(prior.triggers.armed)
+        let slow = OwnershipTimings(changeDeadline: .seconds(1), capturePoll: .milliseconds(2), armRetry: .milliseconds(5))
+        let target = FakeTriggers(refusals: .max)
+        let pending = Task { await scratch.live(otherID, timings: slow).takeOwnership(userConfirmed: true, triggers: target) }
+        try await waitUntil(seconds: 1) { !prior.triggers.armed }
+        #expect(await pending.value == .triggerConflict)
+        try await waitUntil { prior.triggers.armed }
+        await prior.shutDown()
     }
 }
 
@@ -675,6 +1108,32 @@ final class FakeArmingHook: OwnershipTriggers {
     }
 }
 
+/// Holds arming open until a test says so, and ignores cancellation as a real controller might.
+final class GatedTriggers: OwnershipTriggers {
+    private let state = Mutex((waiting: false, open: false, armed: false))
+
+    var isWaiting: Bool { state.withLock { $0.waiting } }
+    var armed: Bool { state.withLock { $0.armed } }
+
+    func open() {
+        state.withLock { $0.open = true }
+    }
+
+    func arm() async -> Bool {
+        state.withLock { $0.waiting = true }
+        while !state.withLock({ $0.open }) {
+            usleep(1_000)
+            await Task.yield()
+        }
+        state.withLock { $0.armed = true }
+        return true
+    }
+
+    func disarm() async {
+        state.withLock { $0.armed = false }
+    }
+}
+
 final class Recorder: Sendable {
     private let snapshots = Mutex<[OwnershipObserver.Snapshot]>([])
 
@@ -683,6 +1142,7 @@ final class Recorder: Sendable {
     }
 
     var latest: OwnershipObserver.Snapshot? { snapshots.withLock { $0.last } }
+    var history: [OwnershipObserver.Snapshot] { snapshots.withLock { $0 } }
 }
 
 func waitUntil(

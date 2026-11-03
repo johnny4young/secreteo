@@ -63,6 +63,7 @@ struct StateFormatTests {
         #"{"version":1,"owner":null,"generation":-1,"previous":null,"intent":null}"#,
         #"{"version":1,"owner":null,"generation":0,"previous":null,"intent":{"id":"x"}}"#,
         #"{"version":1,"owner":"","generation":0,"previous":null,"intent":null}"#,
+        #"{"version":1,"owner":null,"generation":\#(Int.max),"previous":null,"intent":null}"#,
         #"{"version":1,"owner":null,"generation":0,"previous":null,"intent":\#(intent(to: ""))}"#,
         #"{"version":1,"owner":null,"generation":0,"previous":null,"intent":\#(intent(from: ""))}"#,
         #"{"version":1,"owner":null,"generation":0,"previous":null,"intent":\#(intent(expires: "2026-11-03T12:00:00Z"))}"#,

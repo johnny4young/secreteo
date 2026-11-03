@@ -19,7 +19,8 @@ public struct OwnershipTimings: Sendable {
 }
 
 public protocol OwnershipTriggers: Sendable {
-    /// Returns false if a trigger cannot be armed yet. May be called again.
+    /// Returns false if a trigger cannot be armed yet. May be called again. Must return promptly,
+    /// since the capture lock is held throughout.
     func arm() async -> Bool
     func disarm() async
 }
@@ -36,6 +37,7 @@ public enum HandoffOutcome: Equatable, Sendable {
     case triggerConflict
     case targetNotReady
     case superseded
+    case cancelled
     case ioError
 }
 
@@ -76,13 +78,26 @@ extension DictationOwnership {
     /// The handoff in the spec, with this participant as the target.
     public func takeOwnership(userConfirmed: Bool, triggers: some OwnershipTriggers) async -> HandoffOutcome {
         guard userConfirmed else { return .notConfirmed }
+        return await runHandoff(onlyFromNobody: false, triggers: triggers)
+    }
+
+    /// One at a time, including its rollback, so an older attempt's cleanup cannot disarm a newer owner.
+    private func runHandoff(onlyFromNobody: Bool, triggers: some OwnershipTriggers) async -> HandoffOutcome {
+        guard !Task.isCancelled else { return .cancelled }
+        let started = handoffInFlight.withLock { running in
+            defer { running = true }
+            return !running
+        }
+        guard started else { return .busy }
+        defer { handoffInFlight.withLock { $0 = false } }
+
         if case .success(let state) = files.read(), state.owner == participant { return .alreadyOwner }
         let current = status()
         guard current == .available else { return .notAvailable(current) }
 
         let intent: OwnershipIntent
         let generation: Int
-        switch publishIntent() {
+        switch publishIntent(onlyFromNobody: onlyFromNobody) {
         case .success(let published): (intent, generation) = published
         case .failure(.failed(let outcome)): return outcome
         }
@@ -94,6 +109,7 @@ extension DictationOwnership {
             let lock = try await pollCapture(until: deadline)
             capture = lock
             try await arm(triggers, until: deadline)
+            try Task.checkCancellation()
             let committed = try commit(intent: intent, generation: generation)
             postChange()
             lock.release()
@@ -104,15 +120,14 @@ extension DictationOwnership {
             clear(intent)
             postChange()
             if case HandoffStep.failed(let outcome) = error { return outcome }
-            return .ioError
+            return error is CancellationError ? .cancelled : .ioError
         }
     }
 
     /// Turning on with no owner is itself the user's request.
     public func preferenceTurnedOn(triggers: some OwnershipTriggers) async -> HandoffOutcome {
-        guard case .success(let state) = files.read() else { return .ioError }
-        guard state.owner == nil else { return .notAvailable(status()) }
-        return await takeOwnership(userConfirmed: true, triggers: triggers)
+        guard case .success(let state) = files.read(), state.owner == nil else { return .notAvailable(status()) }
+        return await runHandoff(onlyFromNobody: true, triggers: triggers)
     }
 
     /// Call after cancelling this app's own session. Changes nothing if it is no longer the owner.
@@ -134,11 +149,12 @@ extension DictationOwnership {
 
     /// Only for an app with existing users. Never waits for capture, so call it again on reevaluation.
     public func claimAtFirstRun() -> OwnershipChange {
-        guard !isDevelopment, case .success = files.read(), !isSandboxedOrUnprepared else { return .noChange }
+        guard !isDevelopment else { return .noChange }
+        if case .unavailable = status() { return .noChange }
         switch files.tryLock(files.captureLock) {
         case .held(let capture):
             defer { capture.release() }
-            return change(capture: capture) { result in
+            return changeHoldingCapture { result in
                 guard case .success(let state) = result, state.generation == 0,
                       state.intent?.isLive(at: self.now()) != true,
                       self.conditions().preferenceIsOn else { return nil }
@@ -164,14 +180,23 @@ extension DictationOwnership {
     private func changeHoldingBothLocks(
         _ next: @escaping @Sendable (Result<OwnershipState, UnavailableReason>) -> OwnershipState?
     ) async -> OwnershipChange {
+        guard setupFailure() == nil else { return .failed }
         let deadline = ContinuousClock.now.advanced(by: timings.changeDeadline)
-        guard let capture = try? await pollCapture(until: deadline) else { return .busy }
+        let capture: HeldLock
+        do {
+            capture = try await pollCapture(until: deadline)
+        } catch HandoffStep.failed(.timedOut) {
+            return .busy
+        } catch is CancellationError {
+            return .busy
+        } catch {
+            return .failed
+        }
         defer { capture.release() }
-        return change(capture: capture, next)
+        return changeHoldingCapture(next)
     }
 
-    private func change(
-        capture: HeldLock,
+    private func changeHoldingCapture(
         _ next: (Result<OwnershipState, UnavailableReason>) -> OwnershipState?
     ) -> OwnershipChange {
         guard let stateLock = lockState() else { return .failed }
@@ -182,13 +207,14 @@ extension DictationOwnership {
         return .changed(generation: state.generation)
     }
 
-    private func publishIntent() -> Result<(OwnershipIntent, Int), HandoffStep> {
+    private func publishIntent(onlyFromNobody: Bool) -> Result<(OwnershipIntent, Int), HandoffStep> {
         guard let stateLock = lockState() else { return .failure(.failed(.ioError)) }
         defer { stateLock.release() }
         guard case .success(var state) = files.read() else { return .failure(.failed(.ioError)) }
         let time = now()
         if state.intent?.isLive(at: time) == true { return .failure(.failed(.busy)) }
         if state.owner == participant { return .failure(.failed(.alreadyOwner)) }
+        if onlyFromNobody && state.owner != nil { return .failure(.failed(.notAvailable(.available))) }
         let intent = OwnershipIntent(from: state.owner, to: participant, now: time)
         state.intent = intent
         guard files.write(state) else { return .failure(.failed(.ioError)) }
@@ -210,8 +236,9 @@ extension DictationOwnership {
     private func arm(_ triggers: some OwnershipTriggers, until deadline: ContinuousClock.Instant) async throws {
         while true {
             guard isStillEligible else { throw HandoffStep.failed(.targetNotReady) }
-            if await triggers.arm() { return }
+            let armed = await triggers.arm()
             guard ContinuousClock.now < deadline else { throw HandoffStep.failed(.triggerConflict) }
+            if armed { return }
             try await Task.sleep(for: timings.armRetry)
         }
     }
@@ -242,11 +269,6 @@ extension DictationOwnership {
     private var isStillEligible: Bool {
         let current = conditions()
         return current.preferenceIsOn && current.missingForReadiness == nil && !current.legacyPeerIsActive
-    }
-
-    private var isSandboxedOrUnprepared: Bool {
-        if case .unavailable = status() { return true }
-        return false
     }
 
     /// Polled for at most a second, and never held across a wait.
