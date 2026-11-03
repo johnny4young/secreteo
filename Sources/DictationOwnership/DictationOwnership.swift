@@ -59,9 +59,22 @@ public final class DictationOwnership: Sendable {
 
     /// The default folder, which is not usable from a sandboxed process.
     public static var defaultRoot: URL {
-        FileManager.default.homeDirectoryForCurrentUser
+        accountHome
             .appendingPathComponent("Library/Application Support", isDirectory: true)
             .appendingPathComponent(folderName, isDirectory: true)
+    }
+
+    // From the account, because Foundation's home directory follows `CFFIXED_USER_HOME`.
+    private static var accountHome: URL {
+        var entry = passwd()
+        var result: UnsafeMutablePointer<passwd>?
+        var buffer = [CChar](repeating: 0, count: 16_384)
+        guard getpwuid_r(getuid(), &entry, &buffer, buffer.count, &result) == 0, result != nil,
+              let directory = entry.pw_dir else {
+            // Nothing can be created here, so this fails closed as `ioError`.
+            return URL(fileURLWithPath: "/var/empty", isDirectory: true)
+        }
+        return URL(fileURLWithPath: String(cString: directory), isDirectory: true)
     }
 
     /// `root` is a parameter so tests can use a scratch folder, and nothing else may move it.
@@ -81,6 +94,8 @@ public final class DictationOwnership: Sendable {
 
     public func status() -> ParticipantState {
         if let reason = setupFailure() { return .unavailable(reason) }
+        guard files.canOpen(files.captureLock) else { return .unavailable(.ioError) }
+        // The state lock, because a writer waits for it and a key press would not wait for capture.
         switch files.tryLock(files.stateLock) {
         case .held(let probe): probe.release()
         case .busy: break
@@ -130,7 +145,7 @@ public final class DictationOwnership: Sendable {
     }
 }
 
-/// Ties each Stop to its own start, so the release after a refused press cannot end another session.
+/// Ties each Stop to its own start, so the release after a refused press cannot reach another session.
 public final class SessionAttempts: Sendable {
     public struct Token: Hashable, Sendable {
         fileprivate let id = UUID()
@@ -152,9 +167,14 @@ public final class SessionAttempts: Sendable {
         return (token, admission)
     }
 
-    /// Returns whether this ended a lease. A token from a refused start ends nothing.
+    /// The lease this attempt received, or `nil` for a refused or finished one, whose Stop does nothing.
+    public func lease(for token: Token) -> OwnershipLease? {
+        leases.withLock { $0[token] }
+    }
+
+    /// Releases the lease. Call it after delivery has finished and Stop has drained, not on the Stop itself.
     @discardableResult
-    public func stop(_ token: Token) -> Bool {
+    public func finish(_ token: Token) -> Bool {
         guard let lease = leases.withLock({ $0.removeValue(forKey: token) }) else { return false }
         lease.release()
         return true

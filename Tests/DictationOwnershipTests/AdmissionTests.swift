@@ -185,6 +185,99 @@ struct AdmissionTests {
         }
     }
 
+    @Test func anOversizedFileIsCorruptAndLeftInPlace() throws {
+        try withScratch { scratch in
+            // Valid JSON once parsed, so only the size can refuse it.
+            let valid = try OwnershipState(owner: ownerID, generation: 1, previous: nil, intent: nil).encoded()
+            let oversized = valid + Data(repeating: 0x20, count: OwnershipFiles.maximumStateSize + 1 - valid.count)
+            try oversized.write(to: scratch.files.stateFile)
+            #expect(scratch.participant().status() == .unavailable(.corruptState))
+            #expect(try Data(contentsOf: scratch.files.stateFile) == oversized)
+        }
+    }
+
+    @Test func anInvalidIntentRefusesTheOwnerInsteadOfLookingExpired() throws {
+        try withScratch { scratch in
+            let text = #"""
+                {"version":1,"owner":"com.example.owner","generation":1,"previous":null,"intent":{
+                "id":"6F1E1A52-5C1B-4E58-9C49-0D0B4C2F6A11","from":"com.example.owner","to":"com.example.other",
+                "createdAt":"2026-11-03T12:00:00Z","expiresAt":"2026-11-03T12:00:00Z"}}
+                """#
+            try Data(text.utf8).write(to: scratch.files.stateFile)
+            #expect(refusal(from: scratch.participant().acquire(.global)) == .unavailable(.corruptState))
+        }
+    }
+
+    @Test func statusReportsACaptureLockItCannotOpen() throws {
+        try withScratch { scratch in
+            try scratch.seedOwner()
+            let target = scratch.root.appendingPathComponent("elsewhere")
+            FileManager.default.createFile(atPath: target.path, contents: nil)
+            try FileManager.default.createSymbolicLink(at: scratch.files.captureLock, withDestinationURL: target)
+            let ownership = scratch.participant()
+            #expect(ownership.status() == .unavailable(.ioError))
+            #expect(refusal(from: ownership.acquire(.global)) == .unavailable(.ioError))
+        }
+    }
+
+    @Test func statusDoesNotHoldCapture() throws {
+        try withScratch { scratch in
+            try scratch.seedOwner()
+            let ownership = scratch.participant()
+            let held = lease(from: ownership.acquire(.global))
+            #expect(ownership.status() == .owned)
+            #expect(held?.revalidate() == true)
+        }
+    }
+
+    @Test func aFolderThatRefusesTheBackupExclusionStillAdmits() throws {
+        try withScratch { scratch in
+            try scratch.seedOwner()
+            FileManager.default.createFile(atPath: scratch.files.captureLock.path, contents: nil)
+            FileManager.default.createFile(atPath: scratch.files.stateLock.path, contents: nil)
+            chmod(scratch.root.path, 0o500)
+            defer { chmod(scratch.root.path, 0o700) }
+            #expect(lease(from: scratch.participant().acquire(.global)) != nil)
+        }
+    }
+
+    @Test func anExistingFolderWithOpenAccessIsMadePrivate() throws {
+        try withScratch { scratch in
+            chmod(scratch.root.path, 0o755)
+            _ = scratch.participant().status()
+            let attributes = try FileManager.default.attributesOfItem(atPath: scratch.root.path)
+            #expect(attributes[.posixPermissions] as? Int == 0o700)
+        }
+    }
+
+    @Test func thePermanentNamesAreTheOnesInTheSpec() {
+        let files = OwnershipFiles(root: URL(fileURLWithPath: "/scratch"))
+        #expect(files.captureLock.path == "/scratch/capture.lock")
+        #expect(files.stateLock.path == "/scratch/state.lock")
+        #expect(files.stateFile.path == "/scratch/ownership.json")
+        let root = DictationOwnership.defaultRoot.path
+        #expect(root.hasSuffix("/Library/Application Support/com.johnny4young.dictation-ownership"))
+    }
+
+    @Test func noEnvironmentVariableMovesTheDefaultRoot() throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        let moved = try scratch.clientOutput(["print-root"], environment: ["CFFIXED_USER_HOME": scratch.root.path])
+        #expect(moved == DictationOwnership.defaultRoot.path)
+    }
+
+    @Test func theTargetImportsOnlyWhatPortavozCanCopy() throws {
+        let sources = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Sources/DictationOwnership")
+        let allowed: Set<String> = ["Darwin", "Foundation", "Synchronization"]
+        for name in try FileManager.default.contentsOfDirectory(atPath: sources.path) {
+            let text = try String(contentsOf: sources.appendingPathComponent(name), encoding: .utf8)
+            let imports = text.split(separator: "\n").filter { $0.hasPrefix("import ") }.map { String($0.dropFirst(7)) }
+            #expect(Set(imports).isSubset(of: allowed), "\(name) imports \(imports)")
+        }
+    }
+
     @Test func aSandboxedProcessCreatesNothing() throws {
         try withScratch { scratch in
             let unused = scratch.root.appendingPathComponent("container", isDirectory: true)
@@ -279,6 +372,36 @@ struct LockFileTests {
         }
     }
 
+    @Test func aFailedFlushKeepsTheOldStateAndLeavesNoTemporaryFile() throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        try scratch.seedOwner(generation: 3)
+        let before = try Data(contentsOf: scratch.files.stateFile)
+        let next = OwnershipState(owner: otherID, generation: 4, previous: nil, intent: nil)
+        #expect(!scratch.files.write(next, flush: { _ in false }))
+        #expect(try Data(contentsOf: scratch.files.stateFile) == before)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: scratch.root.path) == ["ownership.json"])
+    }
+
+    @Test func aFailedRenameLeavesNoTemporaryFile() throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        let blocker = scratch.files.stateFile.appendingPathComponent("inside")
+        try FileManager.default.createDirectory(at: blocker, withIntermediateDirectories: true)
+        #expect(!scratch.files.write(OwnershipState.nobody))
+        #expect(try FileManager.default.contentsOfDirectory(atPath: scratch.root.path) == ["ownership.json"])
+    }
+
+    @Test func aVolumeWithoutFullSyncFallsBackToFsync() throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        let path = scratch.root.appendingPathComponent("file").path
+        let descriptor = open(path, O_WRONLY | O_CREAT, 0o600)
+        defer { close(descriptor) }
+        #expect(OwnershipFiles.flush(descriptor, fullSync: { _ in -1 }))
+        #expect(!OwnershipFiles.flush(-1, fullSync: { _ in -1 }))
+    }
+
     @Test func aWriteLeavesNoTemporaryFileAndClearsAStaleOne() throws {
         let scratch = try Scratch()
         defer { scratch.cleanUp() }
@@ -301,35 +424,36 @@ struct LockFileTests {
 }
 
 struct LockReleaseTests {
-    // A child being spawned holds the description until its exec, so closing alone would not release it yet.
-    @Test func aReleaseFreesTheLockAtOnceWhileChildrenAreSpawned() async throws {
+    // A child being spawned holds the description until its exec, which a duplicate stands in for.
+    @Test func aReleaseFreesTheLockWhileAnotherReferenceToTheDescriptionExists() throws {
         let scratch = try Scratch()
         defer { scratch.cleanUp() }
-        try scratch.seedOwner()
-        let ownership = scratch.participant()
-        let spawner = Task.detached {
-            while !Task.isCancelled {
-                let child = Process()
-                child.executableURL = URL(fileURLWithPath: "/usr/bin/true")
-                try? child.run()
-                child.waitUntilExit()
-            }
+        guard case .held(let first) = scratch.files.tryLock(scratch.files.captureLock) else {
+            Issue.record("The first lock must be free")
+            return
         }
-        defer { spawner.cancel() }
-        var refused = 0
-        for _ in 0..<2_000 {
-            guard case .admitted(let held) = ownership.acquire(.global) else {
-                refused += 1
-                continue
-            }
-            held.release()
+        let duplicate = dup(try #require(first.descriptorForTesting))
+        defer { close(duplicate) }
+        first.release()
+        guard case .held = scratch.files.tryLock(scratch.files.captureLock) else {
+            Issue.record("A release must free the lock at once")
+            return
         }
-        #expect(refused == 0)
+    }
+
+    @Test func theDescriptorClosesOnExec() throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        guard case .held(let lock) = scratch.files.tryLock(scratch.files.captureLock) else {
+            Issue.record("The lock must be free")
+            return
+        }
+        #expect(fcntl(try #require(lock.descriptorForTesting), F_GETFD) & FD_CLOEXEC != 0)
     }
 }
 
 struct SessionAttemptsTests {
-    @Test func theReleaseAfterARefusedPressCannotEndAnotherSession() throws {
+    @Test func theReleaseAfterARefusedPressCannotReachAnotherSession() throws {
         let scratch = try Scratch()
         defer { scratch.cleanUp() }
         try scratch.seedOwner()
@@ -338,56 +462,79 @@ struct SessionAttemptsTests {
         let menu = attempts.start(.global)
         let press = attempts.start(.global)
         #expect(refusal(from: press.admission) == .busy)
-        #expect(!attempts.stop(press.token))
+        #expect(attempts.lease(for: press.token) == nil)
+        #expect(!attempts.finish(press.token))
+        #expect(attempts.lease(for: menu.token) != nil)
         // The menu session still holds the lock, so a new attempt is still busy.
         #expect(refusal(from: attempts.start(.global).admission) == .busy)
 
-        #expect(attempts.stop(menu.token))
+        #expect(attempts.finish(menu.token))
         #expect(lease(from: attempts.start(.global).admission) != nil)
     }
 
-    @Test func aSecondStopDoesNothing() throws {
+    @Test func lookingUpALeaseDoesNotReleaseIt() throws {
         let scratch = try Scratch()
         defer { scratch.cleanUp() }
         try scratch.seedOwner()
         let attempts = SessionAttempts(ownership: scratch.participant())
         let session = attempts.start(.global)
-        #expect(attempts.stop(session.token))
-        #expect(!attempts.stop(session.token))
+        #expect(attempts.lease(for: session.token)?.revalidate() == true)
+        #expect(refusal(from: attempts.start(.global).admission) == .busy)
+    }
+
+    @Test func aSecondFinishDoesNothing() throws {
+        let scratch = try Scratch()
+        defer { scratch.cleanUp() }
+        try scratch.seedOwner()
+        let attempts = SessionAttempts(ownership: scratch.participant())
+        let session = attempts.start(.global)
+        #expect(attempts.finish(session.token))
+        #expect(!attempts.finish(session.token))
+        #expect(attempts.lease(for: session.token) == nil)
     }
 }
 
 struct MultiprocessTests {
+    @Test func theCheckerRejectsEveryBrokenLog() {
+        #expect(violations(in: ["enter 1", "exit 1", "enter 2", "exit 2"]).isEmpty)
+        #expect(!violations(in: ["enter 1", "enter 2", "exit 1", "exit 2"]).isEmpty)
+        #expect(!violations(in: ["exit 1", "enter 1", "enter 2", "exit 1", "exit 2"]).isEmpty)
+        #expect(!violations(in: ["enter 1"]).isEmpty)
+        #expect(!violations(in: ["garbage"]).isEmpty)
+    }
+
     @Test func theNegativeControlShowsTheLogCatchesOverlaps() async throws {
         let scratch = try Scratch()
         defer { scratch.cleanUp() }
         let clients = try (0..<3).map { _ in
             try scratch.client("sessions", participant: ownerID, extra: ["--rounds", "200", "--skip-lease", "--hold-us", "200"])
         }
-        for client in clients { await finish(client) }
-        #expect(overlaps(in: try scratch.events()) > 0, "With no lease the checker must report overlaps")
+        for client in clients { await finishClean(client) }
+        #expect(violations(in: try scratch.events()).contains { $0.hasPrefix("overlap") })
     }
 
     @Test func simultaneousClientsNeverOverlapAndOnlyTheOwnerEnters() async throws {
         let scratch = try Scratch()
         defer { scratch.cleanUp() }
         try scratch.seedOwner()
-        let arguments = ["--rounds", "300", "--hold-us", "200"]
+        let rounds = 300
+        let arguments = ["--rounds", String(rounds), "--hold-us", "200"]
         let clients = [
             try scratch.client("sessions", participant: ownerID, extra: arguments),
             try scratch.client("sessions", participant: ownerID, extra: arguments),
             try scratch.client("sessions", participant: otherID, extra: arguments),
             try scratch.client("sessions", participant: "\(ownerID).dev", extra: arguments)
         ]
-        for client in clients { await finish(client) }
+        for client in clients { await finishClean(client) }
 
         let events = try scratch.events()
-        #expect(overlaps(in: events) == 0)
-        #expect(events.contains { $0.hasPrefix("enter") })
+        #expect(violations(in: events).isEmpty)
+        for client in clients { #expect(attempts(in: events, by: client) == rounds) }
         #expect(events.contains { $0.hasPrefix("busy") }, "The clients have to have competed for this to prove anything")
-        let enteringProcesses = Set(events.filter { $0.hasPrefix("enter") })
-        let ownerProcesses = Set([clients[0], clients[1]].map { "enter \($0.processIdentifier)" })
-        #expect(enteringProcesses.isSubset(of: ownerProcesses))
+        let entering = Set(events.filter { $0.hasPrefix("enter") })
+        let owners = Set([clients[0], clients[1]].map { "enter \($0.processIdentifier)" })
+        #expect(!entering.isEmpty)
+        #expect(entering.isSubset(of: owners))
     }
 
     @Test func aKilledHolderFreesTheLockAndLeavesTheOwner() async throws {

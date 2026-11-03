@@ -55,7 +55,7 @@ struct Scratch {
     }
 
     func seed(_ state: OwnershipState) throws {
-        #expect(files.write(state))
+        try #require(files.write(state))
     }
 
     func seedOwner(_ id: String = ownerID, generation: Int = 1) throws {
@@ -84,24 +84,48 @@ struct Scratch {
         return process
     }
 
+    func clientOutput(_ arguments: [String], environment: [String: String]) throws -> String {
+        let process = Process()
+        let output = Pipe()
+        process.executableURL = try clientExecutable()
+        process.arguments = arguments
+        process.environment = environment
+        process.standardOutput = output
+        try process.run()
+        process.waitUntilExit()
+        let data = output.fileHandleForReading.readDataToEndOfFile()
+        return String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     func events() throws -> [String] {
         try String(contentsOf: log, encoding: .utf8).split(separator: "\n").map(String.init)
     }
 }
 
-/// Counts `enter` lines that land while another process's session is open.
-func overlaps(in events: [String]) -> Int {
-    var open = 0
-    var found = 0
+/// Every way a log can break exclusion: an `enter` during another session, an `exit` with no
+/// matching `enter`, or a session that never ended.
+func violations(in events: [String]) -> [String] {
+    var open = Set<String>()
+    var found: [String] = []
     for event in events {
-        if event.hasPrefix("enter") {
-            if open > 0 { found += 1 }
-            open += 1
-        } else if event.hasPrefix("exit") {
-            open -= 1
+        let parts = event.split(separator: " ").map(String.init)
+        guard parts.count == 2 else {
+            found.append("malformed: \(event)")
+            continue
+        }
+        if parts[0] == "enter" {
+            if !open.isEmpty { found.append("overlap: \(event)") }
+            open.insert(parts[1])
+        } else if parts[0] == "exit", open.remove(parts[1]) == nil {
+            found.append("unmatched: \(event)")
         }
     }
-    return found
+    return found + open.map { "unfinished: \($0)" }
+}
+
+/// Each log line a process wrote, keyed by the process that wrote it.
+func attempts(in events: [String], by process: Process) -> Int {
+    events.filter { $0.hasSuffix(" \(process.processIdentifier)") && !$0.hasPrefix("exit") }.count
 }
 
 func lease(from admission: Admission, sourceLocation: SourceLocation = #_sourceLocation) -> OwnershipLease? {
@@ -131,4 +155,9 @@ func finish(_ process: Process) async {
             continuation.resume()
         }
     }
+}
+
+func finishClean(_ process: Process, sourceLocation: SourceLocation = #_sourceLocation) async {
+    await finish(process)
+    #expect(process.terminationStatus == 0, sourceLocation: sourceLocation)
 }

@@ -25,6 +25,7 @@ secreteo-mcp      stdio executable
   Triggers          Carbon hotkey, modifier and mouse push-to-talk
   Polish            prompts, ports, Apple Foundation Models, Ollama client, egress gateway
   DictationKit      domain, text rules, use cases
+  DictationOwnership  one global dictation at a time, shared with Portavoz
   DictationStore    GRDB, own database
   LiveSpeech        Parakeet, Silero. FluidAudio with traits: []
   MicCapture        microphone capture and permission

@@ -2,6 +2,14 @@
 import Foundation
 import Testing
 
+private func intent(
+    from: String = "com.example.app",
+    to: String = "com.example.other",
+    expires: String = "2026-11-03T12:00:15Z"
+) -> String {
+    #"{"id":"6F1E1A52-5C1B-4E58-9C49-0D0B4C2F6A11","from":"\#(from)","to":"\#(to)","createdAt":"2026-11-03T12:00:00Z","expiresAt":"\#(expires)"}"#
+}
+
 struct StateFormatTests {
     private let specExample = """
         {
@@ -18,6 +26,11 @@ struct StateFormatTests {
           }
         }
         """
+
+    @Test func aWellFormedIntentHelperIsValid() throws {
+        let text = #"{"version":1,"owner":null,"generation":0,"previous":null,"intent":\#(intent())}"#
+        #expect(try OwnershipState.decoded(from: Data(text.utf8)).get().intent?.to == "com.example.other")
+    }
 
     @Test func theSpecExampleDecodes() throws {
         let state = try OwnershipState.decoded(from: Data(specExample.utf8)).get()
@@ -48,7 +61,12 @@ struct StateFormatTests {
         #"{"version":"1","owner":null,"generation":0,"previous":null,"intent":null}"#,
         #"{"version":1,"owner":null,"previous":null,"intent":null}"#,
         #"{"version":1,"owner":null,"generation":-1,"previous":null,"intent":null}"#,
-        #"{"version":1,"owner":null,"generation":0,"previous":null,"intent":{"id":"x"}}"#
+        #"{"version":1,"owner":null,"generation":0,"previous":null,"intent":{"id":"x"}}"#,
+        #"{"version":1,"owner":"","generation":0,"previous":null,"intent":null}"#,
+        #"{"version":1,"owner":null,"generation":0,"previous":null,"intent":\#(intent(to: ""))}"#,
+        #"{"version":1,"owner":null,"generation":0,"previous":null,"intent":\#(intent(from: ""))}"#,
+        #"{"version":1,"owner":null,"generation":0,"previous":null,"intent":\#(intent(expires: "2026-11-03T12:00:00Z"))}"#,
+        #"{"version":1,"owner":null,"generation":0,"previous":null,"intent":\#(intent(expires: "2026-11-03T13:00:00Z"))}"#
     ])
     func invalidContentIsCorrupt(text: String) {
         #expect(throws: UnavailableReason.corruptState) { try OwnershipState.decoded(from: Data(text.utf8)).get() }

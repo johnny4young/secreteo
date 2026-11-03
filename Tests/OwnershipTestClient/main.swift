@@ -49,9 +49,13 @@ case "hold":
     guard case .admitted(let lease) = ownership.acquire(.global) else { exit(2) }
     print("held")
     fflush(stdout)
+    // Ends with its parent, so a crashed test run leaves nothing behind.
     withExtendedLifetime(lease) {
-        while true { sleep(60) }
+        while getppid() != 1 { sleep(1) }
     }
+
+case "print-root":
+    print(DictationOwnership.defaultRoot.path)
 
 default:
     exit(64)

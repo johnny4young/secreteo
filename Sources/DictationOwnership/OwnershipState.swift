@@ -5,7 +5,7 @@ public struct OwnershipState: Codable, Equatable, Sendable {
     public static let currentVersion = 1
     public static let nobody = OwnershipState(owner: nil, generation: 0, previous: nil, intent: nil)
 
-    public var version: Int
+    public let version: Int
     public var owner: String?
     public var generation: Int
     public var previous: String?
@@ -49,10 +49,17 @@ public struct OwnershipState: Codable, Equatable, Sendable {
         decoder.dateDecodingStrategy = .iso8601
         guard let probe = try? decoder.decode(VersionProbe.self, from: data) else { return .failure(.corruptState) }
         guard probe.version == currentVersion else { return .failure(.newerProtocol) }
-        guard let state = try? decoder.decode(OwnershipState.self, from: data), state.generation >= 0 else {
+        guard let state = try? decoder.decode(OwnershipState.self, from: data), state.isValid else {
             return .failure(.corruptState)
         }
         return .success(state)
+    }
+
+    private var isValid: Bool {
+        guard generation >= 0, owner?.isEmpty != true else { return false }
+        guard let intent else { return true }
+        return !intent.to.isEmpty && intent.from?.isEmpty != true
+            && intent.expiresAt == intent.createdAt.addingTimeInterval(OwnershipIntent.lifetime)
     }
 
     func encoded() throws -> Data {
