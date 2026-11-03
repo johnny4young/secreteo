@@ -5,6 +5,7 @@ DEV_APP := /Applications/Secreteo Dev.app
 .PHONY: project build test lint hygiene test-ui-smoke test-ui-full install
 
 project:
+	scripts/fetch-sparkle.sh
 	xcodegen generate --quiet
 
 build:

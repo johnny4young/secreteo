@@ -94,6 +94,37 @@ struct AppModelTests {
     }
 }
 
+@MainActor
+struct UpdateTests {
+    private final class Recording: UpdateChecking {
+        var canCheckForUpdates = true
+        var checks = 0
+        func checkForUpdates() { checks += 1 }
+    }
+
+    @Test func noUpdaterMeansNoControls() {
+        let model = AppModel(launchController: InMemoryLaunchAtLogin())
+        #expect(model.canCheckForUpdates == false)
+        model.checkForUpdates()
+    }
+
+    @Test func aBuildWithoutAKeyHidesTheControls() {
+        let model = AppModel(launchController: InMemoryLaunchAtLogin())
+        let updater = Recording()
+        updater.canCheckForUpdates = false
+        model.updater = updater
+        #expect(model.canCheckForUpdates == false)
+    }
+
+    @Test func checkingGoesToTheUpdater() {
+        let model = AppModel(launchController: InMemoryLaunchAtLogin())
+        let updater = Recording()
+        model.updater = updater
+        model.checkForUpdates()
+        #expect(updater.checks == 1)
+    }
+}
+
 struct RuntimeOptionsTests {
     @Test func testFlagsRequireTheTemporaryStore() {
         let bare = RuntimeOptions(arguments: ["-show-menu-content", "-fail-launch-at-login"], allowsTestFlags: true)
@@ -103,7 +134,8 @@ struct RuntimeOptionsTests {
     }
 
     @Test func aReleaseBuildIgnoresTestFlags() {
-        let release = RuntimeOptions(arguments: ["-use-temp-store", "-show-menu-content"], allowsTestFlags: false)
-        #expect(!release.usesTemporaryStore && !release.showsMenuContentWindow)
+        let flags = ["-use-temp-store", "-show-menu-content", "-report-available-update"]
+        let release = RuntimeOptions(arguments: flags, allowsTestFlags: false)
+        #expect(!release.usesTemporaryStore && !release.showsMenuContentWindow && !release.reportsAvailableUpdate)
     }
 }

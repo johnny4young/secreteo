@@ -78,6 +78,23 @@ final class ShellUITests: XCTestCase {
         screenshot("pr-settings-error")
     }
 
+    func testUpdateControlsAndTheGentleReminder() {
+        app.launchArguments.append("-report-available-update")
+        launchInFront()
+        XCTAssertTrue(element("menu-update-available").waitForExistence(timeout: 30))
+        XCTAssertTrue(element("menu-check-updates").exists)
+        screenshot("pr-menu-update-available")
+
+        element("menu-settings").click()
+        XCTAssertTrue(element("settings-check-updates").waitForExistence(timeout: 10))
+    }
+
+    func testNoUpdateReminderUntilThereIsOne() {
+        launchInFront()
+        XCTAssertTrue(element("menu-check-updates").waitForExistence(timeout: 30))
+        XCTAssertFalse(element("menu-update-available").exists)
+    }
+
     func testQuitEndsTheApp() {
         launchInFront()
         XCTAssertTrue(element("menu-quit").waitForExistence(timeout: 30))

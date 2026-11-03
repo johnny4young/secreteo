@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# Fetches the pinned Sparkle.framework and its tools from one checksum-verified archive,
+# so the app and the release tooling cannot drift apart. Vendor/ is git-ignored.
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$repo_root"
+
+SPARKLE_VERSION="${SPARKLE_VERSION:-2.10.1}"
+SPARKLE_SHA256="${SPARKLE_SHA256:-1a856d2a9edb8e628de88121d7be04cf0e2167f8641650b78fca00b14244cf27}"
+VENDOR_DIR="${VENDOR_DIR:-Vendor}"
+FRAMEWORK="$VENDOR_DIR/Sparkle.framework"
+TOOLS="$VENDOR_DIR/bin"
+RECEIPT="$VENDOR_DIR/.sparkle-receipt"
+expected_receipt="$SPARKLE_VERSION $SPARKLE_SHA256"
+
+# A cache from another pin must not bypass the verified download.
+if [ -d "$FRAMEWORK" ] && [ -x "$TOOLS/sign_update" ] \
+	&& [ -x "$TOOLS/generate_appcast" ] && [ -x "$TOOLS/generate_keys" ] \
+	&& [ -f "$RECEIPT" ] && [ "$(cat "$RECEIPT")" = "$expected_receipt" ] \
+	&& [ -z "${FORCE:-}" ]; then
+	printf '✓ Sparkle.framework + bin/ already present in %s/ (set FORCE=1 to refetch)\n' "$VENDOR_DIR"
+	exit 0
+fi
+
+url="https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz"
+tmp="$(mktemp -d "${TMPDIR:-/tmp}/sparkle.XXXXXX")"
+trap 'rm -rf "$tmp"' EXIT
+
+printf '==> Downloading Sparkle %s\n' "$SPARKLE_VERSION"
+curl -fsSL "$url" -o "$tmp/sparkle.tar.xz"
+
+printf '==> Verifying checksum\n'
+actual="$(shasum -a 256 "$tmp/sparkle.tar.xz" | awk '{print $1}')"
+if [ "$actual" != "$SPARKLE_SHA256" ]; then
+	echo "error: Sparkle checksum mismatch" >&2
+	echo "  expected $SPARKLE_SHA256" >&2
+	echo "  actual   $actual" >&2
+	exit 1
+fi
+
+printf '==> Extracting Sparkle.framework into %s/\n' "$VENDOR_DIR"
+tar -xf "$tmp/sparkle.tar.xz" -C "$tmp"
+# Reject incomplete archives before touching the working installation.
+[ -d "$tmp/Sparkle.framework" ] || { echo "error: missing Sparkle.framework" >&2; exit 1; }
+for tool in sign_update generate_appcast generate_keys; do
+	[ -x "$tmp/bin/$tool" ] || { echo "error: missing Sparkle tool: $tool" >&2; exit 1; }
+done
+mkdir -p "$VENDOR_DIR"
+rm -f "$RECEIPT"
+rm -rf "$FRAMEWORK"
+cp -R "$tmp/Sparkle.framework" "$FRAMEWORK"
+printf '✓ %s (Sparkle %s)\n' "$FRAMEWORK" "$SPARKLE_VERSION"
+
+if [ -d "$tmp/bin" ]; then
+	printf '==> Extracting Sparkle bin/ tools into %s/\n' "$TOOLS"
+	rm -rf "$TOOLS"
+	cp -R "$tmp/bin" "$TOOLS"
+	printf '✓ %s (sign_update, generate_appcast, generate_keys)\n' "$TOOLS"
+fi
+
+# Publish only after both the framework and tools were installed successfully.
+printf '%s\n' "$expected_receipt" >"$RECEIPT"

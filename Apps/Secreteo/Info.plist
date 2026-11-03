@@ -28,5 +28,11 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 Johnny Young</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://github.com/johnny4young/secreteo/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>$(SPARKLE_PUBLIC_ED_KEY)</string>
 </dict>
 </plist>

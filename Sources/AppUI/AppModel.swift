@@ -1,6 +1,14 @@
 import AppKit
 import Observation
 
+/// The update mechanism, behind a seam so tests never reach the network.
+@MainActor
+public protocol UpdateChecking: AnyObject {
+    /// False when this build has no update key, so the controls stay hidden.
+    var canCheckForUpdates: Bool { get }
+    func checkForUpdates()
+}
+
 /// What the menu and Settings show, and the actions behind them.
 @MainActor
 @Observable
@@ -8,6 +16,10 @@ public final class AppModel {
     public private(set) var launchAtLogin: Bool
     /// Shown next to the toggle, because a silent revert would look like a broken control.
     public private(set) var launchAtLoginFailed = false
+
+    /// Set instead of interrupting: an update must never cut into a dictation.
+    public var updateIsAvailable = false
+    public var updater: (any UpdateChecking)?
 
     public let versionDescription: String
     public var openSettings: () -> Void = {}
@@ -35,6 +47,14 @@ public final class AppModel {
     public func openNotices(bundle: Bundle = .main) {
         guard let url = bundle.url(forResource: "THIRD-PARTY-NOTICES", withExtension: "md") else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    public var canCheckForUpdates: Bool {
+        updater?.canCheckForUpdates == true
+    }
+
+    public func checkForUpdates() {
+        updater?.checkForUpdates()
     }
 
     public func quit() {

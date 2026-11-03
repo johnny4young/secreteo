@@ -8,6 +8,7 @@ screenshots="${2:-build/pr-screenshots}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+scripts/fetch-sparkle.sh
 xcodegen generate --quiet
 results="build/ui-$plan.xcresult"
 rm -rf "$results" "$screenshots"
