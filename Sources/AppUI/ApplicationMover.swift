@@ -28,10 +28,7 @@ enum ApplicationMover {
 
         let destination = URL(fileURLWithPath: "/Applications").appendingPathComponent(bundleURL.lastPathComponent)
         do {
-            if FileManager.default.fileExists(atPath: destination.path) {
-                _ = try FileManager.default.trashItem(at: destination, resultingItemURL: nil)
-            }
-            try FileManager.default.copyItem(at: bundleURL, to: destination)
+            try install(bundleURL, at: destination)
         } catch {
             let failure = NSAlert()
             failure.messageText = String(localized: "Could not move Secreteo.")
@@ -41,5 +38,26 @@ enum ApplicationMover {
         releaseInstanceLock()
         NSWorkspace.shared.openApplication(at: destination, configuration: .init())
         return true
+    }
+
+    /// Copies before touching anything, so a failed copy leaves the installed app in place,
+    /// and only replaces an older copy of this app, never another app with the same name.
+    private static func install(_ source: URL, at destination: URL) throws {
+        let manager = FileManager.default
+        let incoming = destination.deletingLastPathComponent()
+            .appendingPathComponent(".\(UUID().uuidString)-\(destination.lastPathComponent)")
+        try manager.copyItem(at: source, to: incoming)
+        do {
+            if manager.fileExists(atPath: destination.path) {
+                guard Bundle(url: destination)?.bundleIdentifier == Bundle.main.bundleIdentifier else {
+                    throw CocoaError(.fileWriteFileExists)
+                }
+                try manager.trashItem(at: destination, resultingItemURL: nil)
+            }
+            try manager.moveItem(at: incoming, to: destination)
+        } catch {
+            try? manager.removeItem(at: incoming)
+            throw error
+        }
     }
 }

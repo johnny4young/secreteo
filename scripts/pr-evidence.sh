@@ -14,6 +14,11 @@ git clone --quiet --depth 1 --branch pr-evidence "https://github.com/$repo.git" 
   git init --quiet --initial-branch pr-evidence "$work/evidence"
   git -C "$work/evidence" remote add origin "https://github.com/$repo.git"
 }
+# A run can come from a fork, and `cp` would follow a link to a local file.
+if [[ -n "$(find "$work/shots" ! -type f ! -type d)" ]]; then
+  echo "The artifact has something other than files." >&2
+  exit 1
+fi
 mkdir -p "$work/evidence/pr-$pr"
 cp "$work"/shots/*.png "$work/evidence/pr-$pr/"
 git -C "$work/evidence" add -A
