@@ -161,7 +161,7 @@ The rename in step 6 is the commit. It means no one held a lease, because `T` he
 
 | Failure | Outcome | What the user sees |
 |---|---|---|
-| Another session holds the lock at the deadline, which can be longer than a delivery is allowed to take | `timedOut`, nothing changes and nothing is interrupted | Another session is busy, and the way out is to retry or quit an app. `flock` does not reveal the holder, so no app is named. `T` never kills anything |
+| Another session still holds the lock at the deadline, even one that is only delivering | `timedOut`, nothing changes and nothing is interrupted | Another session is busy, and the way out is to retry or quit an app. `flock` does not reveal the holder, so no app is named. `T` never kills anything |
 | `T` cannot arm a trigger | `triggerConflict`, nothing changes | Which shortcut conflicts |
 | `T`'s preference, readiness or row 2 changed | `targetNotReady`, nothing changes | What changed |
 | Intent replaced or expired, or generation changed | `superseded`, nothing changes | Retry |
