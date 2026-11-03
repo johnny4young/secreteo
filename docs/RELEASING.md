@@ -1,10 +1,10 @@
 # Releasing
 
-A `v*` tag runs `release.yml`. The owner approves the `release` Environment and publishes.
+A `v*` tag runs `release.yml`. The owner approves the `release` Environment, reviews the draft it creates, and publishes. Nothing reaches users before that.
 
 ## Flow
 
-1. Tag equals `MARKETING_VERSION`, and `CHANGELOG.md` has an entry.
+1. `scripts/check_release.py` refuses a tag that differs from `MARKETING_VERSION`, has no `## <version>` section in `CHANGELOG.md`, is not on `main`, or has no Sparkle key. It also refuses a build with `Sources/Triggers` until the repository variable `PORTAVOZ_14_RELEASED` is `true`.
 2. Hygiene and tests.
 3. Release build with the pinned toolchain: `macos-26`, Xcode 26.6.
 4. Sign nested helpers and the app with no ignored failures.
@@ -13,7 +13,8 @@ A `v*` tag runs `release.yml`. The owner approves the `release` Environment and 
 7. Verify distribution and the app payload.
 8. `generate_appcast --ed-key-file - --download-url-prefix .../releases/download/v<version>/ --embed-release-notes`.
 9. Verify the appcast.
-10. Publish, then update the Homebrew tap.
+10. Launch the packaged app, then create the draft release.
+11. The owner publishes the draft, which runs `update-cask.yml`.
 
 The feed stays at `releases/latest/download/appcast.xml`. Enclosures are versioned.
 
@@ -25,16 +26,18 @@ It cannot prove what needs the secrets: hardened runtime, notarization, stapling
 
 ## Secrets
 
-Scoped to the `release` Environment:
+Each set lives in its own Environment, so a job can read only what it needs.
 
-| Secret | Use |
-|---|---|
-| `MACOS_CERTIFICATE_P12`, `MACOS_CERTIFICATE_PASSWORD` | Developer ID certificate |
-| `MACOS_CODE_SIGN_IDENTITY` | Signing identity. `scripts/verify_release.py` pins the team |
-| `MACOS_NOTARY_KEY_ID`, `MACOS_NOTARY_KEY_ISSUER_ID`, `MACOS_NOTARY_KEY_P8` | App Store Connect API key |
-| `SPARKLE_EDDSA_PRIVATE_KEY` | Appcast signature |
-| `TAP_DEPLOY_KEY` | Homebrew tap |
-| `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | Site, in `pages.yml` |
+| Environment | Secret | Use |
+|---|---|---|
+| `release` | `MACOS_CERTIFICATE_P12`, `MACOS_CERTIFICATE_PASSWORD` | Developer ID certificate, base64 |
+| `release` | `MACOS_CODE_SIGN_IDENTITY` | Signing identity. `scripts/verify_release.py` pins the team |
+| `release` | `MACOS_NOTARY_KEY_ID`, `MACOS_NOTARY_KEY_ISSUER_ID`, `MACOS_NOTARY_KEY_P8` | App Store Connect API key, base64 |
+| `release` | `SPARKLE_EDDSA_PRIVATE_KEY` | Appcast signature |
+| `homebrew` | `TAP_DEPLOY_KEY` | Homebrew tap |
+| `site` | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | Site, in `pages.yml` |
+
+`release` requires the owner's approval and accepts only `v*` tags. `homebrew` accepts `v*` tags and `main`, and `site` accepts only `main`. A ruleset limits creating `v*` tags to the owner.
 
 No provisioning profile is needed: the app uses neither iCloud nor Push.
 
@@ -46,7 +49,7 @@ No provisioning profile is needed: the app uses neither iCloud nor Push.
 
 ## Homebrew
 
-Same tap as the other apps, with its own deploy key. The cask has `depends_on arch: :arm64` and no `conflicts_with`. The shared model folder is never in `zap`.
+Same tap as the other apps, with its own deploy key. `packaging/Casks/secreteo.rb` is the template. The cask has `depends_on arch: :arm64` and no `conflicts_with`. The shared model folder is never in `zap`.
 
 ## Manual gates on the release Mac
 

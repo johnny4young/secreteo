@@ -1,5 +1,6 @@
 import importlib.util
 import re
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -17,6 +18,7 @@ def load(name: str):
 
 verify_release = load("verify_release")
 verify_appcast = load("verify_appcast")
+check_release = load("check_release")
 
 VERSION = "1.2.3"
 KEY = "A" * 43 + "="
@@ -128,6 +130,98 @@ class AppcastTests(unittest.TestCase):
                  "no enclosure": {"url": ""}, "length": {"length": "41"}, "unsigned": {"signature": ""}}
         for name, values in cases.items():
             self.assertTrue(feed_problems(feed(**values)), name)
+
+
+PROJECT = 'settings:\n  base:\n    MARKETING_VERSION: "1.2.3"\n    SPARKLE_PUBLIC_ED_KEY: "abc="\n'
+CHANGELOG = "# Changelog\n\n## Unreleased\n\n- Soon.\n\n## 1.2.3\n\n- Added this.\n- And that.\n\n## 1.2.2\n\n- Older.\n"
+
+
+def release_problems(tag="v1.2.3", project=PROJECT, changelog=CHANGELOG, on_main=True, arms=False, released=False):
+    return check_release.problems(tag, project, changelog, on_main, arms, released)
+
+
+class CheckReleaseTests(unittest.TestCase):
+    def test_a_correct_tag_passes(self):
+        self.assertEqual(release_problems(), [])
+
+    def test_notes_stop_at_the_next_section(self):
+        self.assertEqual(check_release.release_notes(CHANGELOG, "1.2.3"), "- Added this.\n- And that.")
+        self.assertEqual(check_release.release_notes(CHANGELOG, "1.2.2"), "- Older.")
+        self.assertEqual(check_release.release_notes(CHANGELOG, "1.2"), "")
+
+    def test_each_refusal(self):
+        cases = {"format": {"tag": "v1.2.3-beta.1"}, "no v": {"tag": "1.2.3"}, "version": {"tag": "v1.2.4"},
+                 "key": {"project": PROJECT.replace('"abc="', '""')}, "off main": {"on_main": False},
+                 "notes": {"changelog": CHANGELOG.replace("- Added this.\n- And that.\n", "")}}
+        for name, values in cases.items():
+            self.assertTrue(release_problems(**values), name)
+
+    def test_arming_dictation_waits_for_portavoz(self):
+        self.assertTrue(release_problems(arms=True, released=False))
+        self.assertEqual(release_problems(arms=True, released=True), [])
+
+
+class CaskTests(unittest.TestCase):
+    sha = "a" * 64
+
+    def render(self, version, sha256):
+        return subprocess.run([str(ROOT / "scripts/render-cask.sh"), version, sha256], capture_output=True, text=True,
+                              check=False)
+
+    def test_the_render_fills_the_template(self):
+        rendered = self.render("1.2.3", self.sha)
+        self.assertEqual(rendered.returncode, 0, rendered.stderr)
+        self.assertTrue(rendered.stdout.startswith('cask "secreteo" do'))
+        self.assertIn('version "1.2.3"', rendered.stdout)
+        self.assertIn(f'sha256 "{self.sha}"', rendered.stdout)
+        self.assertNotIn("__", rendered.stdout)
+
+    def test_the_render_refuses_bad_values(self):
+        for version, sha256 in (("1.2", self.sha), ("1.2.3; rm", self.sha), ("1.2.3", "abc"), ("1.2.3", "A" * 64)):
+            self.assertNotEqual(self.render(version, sha256).returncode, 0, (version, sha256))
+
+    def test_the_cask_contract(self):
+        text = (ROOT / "packaging/Casks/secreteo.rb").read_text()
+        self.assertIn("depends_on arch: :arm64", text)
+        self.assertIn("releases/download/v#{version}/Secreteo-#{version}.dmg", text)
+        self.assertIn("auto_updates true", text)
+        self.assertNotIn("conflicts_with", text)
+        self.assertNotIn("local-models", text.split("zap trash:")[1])
+
+
+class WorkflowContractTests(unittest.TestCase):
+    def workflow(self, name):
+        return (ROOT / ".github/workflows" / name).read_text()
+
+    def test_only_the_package_job_reads_signing_secrets(self):
+        text = self.workflow("release.yml")
+        package = re.search(r"^  package:\n(.*?)^  draft:", text, re.MULTILINE | re.DOTALL).group(1)
+        outside = text.replace(package, "")
+        self.assertIn("environment: release", package)
+        self.assertNotIn("contents: write", package)
+        self.assertNotRegex(outside, r"secrets\.[A-Z]")
+
+    def test_a_tag_only_creates_a_draft(self):
+        text = self.workflow("release.yml")
+        self.assertIn("--draft", text)
+        self.assertEqual(text.count("gh release create"), 1)
+
+    def test_the_default_token_is_read_only(self):
+        for name in ("release.yml", "update-cask.yml", "pages.yml", "nightly.yml", "ci.yml"):
+            self.assertRegex(self.workflow(name), r"(?m)^permissions:\n  contents: read$", name)
+
+    def test_nothing_privileged_runs_on_untrusted_input(self):
+        for name in ("release.yml", "update-cask.yml", "pages.yml"):
+            text = self.workflow(name)
+            self.assertNotIn("pull_request", text, name)
+            for line in text.splitlines():
+                if "${{" in line:
+                    self.assertRegex(line, r"^\s*(?!run\b)[A-Za-z_][\w-]*: ", name)
+
+    def test_node_follows_the_version_file(self):
+        text = self.workflow("pages.yml")
+        self.assertIn("node-version-file: .nvmrc", text)
+        self.assertIn("check-latest: true", text)
 
 
 class ContractTests(unittest.TestCase):
