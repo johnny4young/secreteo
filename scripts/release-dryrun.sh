@@ -137,6 +137,15 @@ update() {
   sleep 5
   pgrep -x Secreteo >/dev/null || { echo "error: the updated app did not stay up" >&2; exit 1; }
   echo "Sparkle updated $old_version to $new_version from a signed feed."
+
+  pkill -x Secreteo
+  scripts/smoke-launch.sh "dist/Secreteo-$new_version.dmg"
+
+  scripts/enable-gatekeeper.sh
+  if spctl -a -t exec "$installed" 2>/dev/null; then
+    echo "error: Gatekeeper accepted an ad-hoc app" >&2
+    exit 1
+  fi
 }
 
 case "$stage" in

@@ -139,6 +139,9 @@ ignore_probes=(
   test-results/run.json
   Vendor/Sparkle.framework/Sparkle
   dist/Secreteo-1.0.0.dmg
+  sparkle-private.key
+  developer-id.p12
+  AuthKey.p8
   local-ui.xcresult/Info.plist
   Secreteo.xcodeproj/project.pbxproj
 )
