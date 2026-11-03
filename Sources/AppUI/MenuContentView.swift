@@ -11,7 +11,14 @@ public struct MenuContentView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
+            if model.updateIsAvailable {
+                MenuRow(title: "Update Available…", identifier: "menu-update-available", action: model.checkForUpdates)
+                Divider()
+            }
             MenuRow(title: "Settings…", identifier: "menu-settings", action: model.openSettings)
+            if model.canCheckForUpdates {
+                MenuRow(title: "Check for Updates…", identifier: "menu-check-updates", action: model.checkForUpdates)
+            }
             Divider()
             MenuRow(title: "Quit Secreteo", identifier: "menu-quit", action: model.quit)
         }

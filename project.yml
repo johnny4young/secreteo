@@ -28,6 +28,8 @@ settings:
     DEVELOPMENT_TEAM: ""
     ENABLE_HARDENED_RUNTIME: NO
     SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
+    # Empty until the release key exists. The release workflow refuses to ship without it.
+    SPARKLE_PUBLIC_ED_KEY: ""
 
 packages:
   Secreteo:
@@ -44,6 +46,10 @@ targets:
     dependencies:
       - package: Secreteo
         product: AppUI
+      # From scripts/fetch-sparkle.sh, with the tools at the same version.
+      - framework: Vendor/Sparkle.framework
+        embed: true
+        codeSign: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.johnny4young.secreteo
@@ -60,6 +66,9 @@ targets:
         LSApplicationCategoryType: public.app-category.productivity
         LSMinimumSystemVersion: "26.0"
         LSUIElement: true
+        SUFeedURL: https://github.com/johnny4young/secreteo/releases/latest/download/appcast.xml
+        SUPublicEDKey: $(SPARKLE_PUBLIC_ED_KEY)
+        SUEnableAutomaticChecks: true
         NSHumanReadableCopyright: "© 2026 Johnny Young"
 
   SecreteoUITests:

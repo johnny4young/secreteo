@@ -137,6 +137,7 @@ ignore_probes=(
   artifacts/ui/result.txt
   screenshots/local-smoke.png
   test-results/run.json
+  Vendor/Sparkle.framework/Sparkle
   local-ui.xcresult/Info.plist
   Secreteo.xcodeproj/project.pbxproj
 )

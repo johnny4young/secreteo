@@ -25,3 +25,7 @@ A Mac with neither Apple Foundation Models nor Ollama has no Polish or Rewrite.
 ## G6. Things that do not transfer from Portavoz
 
 Microphone and Accessibility grants, Shortcuts, MCP client configuration, and history.
+
+## G7. Updates during a dictation
+
+A scheduled update shows as a menu row and never interrupts. Once dictation sessions exist, relaunching for an update the user accepted has to wait for the session to end, through Sparkle's `updater(_:shouldPostponeRelaunchForUpdate:untilInvokingBlock:)`.

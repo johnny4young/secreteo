@@ -21,6 +21,10 @@ public struct SettingsView: View {
             Section {
                 LabeledContent("Version", value: model.versionDescription)
                     .accessibilityIdentifier("settings-version")
+                if model.canCheckForUpdates {
+                    Button("Check for Updates…") { model.checkForUpdates() }
+                        .accessibilityIdentifier("settings-check-updates")
+                }
                 Button("Third-Party Notices") { model.openNotices() }
                     .accessibilityIdentifier("settings-open-notices")
             }

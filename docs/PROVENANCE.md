@@ -29,6 +29,12 @@ Adapted from `johnny4young/portavoz@cffa87bb36f800108bd8e366bbaa153e2c9ec88f`.
 | `scripts/install-ci-xcodegen.sh` | `scripts/install-ci-xcodegen.sh` | None |
 | `scripts/check-repository-hygiene.sh` | `scripts/check-repository-hygiene.sh` | Keeps tracked-file, ticket and action-pin checks; adds identifier ratchet, license, attribution, accent-bar and Node checks |
 
+## Shell
+
+| Secreteo path | Source | Change |
+|---|---|---|
+| `scripts/fetch-sparkle.sh` | `johnny4young/gancho`, `scripts/fetch-sparkle.sh` (MIT, same author) | Comments |
+
 ## Spikes
 
 | Secreteo path | Source | Change |

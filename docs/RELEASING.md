@@ -36,6 +36,7 @@ No provisioning profile is needed: the app uses neither iCloud nor Push.
 
 - The EdDSA key belongs to this app. Back it up with `generate_keys -x` before the first public build. Losing it leaves users without automatic updates.
 - Framework and tools come from one checksum-pinned fetch at one version.
+- The public key goes in `SPARKLE_PUBLIC_ED_KEY` in `project.yml`. With it empty, the updater stays off.
 
 ## Homebrew
 

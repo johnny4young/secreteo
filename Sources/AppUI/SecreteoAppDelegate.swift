@@ -8,11 +8,13 @@ struct RuntimeOptions {
     let usesTemporaryStore: Bool
     let showsMenuContentWindow: Bool
     let failsLaunchAtLogin: Bool
+    let reportsAvailableUpdate: Bool
 
     init(arguments: [String], allowsTestFlags: Bool = RuntimeOptions.isDebugBuild) {
         usesTemporaryStore = allowsTestFlags && arguments.contains("-use-temp-store")
         showsMenuContentWindow = usesTemporaryStore && arguments.contains("-show-menu-content")
         failsLaunchAtLogin = usesTemporaryStore && arguments.contains("-fail-launch-at-login")
+        reportsAvailableUpdate = usesTemporaryStore && arguments.contains("-report-available-update")
     }
 
     #if DEBUG
@@ -22,11 +24,19 @@ struct RuntimeOptions {
     #endif
 }
 
+/// For test runs, which must never reach the network.
+@MainActor
+private final class InertUpdater: UpdateChecking {
+    let canCheckForUpdates = true
+    func checkForUpdates() {}
+}
+
 /// The composition root. It stays resident after its windows close, and it arms nothing
 /// global until it holds the single-instance lock.
 @MainActor
 public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
     private let options = RuntimeOptions(arguments: CommandLine.arguments)
+    private let makeUpdater: @MainActor (AppModel) -> any UpdateChecking
     private var instanceLock: SingleInstanceLock?
     private var model: AppModel?
     private var statusItem: StatusItemController?
@@ -38,7 +48,9 @@ public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
         Notification.Name("\(Bundle.main.bundleIdentifier ?? "secreteo").activate")
     }
 
-    override public init() {
+    /// The app target supplies the updater, which keeps Sparkle out of the libraries.
+    public init(makeUpdater: @escaping @MainActor (AppModel) -> any UpdateChecking) {
+        self.makeUpdater = makeUpdater
         super.init()
     }
 
@@ -101,6 +113,8 @@ public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
             ? InMemoryLaunchAtLogin(failure: options.failsLaunchAtLogin ? CocoaError(.featureUnsupported) : nil)
             : SystemLaunchAtLogin()
         let model = AppModel(launchController: controller)
+        model.updater = options.usesTemporaryStore ? InertUpdater() : makeUpdater(model)
+        model.updateIsAvailable = options.reportsAvailableUpdate
         let settings = SettingsWindowController(model: model)
         let statusItem = StatusItemController(model: model)
         model.openSettings = { [weak settings, weak statusItem] in
