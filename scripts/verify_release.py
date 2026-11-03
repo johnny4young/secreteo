@@ -75,6 +75,15 @@ def signature_problems(name: str, details: str, entitlements: str, mode: str) ->
     return problems
 
 
+def assessment_problem(command: str, returncode: int, output: str) -> str:
+    if returncode != 0:
+        return f"{command}: {output.strip()}"
+    # With Gatekeeper off, spctl accepts anything and says so only here.
+    if "override=security disabled" in output:
+        return f"{command}: Gatekeeper is off, so this proves nothing"
+    return ""
+
+
 def run(*command: str) -> subprocess.CompletedProcess:
     return subprocess.run(command, capture_output=True, text=True, check=False)
 
@@ -89,7 +98,8 @@ def mounted_app(dmg: Path) -> Iterator[Path]:
         try:
             yield mount / "Secreteo.app"
         finally:
-            subprocess.run(["hdiutil", "detach", "-quiet", str(mount)], check=True)
+            # Read-only, so forcing loses nothing, and Spotlight can hold it busy for a moment.
+            subprocess.run(["hdiutil", "detach", "-quiet", "-force", str(mount)], check=True)
 
 
 def artifact_problems(app: Path, dmg: Path, version: str, mode: str) -> list[str]:
@@ -125,8 +135,9 @@ def artifact_problems(app: Path, dmg: Path, version: str, mode: str) -> list[str
                   ("spctl", "-a", "-t", "open", "--context", "context:primary-signature", "-vv", str(dmg))]
         for check in checks:
             result = run(*check)
-            if result.returncode != 0:
-                problems.append(f"{' '.join(check)}: {result.stderr.strip() or result.stdout.strip()}")
+            problem = assessment_problem(" ".join(check), result.returncode, result.stderr + result.stdout)
+            if problem:
+                problems.append(problem)
 
     return problems
 

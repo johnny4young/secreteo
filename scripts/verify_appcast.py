@@ -23,6 +23,11 @@ def feed_problems(feed_xml: str, version: str, prefix: str, dmg_name: str, dmg_s
     item = matching[0]
     problems = []
 
+    versions = [other.findtext(f"{SPARKLE}shortVersionString") or "0" for other in items]
+    newest = max(versions, key=lambda value: tuple(int(part) for part in value.split(".")))
+    if newest != version:
+        problems.append(f"the feed already holds {newest}, newer than {version}")
+
     if item.findtext(f"{SPARKLE}version") != version:
         problems.append(f"sparkle:version is {item.findtext(f'{SPARKLE}version')!r}, expected {version!r}")
     minimum = item.findtext(f"{SPARKLE}minimumSystemVersion") or ""
