@@ -3,7 +3,7 @@ import SwiftUI
 /// The status item's content. UI tests mount this same view in a window, because the
 /// status item itself cannot be automated reliably.
 public struct MenuContentView: View {
-    @Bindable private var model: AppModel
+    private let model: AppModel
 
     public init(model: AppModel) {
         self.model = model

@@ -20,6 +20,11 @@ public final class SingleInstanceLock: Sendable {
         close(descriptor)
     }
 
+    /// Ends the hold now, as when handing off to a relaunching copy.
+    public func release() {
+        flock(descriptor, LOCK_UN)
+    }
+
     /// A volume with no `flock` proceeds without the lock, because refusing to
     /// launch there would be worse than a second instance the user started.
     public static func acquire(at url: URL) throws -> Attempt {

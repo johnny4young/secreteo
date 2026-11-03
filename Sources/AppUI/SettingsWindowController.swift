@@ -18,7 +18,6 @@ public final class SettingsWindowController {
             created.title = String(localized: "Settings")
             created.styleMask = [.titled, .closable]
             created.isReleasedWhenClosed = false
-            created.identifier = NSUserInterfaceItemIdentifier("settings-window")
             created.center()
             window = created
         }

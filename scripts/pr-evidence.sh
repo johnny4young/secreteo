@@ -17,8 +17,10 @@ git clone --quiet --depth 1 --branch pr-evidence "https://github.com/$repo.git" 
 mkdir -p "$work/evidence/pr-$pr"
 cp "$work"/shots/*.png "$work/evidence/pr-$pr/"
 git -C "$work/evidence" add -A
-git -C "$work/evidence" commit --quiet -m "docs: add evidence for PR $pr"
-git -C "$work/evidence" push --quiet origin pr-evidence
+if ! git -C "$work/evidence" diff --cached --quiet; then
+  git -C "$work/evidence" commit --quiet -m "docs: add evidence for PR $pr"
+  git -C "$work/evidence" push --quiet origin pr-evidence
+fi
 
 for image in "$work"/shots/*.png; do
   name="$(basename "$image")"

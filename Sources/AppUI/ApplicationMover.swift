@@ -6,7 +6,9 @@ enum ApplicationMover {
     private static let declinedKey = "moveToApplicationsDeclined"
 
     /// Returns true when the app is relaunching and this process should quit.
-    static func offerIfNeeded() -> Bool {
+    /// `releaseInstanceLock` runs first, or the new copy could find the lock held,
+    /// quit, and leave no app running once this one ends.
+    static func offerIfNeeded(releaseInstanceLock: () -> Void) -> Bool {
         let bundleURL = Bundle.main.bundleURL
         let defaults = UserDefaults.standard
         guard ApplicationLocation.shouldOfferMove(
@@ -36,6 +38,7 @@ enum ApplicationMover {
             failure.runModal()
             return false
         }
+        releaseInstanceLock()
         NSWorkspace.shared.openApplication(at: destination, configuration: .init())
         return true
     }

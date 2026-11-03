@@ -2,17 +2,24 @@ import AppKit
 import SwiftUI
 
 /// Launch options. `-use-temp-store` keeps a test away from real state: no real launch
-/// at login, no move offer, and an instance lock of its own.
+/// at login, no move offer, and an instance lock of its own. Debug only, so a shipped
+/// binary cannot be started as a second instance beside the real one.
 struct RuntimeOptions {
     let usesTemporaryStore: Bool
     let showsMenuContentWindow: Bool
     let failsLaunchAtLogin: Bool
 
-    init(arguments: [String]) {
-        usesTemporaryStore = arguments.contains("-use-temp-store")
+    init(arguments: [String], allowsTestFlags: Bool = RuntimeOptions.isDebugBuild) {
+        usesTemporaryStore = allowsTestFlags && arguments.contains("-use-temp-store")
         showsMenuContentWindow = usesTemporaryStore && arguments.contains("-show-menu-content")
         failsLaunchAtLogin = usesTemporaryStore && arguments.contains("-fail-launch-at-login")
     }
+
+    #if DEBUG
+        static let isDebugBuild = true
+    #else
+        static let isDebugBuild = false
+    #endif
 }
 
 /// The composition root. It stays resident after its windows close, and it arms nothing
@@ -37,10 +44,13 @@ public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(options.usesTemporaryStore ? .regular : .accessory)
+        // Hidden in an agent app, but standard shortcuts still route through it.
+        NSApp.mainMenu = StandardMenu.make()
         guard takeInstanceLock() else { return }
 
         #if !DEBUG
-            if !options.usesTemporaryStore, ApplicationMover.offerIfNeeded() {
+            if !options.usesTemporaryStore,
+               ApplicationMover.offerIfNeeded(releaseInstanceLock: { instanceLock?.release() }) {
                 NSApp.terminate(nil)
                 return
             }
@@ -76,6 +86,11 @@ public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
             NSApp.terminate(nil)
             return false
         case nil:
+            let alert = NSAlert()
+            alert.messageText = String(localized: "Secreteo could not start.")
+            alert.informativeText = String(localized: "It could not write to its folder in Application Support.")
+            NSApp.activate()
+            alert.runModal()
             NSApp.terminate(nil)
             return false
         }
