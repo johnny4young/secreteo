@@ -22,7 +22,7 @@ jobs:
         with:
           fetch-depth: 0
       - env:
-          PORTAVOZ_14_RELEASED: ${{ vars.PORTAVOZ_14_RELEASED }}
+          GLOBAL_DICTATION_CLEARED: ${{ vars.GLOBAL_DICTATION_CLEARED }}
         run: python3 scripts/check_release.py check "$GITHUB_REF_NAME"
       - run: scripts/verify-ci-toolchain.sh 26 26.6
       - run: scripts/check-repository-hygiene.sh

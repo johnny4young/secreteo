@@ -3,7 +3,7 @@
 
 Usage: check_release.py check <tag>
        check_release.py notes <version>
-`check` reads PORTAVOZ_14_RELEASED from the environment and expects `origin/main` to be fetched.
+`check` reads GLOBAL_DICTATION_CLEARED from the environment and expects `origin/main` to be fetched.
 """
 import os
 import re
@@ -61,7 +61,7 @@ def main() -> None:
     on_main = subprocess.run(["git", "merge-base", "--is-ancestor", "HEAD", "origin/main"], cwd=ROOT,
                              check=False).returncode == 0
     found = problems(argument, (ROOT / "project.yml").read_text(), changelog, on_main,
-                     (ROOT / "Sources/Triggers").exists(), os.environ.get("PORTAVOZ_14_RELEASED") == "true")
+                     (ROOT / "Sources/Triggers").exists(), os.environ.get("GLOBAL_DICTATION_CLEARED") == "true")
     for problem in found:
         print(f"::error::{problem}")
     if found:
