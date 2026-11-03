@@ -27,6 +27,22 @@ struct SingleInstanceLockTests {
     }
 }
 
+@MainActor
+struct VersionRowTests {
+    @Test func theRowShowsOnlyTheVersionBecauseTheBuildNumberRepeatsIt() throws {
+        let bundleURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("secreteo-version-\(UUID().uuidString).bundle")
+        let contents = bundleURL.appendingPathComponent("Contents")
+        try FileManager.default.createDirectory(at: contents, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: bundleURL) }
+        let info = ["CFBundleIdentifier": "test.version", "CFBundleShortVersionString": "1.2.3", "CFBundleVersion": "1.2.3"]
+        try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)
+            .write(to: contents.appendingPathComponent("Info.plist"))
+        let bundle = try #require(Bundle(url: bundleURL))
+        #expect(AppModel(launchController: InMemoryLaunchAtLogin(), bundle: bundle).versionDescription == "1.2.3")
+    }
+}
+
 struct ApplicationLocationTests {
     private let home = URL(fileURLWithPath: "/Volumes/Home/someone")
 

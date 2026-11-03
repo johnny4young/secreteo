@@ -9,6 +9,9 @@ mode="${2:?production or dryrun}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# It names paths that get deleted, and CFBundleVersion takes only three integers.
+[[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "error: $version is not x.y.z" >&2; exit 64; }
+
 project_setting() {
   sed -nE "s/^[[:space:]]*$1:[[:space:]]*\"?([^\"]*)\"?[[:space:]]*$/\1/p" project.yml | head -1
 }
@@ -25,13 +28,10 @@ case "$mode" in
       || { echo "error: $version is not MARKETING_VERSION in project.yml" >&2; exit 1; }
     [[ -n "$(project_setting SPARKLE_PUBLIC_ED_KEY)" ]] \
       || { echo "error: SPARKLE_PUBLIC_ED_KEY is empty, so this build could never update" >&2; exit 1; }
-    # Hardened runtime needs a team: an ad-hoc binary with it could not load Sparkle.
-    sign_flags=(--options runtime --timestamp)
     ;;
   dryrun)
     identity="-"
     settings+=("SPARKLE_PUBLIC_ED_KEY=${DRYRUN_SPARKLE_PUBLIC_KEY:?DRYRUN_SPARKLE_PUBLIC_KEY is required}")
-    sign_flags=(--timestamp=none)
     ;;
   *)
     echo "Unknown mode: $mode" >&2
@@ -44,10 +44,6 @@ derived="build/release"
 stage="build/release-stage/$version"
 app="$stage/Secreteo.app"
 dmg="$output/Secreteo-$version.dmg"
-
-sign() {
-  codesign --force "${sign_flags[@]}" --sign "$identity" "$@"
-}
 
 notarize() {
   local submit="$1" staple="$2" plist status=0
@@ -76,16 +72,7 @@ xcodebuild -project Secreteo.xcodeproj -scheme Secreteo -configuration Release \
   -skipPackagePluginValidation -quiet "${settings[@]}" build
 ditto "$derived/Build/Products/Release/Secreteo.app" "$app"
 
-# Inside out: signing a container seals what it holds.
-sparkle="$app/Contents/Frameworks/Sparkle.framework"
-current="$sparkle/Versions/Current"
-sign "$current/XPCServices/Installer.xpc"
-sign --preserve-metadata=entitlements "$current/XPCServices/Downloader.xpc"
-sign "$current/Autoupdate"
-sign "$current/Updater.app"
-sign "$sparkle"
-sign --entitlements Apps/Secreteo/Secreteo.entitlements "$app"
-codesign --verify --deep --strict "$app"
+scripts/sign-app.sh "$app" "$identity"
 
 if [[ "$mode" == "production" ]]; then
   archive="$stage/Secreteo.zip"
@@ -107,12 +94,12 @@ for attempt in 1 2 3; do
   sleep 10
 done
 rm -rf "$volume"
-sign "$dmg"
 
 if [[ "$mode" == "production" ]]; then
+  codesign --force --timestamp --sign "$identity" "$dmg"
   notarize "$dmg" "$dmg"
 fi
 
-python3 scripts/verify_release.py "$app" "$dmg" "$version" "$mode"
+python3 scripts/verify_release.py "$dmg" "$version" "$mode"
 (cd "$output" && shasum -a 256 "Secreteo-$version.dmg" > "Secreteo-$version.dmg.sha256")
 echo "Packaged $dmg"

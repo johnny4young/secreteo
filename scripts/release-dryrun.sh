@@ -31,6 +31,31 @@ package() {
       "$work/notes-$version.md" "$prefix" "$work/feed/appcast.xml"
     cp "dist/Secreteo-$version.dmg" "$work/feed/"
   done
+  reject_bad_artifacts "$public"
+}
+
+# A verifier that only ever sees good input proves nothing. These must fail, so their output is noise.
+reject_bad_artifacts() {
+  local public="$1" signature other new_dmg="dist/Secreteo-$new_version.dmg"
+  signature="$(sed -nE "s/.*Secreteo-$new_version\.dmg.*edSignature=\"([^\"]+)\".*/\1/p" "$work/feed/appcast.xml")"
+  other="$(swift scripts/throwaway-sparkle-key.swift)"
+  swift scripts/verify-ed-signature.swift "$public" "$signature" "$new_dmg"
+  if swift scripts/verify-ed-signature.swift "${other#* }" "$signature" "$new_dmg" >/dev/null; then
+    echo "error: a signature passed under another key" >&2
+    exit 1
+  fi
+  if swift scripts/verify-ed-signature.swift "$public" "$signature" "dist/Secreteo-$old_version.dmg" >/dev/null; then
+    echo "error: a signature passed over other bytes" >&2
+    exit 1
+  fi
+  if python3 scripts/verify_release.py "dist/Secreteo-$old_version.dmg" "$new_version" dryrun >/dev/null; then
+    echo "error: a DMG passed with the wrong version inside" >&2
+    exit 1
+  fi
+  if python3 scripts/verify_release.py "$new_dmg" "$new_version" production >/dev/null; then
+    echo "error: an ad-hoc DMG passed as production" >&2
+    exit 1
+  fi
 }
 
 wait_for() {
@@ -63,15 +88,26 @@ diagnose() {
     --predicate 'process == "Secreteo" OR process == "Autoupdate" OR process == "Updater"' | tail -60
 }
 
+finish() {
+  local status=$?
+  set +e
+  [[ "$status" -eq 0 ]] || diagnose
+  kill "$server" 2>/dev/null
+  pkill -x Secreteo
+  exit "$status"
+}
+
 update() {
   if [[ "${RUNNER_ENVIRONMENT:-}" != "github-hosted" ]]; then
     echo "error: the update stage changes /Applications and runs on hosted runners only" >&2
     exit 1
   fi
 
-  (cd "$work/feed" && exec python3 -u -m http.server "$port" --bind 127.0.0.1) > "$work/server.log" 2>&1 &
-  local server=$!
-  trap 'status=$?; [[ $status -eq 0 ]] || diagnose; kill '"$server"' 2>/dev/null; pkill -x Secreteo; exit $status' EXIT
+  python3 -u -m http.server "$port" --bind 127.0.0.1 --directory "$work/feed" > "$work/server.log" 2>&1 &
+  server=$!
+  trap finish EXIT
+  # Sparkle would not retry a failed check for hours.
+  wait_for "the feed server" 30 curl -fsS -o /dev/null "http://127.0.0.1:$port/"
 
   hdiutil attach -quiet -nobrowse -mountpoint "$work/mount" "dist/Secreteo-$old_version.dmg"
   rm -rf "$installed"
@@ -87,7 +123,9 @@ update() {
   wait_for "the app running" 30 pgrep -x Secreteo
   wait_for "the feed request" 120 served appcast.xml
   wait_for "the update download" 120 served "Secreteo-$new_version.dmg"
-  wait_for "the installer waiting for the app to quit" 120 pgrep -x Autoupdate
+  wait_for "the installer" 120 pgrep -x Autoupdate
+  # It appears before it finishes preparing, and quitting then would abort the install.
+  sleep 10
 
   pkill -TERM -x Secreteo
   wait_for "version $new_version installed" 180 installed_version_is "$new_version"

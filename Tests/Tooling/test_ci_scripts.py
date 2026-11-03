@@ -17,7 +17,8 @@ ci_gate = load("ci_gate")
 
 
 def needs(code="true", delivery="true", release="true", **results):
-    jobs = {"hygiene": "success", "lint": "success", "changes": "success", "unit": "success"}
+    jobs = {"hygiene": "success", "lint": "success", "changes": "success", "unit": "success", "ui-smoke": "success",
+            "signed-handoff": "success", "release-dryrun": "success"}
     jobs.update(results)
     payload = {name: {"result": result} for name, result in jobs.items()}
     payload["changes"]["outputs"] = {"code": code, "delivery": delivery, "release": release}
@@ -46,6 +47,7 @@ class ChangesTests(unittest.TestCase):
         for path in ("scripts/package-release.sh", "project.yml", "Apps/Secreteo/SparkleUpdater.swift"):
             self.assertTrue(ci_changes.classify([path])["release"], path)
         self.assertFalse(ci_changes.classify(["Sources/AppUI/A.swift"])["release"])
+        self.assertFalse(ci_changes.classify(["Apps/Secreteo/Localizable.xcstrings"])["release"])
 
 
 class GateTests(unittest.TestCase):
@@ -86,6 +88,13 @@ class GateTests(unittest.TestCase):
         self.assertEqual(ci_gate.failures(needs(release="false", **{"release-dryrun": "skipped"})), [])
         self.assertTrue(ci_gate.failures(needs(release="true", **{"release-dryrun": "skipped"})))
         self.assertTrue(ci_gate.failures(needs(release="false", **{"release-dryrun": "failure"})))
+
+    def test_a_job_missing_from_needs_fails_in_every_scope(self):
+        for job in ("ui-smoke", "unit", "signed-handoff", "release-dryrun"):
+            for flag in ("true", "false"):
+                payload = needs(code=flag, delivery=flag, release=flag)
+                del payload[job]
+                self.assertTrue(ci_gate.failures(payload), (job, flag))
 
     def test_the_author_is_not_an_input(self):
         payload = needs(unit="skipped")

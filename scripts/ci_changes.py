@@ -11,9 +11,11 @@ DOCS_ONLY = ("docs/*", "*.md", "LICENSE", "site/*", ".github/ISSUE_TEMPLATE/*")
 DELIVERY = ("Sources/Delivery/*", "Sources/Triggers/*", "Tests/DeliveryTests/*", "Tests/TriggersTests/*",
             "spikes/tcc-adhoc/*", "scripts/run-signed-handoff.sh",
             ".github/workflows/ci.yml", "scripts/ci_changes.py", "scripts/ci_gate.py")
-RELEASE = ("scripts/package-release.sh", "scripts/release-dryrun.sh", "scripts/generate-appcast.sh",
-           "scripts/verify_release.py", "scripts/verify_appcast.py", "scripts/fetch-sparkle.sh",
-           "scripts/throwaway-sparkle-key.swift", "project.yml", "Apps/Secreteo/*",
+RELEASE = ("scripts/package-release.sh", "scripts/sign-app.sh", "scripts/release-dryrun.sh",
+           "scripts/generate-appcast.sh", "scripts/verify_release.py", "scripts/verify_appcast.py",
+           "scripts/verify-ed-signature.swift", "scripts/fetch-sparkle.sh", "scripts/throwaway-sparkle-key.swift",
+           "project.yml", "Apps/Secreteo/Info.plist", "Apps/Secreteo/Secreteo.entitlements",
+           "Apps/Secreteo/SecreteoMain.swift", "Apps/Secreteo/SparkleUpdater.swift",
            ".github/workflows/ci.yml", "scripts/ci_changes.py", "scripts/ci_gate.py")
 
 

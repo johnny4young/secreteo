@@ -30,7 +30,7 @@ Scoped to the `release` Environment:
 | Secret | Use |
 |---|---|
 | `MACOS_CERTIFICATE_P12`, `MACOS_CERTIFICATE_PASSWORD` | Developer ID certificate |
-| `MACOS_CODE_SIGN_IDENTITY`, `MACOS_SIGN_TEAM_ID` | Signing identity |
+| `MACOS_CODE_SIGN_IDENTITY` | Signing identity. `scripts/verify_release.py` pins the team |
 | `MACOS_NOTARY_KEY_ID`, `MACOS_NOTARY_KEY_ISSUER_ID`, `MACOS_NOTARY_KEY_P8` | App Store Connect API key |
 | `SPARKLE_EDDSA_PRIVATE_KEY` | Appcast signature |
 | `TAP_DEPLOY_KEY` | Homebrew tap |

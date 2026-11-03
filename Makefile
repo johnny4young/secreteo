@@ -36,8 +36,6 @@ install: project
 	xcodebuild -project Secreteo.xcodeproj -scheme Secreteo -configuration Release -quiet \
 		-derivedDataPath build/install -destination 'platform=macOS,arch=arm64' \
 		PRODUCT_NAME="Secreteo Dev" PRODUCT_BUNDLE_IDENTIFIER=com.johnny4young.secreteo.dev build
-	codesign --force --options runtime --timestamp --sign "$(SIGN_IDENTITY)" \
-		"build/install/Build/Products/Release/Secreteo Dev.app"
-	codesign --verify --deep --strict "build/install/Build/Products/Release/Secreteo Dev.app"
+	scripts/sign-app.sh "build/install/Build/Products/Release/Secreteo Dev.app" "$(SIGN_IDENTITY)"
 	rm -rf "$(DEV_APP)"
 	cp -R "build/install/Build/Products/Release/Secreteo Dev.app" "$(DEV_APP)"

@@ -21,4 +21,3 @@ for app in build/SpikeSender.app build/SpikeReceiver.app; do
 done
 
 python3 spikes/tcc-adhoc/verify.py "$PWD/build" "$PWD/build/handoff-result.json"
-cat build/handoff-result.json

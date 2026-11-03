@@ -25,9 +25,7 @@ def failures(needs: dict) -> list[str]:
         # Anything but an explicit "false" means the job had to run.
         may_skip = scope.get(flag) == "false"
         for job in jobs:
-            if job not in needs:
-                continue
-            result = needs[job].get("result")
+            result = needs.get(job, {}).get("result")
             if result != "success" and not (result == "skipped" and may_skip):
                 problems.append(f"{job}: {result}")
     return problems

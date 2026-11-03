@@ -1,9 +1,11 @@
 import importlib.util
 import re
+import sys
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "scripts"))
 
 
 def load(name: str):
@@ -30,7 +32,7 @@ GOOD_INFO = {
 }
 GOOD_PATHS = ["Contents/Frameworks/Sparkle.framework", "Contents/Frameworks/Sparkle.framework/Sparkle",
               "Contents/MacOS/Secreteo", "Contents/Resources/THIRD-PARTY-NOTICES.md"]
-GOOD_SIGNATURE = ("Authority=Developer ID Application: Someone (TEAM)\n"
+GOOD_SIGNATURE = (f"Authority=Developer ID Application: Someone\nTeamIdentifier={verify_release.TEAM_ID}\n"
                   "Timestamp=Nov 2, 2026\nCodeDirectory v=20500 size=1 flags=0x10000(runtime) hashes=1\n")
 PREFIX = "https://example.test/download/v1.2.3/"
 DMG = "Secreteo-1.2.3.dmg"
@@ -98,6 +100,7 @@ class SignatureTests(unittest.TestCase):
         self.assertTrue(check("x", GOOD_SIGNATURE.replace("(runtime)", "(none)"), "", "production"))
         self.assertTrue(check("x", GOOD_SIGNATURE.replace("Developer ID Application", "Apple Development"), "", "production"))
         self.assertTrue(check("x", GOOD_SIGNATURE.replace("Timestamp=", "Signed Time="), "", "production"))
+        self.assertTrue(check("x", GOOD_SIGNATURE.replace(verify_release.TEAM_ID, "OTHERTEAM1"), "", "production"))
         self.assertTrue(check("x", "Signature=adhoc\n", "", "production"))
 
     def test_get_task_allow_fails_in_every_mode(self):
@@ -129,17 +132,27 @@ class AppcastTests(unittest.TestCase):
 
 class ContractTests(unittest.TestCase):
     def test_packaging_never_ignores_a_failure(self):
-        for name in ("package-release.sh", "generate-appcast.sh"):
+        for name in ("package-release.sh", "sign-app.sh", "generate-appcast.sh"):
             text = (ROOT / "scripts" / name).read_text()
             self.assertIn("set -euo pipefail", text)
             self.assertNotRegex(text, r"\|\|\s*true")
 
     def test_every_sparkle_helper_is_signed_before_the_app(self):
-        text = (ROOT / "scripts/package-release.sh").read_text()
+        text = (ROOT / "scripts/sign-app.sh").read_text()
         order = [text.index(f'sign {marker}') for marker in (
             '"$current/XPCServices/Installer.xpc"', '--preserve-metadata=entitlements "$current/XPCServices/Downloader.xpc"',
             '"$current/Autoupdate"', '"$current/Updater.app"', '"$sparkle"', '--entitlements')]
         self.assertEqual(order, sorted(order))
+
+    def test_every_signed_build_goes_through_one_recipe(self):
+        self.assertIn("scripts/sign-app.sh", (ROOT / "scripts/package-release.sh").read_text())
+        makefile = (ROOT / "Makefile").read_text()
+        self.assertIn("scripts/sign-app.sh", makefile)
+        self.assertNotIn("codesign --force", makefile)
+
+    def test_a_bad_version_is_refused_before_anything_is_deleted(self):
+        text = (ROOT / "scripts/package-release.sh").read_text()
+        self.assertLess(text.index("is not x.y.z"), text.index("rm -rf"))
 
     def test_build_number_follows_the_version(self):
         self.assertRegex((ROOT / "project.yml").read_text(), r"CURRENT_PROJECT_VERSION: \$\(MARKETING_VERSION\)")
