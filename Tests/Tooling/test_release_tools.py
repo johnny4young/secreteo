@@ -1,6 +1,9 @@
 import importlib.util
+import os
 import re
+import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -17,6 +20,7 @@ def load(name: str):
 
 verify_release = load("verify_release")
 verify_appcast = load("verify_appcast")
+check_release = load("check_release")
 
 VERSION = "1.2.3"
 KEY = "A" * 43 + "="
@@ -117,6 +121,10 @@ class AppcastTests(unittest.TestCase):
     def test_a_correct_item_passes(self):
         self.assertEqual(feed_problems(feed()), [])
 
+    def test_a_newer_item_in_the_feed_fails(self):
+        newer = re.search(r"<item>.*</item>", feed(short="1.10.0", build="1.10.0", url=""), re.DOTALL).group(0)
+        self.assertTrue(feed_problems(feed().replace("</channel>", f"{newer}</channel>")))
+
     def test_older_items_are_ignored(self):
         older = re.search(r"<item>.*</item>", feed(short="1.2.2", build="1.2.2", url=""), re.DOTALL).group(0)
         two = feed().replace("</channel>", f"{older}</channel>")
@@ -128,6 +136,194 @@ class AppcastTests(unittest.TestCase):
                  "no enclosure": {"url": ""}, "length": {"length": "41"}, "unsigned": {"signature": ""}}
         for name, values in cases.items():
             self.assertTrue(feed_problems(feed(**values)), name)
+
+
+PROJECT = 'settings:\n  base:\n    MARKETING_VERSION: "1.2.3"\n    SPARKLE_PUBLIC_ED_KEY: "abc="\n'
+CHANGELOG = "# Changelog\n\n## Unreleased\n\n- Soon.\n\n## 1.2.3\n\n- Added this.\n- And that.\n\n## 1.2.2\n\n- Older.\n"
+
+
+def release_problems(tag="v1.2.3", project=PROJECT, changelog=CHANGELOG, on_main=True, arms=False, released=False):
+    return check_release.problems(tag, project, changelog, on_main, arms, released)
+
+
+class CheckReleaseTests(unittest.TestCase):
+    def test_a_correct_tag_passes(self):
+        self.assertEqual(release_problems(), [])
+
+    def test_notes_stop_at_the_next_section(self):
+        self.assertEqual(check_release.release_notes(CHANGELOG, "1.2.3"), "- Added this.\n- And that.")
+        self.assertEqual(check_release.release_notes(CHANGELOG, "1.2.2"), "- Older.")
+        self.assertEqual(check_release.release_notes(CHANGELOG, "1.2"), "")
+
+    def test_each_refusal(self):
+        cases = {"format": {"tag": "v1.2.3-beta.1"}, "no v": {"tag": "1.2.3"}, "version": {"tag": "v1.2.4"},
+                 "key": {"project": PROJECT.replace('"abc="', '""')}, "off main": {"on_main": False},
+                 "notes": {"changelog": CHANGELOG.replace("- Added this.\n- And that.\n", "")}}
+        for name, values in cases.items():
+            self.assertTrue(release_problems(**values), name)
+
+    def test_arming_dictation_waits_for_portavoz(self):
+        self.assertTrue(release_problems(arms=True, released=False))
+        self.assertEqual(release_problems(arms=True, released=True), [])
+
+
+class CaskTests(unittest.TestCase):
+    sha = "a" * 64
+
+    def render(self, version, sha256):
+        return subprocess.run([str(ROOT / "scripts/render-cask.sh"), version, sha256], capture_output=True, text=True,
+                              check=False)
+
+    def test_the_render_fills_the_template(self):
+        rendered = self.render("1.2.3", self.sha)
+        self.assertEqual(rendered.returncode, 0, rendered.stderr)
+        self.assertTrue(rendered.stdout.startswith('cask "secreteo" do'))
+        self.assertIn('version "1.2.3"', rendered.stdout)
+        self.assertIn(f'sha256 "{self.sha}"', rendered.stdout)
+        self.assertNotIn("__", rendered.stdout)
+
+    def test_the_render_refuses_bad_values(self):
+        for version, sha256 in (("1.2", self.sha), ("1.2.3; rm", self.sha), ("1.2.3", "abc"), ("1.2.3", "A" * 64)):
+            self.assertNotEqual(self.render(version, sha256).returncode, 0, (version, sha256))
+
+    def test_the_cask_contract(self):
+        text = (ROOT / "packaging/Casks/secreteo.rb").read_text()
+        self.assertIn("depends_on arch: :arm64", text)
+        self.assertIn("releases/download/v#{version}/Secreteo-#{version}.dmg", text)
+        self.assertIn("auto_updates true", text)
+        self.assertNotIn("conflicts_with", text)
+        self.assertNotIn("local-models", text.split("zap trash:")[1])
+
+
+class WorkflowContractTests(unittest.TestCase):
+    def workflow(self, name):
+        return (ROOT / ".github/workflows" / name).read_text()
+
+    def test_only_the_package_job_reads_signing_secrets(self):
+        text = self.workflow("release.yml")
+        package = re.search(r"^  package:\n(.*?)^  draft:", text, re.MULTILINE | re.DOTALL).group(1)
+        outside = text.replace(package, "")
+        self.assertIn("environment: release", package)
+        self.assertNotIn("contents: write", package)
+        self.assertNotRegex(outside, r"secrets\.[A-Z]")
+
+    def test_each_workflow_reads_only_its_own_secrets(self):
+        expected = {"update-cask.yml": {"TAP_DEPLOY_KEY"},
+                    "pages.yml": {"CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"},
+                    "ci.yml": set(), "nightly.yml": set()}
+        for name, secrets in expected.items():
+            self.assertEqual(set(re.findall(r"secrets\.([A-Z0-9_]+)", self.workflow(name))), secrets, name)
+        self.assertIn("environment: homebrew", self.workflow("update-cask.yml"))
+        self.assertIn("environment: site", self.workflow("pages.yml"))
+
+    def test_the_cask_serves_only_final_releases(self):
+        self.assertIn(".isDraft or .isPrerelease", self.workflow("update-cask.yml"))
+
+    def test_signing_turns_gatekeeper_on_first(self):
+        text = (ROOT / "scripts/setup-release-signing.sh").read_text()
+        self.assertLess(text.index("enable-gatekeeper.sh"), text.index("security import"))
+
+    def test_a_tag_only_creates_a_draft(self):
+        text = self.workflow("release.yml")
+        self.assertIn("--draft", text)
+        self.assertEqual(text.count("gh release create"), 1)
+
+    def test_the_default_token_is_read_only(self):
+        for name in ("release.yml", "update-cask.yml", "pages.yml", "nightly.yml", "ci.yml"):
+            self.assertRegex(self.workflow(name), r"(?m)^permissions:\n  contents: read$", name)
+
+    def test_nothing_privileged_runs_on_untrusted_input(self):
+        for name in ("release.yml", "update-cask.yml", "pages.yml"):
+            text = self.workflow(name)
+            self.assertNotIn("pull_request", text, name)
+            for line in text.splitlines():
+                if "${{" in line:
+                    self.assertRegex(line, r"^\s*(?!run\b)[A-Za-z_][\w-]*: ", name)
+
+    def test_node_follows_the_version_file(self):
+        text = self.workflow("pages.yml")
+        self.assertIn("node-version-file: .nvmrc", text)
+        self.assertIn("check-latest: true", text)
+
+
+class AssessmentTests(unittest.TestCase):
+    def test_a_real_acceptance_passes(self):
+        output = "x: accepted\nsource=Notarized Developer ID\n"
+        self.assertEqual(verify_release.assessment_problem("spctl", 0, output), "")
+
+    def test_a_rejection_fails(self):
+        self.assertTrue(verify_release.assessment_problem("spctl", 3, "x: rejected\n"))
+
+    def test_an_acceptance_with_gatekeeper_off_fails(self):
+        output = "x: accepted\noverride=security disabled\n"
+        self.assertTrue(verify_release.assessment_problem("spctl", 0, output))
+
+
+class TapTests(unittest.TestCase):
+    sha = "b" * 64
+
+    def setUp(self):
+        self.scratch = tempfile.TemporaryDirectory()
+        self.addCleanup(self.scratch.cleanup)
+        self.root = Path(self.scratch.name)
+        self.bare = self.root / "tap.git"
+        self.git("init", "-q", "--bare", "-b", "main", str(self.bare))
+        self.seed = self.root / "seed"
+        self.git("clone", "-q", str(self.bare), str(self.seed))
+        (self.seed / "Casks").mkdir()
+        (self.seed / "Casks/other.rb").write_text("# another app\n")
+        self.push_seed("seed")
+
+    def git(self, *arguments, cwd=None):
+        subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.test", *arguments], cwd=cwd,
+                       check=True, capture_output=True)
+
+    def push_seed(self, message):
+        self.git("add", "-A", cwd=self.seed)
+        self.git("commit", "-q", "-m", message, cwd=self.seed)
+        self.git("push", "-q", "origin", "HEAD:main", cwd=self.seed)
+
+    def publish(self, version):
+        environment = os.environ | {"TAP_DEPLOY_KEY": "test", "TAP_URL": str(self.bare)}
+        return subprocess.run([str(ROOT / "scripts/update-homebrew-tap.sh"), version, self.sha], env=environment,
+                              capture_output=True, text=True, check=False)
+
+    def served(self):
+        self.git("pull", "-q", "origin", "main", cwd=self.seed)
+        path = self.seed / "Casks/secreteo.rb"
+        return path.read_text() if path.exists() else ""
+
+    def test_it_publishes_and_keeps_other_casks(self):
+        result = self.publish("1.2.3")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('version "1.2.3"', self.served())
+        self.assertTrue((self.seed / "Casks/other.rb").exists())
+
+    def test_a_rerun_changes_nothing(self):
+        self.publish("1.2.3")
+        self.assertIn("already serves", self.publish("1.2.3").stdout)
+
+    def test_a_delayed_run_cannot_go_back(self):
+        self.publish("1.10.0")
+        result = self.publish("1.9.0")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('version "1.10.0"', self.served())
+
+    def test_a_rejected_push_retries_from_a_fresh_clone(self):
+        hook = self.bare / "hooks/pre-receive"
+        marker = self.root / "rejected-once"
+        hook.write_text(f'#!/bin/sh\n[ -e "{marker}" ] && exit 0\ntouch "{marker}"\nexit 1\n')
+        hook.chmod(0o755)
+        result = self.publish("1.2.3")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("rejected", result.stdout)
+        self.assertIn('version "1.2.3"', self.served())
+
+    def test_it_refuses_to_run_without_a_key(self):
+        environment = {key: value for key, value in os.environ.items() if key != "TAP_DEPLOY_KEY"}
+        result = subprocess.run([str(ROOT / "scripts/update-homebrew-tap.sh"), "1.2.3", self.sha], env=environment,
+                                capture_output=True, text=True, check=False)
+        self.assertNotEqual(result.returncode, 0)
 
 
 class ContractTests(unittest.TestCase):
