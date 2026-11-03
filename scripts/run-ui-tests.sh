@@ -32,6 +32,12 @@ xcodebuild "${common[@]}" test-without-building -parallel-testing-enabled NO \
   -test-timeouts-enabled YES -default-test-execution-time-allowance 120 \
   -resultBundlePath "$results" ${selection[@]+"${selection[@]}"} -quiet || status=$?
 
+# `-quiet` names failing tests but not why, so print the reasons.
+if [[ "$status" -ne 0 ]]; then
+  xcrun xcresulttool get test-results summary --path "$results" --compact \
+    | python3 -c 'import json,sys; [print(f"{t[\"testName\"]}: {t[\"failureText\"]}") for t in json.load(sys.stdin).get("testFailures", [])]' || true
+fi
+
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 if xcrun xcresulttool export attachments --path "$results" --output-path "$scratch" >/dev/null 2>&1; then
