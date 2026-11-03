@@ -1,0 +1,4 @@
+SecreteoUITests/ShellUITests/testMenuContentShowsItsCommands
+SecreteoUITests/ShellUITests/testSettingsOpensFromTheMenuAndTogglesLaunchAtLogin
+SecreteoUITests/ShellUITests/testAFailedLaunchAtLoginChangeIsShown
+SecreteoUITests/ShellUITests/testQuitEndsTheApp

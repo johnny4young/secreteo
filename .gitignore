@@ -1,6 +1,7 @@
 # Generated: project.yml is the source of truth for the Xcode project.
 *.xcodeproj
 *.profraw
+Vendor/
 .DS_Store
 .build/
 .env

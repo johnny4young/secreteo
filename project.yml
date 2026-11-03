@@ -1,0 +1,87 @@
+# Source of truth for Secreteo.xcodeproj, which is generated and git-ignored.
+name: Secreteo
+
+options:
+  bundleIdPrefix: com.johnny4young
+  deploymentTarget:
+    macOS: "26.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+  developmentLanguage: en
+  knownRegions:
+    - en
+    - es
+    - Base
+
+settings:
+  base:
+    MARKETING_VERSION: "0.0.1"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "6.0"
+    ARCHS: arm64
+    # One Debug binary: the launcher stub detaches from a menu bar agent.
+    ENABLE_DEBUG_DYLIB: NO
+    DEAD_CODE_STRIPPING: YES
+    # Ad-hoc by default. Distribution signing happens in the release workflow.
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    DEVELOPMENT_TEAM: ""
+    ENABLE_HARDENED_RUNTIME: NO
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
+
+packages:
+  Secreteo:
+    path: "."
+
+targets:
+  Secreteo:
+    type: application
+    platform: macOS
+    sources:
+      - path: Apps/Secreteo
+      - path: THIRD-PARTY-NOTICES.md
+        buildPhase: resources
+    dependencies:
+      - package: Secreteo
+        product: AppUI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.johnny4young.secreteo
+        PRODUCT_NAME: Secreteo
+        GENERATE_INFOPLIST_FILE: NO
+        ENABLE_APP_SANDBOX: NO
+        SWIFT_EMIT_LOC_STRINGS: YES
+    info:
+      path: Apps/Secreteo/Info.plist
+      properties:
+        CFBundleDisplayName: Secreteo
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSApplicationCategoryType: public.app-category.productivity
+        LSMinimumSystemVersion: "26.0"
+        LSUIElement: true
+        NSHumanReadableCopyright: "© 2026 Johnny Young"
+
+  SecreteoUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - path: Tests/SecreteoUITests
+    dependencies:
+      - target: Secreteo
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.johnny4young.secreteo.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        # The runner must not be sandboxed, or it drops the launch arguments.
+        ENABLE_APP_SANDBOX: NO
+
+schemes:
+  Secreteo:
+    build:
+      targets:
+        Secreteo: all
+    test:
+      config: Debug
+      targets:
+        - SecreteoUITests
