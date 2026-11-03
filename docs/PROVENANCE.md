@@ -45,6 +45,16 @@ Adapted from `johnny4young/portavoz@cffa87bb36f800108bd8e366bbaa153e2c9ec88f`.
 
 Portavoz's dictation sources were compared with [Megaphone](https://github.com/Kuberwastaken/megaphone) (MIT, Copyright Kuber Mehta and Zach Latta) at `5a9136b3`. None of its distinctive types appear in Portavoz, and the 77 long lines the two share are generic SwiftUI, AppKit and Foundation calls. This comparison cannot detect a rewrite. No Megaphone code is knowingly imported, so its notices are not included. If any derivation is found, both copyright lines go in the derived file and in the notices.
 
+## Ownership protocol peers
+
+The [ownership protocol](specs/ownership-protocol.md) has to recognize Portavoz builds that do not cooperate, so it needs these values:
+
+| Value | Portavoz |
+|---|---|
+| Release identifier | `app.portavoz.mac` |
+| Dev identifier | `app.portavoz.mac.dev` |
+| Preference key | `globalDictationEnabled`, off when absent |
+
 ## Identifier ratchet
 
 These source-app identifiers are rejected everywhere except this file and the notices:

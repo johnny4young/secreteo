@@ -29,3 +29,7 @@ Microphone and Accessibility grants, Shortcuts, MCP client configuration, and hi
 ## G7. Updates during a dictation
 
 A scheduled update shows as a menu row and never interrupts. Once dictation sessions exist, relaunching for an update the user accepted has to wait for the session to end, through Sparkle's `updater(_:shouldPostponeRelaunchForUpdate:untilInvokingBlock:)`.
+
+## G8. Ownership on a network home
+
+`flock` behavior on a home directory on a network volume is unverified. The [ownership protocol](specs/ownership-protocol.md) fails closed where `flock` reports it is unsupported. A volume that accepts `flock` without enforcing it across processes would not be detected.
