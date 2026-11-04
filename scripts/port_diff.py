@@ -22,14 +22,14 @@ def rows(provenance: str):
             yield match.groups()
 
 
-def normalized(text: str) -> list[str]:
+def renamed(source: str) -> list[str]:
     for old, new in RENAMES:
-        text = text.replace(old, new)
-    return text.splitlines()
+        source = source.replace(old, new)
+    return source.splitlines()
 
 
 def changes(ported: str, source: str) -> list[str]:
-    diff = difflib.unified_diff(normalized(source), normalized(ported), "export", "ported", lineterm="", n=0)
+    diff = difflib.unified_diff(renamed(source), ported.splitlines(), "export", "ported", lineterm="", n=0)
     return [line for line in diff if not line.startswith(("---", "+++", "@@"))]
 
 
@@ -37,8 +37,12 @@ def main(arguments: list[str], root: Path) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("export", type=Path, help="git archive of the frozen commit, unpacked")
     options = parser.parse_args(arguments)
+    table = list(rows((root / "docs/PROVENANCE.md").read_text()))
+    if not table:
+        print("No rows to compare in docs/PROVENANCE.md")
+        return 1
     failed = False
-    for ported, source, change in rows((root / "docs/PROVENANCE.md").read_text()):
+    for ported, source, change in table:
         found = changes((root / ported).read_text(), (options.export / source).read_text())
         if change == "Renames":
             print(f"{ported}: {'same' if not found else 'DIFFERS'}")
@@ -48,9 +52,13 @@ def main(arguments: list[str], root: Path) -> int:
             # The rest of the source stays behind by design, so only additions need reading.
             shown = [line for line in found if line.startswith("+")]
             print(f"{ported}: {change}, {len(shown)} added")
-        else:
+        elif change.startswith("Seam"):
             shown = found
             print(f"{ported}: {change}")
+        else:
+            print(f"{ported}: UNKNOWN change kind: {change}")
+            failed = True
+            shown = found
         for line in shown:
             print(f"  {line}")
     return 1 if failed else 0

@@ -53,6 +53,30 @@ class PortDiffTests(unittest.TestCase):
         self.assertIn("+import Testing", output)
         self.assertNotIn("let b = 2", output)
 
+    def test_a_port_that_kept_the_old_name_fails(self):
+        code, output = self.run_diff("Renames", "import PortavozCore\n", "import PortavozCore\n")
+
+        self.assertEqual(code, 1)
+        self.assertIn("+import PortavozCore", output)
+
+    def test_an_unknown_change_kind_fails(self):
+        code, output = self.run_diff("Rename", "let a = 1\n", "let a = 1\n")
+
+        self.assertEqual(code, 1)
+        self.assertIn("UNKNOWN", output)
+
+    def test_a_table_with_no_rows_fails(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "docs").mkdir()
+            (root / "docs/PROVENANCE.md").write_text("## Dictation code\n\nNo table yet.\n")
+            output = StringIO()
+            with redirect_stdout(output):
+                code = port_diff.main([folder], root)
+
+        self.assertEqual(code, 1)
+        self.assertIn("No rows", output.getvalue())
+
     def test_rows_outside_the_section_are_ignored(self):
         _, output = self.run_diff("Renames", "let a = 1\n", "let a = 1\n")
 

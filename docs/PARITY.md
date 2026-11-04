@@ -14,6 +14,18 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Word counts, days and time saved | `DictationStats` | `DictationStatsTests` | `DictationStatsTests`, `DictationStatsValueTests` | Ported |
 | Record, consent, filter and recipe values | `DictationHistory`, `DictationRecipe`, `DictationTextMode` | Through the store and settings tests | `DictationDomainTests` | Ported |
 
+## Speech and capture
+
+| Capability or case | Portavoz source | Portavoz test | Secreteo test | State |
+|---|---|---|---|---|
+| Parakeet recognition, EN and ES | `ParakeetEngine`, `ParakeetTokenRevisionReducer` | `ParakeetLanguageConfigurationTests`, `ParakeetTokenRevisionReducerTests`, `ParakeetIntegrationTests` | | Pending, P2 |
+| Parakeet Ultra | `AppServices+ParakeetUltra` | `ParakeetUltraSelectionTests`, `ParakeetUltraRuntimeTests` | | Pending, P2 |
+| Apple Speech | `SpeechAnalyzerLiveEngine`, `SpeechAnalyzerEngine` | `SpeechAnalyzerLiveEngineTests`, `SpeechAnalyzerLifetimeTests` | | Pending, P2 |
+| Silero voice detection | `SileroVoiceActivityDetector`, `SileroSpeechRegionDetector` | `SileroVoiceActivityDetectorTests` | | Pending, P2 |
+| Microphone capture and choice | `MicrophoneSource`, `AudioDeviceCatalog`, `MicrophoneInputSelection` | `AudioCaptureTests` | | Pending, P2 |
+| Model download and storage | `ModelStore`, then `LocalModelStore` | `ModelStoreDownloadFailureTests` | | Pending, P2 |
+| Choice of live engine | `LiveSpeechSelection` | `LiveSpeechSelectionTests` | | Pending, P2 |
+
 ## Triggers
 
 | Capability or case | Portavoz source | Portavoz test | Secreteo test | State |
@@ -21,7 +33,7 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Global shortcut | `GlobalHotkey`, `DictationController+Hotkey` | `GlobalHotkeyRoutingTests`, `DictationShortcutTests`, `HotkeySettingTests` | | Pending, P4 |
 | Push to talk, Fn and modifiers | `ModifierKeyPTT`, `DictationController+ModifierKey` | `ModifierKeyGestureTests`, `DictationModifierOwnershipTests` | | Pending, P4 |
 | Push to talk, mouse | `MouseButtonPTT`, `MousePTTGesture` | `MousePTTGestureTests` | | Pending, P4 |
-| Menu | `MenuBarView`, `MenuBarModel` | `DictationUITests` | | Pending, P4 |
+| Menu | `MenuBarView`, `MenuBarModel` | `MenuBarModelTests`, `DictationUITests` | | Pending, P4 |
 | App Intents | `AppServices+DictationIntents` | `DictationIntentTests` | | Pending, P8 |
 | Paste last | `DictationController+PasteLast`, `AppServices+PasteLastDictation` | `DictationPasteLastTests` | | Pending, P3 |
 | Selection Rewrite | `SelectionRewriteController`, `SelectionCapture` | `SelectionRewriteTests`, `SelectionRewriteUITests` | | Pending, P6 |
@@ -43,7 +55,7 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Spoken correction in delivery | `DictationCorrections` | `DictationCorrectionTests` | | Pending, P3 |
 | Panel, compact indicator and waveform | `DictationPanel`, `DictationCompactIndicator` | `DictationPanelAnchorTests`, `DictationCompactIndicatorTests` | | Pending, P4 |
 | Sounds and prewarm | `DictationSoundCue`, `AppServices+DictationPrewarm` | `DictationColdStartTests` | | Pending, P3 |
-| Memory: model residency | `AppModelResidencyLedger`, `AppModelIdleReleaseScheduler` | `DictationResourceOwnershipTests`, rewritten here | | Pending, P2 |
+| Memory: model residency | `AppModelResidencyLedger`, `AppModelIdleReleaseScheduler` | `DictationResourceOwnershipTests`, which asserts sharing in one process and has to be rewritten | | Pending, P2 |
 
 ## Text features and data
 
@@ -51,13 +63,16 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 |---|---|---|---|---|
 | Modes, recipes and per-app profiles | `DictationTextPreferences`, `DictationTextSettingsModel` | `DictationRecipeTests`, `DictationTextModeDeliveryTests` | | Pending, P5 and P6 |
 | Polish with Apple Foundation Models and Ollama | `PolishDictation`, `DictationTextPolishers` | `PolishDictationTests`, `DictationPolishRouterTests`, `DictationPolishDeliveryTests` | | Pending, P6 |
-| Polish egress consent | `DictationPolishPrompt`, gateway | `DictationPolishEgressTests`, rewritten here | | Pending, P6 |
+| Polish egress consent | `AppServices+DictationPolish`, `Schema+DictationPolish` | `DictationPolishEgressTests`, which has to be rewritten | | Pending, P6 |
 | Translate while pasting | `TranslateDictation`, `AppleDictationTranslator` | `TranslateDictationTests`, `DictationTranslationDeliveryTests` | | Pending, P6 |
 | History, with consent and retention | `DictationHistoryModel`, store | `DictationHistoryStoreTests`, `DictationHistoryRecordingTests` | | Pending, P7 |
 | Search | Store | `DictationSearchStoreTests` | | Pending, P7 |
 | Statistics | `DictationStatsModel`, store | `DictationStatsStoreTests`, `DictationStatsTests` | | Pending, P7 |
 | Read-only MCP | `DictationToolbox` | `DictationToolboxTests`, `DictationAgentAccessStoreTests` | | Pending, P8 |
-| English and Spanish | Catalogs | Localization suite | | Pending, P5 |
+| Settings: vocabulary, microphone, memory and Polish panels | `DictationSection`, `DictationTextSettingsSection`, `DictationDictionaryEditor` | `SettingsUITests` | | Pending, P5 |
+| Onboarding | `OnboardingDictationStep`, `OnboardingModelPreparation` | `OnboardingUITests`, `OnboardingModelPreparationTests` | | Pending, P5 |
+| Preference import | `PortableSettings` | `PortableSettingsTests` | | Pending, P5 |
+| English and Spanish | `Localizable.xcstrings` | `LocalizationTests` | | Pending, P5 |
 
 ## Approved losses
 

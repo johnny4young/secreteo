@@ -163,7 +163,7 @@ struct DictationStatsValueTests {
     }
 
     @Test
-    func aSampleNeedsARealDayAndCounts() {
+    func aSampleNeedsADayInTheStoredShapeAndValidCounts() {
         #expect(sample().isValid)
         #expect(!sample(day: "2027-1-15").isValid)
         #expect(!sample(day: "2027/01/15").isValid)
@@ -194,7 +194,15 @@ struct DictationKitModuleTests {
         var found = Set<String>()
         for name in try FileManager.default.contentsOfDirectory(atPath: sources.path) {
             let text = try String(contentsOf: sources.appendingPathComponent(name), encoding: .utf8)
-            found.formUnion(text.split(separator: "\n").filter { $0.hasPrefix("import ") }.map { String($0.dropFirst(7)) })
+            let lines = text.split(separator: "\n").map { String($0).trimmingCharacters(in: .whitespaces) }
+            // Attributes and access levels come before the keyword, as in `@preconcurrency import AppKit`.
+            found.formUnion(lines.compactMap { line in
+                let words = line.split(separator: " ")
+                guard let keyword = words.firstIndex(of: "import"), keyword + 1 < words.count, !line.hasPrefix("//"),
+                      words[..<keyword].allSatisfy({ $0.hasPrefix("@") || ["public", "internal", "package"].contains(String($0)) })
+                else { return nil }
+                return String(words[keyword + 1])
+            })
         }
         return found
     }
