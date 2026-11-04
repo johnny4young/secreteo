@@ -546,6 +546,22 @@
         }
       }
     },
+    "Pasted without polish: the model could not rewrite it.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pasted without polish: the model could not rewrite it."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegado sin pulir: el modelo no pudo reescribirlo."
+          }
+        }
+      }
+    },
     "Pasted without polish: the rewrite changed a fact, name or number.": {
       "localizations": {
         "en": {
@@ -562,34 +578,18 @@
         }
       }
     },
-    "Pasted without polish: the summary engine could not rewrite it.": {
+    "Pasted without polish: the rewrite took too long.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pasted without polish: the summary engine could not rewrite it."
+            "value": "Pasted without polish: the rewrite took too long."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pegado sin pulir: el motor de resúmenes no pudo reescribirlo."
-          }
-        }
-      }
-    },
-    "Pasted without polish: the summary engine took too long.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pasted without polish: the summary engine took too long."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pegado sin pulir: el motor de resúmenes tardó demasiado."
+            "value": "Pegado sin pulir: la reescritura tardó demasiado."
           }
         }
       }
@@ -610,18 +610,18 @@
         }
       }
     },
-    "Pasted without translation: download the languages in Settings › Audio & dictation first.": {
+    "Pasted without translation: download the languages in Settings first.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pasted without translation: download the languages in Settings › Audio & dictation first."
+            "value": "Pasted without translation: download the languages in Settings first."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pegado sin traducir: primero descarga los idiomas en Ajustes › Audio y dictado."
+            "value": "Pegado sin traducir: primero descarga los idiomas en Ajustes."
           }
         }
       }

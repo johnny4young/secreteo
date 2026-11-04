@@ -50,7 +50,7 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Cancel during prepare and during Stop | `DictationController` | `DictationSessionLifecycleTests` | The same tests | Logic ported. The app does not run a session yet |
 | Text recovery | `DictationRecoveryView`, `CapturedDictationDestination` | `DictationDestinationRecoveryTests`, `DictationRecoveryCopyTests` | `DictationDestinationRecoveryTests` | Logic ported. The recovery view arrives with the panel |
 | Permissions revoked | `DictationMicrophoneReadiness`, `DictationController` | `DictationReadinessTests`, `DictationSessionLifecycleTests` | The same tests, without the composition's | Logic ported. A real revoked permission still has to be checked |
-| Clipboard restored | `DictationClipboard`, `PasteboardSnapshot` | `DictationClipboardInsertionTests`, `DictationClipboardBoundaryTests` | The same tests, without the UI fixture test | Logic ported. The fixture test arrives with the fixture, and the real paste into another app still has to be checked |
+| Clipboard restored | `DictationClipboard`, `PasteboardSnapshot` | `DictationClipboardInsertionTests`, `DictationClipboardBoundaryTests` | The same tests | Logic ported. The real paste into another app still has to be checked |
 | Capitals and spacing from the caret | `DictationCaretCase`, `DictationCaretJoin` | `DictationCaretCaseTests`, `DictationCaretJoinTests` | The same tests | Logic ported. A real caret in another app still has to be checked |
 | Readback and verified delivery | `DictationTextReadback`, `TextInserter` | `TextInsertionReadbackTests`, `TextInsertionTargetTests` | The same tests | Logic ported. Real Accessibility readback still has to be checked |
 | Speech gate and auto stop | `DictationSpeechGate`, `DictationAutoStop` | `DictationSpeechGateTests`, `DictationPauseDetectorTests` | The same tests, without the composition's | Detector and pause logic ported. Session wiring arrives with the controller |
@@ -83,3 +83,18 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Ask over dictations | `AskDictationsTests`, `AskDictationRetrievalTests` | Agents read history through MCP ([D2](DECISIONS.md#d2-scope-and-approved-losses)) |
 | Dictation into meeting notes | `DictationMeetingNoteStoreTests` | Copy and paste |
 | Polish with embedded MLX | `DictationTextPolisherTests`, in part | Apple Foundation Models and Ollama |
+
+## Tests that wait for their slice
+
+| Test | Waits for |
+|---|---|
+| `DictationAdmissionTests`, `DictationOwnershipCoordinatorTests` | The ownership coordinator |
+| `DictationHistoryRecordingTests` | The store |
+| `DictationSpeechGateCorpusTests` | The benchmark tooling |
+| In `DictationReadinessTests`: `testFixtureRecoverySurvivesFreshDependenciesForEachMenuInvocation`, `testAppSettingsWriteRejectsPreparationAndAllowsApplyAfterCancel`, `testLiveCompositionReadsTheInjectedAudioPreference` | The composition |
+| In `DictationTextModeDeliveryTests`: `firstEnableAfterAppCompositionStillDeliversLiteral`, `chooserWithoutAnOwnedWindowReportsFailureAndRetiresSelection`, `failedDatabaseAdmissionDoesNotInitializeTextPreferences`, `corruptProfilesStayRecoverableWithoutOverridingGlobalMode`, `settingsMutationsStayBoundedAndTemporary`, `fillerAndReplacementControlsFollowAnyCleanUse`, `rejectedIdentifiersCannotReplaceTheSavedProfile`, `chooserFixtureRequiresAllIsolationConditions` | The composition and Settings |
+| In `DictationSpeechGateTests`: `testTurningOnDictationPreparesTheDetectorOnlyWhenTheGateIsOn`, `testDisposableCompositionNeverDownloadsTheDetector` | The composition |
+| In `LiveSpeechSelectionTests`: `testTheDefaultUltraNeitherDownloadsNorBlocksDictation`, `testSelectedAppleWithAutomaticLanguageNeverStartsAModelLoad` | The composition |
+| In `DictationColdStartTests`: `testPrewarmRunsOnlyWhenEveryConditionAllowsIt`, and the prewarm half of `testSoundsAndPrewarmAreOffByDefault` | The composition |
+| In `DictationCorrectionTests`: `aPracticeSessionNeverEditsAnotherAppsInsertion` | Practice |
+| In `DictationShortcutTests`: the fixture half of `testNoRegistrarKeepsTemporaryCompositionInert` | The shortcut fixture |

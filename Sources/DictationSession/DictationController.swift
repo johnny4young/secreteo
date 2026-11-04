@@ -1029,7 +1029,7 @@ private extension DictationController {
         case .unknownLanguage:
             L10n.text("Pasted without translation: the dictation's language was not clear.")
         case .notInstalled:
-            L10n.text("Pasted without translation: download the languages in Settings › Audio & dictation first.")
+            L10n.text("Pasted without translation: download the languages in Settings first.")
         case .unsupported:
             L10n.text("Pasted without translation: this language pair is not available on this Mac.")
         case .timedOut, .failed:
@@ -1056,9 +1056,9 @@ private extension DictationController {
         case .unavailable(let reason):
             L10n.format("Pasted without polish: %@", reason)
         case .timedOut:
-            L10n.text("Pasted without polish: the summary engine took too long.")
+            L10n.text("Pasted without polish: the rewrite took too long.")
         case .failed:
-            L10n.text("Pasted without polish: the summary engine could not rewrite it.")
+            L10n.text("Pasted without polish: the model could not rewrite it.")
         case .changedMeaning:
             L10n.text("Pasted without polish: the rewrite changed a fact, name or number.")
         }
