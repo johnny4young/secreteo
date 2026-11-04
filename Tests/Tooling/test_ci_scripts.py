@@ -39,7 +39,9 @@ class ChangesTests(unittest.TestCase):
         self.assertEqual(ci_changes.classify([]), {"code": True, "delivery": True, "release": True})
 
     def test_delivery_and_triggers_select_the_signed_lane(self):
-        self.assertTrue(ci_changes.classify(["Sources/Delivery/TextInserter.swift"])["delivery"])
+        self.assertTrue(ci_changes.classify(["Sources/DictationSession/Delivery/TextInserter.swift"])["delivery"])
+        self.assertTrue(ci_changes.classify(["Tests/DictationSessionTests/Delivery/TextInsertionTargetTests.swift"])["delivery"])
+        self.assertFalse(ci_changes.classify(["Sources/DictationSession/DictationController.swift"])["delivery"])
         self.assertTrue(ci_changes.classify(["Sources/Triggers/GlobalHotkey.swift"])["delivery"])
         self.assertFalse(ci_changes.classify(["Sources/AppUI/A.swift"])["delivery"])
 

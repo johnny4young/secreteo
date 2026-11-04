@@ -48,7 +48,18 @@ def renamed(source: str, ported_path: str) -> list[str]:
 
 def changes(ported: str, source: str, ported_path: str) -> list[str]:
     diff = difflib.unified_diff(renamed(source, ported_path), ported.splitlines(), "export", "ported", lineterm="", n=0)
-    return [line for line in diff if not line.startswith(("---", "+++", "@@"))]
+    # The first two lines are the file header; a changed line may itself start with --- or +++.
+    return [line for line in list(diff)[2:] if not line.startswith("@@")]
+
+
+def renamed_literals(source: str, ported_path: str) -> list[str]:
+    # A rename inside a string can change behavior, so a person reads each one.
+    if "DictationSession" not in ported_path:
+        return []
+    return [
+        line.strip() for line in source.splitlines()
+        if any(old in literal for literal in re.findall(r'"[^"]*"', line) for old, _ in SESSION_RENAMES)
+    ]
 
 
 def main(arguments: list[str], root: Path) -> int:
@@ -61,11 +72,12 @@ def main(arguments: list[str], root: Path) -> int:
         return 1
     failed = False
     for ported, source, change in table:
-        found = changes((root / ported).read_text(), (options.export / source).read_text(), ported)
+        original = (options.export / source).read_text()
+        found = changes((root / ported).read_text(), original, ported)
         if change == "Renames":
             print(f"{ported}: {'same' if not found else 'DIFFERS'}")
             failed = failed or bool(found)
-            shown = found
+            shown = found + [f"renamed literal: {line}" for line in renamed_literals(original, ported)]
         elif change.startswith("Extract"):
             # The rest of the source stays behind by design, so only additions need reading.
             shown = [line for line in found if line.startswith("+")]
