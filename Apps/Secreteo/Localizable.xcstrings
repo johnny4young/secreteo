@@ -418,6 +418,22 @@
         }
       }
     },
+    "Could not reset dictation. Try again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not reset dictation. Try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo restablecer el dictado. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
     "Could not take over dictation. Try again.": {
       "localizations": {
         "en": {
@@ -1534,6 +1550,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Suelta Comando, Opción, Control y Mayúsculas e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "Reset Dictation State": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset Dictation State"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restablecer el estado del dictado"
           }
         }
       }

@@ -2,7 +2,6 @@ import AppKit
 import ApplicationServices
 import DictationOwnership
 import LiveSpeech
-import LocalModelStore
 import MicCapture
 
 /// What the feature asks of the system, which a disposable launch and a test replace.
@@ -13,9 +12,9 @@ struct DictationFeatureEnvironment {
     var askForAccessibility: @MainActor () -> Void
     var openMicrophoneSettings: @MainActor () -> Void
     /// Nil when no real model is involved.
-    var modelIsVerified: (@Sendable () async -> Bool)?
+    var models: DictationModels?
 
-    static func live(microphone: MicrophonePermissionClient, modelStore: LocalModelStore) -> Self {
+    static func live(microphone: MicrophonePermissionClient, models: DictationModels) -> Self {
         Self(
             microphoneState: { microphone.state() },
             accessibilityIsGranted: { AXIsProcessTrusted() },
@@ -25,7 +24,7 @@ struct DictationFeatureEnvironment {
                 let pane = "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
                 if let url = URL(string: pane) { NSWorkspace.shared.open(url) }
             },
-            modelIsVerified: { await modelStore.verifiedInstallation(ModelCatalog.parakeetTdtV3) != nil })
+            models: models)
     }
 
     static func disposable(permissionsAreMissing: Bool) -> Self {
@@ -35,7 +34,7 @@ struct DictationFeatureEnvironment {
             askForMicrophone: {},
             askForAccessibility: {},
             openMicrophoneSettings: {},
-            modelIsVerified: nil)
+            models: nil)
     }
 }
 

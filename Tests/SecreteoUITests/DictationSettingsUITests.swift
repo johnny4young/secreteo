@@ -58,6 +58,36 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         let message = app.control(withIdentifier: "settings-dictation-unavailable")
         XCTAssertTrue(message.waitForExistence(timeout: 5))
         XCTAssertTrue(renderedText(of: message).contains("Portavoz"))
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-reset").exists, "Only a corrupt file resets")
+    }
+
+    func testACorruptOwnershipFileCanBeResetAndDictationTakenAgain() throws {
+        let app = try XCUIApplication.secreteo(showMenuBarContent: true)
+        app.launchArguments.append("-seed-dictation-corrupt-ownership")
+        app.launchEnvironment["SECRETEO_UI_TEST_DEFAULTS"] = #"{"globalDictationEnabled":true}"#
+        app.launchSecreteo()
+        defer { finishUITestApplication(app) }
+        XCTAssertTrue(app.buttons["menu-settings"].waitForStableFrame(timeout: 30))
+        XCTAssertFalse(app.buttons["menu-bar-dictate"].exists)
+
+        app.buttons["menu-settings"].click()
+
+        let reset = app.control(withIdentifier: "settings-dictation-reset")
+        XCTAssertTrue(reset.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.control(withIdentifier: "settings-dictation-unavailable").exists)
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-take-ownership").exists)
+
+        reset.click()
+
+        let take = app.control(withIdentifier: "settings-dictation-take-ownership")
+        XCTAssertTrue(take.waitForExistence(timeout: 5), "A reset leaves no owner, so the user chooses again")
+        XCTAssertFalse(reset.exists)
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-unavailable").exists)
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-reset-failed").exists)
+
+        take.click()
+
+        XCTAssertTrue(app.buttons["menu-bar-dictate"].waitForExistence(timeout: 5))
     }
 
     func testAllPermissionsGrantedOfferNoActions() throws {

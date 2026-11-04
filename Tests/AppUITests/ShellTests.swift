@@ -142,6 +142,15 @@ struct UpdateTests {
 }
 
 struct RuntimeOptionsTests {
+    @Test func aMenuFocusTargetNeedsTheMenuWindowAndATestBuild() {
+        let flags = ["-use-temp-store", "-show-menu-content", "-return-menu-focus-to", "com.example.app"]
+        #expect(RuntimeOptions(arguments: flags, allowsTestFlags: true).menuFocusTarget == "com.example.app")
+        #expect(RuntimeOptions(arguments: flags, allowsTestFlags: false).menuFocusTarget == nil)
+        #expect(RuntimeOptions(arguments: Array(flags.dropLast()), allowsTestFlags: true).menuFocusTarget == nil)
+        let noWindow = ["-use-temp-store", "-return-menu-focus-to", "com.example.app"]
+        #expect(RuntimeOptions(arguments: noWindow, allowsTestFlags: true).menuFocusTarget == nil)
+    }
+
     @Test func testFlagsRequireTheTemporaryStore() {
         let bare = RuntimeOptions(arguments: ["-show-menu-content", "-fail-launch-at-login"], allowsTestFlags: true)
         #expect(!bare.usesTemporaryStore && !bare.showsMenuContentWindow && !bare.failsLaunchAtLogin)

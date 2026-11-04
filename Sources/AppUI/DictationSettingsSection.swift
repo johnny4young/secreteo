@@ -32,6 +32,15 @@ struct DictationSettingsSection: View {
                 Text(message)
                     .accessibilityIdentifier("settings-dictation-unavailable")
             }
+            if dictation.canResetOwnership {
+                Button("Reset Dictation State") { dictation.resetOwnership() }
+                    .accessibilityIdentifier("settings-dictation-reset")
+                if dictation.lastResetFailed {
+                    Text("Could not reset dictation. Try again.")
+                        .foregroundStyle(.red)
+                        .accessibilityIdentifier("settings-dictation-reset-failed")
+                }
+            }
             if dictation.lastHandoffFailed {
                 Text("Could not take over dictation. Try again.")
                     .foregroundStyle(.red)

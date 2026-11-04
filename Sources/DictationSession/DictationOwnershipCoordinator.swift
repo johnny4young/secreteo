@@ -45,7 +45,7 @@ final class DictationOwnershipCoordinator {
     ///   or nil when ready. Ownership is offered and held only while this is nil.
     static func live(
         defaults: UserDefaults, usesTemporaryStore: Bool, missingForReadiness: @escaping @Sendable () -> String?,
-        seedsLegacyPeer: Bool = false
+        seedsLegacyPeer: Bool = false, seedsCorruptState: Bool = false
     ) -> DictationOwnershipCoordinator {
         let participant = Bundle.main.bundleIdentifier ?? "com.johnny4young.secreteo.unbundled"
         let isReal = usesRealOwner(identifier: participant, usesTemporaryStore: usesTemporaryStore)
@@ -60,12 +60,18 @@ final class DictationOwnershipCoordinator {
                 legacyPeerIsActive: seedsLegacyPeer || peers?.activePeer() != nil)
         }
         let scratch = UUID().uuidString
+        let scratchRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("dictation-ownership-\(scratch)", isDirectory: true)
+        if seedsCorruptState, !isReal {
+            try? FileManager.default.createDirectory(
+                at: scratchRoot, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+            try? Data("{".utf8).write(to: scratchRoot.appendingPathComponent("ownership.json"))
+        }
         let ownership = isReal
             ? DictationOwnership(participant: participant, conditions: conditions)
             : DictationOwnership(
                 participant: participant,
-                root: FileManager.default.temporaryDirectory
-                    .appendingPathComponent("dictation-ownership-\(scratch)", isDirectory: true),
+                root: scratchRoot,
                 conditions: conditions,
                 notificationName: "com.johnny4young.secreteo.dictation-ownership.scratch.\(scratch)")
         return DictationOwnershipCoordinator(ownership: ownership) {
@@ -167,6 +173,12 @@ final class DictationOwnershipCoordinator {
             userConfirmed: true, triggers: handoffTriggers(arm: arm, disarm: disarm))
         await settleAfterChange()
         return outcome
+    }
+
+    func resetCorruptState() async -> OwnershipChange {
+        let change = await ownership.resetCorruptState()
+        await settleAfterChange()
+        return change
     }
 
     private func handoffTriggers(

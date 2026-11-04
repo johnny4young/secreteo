@@ -9,12 +9,17 @@ public final class StatusItemController: NSObject {
     private let model: AppModel
     private var statusItem: NSStatusItem?
     private let popover = NSPopover()
+    private let focusReturn = MenuFocusReturn()
 
     public init(model: AppModel) {
         self.model = model
         super.init()
         popover.behavior = .transient
-        popover.contentViewController = NSHostingController(rootView: MenuContentView(model: model))
+        let content = MenuContentView(model: model) { [weak self] action in
+            self?.popover.performClose(nil)
+            self?.focusReturn.run(action)
+        }
+        popover.contentViewController = NSHostingController(rootView: content)
     }
 
     /// False once macOS or the user removes the icon.
@@ -45,6 +50,7 @@ public final class StatusItemController: NSObject {
         if popover.isShown {
             popover.performClose(nil)
         } else {
+            focusReturn.remember()
             NSApp.activate()
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         }

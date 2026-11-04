@@ -32,7 +32,7 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored private let fixture: DictationUITestFixture?
     @ObservationIgnored private let environment: DictationFeatureEnvironment
     @ObservationIgnored private let ownership: DictationOwnershipCoordinator
-    @ObservationIgnored private let readiness: ReadinessGap
+    @ObservationIgnored let readiness: ReadinessGap
     @ObservationIgnored private let warmEngine: WarmModel<ParakeetEngine>
     @ObservationIgnored private var readinessPoll: Task<Void, Never>?
     let controller: DictationController
@@ -42,6 +42,7 @@ public final class DictationFeature: AppServices {
     public private(set) var microphoneIsAuthorized: Bool
     public private(set) var accessibilityIsGranted: Bool
     private(set) var handoffProblem: HandoffProblem?
+    public private(set) var lastResetFailed = false
 
     public convenience init(usesTemporaryStore: Bool, arguments: [String] = ProcessInfo.processInfo.arguments) throws {
         try self.init(usesTemporaryStore: usesTemporaryStore, arguments: arguments, defaults: .standard)
@@ -65,7 +66,7 @@ public final class DictationFeature: AppServices {
         fixture = DictationUITestFixture(arguments: arguments, usesTemporaryStore: usesTemporaryStore)
         let environment = environment ?? (usesTemporaryStore
             ? .disposable(permissionsAreMissing: arguments.contains("-seed-dictation-permissions-missing"))
-            : .live(microphone: microphonePermissions, modelStore: modelStore))
+            : .live(microphone: microphonePermissions, models: .live(store: modelStore, defaults: defaults)))
         self.environment = environment
         microphoneIsAuthorized = environment.microphoneState() == .authorized
         accessibilityIsGranted = environment.accessibilityIsGranted()
@@ -74,7 +75,8 @@ public final class DictationFeature: AppServices {
         self.readiness = readiness
         let ownership = DictationOwnershipCoordinator.live(
             defaults: defaults, usesTemporaryStore: usesTemporaryStore,
-            missingForReadiness: { readiness.current() }, seedsLegacyPeer: seedsLegacyPeer)
+            missingForReadiness: { readiness.current() }, seedsLegacyPeer: seedsLegacyPeer,
+            seedsCorruptState: usesTemporaryStore && arguments.contains("-seed-dictation-corrupt-ownership"))
         self.ownership = ownership
         // Two apps must not each keep a model warm.
         warmEngine = WarmModel(mayKeep: { ownership.state == .owned }, load: {
@@ -96,7 +98,10 @@ public final class DictationFeature: AppServices {
         }
         ownership.start()
         syncDictationTriggers()
-        Task { await refreshReadiness() }
+        Task {
+            await showRememberedModels()
+            await refreshReadiness()
+        }
     }
 
     /// A hint from the app: permissions may have changed in System Settings.
@@ -133,20 +138,17 @@ public final class DictationFeature: AppServices {
     }
 
     public func downloadModel() {
-        guard !usesTemporaryMeetingStore, modelState != .downloading else { return }
+        guard let models = environment.models, modelState != .downloading else { return }
         modelState = .downloading
         Task {
-            do {
-                _ = try await modelStore.ensureAvailable(ModelCatalog.parakeetTdtV3, seeds: [], progress: nil)
-            } catch {
-                modelState = .failed
-                return
-            }
-            modelState = .ready
-            // Optional: without the detector the speech gate fails open and dictation still works.
-            _ = try? await modelStore.ensureAvailable(ModelCatalog.sileroVAD, seeds: [], progress: nil)
+            modelState = await models.installAll() ? .ready : .failed
             await refreshReadiness()
         }
+    }
+
+    /// The way out of a corrupt ownership file, which nothing else may overwrite.
+    public func resetOwnership() {
+        Task { recordReset(await ownership.resetCorruptState()) }
     }
 
     public func requestMicrophone() {
@@ -193,6 +195,7 @@ public final class DictationFeature: AppServices {
     }
     public var lastHandoffFailed: Bool { handoffProblem == .failed }
     public var canTakeOwnership: Bool { ownership.state == .available }
+    public var canResetOwnership: Bool { ownership.state == .unavailable(.corruptState) }
 
     // MARK: AppServices
 
@@ -252,6 +255,11 @@ public final class DictationFeature: AppServices {
         handoffProblem = outcome.flatMap { HandoffProblem($0) }
     }
 
+    /// No change means another app's reset landed first, which fixed the file just the same.
+    func recordReset(_ change: OwnershipChange) {
+        lastResetFailed = change == .busy || change == .failed
+    }
+
     private func ownershipChanged(from previous: ParticipantState) {
         syncDictationTriggers()
         if previous == .owned, ownership.state != .owned { warmEngine.release() }
@@ -271,22 +279,37 @@ public final class DictationFeature: AppServices {
     func refreshReadiness() async {
         microphoneIsAuthorized = environment.microphoneState() == .authorized
         accessibilityIsGranted = environment.accessibilityIsGranted()
-        guard let modelIsVerified = environment.modelIsVerified else {
+        guard let models = environment.models else {
             ownership.reevaluate()
             return
         }
-        let modelIsInstalled = await modelIsVerified()
+        let speech = await models.isVerified(.speech)
+        let detector = await models.isVerified(.speechDetector)
         // A cancelled check stops hashing and reports the files as bad, which says nothing about them.
         guard !Task.isCancelled else { return }
-        if modelIsInstalled {
+        showModels(speechIsInstalled: speech, detectorIsInstalled: detector)
+        watchReadiness()
+        await models.remember(.speech, speech)
+        await models.remember(.speechDetector, detector)
+    }
+
+    /// A model hashed on an earlier launch and unchanged since need not read as missing during
+    /// this launch's first hash, which still runs and takes this back if the files are bad.
+    private func showRememberedModels() async {
+        guard let models = environment.models, await models.wasVerified(.speech) else { return }
+        showModels(speechIsInstalled: true, detectorIsInstalled: await models.wasVerified(.speechDetector))
+    }
+
+    /// Without the detector the speech gate fails open, so only the speech model holds dictation back.
+    private func showModels(speechIsInstalled: Bool, detectorIsInstalled: Bool) {
+        if speechIsInstalled, detectorIsInstalled {
             modelState = .ready
         } else if modelState == .ready {
             modelState = .missing
         }
-        readiness.modelIsInstalled.withLock { $0 = modelIsInstalled }
+        readiness.modelIsInstalled.withLock { $0 = speechIsInstalled }
         ownership.reevaluate()
         syncEventTaps()
-        watchReadiness()
     }
 
     /// A permission changed in System Settings may never activate this agent app, so look again:

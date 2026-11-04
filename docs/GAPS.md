@@ -51,3 +51,7 @@ Delivery logic has only run against scratch pasteboards and injected events. The
 - Words in recovery, or kept after a capture failure, stay in memory until the user closes or restarts, even across a lock. Losing a long dictation to an automatic lock is the worse outcome, so only Paste last and the controller's other copies expire.
 - A lock during a delivery clears Paste last, and the delivery then stores the same words for up to 15 more minutes.
 - A retry from recovery after a lock cannot update its history row, because the draft is gone.
+
+## G11. Menu rows and focus
+
+Dictate and the paste rows give focus back to the app that was frontmost when the menu opened, then act. If that app does not take focus within half a second the action still runs, and its words can miss. XCUITest cannot reach the status item, so a test drives the same hand-back from the window-mounted menu, and the popover's own path has not been clicked on a real Mac. Closing the menu with no action leaves focus in Secreteo, as it did before.

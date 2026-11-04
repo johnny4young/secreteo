@@ -1,5 +1,8 @@
+import Darwin
 import DictationOwnership
 import Foundation
+import LiveSpeech
+import LocalModelStore
 import MicCapture
 import Observation
 import Synchronization
@@ -9,10 +12,15 @@ import XCTest
 
 @MainActor
 final class DictationFeatureTests: XCTestCase {
+    private struct InstallFailed: Error {}
+
     private final class System: Sendable {
         let microphone = Mutex(MicrophonePermissionState.notDetermined)
         let accessibility = Mutex(false)
-        let modelIsInstalled = Mutex(true)
+        let verified = Mutex<Set<DictationModels.Part>>([.speech, .speechDetector])
+        let remembered = Mutex<Set<DictationModels.Part>>([])
+        let failsToInstall = Mutex<Set<DictationModels.Part>>([])
+        let installed = Mutex<[DictationModels.Part]>([])
         let asked = Mutex(0)
         let opened = Mutex(0)
         /// When set, a model check waits here until the test releases it.
@@ -25,12 +33,24 @@ final class DictationFeatureTests: XCTestCase {
                 askForMicrophone: { self.asked.withLock { $0 += 1 } },
                 askForAccessibility: {},
                 openMicrophoneSettings: { self.opened.withLock { $0 += 1 } },
-                modelIsVerified: {
-                    if let gate = self.modelGate.withLock({ $0 }) {
-                        for await _ in gate { break }
-                    }
-                    return self.modelIsInstalled.withLock { $0 }
-                })
+                models: DictationModels(
+                    isVerified: { part in
+                        if let gate = self.modelGate.withLock({ $0 }) {
+                            for await _ in gate { break }
+                        }
+                        return self.verified.withLock { $0.contains(part) }
+                    },
+                    wasVerified: { part in self.remembered.withLock { $0.contains(part) } },
+                    remember: { part, isVerified in
+                        self.remembered.withLock { remembered in
+                            if isVerified { remembered.insert(part) } else { remembered.remove(part) }
+                        }
+                    },
+                    install: { part in
+                        if self.failsToInstall.withLock({ $0.contains(part) }) { throw InstallFailed() }
+                        self.installed.withLock { $0.append(part) }
+                        self.verified.withLock { _ = $0.insert(part) }
+                    }))
         }
     }
 
@@ -42,10 +62,10 @@ final class DictationFeatureTests: XCTestCase {
     }
 
     private func makeFeature(
-        _ system: System = System(), defaults: UserDefaults? = nil
+        _ system: System = System(), defaults: UserDefaults? = nil, arguments: [String] = []
     ) throws -> DictationFeature {
         try DictationFeature(
-            usesTemporaryStore: true, arguments: [], defaults: defaults ?? makeDefaults(),
+            usesTemporaryStore: true, arguments: arguments, defaults: defaults ?? makeDefaults(),
             environment: system.environment())
     }
 
@@ -100,13 +120,14 @@ final class DictationFeatureTests: XCTestCase {
 
         let (gate, release) = AsyncStream.makeStream(of: Void.self)
         system.modelGate.withLock { $0 = gate }
-        system.modelIsInstalled.withLock { $0 = false }
+        system.verified.withLock { $0 = [] }
         let check = Task { await feature.refreshReadiness() }
         await Task.yield()
         check.cancel()
         release.finish()
         await check.value
         XCTAssertEqual(feature.modelState, .ready)
+        XCTAssertEqual(system.remembered.withLock { $0 }, [.speech, .speechDetector], "Nor is it forgotten")
 
         system.modelGate.withLock { $0 = nil }
         await feature.refreshReadiness()
@@ -152,11 +173,213 @@ final class DictationFeatureTests: XCTestCase {
         XCTAssertTrue(feature.canPasteUnpolished)
     }
 
+    func testAMissingDetectorIsOfferedWithoutHoldingDictationBack() async throws {
+        let system = System()
+        system.verified.withLock { $0 = [.speech] }
+        let feature = try makeFeature(system)
+        await feature.refreshReadiness()
+        XCTAssertEqual(feature.modelState, .missing, "Parakeet in the shared store must not hide the detector")
+        XCTAssertTrue(feature.readiness.modelIsInstalled.withLock { $0 })
+    }
+
+    func testAFailedDetectorDownloadIsShownAndCanBeRetried() async throws {
+        let system = System()
+        system.verified.withLock { $0 = [] }
+        system.failsToInstall.withLock { $0 = [.speechDetector] }
+        let feature = try makeFeature(system)
+
+        feature.downloadModel()
+        await waitUntil { feature.modelState == .failed }
+        await feature.refreshReadiness()
+        XCTAssertEqual(feature.modelState, .failed)
+        XCTAssertTrue(feature.readiness.modelIsInstalled.withLock { $0 }, "Dictation still works without it")
+
+        system.failsToInstall.withLock { $0 = [] }
+        feature.downloadModel()
+        await waitUntil { feature.modelState == .ready }
+        XCTAssertEqual(system.installed.withLock { $0 }, [.speech, .speech, .speechDetector])
+    }
+
+    func testAFailedSpeechDownloadLeavesDictationNotReady() async throws {
+        let system = System()
+        system.verified.withLock { $0 = [] }
+        system.failsToInstall.withLock { $0 = [.speech] }
+        let feature = try makeFeature(system)
+        feature.downloadModel()
+        await waitUntil { feature.modelState == .failed }
+        await feature.refreshReadiness()
+        XCTAssertEqual(system.installed.withLock { $0 }, [])
+        XCTAssertFalse(feature.readiness.modelIsInstalled.withLock { $0 })
+    }
+
+    func testAModelHashedOnAnEarlierLaunchIsReadyBeforeThisLaunchsHashEnds() async throws {
+        let system = System()
+        system.remembered.withLock { $0 = [.speech, .speechDetector] }
+        let (gate, release) = AsyncStream.makeStream(of: Void.self)
+        system.modelGate.withLock { $0 = gate }
+        let feature = try makeFeature(system)
+        XCTAssertFalse(feature.readiness.modelIsInstalled.withLock { $0 })
+
+        feature.start()
+        await waitUntil { feature.modelState == .ready }
+        XCTAssertTrue(feature.readiness.modelIsInstalled.withLock { $0 })
+        release.finish()
+    }
+
+    func testABadHashTakesBackARememberedModelAndForgetsIt() async throws {
+        let system = System()
+        system.remembered.withLock { $0 = [.speech, .speechDetector] }
+        system.verified.withLock { $0 = [] }
+        let feature = try makeFeature(system)
+
+        feature.start()
+        await waitUntil { system.remembered.withLock { $0.isEmpty } }
+        XCTAssertEqual(feature.modelState, .missing)
+        XCTAssertFalse(feature.readiness.modelIsInstalled.withLock { $0 })
+    }
+
+    func testARememberedDetectorAloneShowsNothing() async throws {
+        let system = System()
+        system.remembered.withLock { $0 = [.speechDetector] }
+        let (gate, release) = AsyncStream.makeStream(of: Void.self)
+        system.modelGate.withLock { $0 = gate }
+        let feature = try makeFeature(system)
+        feature.start()
+        for _ in 0..<20 { await Task.yield() }
+        XCTAssertEqual(feature.modelState, .missing)
+        XCTAssertFalse(feature.readiness.modelIsInstalled.withLock { $0 })
+        release.finish()
+    }
+
+    func testACorruptOwnershipFileOffersResetAndThenDictationCanBeTaken() async throws {
+        let defaults = makeDefaults()
+        defaults.set(true, forKey: DictationController.defaultsKey)
+        let feature = try makeFeature(defaults: defaults, arguments: ["-seed-dictation-corrupt-ownership"])
+        feature.start()
+        await waitUntil { feature.canResetOwnership }
+        XCTAssertFalse(feature.canDictate)
+        XCTAssertFalse(feature.canTakeOwnership)
+
+        feature.resetOwnership()
+        await waitUntil { feature.canTakeOwnership }
+        XCTAssertFalse(feature.canResetOwnership)
+        XCTAssertFalse(feature.lastResetFailed)
+    }
+
+    func testResetIsNotOfferedForAnyOtherRefusal() async throws {
+        let defaults = makeDefaults()
+        defaults.set(true, forKey: DictationController.defaultsKey)
+        let legacy = try makeFeature(defaults: defaults, arguments: ["-seed-dictation-legacy-peer"])
+        legacy.start()
+        await waitUntil { legacy.unavailableMessage != nil }
+        XCTAssertFalse(legacy.canResetOwnership)
+        XCTAssertFalse(try makeFeature().canResetOwnership)
+    }
+
+    func testAResetThatCouldNotRunIsShown() throws {
+        let feature = try makeFeature()
+        for change in [OwnershipChange.busy, .failed] {
+            feature.recordReset(change)
+            XCTAssertTrue(feature.lastResetFailed)
+            feature.recordReset(.changed(generation: 1))
+            XCTAssertFalse(feature.lastResetFailed)
+        }
+        feature.recordReset(.noChange)
+        XCTAssertFalse(feature.lastResetFailed, "Another app's reset fixed the file just the same")
+    }
+
     private func waitUntil(_ condition: () -> Bool) async {
         for _ in 0..<200 where !condition() {
             try? await Task.sleep(for: .milliseconds(10))
         }
         XCTAssertTrue(condition())
+    }
+}
+
+@MainActor
+final class VerifiedModelRecordTests: XCTestCase {
+    private func makeScratch() throws -> URL {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("VerifiedModelRecordTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
+        return directory
+    }
+
+    private func manifest(pinning digit: String = "0") -> ModelManifest {
+        ModelManifest(
+            id: "test", displayName: "Test", resolveBase: URL(string: "https://example.invalid")!, revision: "a",
+            artifacts: [ModelArtifact(path: "nested/model.bin", sha256: String(repeating: digit, count: 64), sizeBytes: 1)],
+            minimumRAMGB: 1, license: "MIT")
+    }
+
+    func testAnyChangeToTheFilesChangesTheRecord() throws {
+        let directory = try makeScratch()
+        let file = directory.appendingPathComponent("nested/model.bin")
+        XCTAssertNil(VerifiedModelRecord.fingerprint(of: manifest(), in: directory), "Nothing there yet")
+        try FileManager.default.createDirectory(
+            at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data("a".utf8).write(to: file)
+
+        let original = try XCTUnwrap(VerifiedModelRecord.fingerprint(of: manifest(), in: directory))
+        XCTAssertEqual(VerifiedModelRecord.fingerprint(of: manifest(), in: directory), original)
+        XCTAssertNotEqual(VerifiedModelRecord.fingerprint(of: manifest(pinning: "1"), in: directory), original)
+
+        let handle = try FileHandle(forWritingTo: file)
+        try handle.write(contentsOf: Data("b".utf8))
+        try handle.close()
+        let edited = try XCTUnwrap(VerifiedModelRecord.fingerprint(of: manifest(), in: directory))
+        XCTAssertNotEqual(edited, original, "Same size, new bytes")
+
+        // Moves only the change time, which is the one stamp a tool cannot set back.
+        XCTAssertEqual(setxattr(file.path, "com.example.test", "a", 1, 0, 0), 0)
+        let touched = try XCTUnwrap(VerifiedModelRecord.fingerprint(of: manifest(), in: directory))
+        XCTAssertNotEqual(touched, edited)
+
+        try Data().write(to: directory.appendingPathComponent("nested/added"))
+        XCTAssertNotEqual(VerifiedModelRecord.fingerprint(of: manifest(), in: directory), touched, "An added entry")
+
+        try FileManager.default.removeItem(at: file)
+        XCTAssertNil(VerifiedModelRecord.fingerprint(of: manifest(), in: directory))
+    }
+
+    func testTheLiveModelsRememberBetweenLaunchesOnlyWhatStaysUnchanged() async throws {
+        let name = "VerifiedModelRecordTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: name))
+        addTeardownBlock { UserDefaults(suiteName: name)?.removePersistentDomain(forName: name) }
+        let store = try LocalModelStore(
+            location: .directory(try makeScratch()),
+            consumer: StoreConsumer(bundleID: "com.example.test", displayName: "Test"))
+        let models = DictationModels.live(store: store, defaults: defaults)
+        let directory = try await store.directory(for: ModelCatalog.sileroVAD)
+        for artifact in ModelCatalog.sileroVAD.artifacts {
+            let file = directory.appendingPathComponent(artifact.path)
+            try FileManager.default.createDirectory(
+                at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data("a".utf8).write(to: file)
+        }
+
+        let wasVerifiedBefore = await models.wasVerified(.speechDetector)
+        XCTAssertFalse(wasVerifiedBefore)
+        await models.remember(.speechDetector, true)
+        let wasVerified = await models.wasVerified(.speechDetector)
+        XCTAssertTrue(wasVerified)
+        let isVerified = await models.isVerified(.speechDetector)
+        XCTAssertFalse(isVerified, "The record says nothing to a real hash")
+
+        let otherLaunch = DictationModels.live(store: store, defaults: defaults)
+        let otherLaunchRemembers = await otherLaunch.wasVerified(.speechDetector)
+        XCTAssertTrue(otherLaunchRemembers)
+
+        await models.remember(.speechDetector, false)
+        let forgotten = await models.wasVerified(.speechDetector)
+        XCTAssertFalse(forgotten)
+
+        await models.remember(.speechDetector, true)
+        let file = directory.appendingPathComponent(try XCTUnwrap(ModelCatalog.sileroVAD.artifacts.first).path)
+        try Data("b".utf8).write(to: file)
+        let wasVerifiedAfterEdit = await models.wasVerified(.speechDetector)
+        XCTAssertFalse(wasVerifiedAfterEdit)
     }
 }
 
