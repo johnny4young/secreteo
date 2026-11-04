@@ -39,7 +39,8 @@ struct DictationCaretCase {
         let rules = DictationTextRules.decode(
             replacements: defaults.string(forKey: DictationController.replacementsKey) ?? "")
         return Self(protectedWords: Set(rules.flatMap { rule in
-            rule.replacement.split(whereSeparator: \.isWhitespace).map { $0.trimmingCharacters(in: .punctuationCharacters) }
+            rule.replacement.split(whereSeparator: \.isWhitespace)
+                .map { $0.trimmingCharacters(in: .punctuationCharacters) }
         }))
     }
 
