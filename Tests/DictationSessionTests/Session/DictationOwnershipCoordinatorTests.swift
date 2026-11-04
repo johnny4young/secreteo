@@ -36,6 +36,8 @@ struct DictationOwnershipCoordinatorTests {
         func coordinator() -> DictationOwnershipCoordinator {
             let ownership = participant(DictationOwnershipCoordinatorTests.secreteo)
             lastOwnership = ownership
+            // Secreteo never claims on its own, so these tests set up the owner themselves.
+            _ = ownership.claimAtFirstRun()
             let coordinator = DictationOwnershipCoordinator(ownership: ownership) { [self] in await settle() }
             coordinator.start()
             return coordinator
@@ -74,22 +76,6 @@ struct DictationOwnershipCoordinatorTests {
     }
 
     @Test
-    func aClaimThatMetABusyLockIsRetriedOnTheNextHint() throws {
-        let scratch = Scratch()
-        guard case .admitted(let other) = scratch.participant(Self.other).acquire(.practice) else {
-            Issue.record("The other app could not take the lock")
-            return
-        }
-        let coordinator = scratch.coordinator()
-        #expect(coordinator.state == .available)
-
-        other.release()
-        coordinator.reevaluate()
-
-        #expect(coordinator.state == .owned)
-    }
-
-    @Test
     func aLockFileReplacedDuringTheRestoreRefusesTheJoin() async throws {
         let scratch = Scratch()
         let coordinator = scratch.coordinator()
@@ -123,14 +109,21 @@ struct DictationOwnershipCoordinatorTests {
     }
 
     @Test
-    func aFirstRunWithThePreferenceOnBecomesTheOwner() {
+    func aFirstRunNeverClaimsEvenWithThePreferenceOn() throws {
         let scratch = Scratch()
+        let ownership = scratch.participant(Self.secreteo)
+        let coordinator = DictationOwnershipCoordinator(ownership: ownership) {}
 
-        let coordinator = scratch.coordinator()
+        coordinator.start()
+        coordinator.reevaluate()
 
-        #expect(coordinator.state == .owned)
-        #expect(coordinator.armsTriggers)
-        #expect(coordinator.admission.isEligible())
+        #expect(coordinator.state == .available)
+        #expect(!coordinator.armsTriggers)
+        #expect(!coordinator.admission.isEligible())
+        guard case .failure(.notOwner) = coordinator.admission.acquire(.global) else {
+            Issue.record("A first run must not be admitted")
+            return
+        }
     }
 
     @Test

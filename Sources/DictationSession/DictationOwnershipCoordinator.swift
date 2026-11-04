@@ -21,9 +21,8 @@ final class DictationOwnershipCoordinator {
     /// Step 5 of a handoff arms the triggers just before this app becomes the owner.
     @ObservationIgnored private var armsForHandoff = false
     @ObservationIgnored private var hasStarted = false
-    /// Both of these take the capture lock even to change nothing, so each runs only while it can
-    /// still matter: another app's key press must not meet a lock this app took just to look.
-    @ObservationIgnored private var claimIsPending = true
+    /// Takes the capture lock even to change nothing, so it runs only while it can still matter:
+    /// another app's key press must not meet a lock this app took just to look.
     @ObservationIgnored private var turnOffIsPending = true
 
     init(ownership: DictationOwnership, settle: @escaping () async -> Void) {
@@ -91,7 +90,6 @@ final class DictationOwnershipCoordinator {
     func start() {
         guard !hasStarted else { return }
         hasStarted = true
-        claimIfPending()
         publish(ownership.status())
         turnOffIfPending()
         let observer = OwnershipObserver(ownership: ownership) { [weak self] snapshot in
@@ -114,20 +112,9 @@ final class DictationOwnershipCoordinator {
     /// A hint, as is activation or wake: the state is read again and nothing is decided from it.
     func reevaluate() {
         guard hasStarted else { return }
-        claimIfPending()
         publish(ownership.status())
         turnOffIfPending()
         Task { [observer] in await observer?.reevaluate() }
-    }
-
-    private func claimIfPending() {
-        guard claimIsPending else { return }
-        // A legacy peer can go away, and then the claim still applies.
-        if case .unavailable = ownership.status() { return }
-        switch ownership.claimAtFirstRun() {
-        case .busy, .failed: break
-        case .changed, .noChange: claimIsPending = false
-        }
     }
 
     private func turnOffIfPending() {
