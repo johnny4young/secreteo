@@ -91,7 +91,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationSession/Delivery/DictationTextReadback.swift` | `Sources/portavoz-app/DictationTextReadback.swift` | Renames |
 | `Sources/DictationSession/Delivery/PasteboardSnapshot.swift` | `Sources/portavoz-app/PasteboardSnapshot.swift` | Renames |
 | `Sources/DictationSession/Delivery/TextInserter.swift` | `Sources/portavoz-app/TextInserter.swift` | Seam: layouts match by exact name, and the copy event runs on the main actor |
-| `Tests/DictationSessionTests/Delivery/DictationClipboardBoundaryTests.swift` | `Tests/PortavozAppTests/DictationClipboardBoundaryTests.swift` | Extract: without the UI fixture test, which arrives with the fixture |
+| `Tests/DictationSessionTests/Delivery/DictationClipboardBoundaryTests.swift` | `Tests/PortavozAppTests/DictationClipboardBoundaryTests.swift` | Seam: imports the split targets |
 | `Tests/DictationSessionTests/Delivery/DictationClipboardInsertionTests.swift` | `Tests/PortavozAppTests/DictationClipboardInsertionTests.swift` | Renames |
 | `Tests/DictationSessionTests/Delivery/DictationCaretCaseTests.swift` | `Tests/PortavozAppTests/DictationCaretCaseTests.swift` | Renames |
 | `Tests/DictationSessionTests/Delivery/DictationCaretJoinTests.swift` | `Tests/PortavozAppTests/DictationCaretJoinTests.swift` | Renames |
@@ -134,6 +134,46 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/DictationSessionTests/Triggers/HotkeySettingTests.swift` | `Tests/PortavozAppTests/HotkeySettingTests.swift` | Renames |
 | `Tests/DictationSessionTests/Triggers/ModifierKeyGestureTests.swift` | `Tests/PortavozAppTests/ModifierKeyGestureTests.swift` | Renames |
 | `Tests/DictationSessionTests/Triggers/MousePTTGestureTests.swift` | `Tests/PortavozAppTests/MousePTTGestureTests.swift` | Renames |
+| `Sources/DictationSession/DictationController.swift` | `Sources/portavoz-app/DictationController.swift` | Seam: imports the split targets, messages that named Portavoz's engine and panels are rewritten, and the panel is a placeholder for now |
+| `Sources/DictationSession/DictationController+History.swift` | `Sources/portavoz-app/DictationController+History.swift` | Seam: imports the split targets |
+| `Sources/DictationSession/DictationController+Hotkey.swift` | `Sources/portavoz-app/DictationController+Hotkey.swift` | Renames |
+| `Sources/DictationSession/DictationController+ModifierKey.swift` | `Sources/portavoz-app/DictationController+ModifierKey.swift` | Renames |
+| `Sources/DictationSession/DictationController+Ownership.swift` | `Sources/portavoz-app/DictationController+Ownership.swift` | Renames |
+| `Sources/DictationSession/DictationController+PasteLast.swift` | `Sources/portavoz-app/DictationController+PasteLast.swift` | Renames |
+| `Sources/DictationSession/DictationController+Stats.swift` | `Sources/portavoz-app/DictationController+Stats.swift` | Seam: imports the split targets |
+| `Sources/DictationSession/DictationSessionDependencies.swift` | `Sources/portavoz-app/DictationSessionDependencies.swift` | Seam: imports the split targets |
+| `Sources/DictationSession/DictationAdmission.swift` | `Sources/portavoz-app/DictationAdmission.swift` | Extract: the port and lease, the composition stays out |
+| `Sources/DictationSession/DictationTextPreferences.swift` | `Sources/portavoz-app/DictationTextPreferences.swift` | Seam: imports the split targets |
+| `Sources/DictationSession/DictationPanelAnchor.swift` | `Sources/portavoz-app/DictationPanelAnchor.swift` | Renames |
+| `Sources/DictationSession/AppleDictationTranslator.swift` | `Sources/portavoz-app/AppleDictationTranslator.swift` | Seam: imports the split targets |
+| `Sources/DictationKit/DictationTextPolishing.swift` | `Sources/IntelligenceKit/DictationTextPolishing.swift` | Renames |
+| `Sources/DictationKit/PolishDictation.swift` | `Sources/ApplicationKit/PolishDictation.swift` | Seam: imports the split targets |
+| `Sources/DictationKit/TranslateDictation.swift` | `Sources/ApplicationKit/TranslateDictation.swift` | Renames |
+| `Sources/DictationSession/Fixtures/DictationUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationUITestFixture.swift` | Extract: without the composition extension |
+| `Sources/DictationSession/Fixtures/DictationNativeUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationNativeUITestFixture.swift` | Seam: a line wrapped for the longer identifier |
+| `Sources/DictationSession/Fixtures/DictationNativeControllerUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationNativeControllerUITestFixture.swift` | Renames |
+| `Tests/DictationSessionTests/Session/DictationControllerTests.swift` | `Tests/PortavozAppTests/DictationControllerTests.swift` | Seam: imports the split targets |
+| `Tests/DictationSessionTests/Session/DictationSessionLifecycleTests.swift` | `Tests/PortavozAppTests/DictationSessionLifecycleTests.swift` | Seam: imports the split targets |
+| `Tests/DictationSessionTests/Session/DictationDeliveryOutcomeTests.swift` | `Tests/PortavozAppTests/DictationDeliveryOutcomeTests.swift` | Seam: imports the split targets |
+| `Tests/DictationSessionTests/Session/DictationDeliveryPhaseTests.swift` | `Tests/PortavozAppTests/DictationDeliveryPhaseTests.swift` | Seam: imports the split targets |
+| `Tests/DictationSessionTests/Session/DictationStreamingProjectionTests.swift` | `Tests/PortavozAppTests/DictationStreamingProjectionTests.swift` | Seam: imports the split targets |
+| `Tests/DictationSessionTests/Session/DictationPasteLastTests.swift` | `Tests/PortavozAppTests/DictationPasteLastTests.swift` | Seam: imports the split targets |
+| `Tests/DictationSessionTests/Session/DictationSpeechGateDeliveryTests.swift` | `Tests/PortavozAppTests/DictationSpeechGateDeliveryTests.swift` | Seam: imports the split targets |
+| `Tests/DictationSessionTests/Session/DictationSessionMeasurementTests.swift` | `Tests/PortavozAppTests/DictationSessionMeasurementTests.swift` | Seam: imports the split targets |
+| `Tests/DictationSessionTests/Session/DictationModifierOwnershipTests.swift` | `Tests/PortavozAppTests/DictationModifierOwnershipTests.swift` | Seam: imports the split targets |
+| `Tests/DictationSessionTests/Session/DictationPolishDeliveryTests.swift` | `Tests/PortavozAppTests/DictationPolishDeliveryTests.swift` | Seam: imports the split targets |
+| `Tests/DictationSessionTests/Session/DictationTranslationDeliveryTests.swift` | `Tests/PortavozAppTests/DictationTranslationDeliveryTests.swift` | Seam: imports the split targets |
+| `Tests/DictationSessionTests/Session/DictationTextModeDeliveryTests+NativeController.swift` | `Tests/PortavozAppTests/DictationTextModeDeliveryTests+NativeController.swift` | Seam: imports the split targets |
+| `Tests/DictationSessionTests/Session/DictationCorrectionTests.swift` | `Tests/PortavozAppTests/DictationCorrectionTests.swift` | Extract: without the practice test, which arrives with Practice |
+| `Tests/DictationSessionTests/Session/DictationColdStartTests.swift` | `Tests/PortavozAppTests/DictationColdStartTests.swift` | Extract: without the prewarm tests, which arrive with the composition |
+| `Tests/DictationSessionTests/Session/DictationReadinessTests.swift` | `Tests/PortavozAppTests/DictationReadinessTests.swift` | Extract: without the tests of the composition, which arrive with it |
+| `Tests/DictationSessionTests/Session/DictationTextModeDeliveryTests.swift` | `Tests/PortavozAppTests/DictationTextModeDeliveryTests.swift` | Extract: without the Settings and composition tests, which arrive with them |
+| `Tests/DictationSessionTests/Delivery/DictationDestinationRecoveryTests.swift` | `Tests/PortavozAppTests/DictationDestinationRecoveryTests.swift` | Seam: imports the split targets |
+| `Tests/DictationSessionTests/DictationAutoStopTests.swift` | `Tests/PortavozAppTests/DictationAutoStopTests.swift` | Seam: imports the split targets |
+| `Tests/DictationSessionTests/Session/TranslateDictationTests.swift` | `Tests/PortavozKitTests/TranslateDictationTests.swift` | Seam: imports the split targets |
+| `Tests/DictationKitTests/PolishDictationTests.swift` | `Tests/PortavozKitTests/PolishDictationTests.swift` | Seam: imports the split targets |
+| `Tests/DictationSessionTests/Support/ExclusiveArgumentDomain.swift` | `Tests/PortavozAppTests/ExclusiveArgumentDomain.swift` | Renames |
+| `Tests/DictationSessionTests/Support/DictationAdmission+Testing.swift` | `Tests/PortavozAppTests/DictationAdmissionTests.swift` | Extract: only the admission helpers |
 
 ## Repository bootstrap
 

@@ -25,7 +25,7 @@ let package = Package(
         .target(
             name: "DictationSession",
             dependencies: [
-                "DictationKit", "LiveSpeech", "MicCapture", "SpeechCore",
+                "DictationKit", "DictationOwnership", "LiveSpeech", "MicCapture", "SpeechCore",
                 .product(name: "LocalModelStore", package: "local-model-store")
             ]),
         .target(
