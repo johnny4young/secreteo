@@ -136,13 +136,13 @@ private struct DictationStripView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
     }
 
-    /// The active strip: what you're saying, and — the 4b signature — WHERE
+    /// The active strip: what you're saying, and WHERE
     /// it will land, so you never dictate blind.
     private var dictatingView: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
                 if showsModelLoading {
-                    // Audio is kept (D561), but no words can appear yet.
+                    // Audio is kept, but no words can appear yet.
                     Image(systemName: "hourglass")
                         .foregroundStyle(.orange)
                         .symbolEffect(.pulse)

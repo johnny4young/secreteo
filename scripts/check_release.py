@@ -20,6 +20,14 @@ def project_setting(project_yml: str, name: str) -> str:
     return match.group(1) if match else ""
 
 
+def parent_key(lines: list[str], index: int) -> str:
+    indent = len(lines[index]) - len(lines[index].lstrip())
+    for line in reversed(lines[:index]):
+        if line.strip() and not line.lstrip().startswith("#") and len(line) - len(line.lstrip()) < indent:
+            return line.strip()
+    return ""
+
+
 def release_notes(changelog: str, version: str) -> str:
     sections = list(SECTION.finditer(changelog))
     for index, section in enumerate(sections):
@@ -31,7 +39,14 @@ def release_notes(changelog: str, version: str) -> str:
 
 def arms_global_dictation(project_yml: str) -> bool:
     # The base value is what a Release build gets. Anything but an explicit NO counts as armed.
-    return project_setting(project_yml, "SECRETEO_GLOBAL_DICTATION") != "NO"
+    lines = project_yml.splitlines()
+    values = [
+        match.group(1)
+        for index, line in enumerate(lines)
+        if (match := re.match(r'\s*SECRETEO_GLOBAL_DICTATION:\s*"?([^"\s#]*)', line))
+        and parent_key(lines, index) != "Debug:"
+    ]
+    return not values or any(value != "NO" for value in values)
 
 
 def problems(tag: str, project_yml: str, changelog: str, on_main: bool, arms_dictation: bool,

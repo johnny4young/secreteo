@@ -1,4 +1,3 @@
-import AppKit
 import ApplicationServices
 import DictationKit
 import DictationOwnership
@@ -31,39 +30,59 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored let modelStore: LocalModelStore
     @ObservationIgnored let dictationPolisher: any DictationTextPolishing = UnavailablePolisher()
     @ObservationIgnored private let fixture: DictationUITestFixture?
-    @ObservationIgnored private let seedsMissingPermissions: Bool
+    @ObservationIgnored private let environment: DictationFeatureEnvironment
     @ObservationIgnored private let ownership: DictationOwnershipCoordinator
     @ObservationIgnored private let readiness: ReadinessGap
-    @ObservationIgnored private var engine: ParakeetEngine?
-    @ObservationIgnored private var engineLoad: Task<ParakeetEngine, Error>?
-    @ObservationIgnored private var idleRelease: Task<Void, Never>?
+    @ObservationIgnored private let warmEngine: WarmModel<ParakeetEngine>
     @ObservationIgnored private var readinessPoll: Task<Void, Never>?
-    private let controller: DictationController
+    let controller: DictationController
 
     public private(set) var modelState = ModelState.missing
     public private(set) var isEnabled: Bool
-    public private(set) var lastHandoffFailed = false
+    public private(set) var microphoneIsAuthorized: Bool
+    public private(set) var accessibilityIsGranted: Bool
+    private(set) var handoffProblem: HandoffProblem?
 
-    public init(usesTemporaryStore: Bool, arguments: [String] = ProcessInfo.processInfo.arguments) throws {
-        let defaults = UserDefaults.standard
+    public convenience init(usesTemporaryStore: Bool, arguments: [String] = ProcessInfo.processInfo.arguments) throws {
+        try self.init(usesTemporaryStore: usesTemporaryStore, arguments: arguments, defaults: .standard)
+    }
+
+    init(
+        usesTemporaryStore: Bool, arguments: [String], defaults: UserDefaults,
+        environment: DictationFeatureEnvironment? = nil
+    ) throws {
         if usesTemporaryStore { UITestDefaults.installIfNeeded(arguments: arguments, defaults: defaults) }
         self.defaults = defaults
         usesTemporaryMeetingStore = usesTemporaryStore
         isEnabled = defaults.bool(forKey: DictationController.defaultsKey)
         let identifier = Bundle.main.bundleIdentifier ?? "com.johnny4young.secreteo.unbundled"
-        modelStore = try LocalModelStore(
+        let modelStore = try LocalModelStore(
             location: usesTemporaryStore
                 ? .directory(FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
                 : .userLibrary,
             consumer: StoreConsumer(bundleID: identifier, displayName: "Secreteo"))
+        self.modelStore = modelStore
         fixture = DictationUITestFixture(arguments: arguments, usesTemporaryStore: usesTemporaryStore)
-        seedsMissingPermissions = usesTemporaryStore && arguments.contains("-seed-dictation-permissions-missing")
+        let environment = environment ?? (usesTemporaryStore
+            ? .disposable(permissionsAreMissing: arguments.contains("-seed-dictation-permissions-missing"))
+            : .live(microphone: microphonePermissions, modelStore: modelStore))
+        self.environment = environment
+        microphoneIsAuthorized = environment.microphoneState() == .authorized
+        accessibilityIsGranted = environment.accessibilityIsGranted()
         let seedsLegacyPeer = usesTemporaryStore && arguments.contains("-seed-dictation-legacy-peer")
         let readiness = ReadinessGap(isDisposable: usesTemporaryStore, microphone: MicrophonePermissionClient())
         self.readiness = readiness
-        ownership = .live(
+        let ownership = DictationOwnershipCoordinator.live(
             defaults: defaults, usesTemporaryStore: usesTemporaryStore,
             missingForReadiness: { readiness.current() }, seedsLegacyPeer: seedsLegacyPeer)
+        self.ownership = ownership
+        // Two apps must not each keep a model warm.
+        warmEngine = WarmModel(mayKeep: { ownership.state == .owned }, load: {
+            guard let installed = await modelStore.verifiedInstallation(ModelCatalog.parakeetTdtV3) else {
+                throw DictationFeatureError.modelMissing
+            }
+            return try await ParakeetEngine.load(fromVerifiedDirectory: installed.directory)
+        })
         controller = DictationController()
         // A disposable launch owns its own scratch folder, because no user is there to take it.
         if usesTemporaryStore { ownership.claimScratchOwnership() }
@@ -92,7 +111,7 @@ public final class DictationFeature: AppServices {
         Task {
             let outcome = await ownership.preferenceChanged(
                 isOn: enabled, arm: armForHandoff, disarm: { self.syncDictationTriggers() })
-            lastHandoffFailed = outcome.map(Self.failed) ?? false
+            recordHandoff(outcome)
             await refreshReadiness()
         }
     }
@@ -100,9 +119,8 @@ public final class DictationFeature: AppServices {
     /// Takes dictation from whoever owns it now. Only the user's own action calls this.
     public func takeOwnership() {
         Task {
-            let outcome = await ownership.takeOwnership(
-                arm: armForHandoff, disarm: { self.syncDictationTriggers() })
-            lastHandoffFailed = Self.failed(outcome)
+            recordHandoff(await ownership.takeOwnership(
+                arm: armForHandoff, disarm: { self.syncDictationTriggers() }))
         }
     }
 
@@ -132,16 +150,20 @@ public final class DictationFeature: AppServices {
     }
 
     public func requestMicrophone() {
-        guard !usesTemporaryMeetingStore else { return }
-        Task {
-            _ = await microphonePermissions.authorizeIfNeeded()
-            await refreshReadiness()
+        switch environment.microphoneState() {
+        case .denied, .restricted:
+            // macOS asks only once, so after that only System Settings can change the answer.
+            environment.openMicrophoneSettings()
+        case .authorized, .notDetermined:
+            Task {
+                await environment.askForMicrophone()
+                await refreshReadiness()
+            }
         }
     }
 
     public func requestAccessibility() {
-        guard !usesTemporaryMeetingStore else { return }
-        _ = TextInserter.canInsert(promptIfNeeded: true)
+        environment.askForAccessibility()
     }
 
     public var isActive: Bool { controller.isActive }
@@ -158,20 +180,19 @@ public final class DictationFeature: AppServices {
             return L10n.text("Dictation is unavailable right now.")
         }
     }
-    public var canPasteLast: Bool { controller.hasPastableText && !controller.isActive }
+    public var canPasteLast: Bool { controller.hasPastableText && mayPaste }
     public var canPasteUnpolished: Bool { canPasteAlternate && !controller.lastText.alternateIsOriginal }
     public var canPasteOriginal: Bool { canPasteAlternate && controller.lastText.alternateIsOriginal }
-    private var canPasteAlternate: Bool { controller.hasAlternateText && !controller.isActive }
+    private var canPasteAlternate: Bool { controller.hasAlternateText && mayPaste }
+    /// A paste takes the same admission as a dictation, so it is refused without ownership.
+    private var mayPaste: Bool { ownership.state == .owned && !controller.isActive }
     public var shortcutLabel: String { controller.shortcut.setting.label }
-    public var shortcutIsUnavailable: Bool { controller.shortcut.availability == .unavailable }
-    public var isOwner: Bool { ownership.state == .owned }
+    /// A failed handoff disarms the shortcut again, so its conflict outlives the registration.
+    public var shortcutIsUnavailable: Bool {
+        controller.shortcut.availability == .unavailable || handoffProblem == .shortcutTaken
+    }
+    public var lastHandoffFailed: Bool { handoffProblem == .failed }
     public var canTakeOwnership: Bool { ownership.state == .available }
-    public var microphoneIsAuthorized: Bool {
-        usesTemporaryMeetingStore ? !seedsMissingPermissions : microphonePermissions.state() == .authorized
-    }
-    public var accessibilityIsGranted: Bool {
-        usesTemporaryMeetingStore ? !seedsMissingPermissions : AXIsProcessTrusted()
-    }
 
     // MARK: AppServices
 
@@ -180,9 +201,7 @@ public final class DictationFeature: AppServices {
 
     var dictationShortcutRegistrar: DictationShortcut.Registrar? {
         guard !usesTemporaryMeetingStore else { return nil }
-        return { setting, onPress, onRelease in
-            GlobalHotkey(keyCode: setting.keyCode, modifiers: setting.modifiers, onPress: onPress, onRelease: onRelease)
-        }
+        return DictationShortcut.liveRegistrar
     }
 
     func makeDictationSessionDependencies() -> DictationSessionDependencies {
@@ -203,10 +222,9 @@ public final class DictationFeature: AppServices {
             let engine = try await SpeechAnalyzerLiveEngine.acquireInstalled(language: purpose.language(in: defaults))
             return LiveTranscriptionRuntime(engine: engine, lane: .appleSpeech) {}
         }
-        idleRelease?.cancel()
-        let engine = try await loadedEngine()
+        let engine = try await warmEngine.acquire()
         let lane = LiveSpeechSelection(checkpoint: engine.checkpoint)
-        return LiveTranscriptionRuntime(engine: engine, lane: lane) { [weak self] in self?.releaseEngineWhenIdle() }
+        return LiveTranscriptionRuntime(engine: engine, lane: lane) { [warmEngine] in warmEngine.releaseWhenIdle() }
     }
 
     // MARK: Private
@@ -230,21 +248,13 @@ public final class DictationFeature: AppServices {
         }
     }
 
-    /// Not ready yet, or another owner in place, is not a failure: Settings shows what to do next.
-    private static func failed(_ outcome: HandoffOutcome) -> Bool {
-        switch outcome {
-        case .timedOut, .triggerConflict, .targetNotReady, .busy, .ioError: true
-        case .completed, .alreadyOwner, .notConfirmed, .notAvailable, .superseded, .cancelled: false
-        }
+    func recordHandoff(_ outcome: HandoffOutcome?) {
+        handoffProblem = outcome.flatMap { HandoffProblem($0) }
     }
 
     private func ownershipChanged(from previous: ParticipantState) {
         syncDictationTriggers()
-        // Two apps must not each keep a model warm.
-        if previous == .owned, ownership.state != .owned {
-            idleRelease?.cancel()
-            engine = nil
-        }
+        if previous == .owned, ownership.state != .owned { warmEngine.release() }
     }
 
     private func syncDictationTriggers(promptIfNeeded: Bool = false) {
@@ -258,38 +268,16 @@ public final class DictationFeature: AppServices {
         controller.syncModifierPTT(services: self, promptIfNeeded: promptIfNeeded)
     }
 
-    private func loadedEngine() async throws -> ParakeetEngine {
-        if let engine { return engine }
-        if let engineLoad { return try await engineLoad.value }
-        let load = Task { [modelStore] in
-            guard let installed = await modelStore.verifiedInstallation(ModelCatalog.parakeetTdtV3) else {
-                throw DictationFeatureError.modelMissing
-            }
-            return try await ParakeetEngine.load(fromVerifiedDirectory: installed.directory)
-        }
-        engineLoad = load
-        defer { engineLoad = nil }
-        let loaded = try await load.value
-        engine = loaded
-        return loaded
-    }
-
-    /// A model stays ready for the next dictation, then gives its memory back.
-    private func releaseEngineWhenIdle() {
-        idleRelease?.cancel()
-        idleRelease = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(600))
-            guard !Task.isCancelled else { return }
-            self?.engine = nil
-        }
-    }
-
-    private func refreshReadiness() async {
-        guard !usesTemporaryMeetingStore else {
+    func refreshReadiness() async {
+        microphoneIsAuthorized = environment.microphoneState() == .authorized
+        accessibilityIsGranted = environment.accessibilityIsGranted()
+        guard let modelIsVerified = environment.modelIsVerified else {
             ownership.reevaluate()
             return
         }
-        let modelIsInstalled = await modelStore.verifiedInstallation(ModelCatalog.parakeetTdtV3) != nil
+        let modelIsInstalled = await modelIsVerified()
+        // A cancelled check stops hashing and reports the files as bad, which says nothing about them.
+        guard !Task.isCancelled else { return }
         if modelIsInstalled {
             modelState = .ready
         } else if modelState == .ready {
@@ -302,12 +290,17 @@ public final class DictationFeature: AppServices {
     }
 
     /// A permission changed in System Settings may never activate this agent app, so look again:
-    /// soon while something is missing, and now and then in case one was revoked.
+    /// soon while one is missing, and now and then otherwise. A damaged model is hashed in full
+    /// on each look, so a missing one never sets the fast pace.
+    static func readinessPollDelay(missing: String?) -> Duration {
+        missing == nil || missing == ReadinessGap.missingModel ? .seconds(30) : .seconds(2)
+    }
+
     private func watchReadiness() {
         readinessPoll?.cancel()
         readinessPoll = nil
         guard isEnabled else { return }
-        let delay: Duration = readiness.current() == nil ? .seconds(30) : .seconds(2)
+        let delay = Self.readinessPollDelay(missing: readiness.current())
         readinessPoll = Task { [weak self] in
             try? await Task.sleep(for: delay)
             guard !Task.isCancelled else { return }
@@ -318,7 +311,8 @@ public final class DictationFeature: AppServices {
 
 /// What the protocol reads off the main actor. Permissions are read live, so every admission
 /// sees the truth; only the model's state is cached, because reading it can touch the disk.
-private final class ReadinessGap: Sendable {
+final class ReadinessGap: Sendable {
+    static let missingModel = "model"
     let modelIsInstalled = Mutex(false)
     private let isDisposable: Bool
     private let microphone: MicrophonePermissionClient
@@ -331,7 +325,7 @@ private final class ReadinessGap: Sendable {
     func current() -> String? {
         // A disposable launch has its own fixtures, so nothing real can be missing there.
         if isDisposable { return nil }
-        if !modelIsInstalled.withLock({ $0 }) { return "model" }
+        if !modelIsInstalled.withLock({ $0 }) { return Self.missingModel }
         if microphone.state() != .authorized { return "microphone" }
         return AXIsProcessTrusted() ? nil : "accessibility"
     }

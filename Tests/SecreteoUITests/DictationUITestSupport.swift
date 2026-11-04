@@ -82,7 +82,7 @@ extension XCUIElement {
 
 @MainActor
 func renderedText(of element: XCUIElement) -> String {
-    [element.value as? String, element.label].compactMap { $0 }.joined(separator: " ")
+    [element.value as? String, element.label].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
 }
 
 @MainActor
