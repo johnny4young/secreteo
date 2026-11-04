@@ -30,7 +30,8 @@ struct DictationInsertion {
             text: text, insertedAt: now,
             isIntact: { validate() == nil && holds(range, text) },
             edit: { subrange, replacement in
-                guard validate() == nil, holds(range, text) else { return nil }
+                guard validate() == nil, holds(range, text),
+                      let edited = editedText(text, replacing: subrange, with: replacement) else { return nil }
                 var selection = CFRange(location: range.location + subrange.location, length: subrange.length)
                 guard let value = AXValueCreate(.cfRange, &selection),
                       AXUIElementSetAttributeValue(
@@ -38,7 +39,6 @@ struct DictationInsertion {
                       AXUIElementSetAttributeValue(
                           element, kAXSelectedTextAttribute as CFString, replacement as CFString) == .success
                 else { return nil }
-                let edited = (text as NSString).replacingCharacters(in: subrange, with: replacement)
                 let span = NSRange(location: range.location, length: edited.utf16.count)
                 // An editor may apply the change a moment later; never read past that window.
                 for _ in 0..<20 {
@@ -50,6 +50,16 @@ struct DictationInsertion {
                 }
                 return nil
             })
+    }
+}
+
+extension DictationInsertion {
+    /// Nil for a range outside `text`, checked before the field is touched.
+    static func editedText(_ text: String, replacing range: NSRange, with replacement: String) -> String? {
+        let length = text.utf16.count
+        guard range.location >= 0, range.length >= 0, range.location <= length,
+              range.length <= length - range.location else { return nil }
+        return (text as NSString).replacingCharacters(in: range, with: replacement)
     }
 }
 

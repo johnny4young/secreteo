@@ -38,7 +38,10 @@ struct DictationCaretCase {
         guard isEnabled(in: defaults) else { return nil }
         let rules = DictationTextRules.decode(
             replacements: defaults.string(forKey: DictationController.replacementsKey) ?? "")
-        return Self(protectedWords: Set(rules.flatMap { $0.replacement.split(separator: " ").map(String.init) }))
+        return Self(protectedWords: Set(rules.flatMap { rule in
+            rule.replacement.split(whereSeparator: \.isWhitespace)
+                .map { $0.trimmingCharacters(in: .punctuationCharacters) }
+        }))
     }
 
     /// - Parameter atFieldStart: true when `preceding` reaches the start of the field.
@@ -65,7 +68,7 @@ struct DictationCaretCase {
         let word = String(text[start...].prefix { $0.isLetter || $0 == "'" || $0 == "’" || $0 == "-" })
         switch Self.position(after: preceding, atFieldStart: atFieldStart) {
         case .sentenceStart:
-            guard text[start].isLowercase else { return text }
+            guard text[start].isLowercase, !keepsSpelling(word, in: text[start...]) else { return text }
             return text.replacingCharacters(in: start...start, with: text[start].uppercased())
         case .midSentence:
             guard keepsCapital(word, sentence: preceding + " " + text) == false else { return text }
@@ -73,6 +76,14 @@ struct DictationCaretCase {
         case .unknown:
             return text
         }
+    }
+
+    /// Spellings a capital would break: the user's own, `iPhone`, `macOS`, and addresses.
+    private func keepsSpelling(_ word: String, in text: Substring) -> Bool {
+        if protectedWords.contains(word) || word.contains(where: \.isUppercase) { return true }
+        let token = text.prefix { !$0.isWhitespace }
+        return token.contains { "/@_".contains($0) }
+            || token.trimmingCharacters(in: .punctuationCharacters).contains(".")
     }
 
     private func keepsCapital(_ word: String, sentence: String) -> Bool {

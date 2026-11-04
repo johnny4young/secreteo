@@ -6,7 +6,7 @@ import Testing
 
 /// Records what the protocol asks of the triggers, with no real shortcut or event tap.
 final class FakeTriggers: OwnershipTriggers {
-    private let state = Mutex((armed: false, armCalls: 0, refusals: 0))
+    private let state = Mutex((armed: false, armCalls: 0, refusals: 0, moves: [Bool]()))
 
     init(refusals: Int = 0) {
         state.withLock { $0.refusals = refusals }
@@ -14,9 +14,14 @@ final class FakeTriggers: OwnershipTriggers {
 
     var armed: Bool { state.withLock { $0.armed } }
     var armCalls: Int { state.withLock { $0.armCalls } }
+    /// Each change `setArmed` made, in order.
+    var moves: [Bool] { state.withLock { $0.moves } }
 
     func setArmed(_ armed: Bool) {
-        state.withLock { $0.armed = armed }
+        state.withLock { value in
+            if value.armed != armed { value.moves.append(armed) }
+            value.armed = armed
+        }
     }
 
     func arm() async -> Bool {
@@ -1078,10 +1083,10 @@ struct SessionFlowTests {
         #expect(prior.triggers.armed)
         let slow = OwnershipTimings(changeDeadline: .seconds(1), capturePoll: .milliseconds(2), armRetry: .milliseconds(5))
         let target = FakeTriggers(refusals: .max)
-        let pending = Task { await scratch.live(otherID, timings: slow).takeOwnership(userConfirmed: true, triggers: target) }
-        try await waitUntil(seconds: 1) { !prior.triggers.armed }
-        #expect(await pending.value == .triggerConflict)
-        try await waitUntil { prior.triggers.armed }
+        let result = await scratch.live(otherID, timings: slow).takeOwnership(userConfirmed: true, triggers: target)
+        #expect(result == .triggerConflict)
+        // The history, because the disarmed moment can pass between two polls on a loaded machine.
+        try await waitUntil { prior.triggers.moves.suffix(2) == [false, true] }
         await prior.shutDown()
     }
 }
