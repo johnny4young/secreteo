@@ -105,7 +105,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationSession/DictationCapturePolicy.swift` | `Sources/portavoz-app/DictationCapturePolicy.swift` | Seam: imports `SpeechCore` |
 | `Sources/DictationSession/DictationCorrections.swift` | `Sources/portavoz-app/DictationCorrections.swift` | Renames |
 | `Sources/DictationSession/DictationFeedbackTimer.swift` | `Sources/portavoz-app/DictationFeedbackTimer.swift` | Renames |
-| `Sources/DictationSession/DictationLastText.swift` | `Sources/portavoz-app/DictationLastText.swift` | Seam: expired text leaves memory on time |
+| `Sources/DictationSession/DictationLastText.swift` | `Sources/portavoz-app/DictationLastText.swift` | Seam: expired text leaves memory on time, and a clear notifies its owner |
 | `Sources/DictationSession/DictationMicrophoneReadiness.swift` | `Sources/portavoz-app/DictationMicrophoneReadiness.swift` | Seam: imports `SpeechCore` |
 | `Sources/DictationSession/DictationPauseDetector.swift` | `Sources/portavoz-app/DictationPauseDetector.swift` | Seam: imports `SpeechCore` |
 | `Sources/DictationSession/DictationRuntimeAcquisition.swift` | `Sources/portavoz-app/DictationRuntimeAcquisition.swift` | Renames |
@@ -134,14 +134,14 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/DictationSessionTests/Triggers/HotkeySettingTests.swift` | `Tests/PortavozAppTests/HotkeySettingTests.swift` | Renames |
 | `Tests/DictationSessionTests/Triggers/ModifierKeyGestureTests.swift` | `Tests/PortavozAppTests/ModifierKeyGestureTests.swift` | Renames |
 | `Tests/DictationSessionTests/Triggers/MousePTTGestureTests.swift` | `Tests/PortavozAppTests/MousePTTGestureTests.swift` | Renames |
-| `Sources/DictationSession/DictationController.swift` | `Sources/portavoz-app/DictationController.swift` | Seam: imports the split targets, messages that named Portavoz's engine and panels are rewritten, and the panel is a placeholder for now |
-| `Sources/DictationSession/DictationController+History.swift` | `Sources/portavoz-app/DictationController+History.swift` | Seam: imports the split targets |
+| `Sources/DictationSession/DictationController.swift` | `Sources/portavoz-app/DictationController.swift` | Seam: imports the split targets, messages that named Portavoz's engine and panels are rewritten, and the panel is a placeholder for now. Fixes: a cancelled session corrects nothing, an old transform keeps its hands off a new Escape key, a capture failure keeps the words, expired words leave its state, and a closed notice frees Paste last |
+| `Sources/DictationSession/DictationController+History.swift` | `Sources/portavoz-app/DictationController+History.swift` | Seam: imports the split targets, and the draft can be forgotten |
 | `Sources/DictationSession/DictationController+Hotkey.swift` | `Sources/portavoz-app/DictationController+Hotkey.swift` | Renames |
 | `Sources/DictationSession/DictationController+ModifierKey.swift` | `Sources/portavoz-app/DictationController+ModifierKey.swift` | Renames |
 | `Sources/DictationSession/DictationController+Ownership.swift` | `Sources/portavoz-app/DictationController+Ownership.swift` | Renames |
 | `Sources/DictationSession/DictationController+PasteLast.swift` | `Sources/portavoz-app/DictationController+PasteLast.swift` | Renames |
 | `Sources/DictationSession/DictationController+Stats.swift` | `Sources/portavoz-app/DictationController+Stats.swift` | Seam: imports the split targets |
-| `Sources/DictationSession/DictationSessionDependencies.swift` | `Sources/portavoz-app/DictationSessionDependencies.swift` | Seam: imports the split targets |
+| `Sources/DictationSession/DictationSessionDependencies.swift` | `Sources/portavoz-app/DictationSessionDependencies.swift` | Seam: imports the split targets, and caret case reads the injected defaults |
 | `Sources/DictationSession/DictationAdmission.swift` | `Sources/portavoz-app/DictationAdmission.swift` | Extract: the port and lease, the composition stays out |
 | `Sources/DictationSession/DictationTextPreferences.swift` | `Sources/portavoz-app/DictationTextPreferences.swift` | Seam: imports the split targets |
 | `Sources/DictationSession/DictationPanelAnchor.swift` | `Sources/portavoz-app/DictationPanelAnchor.swift` | Renames |

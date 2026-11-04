@@ -33,6 +33,12 @@ final class DictationHistorySession {
         self.draft = draft
     }
 
+    var hasDraft: Bool { draft != nil }
+
+    func forgetDraft() {
+        draft = nil
+    }
+
     func revise(text: String, originalText: String, mode: DictationTextMode) {
         draft = draft?.with(text: text, originalText: originalText, mode: mode)
     }

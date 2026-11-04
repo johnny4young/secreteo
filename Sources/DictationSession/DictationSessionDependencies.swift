@@ -112,7 +112,9 @@ struct DictationSessionDependencies {
                 return try await services.acquireLiveTranscriptionRuntime(for: .dictation)
             },
             canInsert: { TextInserter.canInsert(promptIfNeeded: true) },
-            captureDestination: { TextInserter.captureDestination(caretCase: .live()) },
+            captureDestination: { [defaults = services.defaults] in
+                TextInserter.captureDestination(caretCase: .live(defaults))
+            },
             copyText: { TextInserter.copy($0) },
             defaults: services.defaults,
             admission: services.dictationAdmission,

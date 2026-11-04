@@ -20,6 +20,8 @@ final class DictationLastText {
     @ObservationIgnored private var expiry: Task<Void, Never>?
 
     var hasStoredText: Bool { text != nil }
+    /// Runs on every clear, so the words can leave wherever else they are held.
+    @ObservationIgnored var onClear: (() -> Void)?
 
     init(
         now: @escaping () -> Date = Date.init, observesSystem: Bool = true,
@@ -84,5 +86,6 @@ final class DictationLastText {
         alternate = nil
         alternateIsOriginal = false
         storedAt = nil
+        onClear?()
     }
 }

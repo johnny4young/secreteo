@@ -48,7 +48,7 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 |---|---|---|---|---|
 | Retry with no double paste | `DictationController`, `DictationInsertion` | `DictationDeliveryPhaseTests`, `DictationDeliveryOutcomeTests` | The same tests | Logic ported. The app does not run a session yet |
 | Cancel during prepare and during Stop | `DictationController` | `DictationSessionLifecycleTests` | The same tests | Logic ported. The app does not run a session yet |
-| Text recovery | `DictationRecoveryView`, `CapturedDictationDestination` | `DictationDestinationRecoveryTests`, `DictationRecoveryCopyTests` | `DictationDestinationRecoveryTests` | Logic ported. The recovery view arrives with the panel |
+| Text recovery | `DictationRecoveryView`, `CapturedDictationDestination` | `DictationDestinationRecoveryTests`, `DictationRecoveryCopyTests` | `DictationDestinationRecoveryTests`, `DictationSessionFixesTests` | Logic ported, and a capture failure now keeps the words too. The recovery view arrives with the panel |
 | Permissions revoked | `DictationMicrophoneReadiness`, `DictationController` | `DictationReadinessTests`, `DictationSessionLifecycleTests` | The same tests, without the composition's | Logic ported. A real revoked permission still has to be checked |
 | Clipboard restored | `DictationClipboard`, `PasteboardSnapshot` | `DictationClipboardInsertionTests`, `DictationClipboardBoundaryTests` | The same tests | Logic ported. The real paste into another app still has to be checked |
 | Capitals and spacing from the caret | `DictationCaretCase`, `DictationCaretJoin` | `DictationCaretCaseTests`, `DictationCaretJoinTests` | The same tests | Logic ported. A real caret in another app still has to be checked |

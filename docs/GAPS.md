@@ -45,3 +45,9 @@ Delivery logic has only run against scratch pasteboards and injected events. The
 - A correction whose replacement fails leaves the caret where the selection moved it.
 - The Fn and modifier tap never consumes an event but runs as an active tap on the main thread, so a main-thread stall delays typing everywhere until macOS disables the tap. A listen-only tap may need the Input Monitoring permission.
 - A synthetic copy can arrive after its one second late window and stay on the clipboard, and a real copy inside that window is replaced by the old contents. The pasteboard does not say who wrote.
+
+## G10. Words after a failure or a lock
+
+- Words in recovery, or kept after a capture failure, stay in memory until the user closes or restarts, even across a lock. Losing a long dictation to an automatic lock is the worse outcome, so only Paste last and the controller's other copies expire.
+- A lock during a delivery clears Paste last, and the delivery then stores the same words for up to 15 more minutes.
+- A retry from recovery after a lock cannot update its history row, because the draft is gone.
