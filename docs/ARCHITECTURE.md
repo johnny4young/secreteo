@@ -10,7 +10,7 @@ The shell, plus dictation code that the app does not link yet:
 - `Apps/Secreteo/SparkleUpdater.swift` wraps Sparkle behind `UpdateChecking`, so `AppUI` does not link it. A scheduled update sets a menu row instead of showing an alert. `scripts/fetch-sparkle.sh` is the single source of the framework and its tools.
 - UI tests launch with `-use-temp-store`, which gives them their own instance lock and no real launch at login, and with `-show-menu-content`, which mounts the real menu content in a window.
 - `DictationOwnership` is the [ownership protocol](specs/ownership-protocol.md): state format, locks, admission, handoff and peer detection. Portavoz is adopting this product at a pinned revision, so a test keeps its imports to system frameworks. The app does not link it yet.
-- `SpeechCore` holds shared value types, `MicCapture` holds microphone capture and its permission, `LiveSpeech` holds the recognition engines and the model pins, `DictationKit` holds the dictation domain and pure text rules, and `DictationSession` holds text delivery and the parts of a session so far. All are copied from Portavoz ([PROVENANCE](PROVENANCE.md#dictation-code)), and [PARITY](PARITY.md) tracks what has arrived.
+- `SpeechCore` holds shared value types, `MicCapture` holds microphone capture and its permission, `LiveSpeech` holds the recognition engines and the model pins, `DictationKit` holds the dictation domain and pure text rules, and `DictationSession` holds text delivery, the parts of a session and the triggers so far. Nothing arms a trigger yet. All are copied from Portavoz ([PROVENANCE](PROVENANCE.md#dictation-code)), and [PARITY](PARITY.md) tracks what has arrived.
 - `Tests/Plans/Smoke.txt` lists the PR tests, and `scripts/run-ui-tests.sh full` runs everything.
 
 ## Target module graph
@@ -21,8 +21,7 @@ The app is built from SwiftPM libraries plus one thin XcodeGen app target ([D6](
 Secreteo          thin app target: @main, plist, catalogs, assets
 secreteo-mcp      stdio executable
   AppUI             menu, panel, settings, onboarding, history
-  DictationSession  controller, capture, gate, measurement, and text insertion, clipboard, caret, readback
-  Triggers          Carbon hotkey, modifier and mouse push-to-talk
+  DictationSession  controller, capture, gate, measurement; text insertion, clipboard, caret, readback; Carbon hotkey, modifier and mouse push-to-talk
   Polish            prompts, ports, Apple Foundation Models, Ollama client, egress gateway
   DictationKit      domain, text rules, use cases
   DictationOwnership  one global dictation at a time, shared with Portavoz

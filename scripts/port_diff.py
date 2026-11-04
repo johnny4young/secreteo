@@ -23,6 +23,9 @@ SESSION_RENAMES = [
     ("portavoz" "Has", "appHas"),
     ("Portavoz", "Secreteo"),
     ("portavoz", "secreteo"),
+    # The Carbon hotkey signature, so the two apps never read each other's events.
+    ("0x5056" "_4F5A", "0x5343_5254"),
+    ('"PV' 'OZ"', '"SCRT"'),
 ]
 ROW = re.compile(r"^\| `([^`]+)` \| `([^`]+)` \| (.+?) \|$")
 SECTION = "## Dictation code"

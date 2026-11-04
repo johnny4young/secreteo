@@ -122,6 +122,18 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/DictationSessionTests/DictationSpeechGateTests.swift` | `Tests/PortavozAppTests/DictationSpeechGateTests.swift` | Extract: without the tests of the composition, which arrive with it |
 | `Tests/DictationSessionTests/DictationTranscriptProjectionTests.swift` | `Tests/PortavozAppTests/DictationTranscriptProjectionTests.swift` | Seam: imports `LiveSpeech` and `SpeechCore` |
 | `Tests/DictationSessionTests/LiveSpeechSelectionTests.swift` | `Tests/PortavozAppTests/LiveSpeechSelectionTests.swift` | Extract: the dictation preference, routing arrives with the composition |
+| `Sources/DictationSession/Triggers/DictationShortcut.swift` | `Sources/portavoz-app/DictationShortcut.swift` | Renames |
+| `Sources/DictationSession/Triggers/GlobalHotkey.swift` | `Sources/portavoz-app/GlobalHotkey.swift` | Renames |
+| `Sources/DictationSession/Triggers/HotkeySetting.swift` | `Sources/portavoz-app/HotkeySetting.swift` | Extract: without the recorder view, which arrives with Settings |
+| `Sources/DictationSession/Triggers/HotkeySetting+Labels.swift` | `Sources/portavoz-app/HotkeySetting+Labels.swift` | Renames |
+| `Sources/DictationSession/Triggers/ModifierKeyPTT.swift` | `Sources/portavoz-app/ModifierKeyPTT.swift` | Renames |
+| `Sources/DictationSession/Triggers/MouseButtonPTT.swift` | `Sources/portavoz-app/MouseButtonPTT.swift` | Extract: without the recorder view, which arrives with Settings |
+| `Sources/DictationSession/Triggers/MousePTTGesture.swift` | `Sources/portavoz-app/MousePTTGesture.swift` | Renames |
+| `Tests/DictationSessionTests/Triggers/GlobalHotkeyRoutingTests.swift` | `Tests/PortavozAppTests/GlobalHotkeyRoutingTests.swift` | Renames |
+| `Tests/DictationSessionTests/Triggers/DictationShortcutTests.swift` | `Tests/PortavozAppTests/DictationShortcutTests.swift` | Extract: without the test of the UI fixture, which arrives with it |
+| `Tests/DictationSessionTests/Triggers/HotkeySettingTests.swift` | `Tests/PortavozAppTests/HotkeySettingTests.swift` | Renames |
+| `Tests/DictationSessionTests/Triggers/ModifierKeyGestureTests.swift` | `Tests/PortavozAppTests/ModifierKeyGestureTests.swift` | Renames |
+| `Tests/DictationSessionTests/Triggers/MousePTTGestureTests.swift` | `Tests/PortavozAppTests/MousePTTGestureTests.swift` | Renames |
 
 ## Repository bootstrap
 

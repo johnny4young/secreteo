@@ -82,6 +82,22 @@
         }
       }
     },
+    "Button %d": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Button %d"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Botón %d"
+          }
+        }
+      }
+    },
     "Check for Updates…": {
       "localizations": {
         "en": {
