@@ -99,6 +99,42 @@ class PortDiffTests(unittest.TestCase):
 
         self.assertNotIn("x:", output)
 
+    def test_session_files_take_the_new_app_name(self):
+        source = (
+            '@testable import ' + 'portavoz_app\nimport ' + 'PortavozCore\nlet id = "app.' + 'portavoz.mac"\n'
+            'let board = "app.' + 'portavoz.test"\nlet isUp = ' + 'portavoz' + 'IsActive\nlet hasKey = ' + 'portavoz' + 'HasKeyWindow\n// ' + 'Portavoz\n')
+        ported = (
+            '@testable import DictationSession\nimport DictationKit\nlet id = "com.johnny4young.secreteo"\n'
+            'let board = "com.johnny4young.secreteo.test"\nlet isUp = appIsActive\nlet hasKey = appHasKeyWindow\n// Secreteo\n')
+
+        code, output = self.run_diff("Renames", ported, source, "Sources/DictationSession/a.swift")
+
+        self.assertEqual(code, 0, output)
+
+    def test_session_files_print_renamed_string_literals_for_review(self):
+        source = 'let peer = "app.' + 'portavoz.mac"\n// ' + 'Portavoz\n'
+        ported = 'let peer = "com.johnny4young.secreteo"\n// Secreteo\n'
+
+        code, output = self.run_diff("Renames", ported, source, "Sources/DictationSession/a.swift")
+
+        self.assertEqual(code, 0, output)
+        self.assertIn('renamed literal: let peer = "app.' + 'portavoz.mac"', output)
+        self.assertNotIn("renamed literal: //", output)
+
+    def test_an_edit_of_a_line_starting_with_dashes_or_pluses_is_a_difference(self):
+        code, output = self.run_diff("Renames", "++new\n", "--old\n")
+
+        self.assertEqual(code, 1)
+        self.assertIn("---old", output)
+        self.assertIn("+++new", output)
+
+    def test_other_files_keep_the_old_app_name_in_prose(self):
+        source = '// ' + 'Portavoz\n'
+
+        code, _ = self.run_diff("Renames", "// Secreteo\n", source, "Sources/LiveSpeech/a.swift")
+
+        self.assertEqual(code, 1)
+
 
 if __name__ == "__main__":
     unittest.main()

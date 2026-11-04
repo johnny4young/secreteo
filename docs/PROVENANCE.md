@@ -82,6 +82,23 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/LiveSpeechTests/TranscriptionTests.swift` | `Tests/PortavozAppTests/TranscriptionTests.swift` | Extract: the engine tests, without the catalog, store and Whisper ones |
 | `Tests/LiveSpeechTests/ModelCatalogTests.swift` | `Tests/PortavozAppTests/TranscriptionTests.swift` | Extract: the three pins, without task or folder name checks |
 | `Tests/LiveSpeechTests/ParakeetSegmentMapper+LiveStream.swift` | `Tests/PortavozAppTests/DictationVendorProbe.swift` | Extract: the mapper test helper |
+| `Sources/DictationSession/Delivery/CapturedDictationDestination.swift` | `Sources/portavoz-app/CapturedDictationDestination.swift` | Renames |
+| `Sources/DictationSession/Delivery/DictationCaretCase.swift` | `Sources/portavoz-app/DictationCaretCase.swift` | Renames |
+| `Sources/DictationSession/Delivery/DictationCaretJoin.swift` | `Sources/portavoz-app/DictationCaretJoin.swift` | Renames |
+| `Sources/DictationSession/Delivery/DictationClipboard.swift` | `Sources/portavoz-app/DictationClipboard.swift` | Renames |
+| `Sources/DictationSession/Delivery/DictationInsertion.swift` | `Sources/portavoz-app/DictationInsertion.swift` | Renames |
+| `Sources/DictationSession/Delivery/DictationTextReadback+Accessibility.swift` | `Sources/portavoz-app/DictationTextReadback+Accessibility.swift` | Renames |
+| `Sources/DictationSession/Delivery/DictationTextReadback.swift` | `Sources/portavoz-app/DictationTextReadback.swift` | Renames |
+| `Sources/DictationSession/Delivery/PasteboardSnapshot.swift` | `Sources/portavoz-app/PasteboardSnapshot.swift` | Renames |
+| `Sources/DictationSession/Delivery/TextInserter.swift` | `Sources/portavoz-app/TextInserter.swift` | Renames |
+| `Tests/DictationSessionTests/Delivery/DictationClipboardBoundaryTests.swift` | `Tests/PortavozAppTests/DictationClipboardBoundaryTests.swift` | Extract: without the UI fixture test, which arrives with the fixture |
+| `Tests/DictationSessionTests/Delivery/DictationClipboardInsertionTests.swift` | `Tests/PortavozAppTests/DictationClipboardInsertionTests.swift` | Renames |
+| `Tests/DictationSessionTests/Delivery/DictationCaretCaseTests.swift` | `Tests/PortavozAppTests/DictationCaretCaseTests.swift` | Renames |
+| `Tests/DictationSessionTests/Delivery/DictationCaretJoinTests.swift` | `Tests/PortavozAppTests/DictationCaretJoinTests.swift` | Renames |
+| `Tests/DictationSessionTests/Delivery/TextInsertionReadbackTests.swift` | `Tests/PortavozAppTests/TextInsertionReadbackTests.swift` | Renames |
+| `Tests/DictationSessionTests/Delivery/TextInsertionTargetTests.swift` | `Tests/PortavozAppTests/TextInsertionTargetTests.swift` | Renames |
+| `Tests/DictationSessionTests/Support/TestPolling.swift` | `Tests/PortavozTestSupport/TestPolling.swift` | Renames |
+| `Tests/DictationSessionTests/Support/ControlledTestSleep.swift` | `Tests/PortavozTestSupport/ControlledTestSleep.swift` | Renames |
 
 ## Repository bootstrap
 

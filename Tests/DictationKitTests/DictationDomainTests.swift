@@ -228,6 +228,14 @@ struct ModuleImportTests {
     }
 
     @Test
+    func deliveryStaysFreeOfUIAndModels() throws {
+        let allowed: Set<String> = [
+            "AppKit", "ApplicationServices", "Carbon.HIToolbox", "DictationKit", "Foundation", "NaturalLanguage", "os"
+        ]
+        #expect(try imports(ofTarget: "DictationSession/Delivery").isSubset(of: allowed))
+    }
+
+    @Test
     func theDependencyGraphHasNoMLXWhisperOrDiarization() throws {
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
