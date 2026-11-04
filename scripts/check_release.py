@@ -67,7 +67,8 @@ def main() -> None:
         return
     on_main = subprocess.run(["git", "merge-base", "--is-ancestor", "HEAD", "origin/main"], cwd=ROOT,
                              check=False).returncode == 0
-    found = problems(argument, (ROOT / "project.yml").read_text(), changelog, on_main,
+    project_yml = (ROOT / "project.yml").read_text()
+    found = problems(argument, project_yml, changelog, on_main,
                      arms_global_dictation(project_yml), os.environ.get("GLOBAL_DICTATION_CLEARED") == "true")
     for problem in found:
         print(f"::error::{problem}")

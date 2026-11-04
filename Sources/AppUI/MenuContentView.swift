@@ -17,7 +17,9 @@ public struct MenuContentView: View {
                 } else if dictation.canDictate {
                     MenuRow(title: "Dictate", identifier: "menu-bar-dictate", action: dictation.toggleDictation)
                 } else {
-                    MenuRow(title: "Set Up Dictation…", identifier: "menu-bar-set-up-dictation") { model.openSettings() }
+                    MenuRow(title: "Set Up Dictation…", identifier: "menu-bar-set-up-dictation") {
+                        model.openSettings()
+                    }
                 }
                 if dictation.canPasteLast {
                     MenuRow(title: "Paste Last Dictation", identifier: "menu-bar-paste-last") { dictation.pasteLast() }

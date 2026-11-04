@@ -59,12 +59,11 @@ public final class DictationFeature: AppServices {
         fixture = DictationUITestFixture(arguments: arguments, usesTemporaryStore: usesTemporaryStore)
         seedsMissingPermissions = usesTemporaryStore && arguments.contains("-seed-dictation-permissions-missing")
         let seedsLegacyPeer = usesTemporaryStore && arguments.contains("-seed-dictation-legacy-peer")
-        // A disposable launch has its own fixtures, so nothing real can be missing there.
-        let readiness = ReadinessGap(usesTemporaryStore ? nil : "model")
+        let readiness = ReadinessGap(isDisposable: usesTemporaryStore, microphone: MicrophonePermissionClient())
         self.readiness = readiness
         ownership = .live(
             defaults: defaults, usesTemporaryStore: usesTemporaryStore,
-            missingForReadiness: { readiness.value.withLock { $0 } }, seedsLegacyPeer: seedsLegacyPeer)
+            missingForReadiness: { readiness.current() }, seedsLegacyPeer: seedsLegacyPeer)
         controller = DictationController()
         // A disposable launch owns its own scratch folder, because no user is there to take it.
         if usesTemporaryStore { ownership.claimScratchOwnership() }
@@ -87,7 +86,7 @@ public final class DictationFeature: AppServices {
     }
 
     public func setEnabled(_ enabled: Bool) {
-        defaults.set(enabled, forKey: DictationController.defaultsKey)
+        storePreference(enabled)
         isEnabled = enabled
         syncDictationTriggers(promptIfNeeded: enabled)
         Task {
@@ -133,6 +132,7 @@ public final class DictationFeature: AppServices {
     }
 
     public func requestMicrophone() {
+        guard !usesTemporaryMeetingStore else { return }
         Task {
             _ = await microphonePermissions.authorizeIfNeeded()
             await refreshReadiness()
@@ -211,6 +211,17 @@ public final class DictationFeature: AppServices {
 
     // MARK: Private
 
+    /// A disposable launch runs under the real bundle identifier, so it writes only to its volatile domain.
+    private func storePreference(_ enabled: Bool) {
+        guard usesTemporaryMeetingStore else {
+            defaults.set(enabled, forKey: DictationController.defaultsKey)
+            return
+        }
+        var domain = defaults.volatileDomain(forName: UserDefaults.argumentDomain)
+        domain[DictationController.defaultsKey] = enabled
+        defaults.setVolatileDomain(domain, forName: UserDefaults.argumentDomain)
+    }
+
     private var armForHandoff: @MainActor () -> Bool {
         { [weak self] in
             guard let self else { return false }
@@ -284,40 +295,45 @@ public final class DictationFeature: AppServices {
         } else if modelState == .ready {
             modelState = .missing
         }
-        let gap: String? = if !modelIsInstalled {
-            "model"
-        } else if microphonePermissions.state() != .authorized {
-            "microphone"
-        } else if !AXIsProcessTrusted() {
-            "accessibility"
-        } else {
-            nil
-        }
-        readiness.value.withLock { $0 = gap }
+        readiness.modelIsInstalled.withLock { $0 = modelIsInstalled }
         ownership.reevaluate()
         syncEventTaps()
-        watchReadiness(gap: gap)
+        watchReadiness()
     }
 
-    /// A permission granted in System Settings may never activate this agent app, so look again.
-    private func watchReadiness(gap: String?) {
+    /// A permission changed in System Settings may never activate this agent app, so look again:
+    /// soon while something is missing, and now and then in case one was revoked.
+    private func watchReadiness() {
         readinessPoll?.cancel()
         readinessPoll = nil
-        guard gap != nil, isEnabled else { return }
+        guard isEnabled else { return }
+        let delay: Duration = readiness.current() == nil ? .seconds(30) : .seconds(2)
         readinessPoll = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(2))
+            try? await Task.sleep(for: delay)
             guard !Task.isCancelled else { return }
             await self?.refreshReadiness()
         }
     }
 }
 
-/// What the protocol reads off the main actor.
+/// What the protocol reads off the main actor. Permissions are read live, so every admission
+/// sees the truth; only the model's state is cached, because reading it can touch the disk.
 private final class ReadinessGap: Sendable {
-    let value: Mutex<String?>
+    let modelIsInstalled = Mutex(false)
+    private let isDisposable: Bool
+    private let microphone: MicrophonePermissionClient
 
-    init(_ gap: String?) {
-        value = Mutex(gap)
+    init(isDisposable: Bool, microphone: MicrophonePermissionClient) {
+        self.isDisposable = isDisposable
+        self.microphone = microphone
+    }
+
+    func current() -> String? {
+        // A disposable launch has its own fixtures, so nothing real can be missing there.
+        if isDisposable { return nil }
+        if !modelIsInstalled.withLock({ $0 }) { return "model" }
+        if microphone.state() != .authorized { return "microphone" }
+        return AXIsProcessTrusted() ? nil : "accessibility"
     }
 }
 
