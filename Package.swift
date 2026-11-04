@@ -16,7 +16,7 @@ let package = Package(
     dependencies: [
         // Exact on purpose: patch releases change decoder behavior, so a move needs paired evidence.
         .package(url: "https://github.com/FluidInference/FluidAudio.git", exact: "0.18.2", traits: []),
-        .package(url: "https://github.com/johnny4young/local-model-store.git", exact: "0.1.0")
+        .package(url: "https://github.com/johnny4young/local-model-store.git", exact: "0.1.1")
     ],
     targets: [
         .target(name: "AppUI", dependencies: ["DictationSession"]),

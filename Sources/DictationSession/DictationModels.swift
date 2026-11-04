@@ -16,6 +16,8 @@ struct DictationModels: Sendable {
     var wasVerified: @Sendable (Part) async -> Bool
     var remember: @Sendable (Part, _ isVerified: Bool) async -> Void
     var install: @Sendable (Part) async throws -> Void
+    /// Retires this app's claims on models it no longer pins and clears what nobody needs.
+    var collectUnused: @Sendable () async -> Void
 
     func installAll() async -> Bool {
         do {
@@ -42,7 +44,12 @@ struct DictationModels: Sendable {
             remember: { part, isVerified in
                 defaults.set(isVerified ? await fingerprint(part) : nil, forKey: part.recordKey)
             },
-            install: { _ = try await store.ensureAvailable($0.manifest, seeds: [], progress: nil) })
+            install: { _ = try await store.ensureAvailable($0.manifest, seeds: [], progress: nil) },
+            // Never worth failing a launch over, and the next launch tries again.
+            collectUnused: {
+                try? await store.reconcileClaims(keeping: Part.allCases.map(\.manifest))
+                _ = try? await store.collectGarbage()
+            })
     }
 }
 

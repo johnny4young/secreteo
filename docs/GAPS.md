@@ -55,3 +55,8 @@ Delivery logic has only run against scratch pasteboards and injected events. The
 ## G11. Menu rows and focus
 
 Dictate and the paste rows give focus back to the app that was frontmost when the menu opened, then act. If that app does not take focus within half a second the action still runs, and its words can miss. XCUITest cannot reach the status item, so a test drives the same hand-back from the window-mounted menu, and the popover's own path has not been clicked on a real Mac. Closing the menu with no action leaves focus in Secreteo, as it did before.
+
+## G12. A model Secreteo did not install
+
+- The readiness check counts a verified model even if only another app claims it, so Secreteo can show ready and load it with no claim of its own. If that app removes its claim, the next launch's collection, in either app, can delete the model.
+- A loaded model holds no store lease, so another app's removal can delete the files under it. The engine keeps running from memory, and the next load reports the model as missing.

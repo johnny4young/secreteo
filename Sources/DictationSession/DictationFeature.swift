@@ -102,6 +102,9 @@ public final class DictationFeature: AppServices {
             await showRememberedModels()
             await refreshReadiness()
         }
+        if let models = environment.models {
+            Task.detached(priority: .utility) { await models.collectUnused() }
+        }
     }
 
     /// A hint from the app: permissions may have changed in System Settings.
