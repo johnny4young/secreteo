@@ -59,9 +59,10 @@ public final class ParakeetEngine: TranscriptionEngine, Sendable {
     /// Ensures the catalog model is downloaded + verified, then loads it.
     public static func loadRecommended(
         store: LocalModelStore,
+        seeds: [URL] = [],
         progress: (@Sendable (LocalModelStore.InstallEvent) -> Void)? = nil
     ) async throws -> ParakeetEngine {
-        let directory = try await store.ensureAvailable(ModelCatalog.parakeetTdtV3, progress: progress)
+        let directory = try await store.ensureAvailable(ModelCatalog.parakeetTdtV3, seeds: seeds, progress: progress)
         return try await load(fromVerifiedDirectory: directory)
     }
 

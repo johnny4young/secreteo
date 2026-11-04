@@ -237,7 +237,8 @@ struct ModuleImportTests {
         let identities = (pins["pins"] as? [[String: Any]])?.compactMap { $0["identity"] as? String } ?? []
 
         #expect(Set(identities) == ["fluidaudio", "local-model-store"])
-        #expect(manifest.contains("traits: []"))
+        let fluidAudio = try #require(manifest.split(separator: "\n").first { $0.contains("FluidAudio.git") })
+        #expect(fluidAudio.contains("traits: []"))
     }
 
     @Test

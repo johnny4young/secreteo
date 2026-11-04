@@ -5,6 +5,20 @@ import XCTest
 @testable import LiveSpeech
 
 final class ModelCatalogTests: XCTestCase {
+    func testEveryPinPassesTheStoreValidation() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try LocalModelStore(
+            location: .directory(root),
+            consumer: StoreConsumer(bundleID: "com.example.secreteo-tests", displayName: "Secreteo tests"))
+
+        for manifest in [ModelCatalog.parakeetTdtV3, ModelCatalog.parakeetUltra, ModelCatalog.sileroVAD] {
+            let directory = try await store.directory(for: manifest)
+            XCTAssertEqual(directory.lastPathComponent, "payload")
+        }
+        XCTAssertFalse(FileManager.default.fileExists(atPath: root.path))
+    }
+
     func testParakeetDescriptorIsWellFormed() {
         let model = ModelCatalog.parakeetTdtV3
         XCTAssertEqual(model.artifacts.count, 21)

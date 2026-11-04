@@ -15,7 +15,9 @@ final class ParakeetIntegrationTests: XCTestCase {
         try XCTSkipUnless(
             ProcessInfo.processInfo.environment["SECRETEO_MODEL_TESTS"] == "1",
             "set SECRETEO_MODEL_TESTS=1 (and install the model) to run")
-        let root = try XCTUnwrap(ProcessInfo.processInfo.environment["SECRETEO_MODEL_ROOT"])
+        guard let root = ProcessInfo.processInfo.environment["SECRETEO_MODEL_ROOT"] else {
+            throw XCTSkip("set SECRETEO_MODEL_ROOT to a store with the model installed")
+        }
         let store = try LocalModelStore(
             location: .directory(URL(fileURLWithPath: root)),
             consumer: StoreConsumer(bundleID: "com.example.secreteo-tests", displayName: "Secreteo tests"))
