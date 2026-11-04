@@ -1,4 +1,5 @@
-/// Holds the preference key delivery reads until the controller arrives in the next slice.
+/// Holds the preference keys these slices read until the controller arrives.
 enum DictationController {
+    static let languageKey = "dictationLanguage"
     static let replacementsKey = "dictationReplacements"
 }

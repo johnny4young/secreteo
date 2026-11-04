@@ -13,7 +13,8 @@ LITERAL = re.compile(
     r'|String\(localized:\s*"([^"\\]+)"'
     r'|MenuRow\(title:\s*"([^"\\]+)"'
 )
-IDENTIFIER = re.compile(r'accessibilityIdentifier\("([^"]+)"\)|identifier:\s*"([a-z][a-z-]+)"')
+# A locale also takes `identifier:`, and it names no control.
+IDENTIFIER = re.compile(r'accessibilityIdentifier\("([^"]+)"\)|(?<!Locale\()identifier:\s*"([a-z][a-z-]+)"')
 
 
 def swift_files(root: Path):
@@ -21,6 +22,11 @@ def swift_files(root: Path):
 
 
 class UIContractTests(unittest.TestCase):
+    def test_a_locale_is_not_a_control_identifier(self):
+        self.assertIsNone(IDENTIFIER.search('Locale(identifier: "en")'))
+        self.assertEqual(IDENTIFIER.search('MenuRow(identifier: "menu-quit")').group(2), "menu-quit")
+        self.assertEqual(IDENTIFIER.search('.accessibilityIdentifier("x")').group(1), "x")
+
     def test_every_identifier_has_an_assertion(self):
         tests = "\n".join(path.read_text() for path in swift_files(UI_TESTS))
         for path in swift_files(SOURCES):

@@ -24,9 +24,9 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Silero voice detection | `SileroVoiceActivityDetector` | `SileroVoiceActivityDetectorTests` | The same tests, and [paired evidence](spikes/fluidaudio-upstream.md) with the real model | Ported |
 | Microphone capture | `MicrophoneSource`, `AudioDeviceCatalog`, `CaptureDeliveryBuffer` | `AudioCaptureTests`, `CaptureDeliveryBufferTests`, `MicrophoneTapTransitionTests`, `LinearResamplerTests`, `CapturePCMGeometryTests` | The same tests | Logic ported. Engine start and route changes on a real device still have to be checked |
 | Microphone permission | `MicrophonePermissionClient` | `MicrophonePermissionClientTests` | `MicrophonePermissionClientTests` | Ported |
-| Choice of microphone | `MicrophoneInputSelection` | `DictationReadinessTests` | | Pending, P3 |
+| Choice of microphone | `MicrophoneInputSelection` | `DictationReadinessTests` | | Code ported. Its tests arrive with the controller |
 | Model download and storage | `ModelStore`, then `LocalModelStore` | `ModelStoreDownloadFailureTests` | In `local-model-store`, and `ModelCatalogTests` for the pins | Ported. The seed from Portavoz's models and the warm-up wait for P5 |
-| Choice of live engine | `LiveSpeechSelection` | `LiveSpeechSelectionTests`, which has to be rewritten | | Pending, P3 |
+| Choice of live engine | `LiveSpeechSelection` | `LiveSpeechSelectionTests`, which has to be rewritten | `LiveSpeechSelectionTests`, for the preference | Preference ported with no meeting lane. Routing arrives with the composition |
 
 ## Triggers
 
@@ -53,11 +53,11 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Clipboard restored | `DictationClipboard`, `PasteboardSnapshot` | `DictationClipboardInsertionTests`, `DictationClipboardBoundaryTests` | The same tests, without the UI fixture test | Logic ported. The fixture test arrives with the fixture, and the real paste into another app still has to be checked |
 | Capitals and spacing from the caret | `DictationCaretCase`, `DictationCaretJoin` | `DictationCaretCaseTests`, `DictationCaretJoinTests` | The same tests | Logic ported. A real caret in another app still has to be checked |
 | Readback and verified delivery | `DictationTextReadback`, `TextInserter` | `TextInsertionReadbackTests`, `TextInsertionTargetTests` | The same tests | Logic ported. Real Accessibility readback still has to be checked |
-| Speech gate and auto stop | `DictationSpeechGate`, `DictationAutoStop` | `DictationSpeechGateTests`, `DictationPauseDetectorTests` | | Pending, P3 |
+| Speech gate and auto stop | `DictationSpeechGate`, `DictationAutoStop` | `DictationSpeechGateTests`, `DictationPauseDetectorTests` | The same tests, without the composition's | Detector and pause logic ported. Session wiring arrives with the controller |
 | Spoken correction in delivery | `DictationCorrections` | `DictationCorrectionTests` | | Pending, P3 |
 | Panel, compact indicator and waveform | `DictationPanel`, `DictationCompactIndicator` | `DictationPanelAnchorTests`, `DictationCompactIndicatorTests` | | Pending, P4 |
 | Sounds and prewarm | `DictationSoundCue`, `AppServices+DictationPrewarm` | `DictationColdStartTests` | | Pending, P3 |
-| Memory: model residency | `AppModelResidencyLedger`, `AppModelIdleReleaseScheduler` | `DictationResourceOwnershipTests`, which asserts sharing in one process and has to be rewritten | | Pending, P3 |
+| Memory: model residency | `AppModelResidencyLedger`, `AppModelIdleReleaseScheduler` | `DictationResourceOwnershipTests`, which asserts sharing in one process and has to be rewritten | | Pending, with the app composition |
 
 ## Text features and data
 
