@@ -33,3 +33,13 @@ A scheduled update shows as a menu row and never interrupts. Once dictation sess
 ## G8. Ownership on a network home
 
 `flock` behavior on a home directory on a network volume is unverified. The [ownership protocol](specs/ownership-protocol.md) fails closed where `flock` reports it is unsupported. A volume that accepts `flock` without enforcing it across processes would not be detected.
+
+## G9. Delivery limits a real device has to settle
+
+Delivery logic has only run against scratch pasteboards and injected events. These remain open:
+
+- A session-route paste checks the frontmost app and that the focused field is not secure, but not that the field belongs to that app. Another app's non-activating panel could receive it.
+- The pasteboard offers no atomic compare and replace, so another app's write in the instant between the check and the replacement is lost.
+- The clipboard returns on a fixed 1.5 second timer. An editor that stalls longer pastes the restored contents, and a verified paste still holds the clipboard for the whole window.
+- One unreadable clipboard type refuses the paste and sends the text to recovery. How often real clipboards do this is unmeasured.
+- A correction whose replacement fails leaves the caret where the selection moved it.

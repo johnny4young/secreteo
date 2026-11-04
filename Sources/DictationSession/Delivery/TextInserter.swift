@@ -254,6 +254,7 @@ enum TextInserter {
     }
 
     /// Copies the target's selection; the caller owns the clipboard around it.
+    @MainActor
     static func postCommandC(to processID: pid_t) -> Bool {
         let qwertyC = CGKeyCode(kVK_ANSI_C)
         let keyCode = currentLayoutUsesQwertyCommandPositions() ? qwertyC : (keyCode(for: "c") ?? qwertyC)
@@ -296,12 +297,17 @@ enum TextInserter {
             kTISPropertyInputSourceID,
             as: .string)
         else { return true }
-        let qwertyCommandLayouts = [
-            "DVORAK-QWERTY", "US", "ABC", "AUSTRALIAN", "BRITISH", "CANADIAN",
-            "USINTERNATIONAL"
-        ]
-        let upper = (sourceID as String).uppercased()
-        return qwertyCommandLayouts.contains { upper.contains($0) }
+        return usesQwertyCommandPositions(sourceID: sourceID as String)
+    }
+
+    /// Exact layout names, because `US` also appears inside `Russian` and `USDvorak`.
+    /// Any other layout resolves its keys by letter, with the same result on QWERTY.
+    static func usesQwertyCommandPositions(sourceID: String) -> Bool {
+        let name = (sourceID.split(separator: ".").last.map(String.init) ?? sourceID).uppercased()
+        if name.hasPrefix("DVORAK-QWERTY") { return true }
+        return ["US", "USINTERNATIONAL", "ABC", "AUSTRALIAN", "BRITISH", "CANADIAN"].contains { layout in
+            name == layout || name.hasPrefix(layout + "-")
+        }
     }
 
     private static func keyCode(for character: Character) -> CGKeyCode? {
