@@ -144,7 +144,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationSession/DictationSessionDependencies.swift` | `Sources/portavoz-app/DictationSessionDependencies.swift` | Seam: imports the split targets, and caret case reads the injected defaults |
 | `Sources/DictationSession/DictationAdmission.swift` | `Sources/portavoz-app/DictationAdmission.swift` | Extract: the port and lease, the composition stays out |
 | `Sources/DictationSession/DictationTextPreferences.swift` | `Sources/portavoz-app/DictationTextPreferences.swift` | Seam: imports the split targets |
-| `Sources/DictationSession/DictationPanelAnchor.swift` | `Sources/portavoz-app/DictationPanelAnchor.swift` | Renames |
+| `Sources/DictationSession/Panel/DictationPanelAnchor.swift` | `Sources/portavoz-app/DictationPanelAnchor.swift` | Renames |
 | `Sources/DictationSession/AppleDictationTranslator.swift` | `Sources/portavoz-app/AppleDictationTranslator.swift` | Seam: imports the split targets |
 | `Sources/DictationKit/DictationTextPolishing.swift` | `Sources/IntelligenceKit/DictationTextPolishing.swift` | Renames |
 | `Sources/DictationKit/PolishDictation.swift` | `Sources/ApplicationKit/PolishDictation.swift` | Seam: imports the split targets |
@@ -177,6 +177,22 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationSession/DictationOwnershipCoordinator.swift` | `Sources/portavoz-app/DictationOwnershipCoordinator.swift` | Seam: the legacy peers are the other app's builds, not this app's, this app never claims at first run, the user can take ownership and hear why it failed, readiness comes from the composition, and a busy turn off retries |
 | `Tests/DictationSessionTests/Session/DictationOwnershipCoordinatorTests.swift` | `Tests/PortavozAppTests/DictationOwnershipCoordinatorTests.swift` | Extract: without the composition, practice and Rewrite cases, which arrive with them. The first run test is inverted, because only Portavoz claims |
 | `Tests/DictationSessionTests/Session/DictationAdmissionTests.swift` | `Tests/PortavozAppTests/DictationAdmissionTests.swift` | Extract: without the composition, practice and Rewrite cases, which arrive with them |
+| `Sources/DictationSession/Panel/DictationPanel.swift` | `Sources/portavoz-app/DictationPanel.swift` | Renames |
+| `Sources/DictationSession/Panel/DictationCompactIndicator.swift` | `Sources/portavoz-app/DictationCompactIndicator.swift` | Renames |
+| `Sources/DictationSession/Panel/DictationCopyStatusLabel.swift` | `Sources/portavoz-app/DictationCopyStatusLabel.swift` | Renames |
+| `Sources/DictationSession/Panel/DictationNoSpeechView.swift` | `Sources/portavoz-app/DictationNoSpeechView.swift` | Renames |
+| `Sources/DictationSession/Panel/DictationPanelTranscript.swift` | `Sources/portavoz-app/DictationPanelTranscript.swift` | Renames |
+| `Sources/DictationSession/Panel/DictationRecoveryView.swift` | `Sources/portavoz-app/DictationRecoveryView.swift` | Renames |
+| `Sources/DictationSession/Panel/DictationUnverifiedDeliveryView.swift` | `Sources/portavoz-app/DictationUnverifiedDeliveryView.swift` | Renames |
+| `Sources/DictationSession/Panel/DictationWaveform.swift` | `Sources/portavoz-app/DictationWaveform.swift` | Renames |
+| `Sources/DictationSession/Panel/DictationTextPickers.swift` | `Sources/portavoz-app/DictationTextSettingsSection.swift` | Extract: the two pickers the panel uses |
+| `Sources/DictationSession/Panel/DictationPanelSupport.swift` | `Sources/portavoz-app/PVDesign.swift` | Extract: the accent, one symbol, and the locale modifier from `AppLanguage` |
+| `Sources/DictationSession/Fixtures/UITestDefaults.swift` | `Sources/portavoz-app/UITestDefaults.swift` | Renames |
+| `Tests/SecreteoUITests/DictationUITests.swift` | `Tests/PortavozUITests/DictationUITests.swift` | Extract: without the native delivery tests, whose receiver arrives with the signed lane |
+| `Tests/SecreteoUITests/DictationCorrectionUITests.swift` | `Tests/PortavozUITests/DictationCorrectionUITests.swift` | Extract: without the dictionary test, which arrives with Settings |
+| `Tests/SecreteoUITests/DictationPolishUITests.swift` | `Tests/PortavozUITests/DictationPolishUITests.swift` | Extract: without the Settings tests |
+| `Tests/SecreteoUITests/DictationTranslationUITests.swift` | `Tests/PortavozUITests/DictationTranslationUITests.swift` | Extract: without the Settings test |
+| `Tests/SecreteoUITests/DictationTextModeUITests.swift` | `Tests/PortavozUITests/DictationTextModeUITests.swift` | Extract: without the Settings tests |
 
 ## Repository bootstrap
 

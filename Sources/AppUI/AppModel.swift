@@ -1,4 +1,5 @@
 import AppKit
+import DictationSession
 import Observation
 
 /// The update mechanism, behind a seam so tests never reach the network.
@@ -20,6 +21,8 @@ public final class AppModel {
     /// Set instead of interrupting: an update must never cut into a dictation.
     public var updateIsAvailable = false
     public var updater: (any UpdateChecking)?
+    /// Nil in a build that may not run global dictation yet.
+    public var dictation: DictationFeature?
 
     public let versionDescription: String
     public var openSettings: () -> Void = {}

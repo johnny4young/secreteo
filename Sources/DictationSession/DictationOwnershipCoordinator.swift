@@ -83,6 +83,11 @@ final class DictationOwnershipCoordinator {
             })
     }
 
+    /// For a disposable launch only, which has its own root and no user to take ownership.
+    func claimScratchOwnership() {
+        _ = ownership.claimAtFirstRun()
+    }
+
     var admission: DictationAdmission {
         DictationAdmission(
             acquire: { [weak self] kind in self?.acquire(kind) ?? .failure(.dictationOff) },

@@ -9,6 +9,9 @@ public struct SettingsView: View {
 
     public var body: some View {
         Form {
+            if let dictation = model.dictation {
+                DictationSettingsSection(dictation: dictation)
+            }
             Section {
                 Toggle("Open at Login", isOn: launchBinding)
                     .accessibilityIdentifier("settings-launch-at-login")

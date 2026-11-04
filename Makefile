@@ -35,7 +35,8 @@ install: project
 	-osascript -e 'tell application "Secreteo Dev" to quit' 2>/dev/null
 	xcodebuild -project Secreteo.xcodeproj -scheme Secreteo -configuration Release -quiet \
 		-derivedDataPath build/install -destination 'platform=macOS,arch=arm64' \
-		PRODUCT_NAME="Secreteo Dev" PRODUCT_BUNDLE_IDENTIFIER=com.johnny4young.secreteo.dev build
+		PRODUCT_NAME="Secreteo Dev" PRODUCT_BUNDLE_IDENTIFIER=com.johnny4young.secreteo.dev \
+		SECRETEO_GLOBAL_DICTATION=YES build
 	scripts/sign-app.sh "build/install/Build/Products/Release/Secreteo Dev.app" "$(SIGN_IDENTITY)"
 	rm -rf "$(DEV_APP)"
 	cp -R "build/install/Build/Products/Release/Secreteo Dev.app" "$(DEV_APP)"

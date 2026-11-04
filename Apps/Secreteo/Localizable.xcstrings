@@ -2,6 +2,86 @@
   "sourceLanguage": "en",
   "version": "1.0",
   "strings": {
+    "%d words inserted into %@.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d words inserted into %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d palabras insertadas en %@."
+          }
+        }
+      }
+    },
+    "%d words inserted.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d words inserted."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d palabras insertadas."
+          }
+        }
+      }
+    },
+    "Adds “%@” → “%@” to your text replacements.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adds “%@” → “%@” to your text replacements."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agrega “%@” → “%@” a tus reemplazos de texto."
+          }
+        }
+      }
+    },
+    "Allow Accessibility": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow Accessibility"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir Accesibilidad"
+          }
+        }
+      }
+    },
+    "Allow Microphone": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow Microphone"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir micrófono"
+          }
+        }
+      }
+    },
     "Allow microphone access in System Settings, then try dictation again.": {
       "localizations": {
         "en": {
@@ -14,6 +94,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "Permite el acceso al micrófono en Ajustes del Sistema y vuelve a intentar el dictado."
+          }
+        }
+      }
+    },
+    "Always write “%@”": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Always write “%@”"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribir siempre “%@”"
+          }
+        }
+      }
+    },
+    "Another app is using this shortcut.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another app is using this shortcut."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otra app está usando este atajo."
+          }
+        }
+      }
+    },
+    "Another app took over dictation, so nothing was inserted. Copy your text to keep it.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another app took over dictation, so nothing was inserted. Copy your text to keep it."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otra app se encargó del dictado, así que no se insertó nada. Copia tu texto para conservarlo."
           }
         }
       }
@@ -82,6 +210,22 @@
         }
       }
     },
+    "Audio level": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio level"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nivel de audio"
+          }
+        }
+      }
+    },
     "Button %d": {
       "localizations": {
         "en": {
@@ -94,6 +238,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Botón %d"
+          }
+        }
+      }
+    },
+    "Cancel dictation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel dictation"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelar el dictado"
           }
         }
       }
@@ -130,6 +290,22 @@
         }
       }
     },
+    "Check the destination before pasting again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check the destination before pasting again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisa el destino antes de volver a pegar."
+          }
+        }
+      }
+    },
     "Choose English or Spanish for Apple Speech in Dictation settings.": {
       "localizations": {
         "en": {
@@ -146,6 +322,22 @@
         }
       }
     },
+    "Clean": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clean"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limpio"
+          }
+        }
+      }
+    },
     "Close": {
       "localizations": {
         "en": {
@@ -158,6 +350,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cerrar"
+          }
+        }
+      }
+    },
+    "Copied. You can paste the text yourself.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied. You can paste the text yourself."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiado. Puedes pegar el texto manualmente."
           }
         }
       }
@@ -210,6 +418,38 @@
         }
       }
     },
+    "Could not take over dictation. Try again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not take over dictation. Try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo tomar el dictado. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "Couldn't copy. Your text is still here.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't copy. Your text is still here."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo copiar. Tu texto sigue aquí."
+          }
+        }
+      }
+    },
     "Cut": {
       "localizations": {
         "en": {
@@ -222,6 +462,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cortar"
+          }
+        }
+      }
+    },
+    "Default": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Default"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Predeterminado"
           }
         }
       }
@@ -258,6 +514,102 @@
         }
       }
     },
+    "Delivery didn't complete. Copy your text to keep it.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delivery didn't complete. Copy your text to keep it."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La entrega no se completó. Copia el texto para conservarlo."
+          }
+        }
+      }
+    },
+    "Delivery didn't complete. Reinsert into the original field, or copy your text.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delivery didn't complete. Reinsert into the original field, or copy your text."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El envío no se completó. Reinserta en el campo original o copia el texto."
+          }
+        }
+      }
+    },
+    "Dictate": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictate"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictar"
+          }
+        }
+      }
+    },
+    "Dictate Anywhere": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictate Anywhere"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictar en cualquier app"
+          }
+        }
+      }
+    },
+    "Dictating": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictating"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictando"
+          }
+        }
+      }
+    },
+    "Dictation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictation"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictado"
+          }
+        }
+      }
+    },
     "Dictation failed: %@": {
       "localizations": {
         "en": {
@@ -290,6 +642,70 @@
         }
       }
     },
+    "Dictation never types into password fields.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictation never types into password fields."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El dictado nunca escribe en campos de contraseña."
+          }
+        }
+      }
+    },
+    "Discard": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discard"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descartar"
+          }
+        }
+      }
+    },
+    "Download Speech Model": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download Speech Model"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descargar modelo de voz"
+          }
+        }
+      }
+    },
+    "Downloading Speech Model…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading Speech Model…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descargando modelo de voz…"
+          }
+        }
+      }
+    },
     "Edit": {
       "localizations": {
         "en": {
@@ -302,6 +718,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Edición"
+          }
+        }
+      }
+    },
+    "English": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "English"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "English"
           }
         }
       }
@@ -322,6 +754,38 @@
         }
       }
     },
+    "If you did speak, copy the text below. Nothing was saved in Secreteo.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If you did speak, copy the text below. Nothing was saved in Secreteo."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si sí hablaste, copia el texto de abajo. No se guardó nada en Secreteo."
+          }
+        }
+      }
+    },
+    "Inserting…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inserting…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insertando…"
+          }
+        }
+      }
+    },
     "It could not write to its folder in Application Support.": {
       "localizations": {
         "en": {
@@ -334,6 +798,102 @@
           "stringUnit": {
             "state": "translated",
             "value": "No pudo escribir en su carpeta de Application Support."
+          }
+        }
+      }
+    },
+    "Keep talking. Your words appear once the model is ready.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep talking. Your words appear once the model is ready."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sigue hablando. Tus palabras aparecen cuando el modelo esté listo."
+          }
+        }
+      }
+    },
+    "Kept only in memory. Copy it before quitting Secreteo.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kept only in memory. Copy it before quitting Secreteo."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo se conserva en memoria. Cópialo antes de cerrar Secreteo."
+          }
+        }
+      }
+    },
+    "Listening…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listening…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escuchando…"
+          }
+        }
+      }
+    },
+    "Literal": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Literal"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Literal"
+          }
+        }
+      }
+    },
+    "Loading speech model…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading speech model…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cargando el modelo de voz…"
+          }
+        }
+      }
+    },
+    "Loading the speech model": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading the speech model"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cargando el modelo de voz"
           }
         }
       }
@@ -370,6 +930,22 @@
         }
       }
     },
+    "No Polish engine is available.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Polish engine is available."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay un motor para pulir disponible."
+          }
+        }
+      }
+    },
     "No microphone audio arrived. Check the microphone in Audio settings and try again.": {
       "localizations": {
         "en": {
@@ -398,6 +974,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "No hay un micrófono disponible. Elige una entrada en los ajustes de Audio e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "No speech detected — nothing was inserted": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No speech detected — nothing was inserted"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se detectó voz: no se insertó nada"
           }
         }
       }
@@ -450,6 +1042,22 @@
         }
       }
     },
+    "Off": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apagado"
+          }
+        }
+      }
+    },
     "Open at Login": {
       "localizations": {
         "en": {
@@ -494,6 +1102,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pegar"
+          }
+        }
+      }
+    },
+    "Paste Last Dictation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste Last Dictation"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegar el último dictado"
+          }
+        }
+      }
+    },
+    "Paste Without Polish": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste Without Polish"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegar sin pulir"
+          }
+        }
+      }
+    },
+    "Paste the Original": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste the Original"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegar el original"
+          }
+        }
+      }
+    },
+    "Paste untranslated": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste untranslated"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegar sin traducir"
+          }
+        }
+      }
+    },
+    "Paste without polish": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste without polish"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegar sin pulir"
           }
         }
       }
@@ -674,6 +1362,54 @@
         }
       }
     },
+    "Polish": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Polish"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pulir"
+          }
+        }
+      }
+    },
+    "Polish: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Polish: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pulir: %@"
+          }
+        }
+      }
+    },
+    "Polishing…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Polishing…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puliendo…"
+          }
+        }
+      }
+    },
     "Prepare the Apple Speech language asset in Dictation settings first.": {
       "localizations": {
         "en": {
@@ -690,6 +1426,38 @@
         }
       }
     },
+    "Preparing dictation…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparing dictation…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparando el dictado…"
+          }
+        }
+      }
+    },
+    "Preparing microphone…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparing microphone…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparando el micrófono…"
+          }
+        }
+      }
+    },
     "Quit Secreteo": {
       "localizations": {
         "en": {
@@ -702,6 +1470,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "Salir de Secreteo"
+          }
+        }
+      }
+    },
+    "Reinsert": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reinsert"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reinsertar"
+          }
+        }
+      }
+    },
+    "Release Command, Option, Control, and Shift, then try again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Release Command, Option, Control, and Shift, then try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suelta Comando, Opción, Control y Mayúsculas e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "Return to %@ and the original field to reinsert, or copy your text.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Return to %@ and the original field to reinsert, or copy your text."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vuelve a %@ y al campo original para reinsertar, o copia el texto."
           }
         }
       }
@@ -786,6 +1602,38 @@
         }
       }
     },
+    "Sent — insertion not verified": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sent — insertion not verified"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviado — inserción sin verificar"
+          }
+        }
+      }
+    },
+    "Sent, not verified": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sent, not verified"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviado, sin verificar"
+          }
+        }
+      }
+    },
     "Settings": {
       "localizations": {
         "en": {
@@ -818,6 +1666,102 @@
         }
       }
     },
+    "Shortcut": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shortcut"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atajo"
+          }
+        }
+      }
+    },
+    "Spanish": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spanish"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Español"
+          }
+        }
+      }
+    },
+    "Stop Dictating": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop Dictating"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dejar de dictar"
+          }
+        }
+      }
+    },
+    "Text mode": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Text mode"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modo de texto"
+          }
+        }
+      }
+    },
+    "Text wasn't sent": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Text wasn't sent"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El texto no se envió"
+          }
+        }
+      }
+    },
+    "The destination changed. Copy your text to keep it.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The destination changed. Copy your text to keep it."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El destino cambió. Copia el texto para conservarlo."
+          }
+        }
+      }
+    },
     "The dictation session ended unexpectedly. Nothing was typed.": {
       "localizations": {
         "en": {
@@ -834,6 +1778,22 @@
         }
       }
     },
+    "The download failed.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The download failed."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La descarga falló."
+          }
+        }
+      }
+    },
     "The microphone sent unusable audio. Check the input device and try again.": {
       "localizations": {
         "en": {
@@ -846,6 +1806,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "El micrófono envió audio no válido. Revisa el dispositivo de entrada e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "The original field can't be verified. Your text is still available to copy.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The original field can't be verified. Your text is still available to copy."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se puede verificar el campo original. Tu texto sigue disponible para copiar."
+          }
+        }
+      }
+    },
+    "The speech model is not installed. Download it in Settings.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The speech model is not installed. Download it in Settings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El modelo de voz no está instalado. Descárgalo en Ajustes."
           }
         }
       }
@@ -898,6 +1890,38 @@
         }
       }
     },
+    "Translate into": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translate into"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traducir a"
+          }
+        }
+      }
+    },
+    "Translating…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translating…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traduciendo…"
+          }
+        }
+      }
+    },
     "Undo": {
       "localizations": {
         "en": {
@@ -926,6 +1950,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Actualización disponible…"
+          }
+        }
+      }
+    },
+    "Use Secreteo for Dictation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use Secreteo for Dictation"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar Secreteo para dictar"
           }
         }
       }
@@ -974,6 +2014,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tu micrófono preferido no está disponible. Se usará el predeterminado del sistema para este dictado."
+          }
+        }
+      }
+    },
+    "Your words are being polished. Esc pastes them without polish.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your words are being polished. Esc pastes them without polish."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estamos puliendo tus palabras. Esc las pega sin pulir."
+          }
+        }
+      }
+    },
+    "Your words are being translated on this Mac. Esc pastes them untranslated.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your words are being translated on this Mac. Esc pastes them untranslated."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tus palabras se están traduciendo en este Mac. Esc las pega sin traducir."
           }
         }
       }

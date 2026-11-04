@@ -29,6 +29,11 @@ def release_notes(changelog: str, version: str) -> str:
     return ""
 
 
+def arms_global_dictation(project_yml: str) -> bool:
+    # The base value is what a Release build gets. Anything but an explicit NO counts as armed.
+    return project_setting(project_yml, "SECRETEO_GLOBAL_DICTATION") != "NO"
+
+
 def problems(tag: str, project_yml: str, changelog: str, on_main: bool, arms_dictation: bool,
              portavoz_released: bool) -> list[str]:
     if not re.fullmatch(r"v\d+\.\d+\.\d+", tag):
@@ -63,7 +68,7 @@ def main() -> None:
     on_main = subprocess.run(["git", "merge-base", "--is-ancestor", "HEAD", "origin/main"], cwd=ROOT,
                              check=False).returncode == 0
     found = problems(argument, (ROOT / "project.yml").read_text(), changelog, on_main,
-                     (ROOT / "Sources/Triggers").exists(), os.environ.get("GLOBAL_DICTATION_CLEARED") == "true")
+                     arms_global_dictation(project_yml), os.environ.get("GLOBAL_DICTATION_CLEARED") == "true")
     for problem in found:
         print(f"::error::{problem}")
     if found:

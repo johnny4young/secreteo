@@ -85,3 +85,7 @@ The hosted delivery lane signs ad-hoc and grants TCC through `cdhash` rows, writ
 ## D19. The default shortcut is ⌃⌥⌘D
 
 The [ownership protocol](specs/ownership-protocol.md) requires a shortcut other than Portavoz's ⌥⌘D. That one is also the system's Dock shortcut. ⌃⌥⌘D keeps the D and adds a third modifier to make a clash less likely. It has not been checked on a real Mac, and a conflict shows as an unavailable shortcut in Settings.
+
+## D20. Release builds do not run global dictation yet
+
+`SECRETEO_GLOBAL_DICTATION` is off in Release and on in Debug and `make install`. With it off the app does not create `DictationFeature`, so no trigger, event tap or lease can exist. A binary must not arm global dictation before Portavoz's cooperating version ships, and this makes that true of any tag. Turning it on is one line in `project.yml`, after that release.

@@ -35,7 +35,7 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Global shortcut | `GlobalHotkey`, `DictationController+Hotkey` | `GlobalHotkeyRoutingTests`, `DictationShortcutTests`, `HotkeySettingTests` | The same tests, without the UI fixture's | Logic ported. Not armed by the app yet, and a real shortcut still has to be checked |
 | Push to talk, Fn and modifiers | `ModifierKeyPTT`, `DictationController+ModifierKey` | `ModifierKeyGestureTests`, `DictationModifierOwnershipTests` | `ModifierKeyGestureTests` | Gesture logic ported. Not armed by the app yet, and ownership tests arrive with the controller |
 | Push to talk, mouse | `MouseButtonPTT`, `MousePTTGesture` | `MousePTTGestureTests` | The same tests | Gesture logic ported. Not armed by the app yet |
-| Menu | `MenuBarView`, `MenuBarModel` | `MenuBarModelTests`, `DictationUITests` | | Pending, P4 |
+| Menu | `MenuBarView`, `MenuBarModel` | `MenuBarModelTests`, `DictationUITests` | `DictationUITests` | Dictate and Paste last in the menu |
 | App Intents | `AppServices+DictationIntents` | `DictationIntentTests` | | Pending, P8 |
 | Paste last | `DictationController+PasteLast`, `AppServices+PasteLastDictation` | `DictationPasteLastTests` | The same tests | Logic ported. The menu and shortcut arrive with the composition |
 | Selection Rewrite | `SelectionRewriteController`, `SelectionCapture` | `SelectionRewriteTests`, `SelectionRewriteUITests` | | Pending, P6 |
@@ -55,9 +55,9 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Readback and verified delivery | `DictationTextReadback`, `TextInserter` | `TextInsertionReadbackTests`, `TextInsertionTargetTests` | The same tests | Logic ported. Real Accessibility readback still has to be checked |
 | Speech gate and auto stop | `DictationSpeechGate`, `DictationAutoStop` | `DictationSpeechGateTests`, `DictationPauseDetectorTests` | The same tests, without the composition's | Detector and pause logic ported. Session wiring arrives with the controller |
 | Spoken correction in delivery | `DictationCorrections` | `DictationCorrectionTests` | The same tests, without the practice test | Logic ported. A real field still has to be checked |
-| Panel, compact indicator and waveform | `DictationPanel`, `DictationCompactIndicator` | `DictationPanelAnchorTests`, `DictationCompactIndicatorTests` | | Pending, P4 |
+| Panel, compact indicator and waveform | `DictationPanel`, `DictationCompactIndicator` | `DictationPanelAnchorTests`, `DictationCompactIndicatorTests` | `DictationUITests` | Ported. Its unit tests are still to come |
 | Sounds and prewarm | `DictationSoundCue`, `AppServices+DictationPrewarm` | `DictationColdStartTests` | The same tests, without prewarm | Sounds and cold start ported. Prewarm arrives with the composition |
-| Memory: model residency | `AppModelResidencyLedger`, `AppModelIdleReleaseScheduler` | `DictationResourceOwnershipTests`, which asserts sharing in one process and has to be rewritten | | Pending, with the app composition |
+| Memory: model residency | `AppModelResidencyLedger`, `AppModelIdleReleaseScheduler` | `DictationResourceOwnershipTests`, which asserts sharing in one process and has to be rewritten | | A loaded model is released after 10 idle minutes. Memory profiles and pressure are pending |
 
 ## Text features and data
 

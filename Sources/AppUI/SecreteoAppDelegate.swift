@@ -1,4 +1,5 @@
 import AppKit
+import DictationSession
 import SwiftUI
 
 /// Launch options. `-use-temp-store` keeps a test away from real state: no real launch
@@ -72,6 +73,10 @@ public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
         compose()
     }
 
+    public func applicationDidBecomeActive(_ notification: Notification) {
+        model?.dictation?.applicationDidBecomeActive()
+    }
+
     public func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
     }
@@ -115,6 +120,11 @@ public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
         let model = AppModel(launchController: controller)
         model.updater = options.usesTemporaryStore ? InertUpdater() : makeUpdater(model)
         model.updateIsAvailable = options.reportsAvailableUpdate
+        if DictationFeature.mayRunInThisBuild,
+           let dictation = try? DictationFeature(usesTemporaryStore: options.usesTemporaryStore) {
+            model.dictation = dictation
+            dictation.start()
+        }
         let settings = SettingsWindowController(model: model)
         let statusItem = StatusItemController(model: model)
         model.openSettings = { [weak settings, weak statusItem] in

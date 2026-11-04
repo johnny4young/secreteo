@@ -147,6 +147,13 @@ def release_problems(tag="v1.2.3", project=PROJECT, changelog=CHANGELOG, on_main
 
 
 class CheckReleaseTests(unittest.TestCase):
+    def test_a_release_build_arms_dictation_unless_the_project_says_no(self):
+        self.assertFalse(check_release.arms_global_dictation("        SECRETEO_GLOBAL_DICTATION: NO\n"))
+        self.assertTrue(check_release.arms_global_dictation("        SECRETEO_GLOBAL_DICTATION: YES\n"))
+        self.assertTrue(check_release.arms_global_dictation("        OTHER: NO\n"))
+        repository = Path(__file__).resolve().parents[2]
+        self.assertFalse(check_release.arms_global_dictation((repository / "project.yml").read_text()))
+
     def test_a_correct_tag_passes(self):
         self.assertEqual(release_problems(), [])
 
