@@ -40,7 +40,7 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Paste last | `DictationController+PasteLast`, `AppServices+PasteLastDictation` | `DictationPasteLastTests` | The same tests | Logic ported. The menu and shortcut arrive with the composition |
 | Selection Rewrite | `SelectionRewriteController`, `SelectionCapture` | `SelectionRewriteTests`, `SelectionRewriteUITests` | | Pending, P6 |
 | Practice | `DictationPracticeField`, `DictationPracticeView` | `DictationPracticeFieldTests`, `DictationPracticeUITests` | | Pending, P5 |
-| One owner per Mac | `DictationOwnershipCoordinator`, `DictationAdmission` | `DictationOwnershipCoordinatorTests`, `DictationAdmissionTests` | Reference tests only | Pending, P4 |
+| One owner per Mac | `DictationOwnershipCoordinator`, `DictationAdmission` | `DictationOwnershipCoordinatorTests`, `DictationAdmissionTests` | The same tests, without the composition's, plus `KnownDictationPeersTests` and the reference tests | Coordinator ported. The app does not run it yet, and it has not run against a real Portavoz |
 
 ## Sessions and delivery
 
@@ -88,7 +88,10 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 
 | Test | Waits for |
 |---|---|
-| `DictationAdmissionTests`, `DictationOwnershipCoordinatorTests` | The ownership coordinator |
+| In `DictationOwnershipCoordinatorTests`: `anActivationBeforeLaunchFinishesPublishesNothing`, `turningThePreferenceOnTakesOwnershipFromNobody`, `onlyTheOwnerArmsTheShortcut`, `aWorkspaceChangeIsAHintToLookAgain`, `aHeldTriggerKeepsItsWordsWhenAHandoffDisarmsIt`, `aHeldTriggerStillCancelsWhenItIsDisabledWithNoHandoff` | The composition |
+| In `DictationOwnershipCoordinatorTests`: `anIntentCancelsAPracticeSessionAtOnce`, `anIntentCancelsAPracticeSessionEvenWhileItDelivers`. In `DictationAdmissionTests`: `thePracticeFieldAsksForPracticeOnlyWhileItIsTheTarget`, `aPracticeSessionRunsWithTheGlobalPreferenceOff`, `pasteLastIntoThePracticeFieldRunsWithTheGlobalPreferenceOff` | Practice |
+| In `DictationOwnershipCoordinatorTests`: `aSpokenInstructionKeepsItsWordsWhenTheGraceEnds`, `aPreviewGivesUpItsGlobalKeysWhenOwnershipIsLost`, `aPreviewFromBeforeAResetCannotReplace`, `aRewriteReplaceIsRefusedAfterAHandoffThereAndBack`, `aHandoffCompletesWithARewritePreviewOpenAndTheReplaceIsRefused`, `aHandoffThereAndBackWithARewritePreviewOpenRefusesTheReplace`. In `DictationAdmissionTests`: `aRefusedRewriteReadsNothing`, `aRewriteHoldsNoLeaseWhileTheUserDecides`, `aRefusedRewriteLeavesTheOneInProgressAlone`, `aRefusedSpokenInstructionLeavesTheChoicesOpen`, `aCancelledRewriteKeepsItsLeaseUntilTheReadEnds`, `aReplaceHoldsItsLeaseThroughTheClipboardRestore`, `aRefusedReplaceKeepsTheRewriteToCopy` | Rewrite |
+| In `DictationAdmissionTests`: `compositionReadsOwnershipForPrewarmAndAdmission` | The composition |
 | `DictationHistoryRecordingTests` | The store |
 | `DictationSpeechGateCorpusTests` | The benchmark tooling |
 | In `DictationReadinessTests`: `testFixtureRecoverySurvivesFreshDependenciesForEachMenuInvocation`, `testAppSettingsWriteRejectsPreparationAndAllowsApplyAfterCancel`, `testLiveCompositionReadsTheInjectedAudioPreference` | The composition |

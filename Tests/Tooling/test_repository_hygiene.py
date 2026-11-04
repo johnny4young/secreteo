@@ -128,6 +128,14 @@ class RepositoryHygieneTests(unittest.TestCase):
         result = self.fixture.run()
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_allows_source_app_identifiers_only_in_the_exact_peer_list(self) -> None:
+        identifier = "app." + "portavoz.mac"
+        self.fixture.write("Sources/DictationSession/KnownDictationPeers.swift", f'let peer = "{identifier}"\n')
+        self.assertEqual(self.fixture.run().returncode, 0)
+
+        self.fixture.write("Sources/DictationSession/KnownDictationPeersCopy.swift", f'let peer = "{identifier}"\n')
+        self.assert_rejected("Source-app identifiers")
+
     def test_the_word_portavoz_alone_is_allowed(self) -> None:
         self.fixture.write("docs/DECISIONS.md", "Portavoz D516\n")
         result = self.fixture.run()

@@ -49,10 +49,11 @@ fi
 source_app_identifiers='app[.]portavoz|PORTAVOZ[_]|PV[D]esign|"PV[O]Z"|0x5056_?4F5[A]|A[p]untador|Cloud[K]it|PortavozSource[C]ommit|portavozLocal[i]zed|portavoz-ui-test[s]|Application Support/Portavo[z]'
 leaked_identifiers="$(
   git grep --untracked -nEI "$source_app_identifiers" -- . \
-    ':(exclude)docs/PROVENANCE.md' ':(exclude)THIRD-PARTY-NOTICES.md' || true
+    ':(exclude)docs/PROVENANCE.md' ':(exclude)THIRD-PARTY-NOTICES.md' \
+    ':(exclude)Sources/DictationSession/KnownDictationPeers.swift' || true
 )"
 if [[ -n "$leaked_identifiers" ]]; then
-  report "Source-app identifiers belong only in docs/PROVENANCE.md and the notices:" "$leaked_identifiers"
+  report "Source-app identifiers belong only in docs/PROVENANCE.md, the notices and the peer list:" "$leaked_identifiers"
 fi
 
 # The hosted runner's home is public and appears in VM-only guards.
