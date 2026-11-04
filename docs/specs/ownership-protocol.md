@@ -15,7 +15,7 @@ It is cooperative and not a security boundary. Any process running as the user c
 | Owner | The one participant allowed to admit global sessions. May be nobody |
 | Preference | The participant's own "global dictation on" setting. The protocol reads it and never writes it |
 | Readiness | Microphone and Accessibility granted, engine installed (not necessarily loaded), practice done, and triggers able to arm, as the participant defines them locally |
-| Lease | The right to run one operation, which is the capture lock held for that operation |
+| Lease | The right to run one operation, which is the capture lock held for that operation. Operations in one process can [share](#admission) it during a pasteboard restore |
 | Intent | A published request to move ownership, with an expiry |
 
 Three things stay separate: the durable owner (a file), whether a process is running and ready (local), and the temporary right to run a session (a lease). Being one does not imply another.
@@ -122,7 +122,15 @@ acquire(kind) -> lease | refused(reason)
 6. Return the lease, carrying `owner` and `generation`.
 ```
 
-Every refusal closes the lock first. Admission never waits, and because it does file I/O it never runs in an audio or event tap callback. A second operation in the same process is refused `busy`, because it opens its own descriptor.
+Every refusal from `acquire` closes the lock it just took. Admission never waits, and because it does file I/O it never runs in an audio or event tap callback. `acquire` refuses a second operation in the same process with `busy`, because it opens its own descriptor.
+
+**Sharing in one process.** A participant's adapter may let a new operation share its held lease, instead of refusing it `busy`, while the previous operation only waits for the pasteboard restore. The new operation opens no descriptor and calls no `flock`: it uses the lease already held. Other participants still see one held lock, so nothing changes between apps. All of these apply:
+
+1. The previous operation's capture and delivery have finished and its Stop has drained. Never during capture, transcription or delivery.
+2. Joining is admission: it never waits for capture and never runs in a callback. Each joining operation repeats steps 2 to 5 on the held lock, not from a cached state, and then calls `revalidate()`, which confirms the lock file is still current. If that fails it refuses `unavailable(ioError)`. A live intent refuses it `transferring`, so operations in a row cannot hold off a handoff. A refusal leaves the lock held for the previous operation.
+3. Anything a joining operation does with the pasteboard, including delivery, retry, paste-last and a Rewrite's read, waits for the pending restore, which is never cut short.
+4. The lock is released only after the last operation finishes, because `LOCK_UN` frees it for everyone sharing the lease. Joining and the last release exclude each other, so nothing joins a lease being released. `SessionAttempts.finish` releases outright, so the adapter counts its own operations. Watching continues until the last release. Each attempt keeps its own token, a late Stop does nothing, and `revalidate()` runs before each delivery. On an intent, each operation follows the [handoff table](#handoff) by its own stage.
+5. Only `global` operations share, and a `global` operation never joins a `practice` lease.
 
 **Kinds.** `global` is everything above. `practice` skips steps 4 and 5, so a participant that is not the owner or not ready yet can run the practice it needs. It competes for capture and refuses on an intent, and it never delivers outside the app's own window.
 
@@ -153,10 +161,12 @@ Ownership moves only on a user action, with one exception: [First run](#first-ru
 |---|---|
 | `preparing`, before the microphone opens | Cancels at once |
 | `listening`, microphone open | Runs for at most 5 seconds more, then cancels |
-| Microphone closed: transcribing, polishing, delivering, restoring the pasteboard | Runs to the end. A session that has no microphone stage, such as Rewrite or paste-last, is here |
+| Microphone closed: transcribing, polishing, delivering, restoring the pasteboard | Runs to the end. An operation with no microphone stage, such as paste-last or a Rewrite's read or replace, is here |
 | A practice lease, in any participant | Cancels at once, whoever the intent names |
 
 The rename in step 6 is the commit. It means no one held a lease, because `T` held the capture lock, and `T` was armed. A failure after it, including a failed notification, undoes nothing. Nothing changes hands during a delivery, because a delivery holds the lease.
+
+**Rewrite.** Reading the selection and replacing it are separate operations, each with its own lease. No lease is held between them, while the model works or the user chooses and previews, because either can take without limit. So a handoff can complete with a preview open. A spoken instruction takes its own lease and follows the `listening` row. Before replacing, the app compares the new lease's `generation` with the read's, because a handoff there and back returns the same owner. A refusal or a different generation means no replace, and the text stays available to copy. An app also gives up the replace when it resets the state or sees it corrupt, because a reset restarts `generation`.
 
 **Rollback.** Before the commit the owner has not changed. On any failure, `T` always disarms and releases the lock, tries to clear its own intent if the `id` still matches, and posts the notification. If it cannot write, the intent simply expires.
 
@@ -247,6 +257,8 @@ A change clients must understand raises `version`. An older client then fails cl
 3. Claim at [First run](#first-run) when its preference is on.
 4. Never write its preference because of ownership. Offer the two actions in [Recovery](#recovery).
 5. The version that removes dictation sets the key to `0`. If it finds itself owner on first launch, it publishes `owner: null` under both locks.
+6. Depend on the `DictationOwnership` product of this repository, pinned to a revision, instead of keeping a copy.
+7. Prove [App acceptance](#app-acceptance).
 
 ## Acceptance matrix
 
@@ -291,3 +303,24 @@ Not covered:
 
 - Home directories on network volumes, tracked in [GAPS](../GAPS.md#g8-ownership-on-a-network-home).
 - A second macOS user logged in at the same time, who has their own files and locks.
+- A Rewrite preview in an app that never saw the state corrupt, when a reset and later handoffs land on the read's `generation` again. Deleting the state file restarts the count the same way. The comparison then passes.
+
+## App acceptance
+
+Each app proves these itself, because they live above the reference implementation. The rows through `Stop after a refused join` apply to an app that shares a lease.
+
+| Scenario | Expected |
+|---|---|
+| New operation during the pasteboard restore | Shares the lease, and its pasteboard use waits for the restore. Dictated text is never saved as the user's clipboard |
+| New operation during capture, transcription or delivery | Refused `busy` |
+| New operation right after a cancel | Refused `busy` until Stop has drained |
+| New operation during a restore, with a live intent | Refused `transferring`. The lock stays held and the restore finishes. The handoff completes if that is before the deadline |
+| Practice during a `global` restore | Refused `busy` |
+| First of two sharing operations finishes | The lock stays held until the last one finishes, then is free at once. The last one still sees an intent within a second |
+| New operation while the last one releases | It joins before the release or takes the lock through `acquire`. It never runs without the lock |
+| Lock file replaced during a restore | Joining is refused `unavailable(ioError)` and the restore finishes |
+| Stop after a refused join | Does nothing, and the lock stays held for the restore |
+| Handoff with a Rewrite preview open | The handoff completes. The replace is refused and the text stays available to copy |
+| Handoff there and back with a Rewrite preview open | Same owner, different generation. The replace is refused and the text stays available to copy |
+| Handoff during a spoken Rewrite instruction | Ends or is cancelled within 5 seconds. Text kept, no late replace |
+| Reset with a Rewrite preview open, in the app that resets or sees the corrupt state | The replace is refused and the text stays available to copy |

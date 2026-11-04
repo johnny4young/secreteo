@@ -267,7 +267,7 @@ struct AdmissionTests {
         #expect(moved == DictationOwnership.defaultRoot.path)
     }
 
-    @Test func theTargetImportsOnlyWhatPortavozCanCopy() throws {
+    @Test func theTargetImportsOnlySystemFrameworks() throws {
         let sources = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("Sources/DictationOwnership")

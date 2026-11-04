@@ -68,7 +68,7 @@ A web page must not be able to reach the microphone path.
 
 ## D15. One dictation owner per Mac
 
-Two apps on the same Fn hold would start two sessions and paste twice. Ownership goes through a cooperative per-user protocol, specified in [the ownership protocol](specs/ownership-protocol.md). Secreteo does not arm global triggers while a Portavoz version without the protocol has dictation active, and no binary that arms them is published until a Portavoz release with the protocol is out. This is cooperative and not a security boundary.
+Two apps on the same Fn hold would start two sessions and paste twice. Ownership goes through a cooperative per-user protocol, specified in [the ownership protocol](specs/ownership-protocol.md). Secreteo does not arm global triggers while a Portavoz version without the protocol has dictation active, and no binary that arms them is published until a Portavoz release with the protocol is out. This is cooperative and not a security boundary. Portavoz takes the `DictationOwnership` product at a pinned revision, so dependencies added to this package reach it when it bumps.
 
 ## D16. Security reports through GitHub only
 
