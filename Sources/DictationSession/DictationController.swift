@@ -124,6 +124,16 @@ final class DictationController {
         self.presentsPanel = presentsPanel
         // A headless controller never watches system sleep or lock.
         self.lastText = lastText ?? DictationLastText(observesSystem: presentsPanel)
+        self.lastText.onClear = { [weak self] in self?.forgetDictatedText() }
+    }
+
+    /// When Paste last ends, the same words leave the session's state too, unless a session is using them.
+    private func forgetDictatedText() {
+        guard !isActive else { return }
+        confirmedText = ""
+        partialText = ""
+        lastInsertion = nil
+        history?.forgetDraft()
     }
 
     private func showPanel() {
@@ -374,9 +384,9 @@ final class DictationController {
                 // Nothing was typed: keep it visible like a capture interruption.
                 failSession(
                     id: id, message: LiveSpeechFailureMessage.dictation(DictationSessionError.unexpectedCompletion),
-                    autoDismiss: false)
+                    autoDismiss: false, keepsWords: true)
             } else {
-                failSession(id: id, message: LiveSpeechFailureMessage.dictation(error))
+                failSession(id: id, message: LiveSpeechFailureMessage.dictation(error), keepsWords: true)
             }
         }
     }
@@ -464,6 +474,8 @@ final class DictationController {
             presentNoSpeech(text, id: sessionID)
             return
         }
+        // A cancel during the verdict ends it as undetermined, so it lands here.
+        guard activeSessionID == sessionID else { return }
         if await correctsLastInsertion(original: original, sessionID: sessionID, dependencies: dependencies) { return }
         guard activeSessionID == sessionID, let delivery = await textToDeliver(
             text, original: original, sessionID: sessionID, dependencies: dependencies, capture: capture)
@@ -499,15 +511,26 @@ final class DictationController {
         modifierTrigger.ownsSession = false
     }
 
-    private func failSession(id: UUID, message: String, autoDismiss: Bool = true) {
+    /// - Parameter keepsWords: a capture failure leaves what was heard reachable for Copy
+    ///   and Paste last, since nothing else can bring those words back.
+    private func failSession(id: UUID, message: String, autoDismiss: Bool = true, keepsWords: Bool = false) {
         guard activeSessionID == id else { return }
         let wait: @MainActor (Duration) async throws -> Void = sessionFeedbackWait
             ?? { try await Task.sleep(for: $0) }
+        let heard = keepsWords
+            ? textPolicy.applying(to: DictationAssembler.text(confirmed: confirmedText, partial: partialText)) : ""
+        let keptWords = DictationAssembler.hasLexicalContent(heard)
         completeSession(id: id)
         destination = nil
-        dependencies = nil
+        if keptWords {
+            lastText.remember(heard)
+            recoveryText = heard
+            copyStatus = .idle
+        } else {
+            dependencies = nil
+        }
         phase = .failed(message)
-        if autoDismiss { scheduleFeedbackDismiss(after: .seconds(6), wait: wait) }
+        if autoDismiss, !keptWords { scheduleFeedbackDismiss(after: .seconds(6), wait: wait) }
     }
 
 }
@@ -566,7 +589,7 @@ private extension DictationController {
             let message = failure == .interrupted && isLoadingModel
                 ? L10n.text("The speech model took too long to load. Nothing was inserted. Try again in a moment.")
                 : failure.message
-            failSession(id: id, message: message, autoDismiss: false)
+            failSession(id: id, message: message, autoDismiss: false, keepsWords: true)
         })
         microphoneReadiness = readiness
         return readiness
@@ -659,7 +682,9 @@ private extension DictationController {
         failCapture(id: id)
         if activeSessionID == id {
             measurement?.finish(.pipelineFailed)
-            failSession(id: id, message: DictationMicrophoneReadiness.Failure.interrupted.message, autoDismiss: false)
+            failSession(
+                id: id, message: DictationMicrophoneReadiness.Failure.interrupted.message, autoDismiss: false,
+                keepsWords: true)
         }
         return CancellationError()
     }
@@ -669,6 +694,7 @@ extension DictationController {
     private var hasPendingOutput: Bool {
         switch phase {
         case .recovery, .dispatched, .noSpeech: true
+        case .failed: !recoveryText.isEmpty
         default: false
         }
     }
@@ -723,9 +749,10 @@ extension DictationController {
         isRetryingDelivery = true
         retryDeliveryTask = Task { [weak self] in
             let result = lease.revalidate() ? await destination.insert(text) : .refused(.ownershipChanged)
-            if let self, self.deliveryID == id, !Task.isCancelled {
+            // A closed notice clears the ID, and the replay must still let go of its slot.
+            if let self, !Task.isCancelled {
                 self.isRetryingDelivery = false
-                self.presentDelivery(result, text: text, id: id)
+                if self.deliveryID == id { self.presentDelivery(result, text: text, id: id) }
                 self.retryDeliveryTask = nil
             }
             await lease.releaseAfterDelivery()
@@ -1004,8 +1031,9 @@ private extension DictationController {
                 self.endPolish(result)
             }
         }
-        releaseCancelKey()
+        // Only a live session owns the key: a cancel already released this one's.
         guard activeSessionID == sessionID else { return .ended }
+        releaseCancelKey()
         return result.map(TransformEnd.finished) ?? .skipped
     }
 
