@@ -98,6 +98,22 @@
         }
       }
     },
+    "Changed “%@” to “%@”.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changed “%@” to “%@”."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambiado “%@” por “%@”."
+          }
+        }
+      }
+    },
     "Check for Updates…": {
       "localizations": {
         "en": {
@@ -210,6 +226,38 @@
         }
       }
     },
+    "Deleted the last dictation.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deleted the last dictation."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrado el último dictado."
+          }
+        }
+      }
+    },
+    "Deleted “%@”.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deleted “%@”."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrado “%@”."
+          }
+        }
+      }
+    },
     "Dictation failed: %@": {
       "localizations": {
         "en": {
@@ -226,6 +274,22 @@
         }
       }
     },
+    "Dictation needs the Accessibility permission to type into other apps — grant it in System Settings and try again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictation needs the Accessibility permission to type into other apps — grant it in System Settings and try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El dictado necesita el permiso de Accesibilidad para escribir en otras apps — concédelo en Ajustes del Sistema e inténtalo de nuevo."
+          }
+        }
+      }
+    },
     "Edit": {
       "localizations": {
         "en": {
@@ -238,6 +302,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Edición"
+          }
+        }
+      }
+    },
+    "From now on, “%@” is written “%@”.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From now on, “%@” is written “%@”."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desde ahora, “%@” se escribe “%@”."
           }
         }
       }
@@ -338,6 +418,38 @@
         }
       }
     },
+    "Not saved to your dictation history.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not saved to your dictation history."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se guardó en tu historial de dictado."
+          }
+        }
+      }
+    },
+    "Nothing was saved in Secreteo.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing was saved in Secreteo."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se guardó nada en Secreteo."
+          }
+        }
+      }
+    },
     "Open at Login": {
       "localizations": {
         "en": {
@@ -386,6 +498,182 @@
         }
       }
     },
+    "Pasted without polish.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pasted without polish."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegado sin pulir."
+          }
+        }
+      }
+    },
+    "Pasted without polish: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pasted without polish: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegado sin pulir: %@"
+          }
+        }
+      }
+    },
+    "Pasted without polish: the dictation is too long to polish.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pasted without polish: the dictation is too long to polish."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegado sin pulir: el dictado es demasiado largo para pulirlo."
+          }
+        }
+      }
+    },
+    "Pasted without polish: the rewrite changed a fact, name or number.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pasted without polish: the rewrite changed a fact, name or number."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegado sin pulir: la reescritura cambiaba un dato, un nombre o un número."
+          }
+        }
+      }
+    },
+    "Pasted without polish: the summary engine could not rewrite it.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pasted without polish: the summary engine could not rewrite it."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegado sin pulir: el motor de resúmenes no pudo reescribirlo."
+          }
+        }
+      }
+    },
+    "Pasted without polish: the summary engine took too long.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pasted without polish: the summary engine took too long."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegado sin pulir: el motor de resúmenes tardó demasiado."
+          }
+        }
+      }
+    },
+    "Pasted without translation.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pasted without translation."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegado sin traducir."
+          }
+        }
+      }
+    },
+    "Pasted without translation: download the languages in Settings › Audio & dictation first.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pasted without translation: download the languages in Settings › Audio & dictation first."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegado sin traducir: primero descarga los idiomas en Ajustes › Audio y dictado."
+          }
+        }
+      }
+    },
+    "Pasted without translation: the dictation's language was not clear.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pasted without translation: the dictation's language was not clear."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegado sin traducir: no estaba claro el idioma del dictado."
+          }
+        }
+      }
+    },
+    "Pasted without translation: the translator could not finish.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pasted without translation: the translator could not finish."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegado sin traducir: el traductor no pudo terminar."
+          }
+        }
+      }
+    },
+    "Pasted without translation: this language pair is not available on this Mac.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pasted without translation: this language pair is not available on this Mac."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegado sin traducir: este par de idiomas no está disponible en este Mac."
+          }
+        }
+      }
+    },
     "Prepare the Apple Speech language asset in Dictation settings first.": {
       "localizations": {
         "en": {
@@ -414,6 +702,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "Salir de Secreteo"
+          }
+        }
+      }
+    },
+    "Saved to your dictation history.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved to your dictation history."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardado en tu historial de dictado."
+          }
+        }
+      }
+    },
+    "Saving to your dictation history…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving to your dictation history…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardando en tu historial de dictado…"
+          }
+        }
+      }
+    },
+    "Secreteo can correct only its last insertion while it is unchanged in a field it can read.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Secreteo can correct only its last insertion while it is unchanged in a field it can read."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Secreteo solo puede corregir lo último que pegó mientras siga igual, en un campo que pueda leer."
           }
         }
       }
@@ -514,6 +850,22 @@
         }
       }
     },
+    "The speech model took too long to load. Nothing was inserted. Try again in a moment.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The speech model took too long to load. Nothing was inserted. Try again in a moment."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El modelo de voz tardó demasiado en cargar. No se insertó nada. Inténtalo de nuevo en un momento."
+          }
+        }
+      }
+    },
     "Third-Party Notices": {
       "localizations": {
         "en": {
@@ -526,6 +878,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Avisos de terceros"
+          }
+        }
+      }
+    },
+    "This field did not accept the correction. Nothing changed.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This field did not accept the correction. Nothing changed."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este campo no aceptó la corrección. No cambió nada."
           }
         }
       }
@@ -590,6 +958,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ventana"
+          }
+        }
+      }
+    },
+    "Your preferred microphone is unavailable. Using the system default for this dictation.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your preferred microphone is unavailable. Using the system default for this dictation."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu micrófono preferido no está disponible. Se usará el predeterminado del sistema para este dictado."
           }
         }
       }

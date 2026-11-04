@@ -1,5 +1,7 @@
 import AppKit
 import DictationKit
+import LiveSpeech
+import SpeechCore
 import XCTest
 
 @testable import DictationSession
@@ -134,6 +136,22 @@ final class DictationClipboardBoundaryTests: XCTestCase {
         XCTAssertEqual(board.string(forType: .string), "Own text")
         XCTAssertEqual(other.string(forType: .string), "Other")
         XCTAssertEqual(clipboard.pendingLoanCount, 0)
+    }
+
+    func testClipboardFixtureCannotEscapeItsTemporaryUUIDNamespace() async {
+        for temporary in [false, true] {
+            for flags in [[], ["-seed-dictation-clipboard"], ["-seed-dictation", "-seed-dictation-clipboard"]] {
+                let fixture = DictationUITestFixture(arguments: flags, usesTemporaryStore: temporary)
+                XCTAssertEqual(fixture?.exerciseClipboard == true, temporary && flags.count == 2)
+                for name in ["", "NSGeneralPboard", "com.johnny4young.secreteo.dictation-test.invalid"] {
+                    let dependencies = DictationUITestFixture.dependencies(fixture: fixture, admission: .open, beginCapture: { {} }, environment: [
+                        DictationNativeUITestFixture.environmentKey: name
+                    ])
+                    let outcome = await dependencies.captureDestination().insert("Must not touch real data")
+                    XCTAssertEqual(outcome, .refused(fixture?.exerciseClipboard == true ? .clipboardUnavailable : .focusUnavailable))
+                }
+            }
+        }
     }
 
     private func makeBoard() -> NSPasteboard {
