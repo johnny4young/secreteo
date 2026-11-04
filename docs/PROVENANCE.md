@@ -174,6 +174,9 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/DictationKitTests/PolishDictationTests.swift` | `Tests/PortavozKitTests/PolishDictationTests.swift` | Seam: imports the split targets |
 | `Tests/DictationSessionTests/Support/ExclusiveArgumentDomain.swift` | `Tests/PortavozAppTests/ExclusiveArgumentDomain.swift` | Renames |
 | `Tests/DictationSessionTests/Support/DictationAdmission+Testing.swift` | `Tests/PortavozAppTests/DictationAdmissionTests.swift` | Extract: only the admission helpers |
+| `Sources/DictationSession/DictationOwnershipCoordinator.swift` | `Sources/portavoz-app/DictationOwnershipCoordinator.swift` | Seam: the legacy peers are the other app's builds, not this app's |
+| `Tests/DictationSessionTests/Session/DictationOwnershipCoordinatorTests.swift` | `Tests/PortavozAppTests/DictationOwnershipCoordinatorTests.swift` | Extract: without the composition, practice and Rewrite cases, which arrive with them |
+| `Tests/DictationSessionTests/Session/DictationAdmissionTests.swift` | `Tests/PortavozAppTests/DictationAdmissionTests.swift` | Extract: without the composition, practice and Rewrite cases, which arrive with them |
 
 ## Repository bootstrap
 
@@ -221,7 +224,7 @@ The [ownership protocol](specs/ownership-protocol.md) has to recognize Portavoz 
 
 ## Identifier ratchet
 
-These source-app identifiers are rejected everywhere except this file and the notices:
+These source-app identifiers are rejected everywhere except this file, the notices and `Sources/DictationSession/KnownDictationPeers.swift`, which the protocol needs:
 
 `app.portavoz`, `PORTAVOZ_`, `PVDesign`, `"PVOZ"`, `0x5056_4F5A`, `Apuntador`, `CloudKit`, `PortavozSourceCommit`, `portavozLocalized`, `portavoz-ui-tests`, `Application Support/Portavoz`.
 
