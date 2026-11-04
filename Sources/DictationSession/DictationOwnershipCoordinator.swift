@@ -25,8 +25,11 @@ final class DictationOwnershipCoordinator {
     /// another app's key press must not meet a lock this app took just to look.
     @ObservationIgnored private var turnOffIsPending = true
 
-    init(ownership: DictationOwnership, settle: @escaping () async -> Void) {
+    @ObservationIgnored private let turnOffRetry: Duration
+
+    init(ownership: DictationOwnership, turnOffRetry: Duration = .seconds(5), settle: @escaping () async -> Void) {
         self.ownership = ownership
+        self.turnOffRetry = turnOffRetry
         self.settle = settle
     }
 
@@ -38,7 +41,11 @@ final class DictationOwnershipCoordinator {
         !usesTemporaryStore && shippedIdentifiers.contains(identifier)
     }
 
-    static func live(defaults: UserDefaults, usesTemporaryStore: Bool) -> DictationOwnershipCoordinator {
+    /// - Parameter missingForReadiness: names what is missing (microphone, Accessibility, engine),
+    ///   or nil when ready. Ownership is offered and held only while this is nil.
+    static func live(
+        defaults: UserDefaults, usesTemporaryStore: Bool, missingForReadiness: @escaping @Sendable () -> String?
+    ) -> DictationOwnershipCoordinator {
         let participant = Bundle.main.bundleIdentifier ?? "com.johnny4young.secreteo.unbundled"
         let isReal = usesRealOwner(identifier: participant, usesTemporaryStore: usesTemporaryStore)
         let peers = isReal ? legacyPeers() : nil
@@ -48,8 +55,7 @@ final class DictationOwnershipCoordinator {
         let conditions: @Sendable () -> ParticipantConditions = {
             ParticipantConditions(
                 preferenceIsOn: preferences.bool(forKey: preferenceKey),
-                // The session reports a missing permission or model through its normal path.
-                missingForReadiness: nil,
+                missingForReadiness: missingForReadiness(),
                 legacyPeerIsActive: peers?.activePeer() != nil)
         }
         let scratch = UUID().uuidString
@@ -120,9 +126,13 @@ final class DictationOwnershipCoordinator {
     private func turnOffIfPending() {
         guard turnOffIsPending, state == .off else { return }
         turnOffIsPending = false
-        Task { [ownership] in
+        Task { [ownership, turnOffRetry] in
             let change = await ownership.turnOff()
-            if change == .busy || change == .failed { turnOffIsPending = true }
+            guard change == .busy || change == .failed else { return }
+            turnOffIsPending = true
+            // The holder's release changes no state, so no other event may come to retry this.
+            try? await Task.sleep(for: turnOffRetry)
+            turnOffIfPending()
         }
     }
 
@@ -170,6 +180,7 @@ final class DictationOwnershipCoordinator {
     private func settleAfterChange() async {
         armsForHandoff = false
         publish(ownership.status())
+        turnOffIfPending()
         await observer?.reevaluate()
     }
 

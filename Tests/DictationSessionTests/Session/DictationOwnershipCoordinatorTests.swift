@@ -143,6 +143,64 @@ struct DictationOwnershipCoordinatorTests {
     }
 
     @Test
+    func aTurnOffThatMetABusyLockIsRetriedWithNoOtherEvent() async throws {
+        struct AlwaysArms: OwnershipTriggers {
+            func arm() async -> Bool { true }
+            func disarm() async {}
+        }
+        let scratch = Scratch()
+        let preference = Preference()
+        preference.isOn.withLock { $0 = true }
+        let ownership = DictationOwnership(
+            participant: Self.secreteo, root: scratch.root,
+            conditions: {
+                ParticipantConditions(
+                    preferenceIsOn: preference.isOn.withLock { $0 }, missingForReadiness: nil, legacyPeerIsActive: false)
+            },
+            notificationName: "com.johnny4young.secreteo.ownership-tests.\(scratch.root.lastPathComponent)",
+            timings: OwnershipTimings(changeDeadline: .milliseconds(50), capturePoll: .milliseconds(2), armRetry: .milliseconds(5)))
+        _ = ownership.claimAtFirstRun()
+        let coordinator = DictationOwnershipCoordinator(ownership: ownership, turnOffRetry: .milliseconds(10)) {}
+        coordinator.start()
+        let other = scratch.participant(Self.other)
+        guard case .admitted(let held) = other.acquire(.practice) else {
+            Issue.record("The other app could not take the lock")
+            return
+        }
+
+        preference.isOn.withLock { $0 = false }
+        await coordinator.preferenceChanged(isOn: false, arm: { true }, disarm: {})
+        #expect(coordinator.state == .off)
+        // Longer than the attempt in flight, so only a retry can finish the turn off.
+        try await Task.sleep(for: .milliseconds(200))
+        held.release()
+
+        let tookOver = await TestPolling.untilAsync {
+            if case .completed = await other.preferenceTurnedOn(triggers: AlwaysArms()) { return true }
+            return false
+        }
+        #expect(tookOver)
+    }
+
+    @Test
+    func theLiveCoordinatorOffersOwnershipOnlyWhenReady() throws {
+        let suite = "secreteo-ownership-readiness-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(true, forKey: DictationController.defaultsKey)
+        let missing = Mutex<String?>("microphone")
+        let coordinator = DictationOwnershipCoordinator.live(
+            defaults: defaults, usesTemporaryStore: true, missingForReadiness: { missing.withLock { $0 } })
+
+        coordinator.start()
+        #expect(coordinator.state == .preparing)
+
+        missing.withLock { $0 = nil }
+        coordinator.reevaluate()
+        #expect(coordinator.state == .available)
+    }
+
+    @Test
     func aFirstRunNeverClaimsEvenWithThePreferenceOn() throws {
         let scratch = Scratch()
         let ownership = scratch.participant(Self.secreteo)

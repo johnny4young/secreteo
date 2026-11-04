@@ -174,7 +174,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/DictationKitTests/PolishDictationTests.swift` | `Tests/PortavozKitTests/PolishDictationTests.swift` | Seam: imports the split targets |
 | `Tests/DictationSessionTests/Support/ExclusiveArgumentDomain.swift` | `Tests/PortavozAppTests/ExclusiveArgumentDomain.swift` | Renames |
 | `Tests/DictationSessionTests/Support/DictationAdmission+Testing.swift` | `Tests/PortavozAppTests/DictationAdmissionTests.swift` | Extract: only the admission helpers |
-| `Sources/DictationSession/DictationOwnershipCoordinator.swift` | `Sources/portavoz-app/DictationOwnershipCoordinator.swift` | Seam: the legacy peers are the other app's builds, not this app's, this app never claims at first run, and the user can take ownership and hear why it failed |
+| `Sources/DictationSession/DictationOwnershipCoordinator.swift` | `Sources/portavoz-app/DictationOwnershipCoordinator.swift` | Seam: the legacy peers are the other app's builds, not this app's, this app never claims at first run, the user can take ownership and hear why it failed, readiness comes from the composition, and a busy turn off retries |
 | `Tests/DictationSessionTests/Session/DictationOwnershipCoordinatorTests.swift` | `Tests/PortavozAppTests/DictationOwnershipCoordinatorTests.swift` | Extract: without the composition, practice and Rewrite cases, which arrive with them. The first run test is inverted, because only Portavoz claims |
 | `Tests/DictationSessionTests/Session/DictationAdmissionTests.swift` | `Tests/PortavozAppTests/DictationAdmissionTests.swift` | Extract: without the composition, practice and Rewrite cases, which arrive with them |
 
