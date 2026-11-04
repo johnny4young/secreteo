@@ -166,7 +166,7 @@ Ownership moves only on a user action, with one exception: [First run](#first-ru
 
 The rename in step 6 is the commit. It means no one held a lease, because `T` held the capture lock, and `T` was armed. A failure after it, including a failed notification, undoes nothing. Nothing changes hands during a delivery, because a delivery holds the lease.
 
-**Rewrite.** Reading the selection and replacing it are separate operations, each with its own lease. No lease is held between them, while the model works or the user chooses and previews, because that can wait on a person without limit. So a handoff can complete with a preview open. A spoken instruction takes its own lease and follows the `listening` row. Before replacing, the app compares the new lease's `generation` with the read's, because a handoff there and back returns the same owner. A refusal or a different generation means no replace, and the text stays available to copy.
+**Rewrite.** Reading the selection and replacing it are separate operations, each with its own lease. No lease is held between them, while the model works or the user chooses and previews, because that can wait on a person without limit. So a handoff can complete with a preview open. A spoken instruction takes its own lease and follows the `listening` row. Before replacing, the app compares the new lease's `generation` with the read's, because a handoff there and back returns the same owner. A refusal or a different generation means no replace, and the text stays available to copy. An app also gives up the replace when it resets the state or sees it corrupt, because a reset restarts `generation`.
 
 **Rollback.** Before the commit the owner has not changed. On any failure, `T` always disarms and releases the lock, tries to clear its own intent if the `id` still matches, and posts the notification. If it cannot write, the intent simply expires.
 
@@ -302,6 +302,7 @@ Not covered:
 
 - Home directories on network volumes, tracked in [GAPS](../GAPS.md#g8-ownership-on-a-network-home).
 - A second macOS user logged in at the same time, who has their own files and locks.
+- A Rewrite preview in an app that never saw the state corrupt, when a reset and later handoffs land on the read's `generation` again. The comparison then passes.
 
 ## App acceptance
 
@@ -318,3 +319,4 @@ Each app proves these itself, because they live above the reference implementati
 | Handoff with a Rewrite preview open | The handoff completes. The replace is refused and the text stays available to copy |
 | Handoff there and back with a Rewrite preview open | Same owner, different generation. The replace is refused and the text stays available to copy |
 | Handoff during a spoken Rewrite instruction | Ends or is cancelled within 5 seconds |
+| Reset with a Rewrite preview open, in the app that resets or sees the corrupt state | The replace is refused and the text stays available to copy |
