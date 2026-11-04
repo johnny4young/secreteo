@@ -92,8 +92,8 @@ struct Scratch {
         process.environment = environment
         process.standardOutput = output
         try process.run()
-        process.waitUntilExit()
         let data = output.fileHandleForReading.readDataToEndOfFile()
+        while process.isRunning { usleep(1_000) }
         return String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
@@ -148,12 +148,10 @@ private func clientExecutable() throws -> URL {
     return url
 }
 
+/// Polls because `waitUntilExit` on a worker thread once hung with no child left.
 func finish(_ process: Process) async {
-    await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-        DispatchQueue.global().async {
-            process.waitUntilExit()
-            continuation.resume()
-        }
+    while process.isRunning {
+        try? await Task.sleep(for: .milliseconds(5))
     }
 }
 
