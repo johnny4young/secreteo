@@ -32,9 +32,9 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 
 | Capability or case | Portavoz source | Portavoz test | Secreteo test | State |
 |---|---|---|---|---|
-| Global shortcut | `GlobalHotkey`, `DictationController+Hotkey` | `GlobalHotkeyRoutingTests`, `DictationShortcutTests`, `HotkeySettingTests` | | Pending, P4 |
-| Push to talk, Fn and modifiers | `ModifierKeyPTT`, `DictationController+ModifierKey` | `ModifierKeyGestureTests`, `DictationModifierOwnershipTests` | | Pending, P4 |
-| Push to talk, mouse | `MouseButtonPTT`, `MousePTTGesture` | `MousePTTGestureTests` | | Pending, P4 |
+| Global shortcut | `GlobalHotkey`, `DictationController+Hotkey` | `GlobalHotkeyRoutingTests`, `DictationShortcutTests`, `HotkeySettingTests` | The same tests, without the UI fixture's | Logic ported. Not armed by the app yet, and a real shortcut still has to be checked |
+| Push to talk, Fn and modifiers | `ModifierKeyPTT`, `DictationController+ModifierKey` | `ModifierKeyGestureTests`, `DictationModifierOwnershipTests` | `ModifierKeyGestureTests` | Gesture logic ported. Not armed by the app yet, and ownership tests arrive with the controller |
+| Push to talk, mouse | `MouseButtonPTT`, `MousePTTGesture` | `MousePTTGestureTests` | The same tests | Gesture logic ported. Not armed by the app yet |
 | Menu | `MenuBarView`, `MenuBarModel` | `MenuBarModelTests`, `DictationUITests` | | Pending, P4 |
 | App Intents | `AppServices+DictationIntents` | `DictationIntentTests` | | Pending, P8 |
 | Paste last | `DictationController+PasteLast`, `AppServices+PasteLastDictation` | `DictationPasteLastTests` | | Pending, P3 |

@@ -8,8 +8,8 @@ import fnmatch
 import sys
 
 DOCS_ONLY = ("docs/*", "*.md", "LICENSE", "site/*", ".github/ISSUE_TEMPLATE/*")
-DELIVERY = ("Sources/DictationSession/Delivery/*", "Sources/Triggers/*",
-            "Tests/DictationSessionTests/Delivery/*", "Tests/TriggersTests/*",
+DELIVERY = ("Sources/DictationSession/Delivery/*", "Sources/DictationSession/Triggers/*",
+            "Tests/DictationSessionTests/Delivery/*", "Tests/DictationSessionTests/Triggers/*",
             "spikes/tcc-adhoc/*", "scripts/run-signed-handoff.sh",
             ".github/workflows/ci.yml", "scripts/ci_changes.py", "scripts/ci_gate.py")
 RELEASE = ("scripts/package-release.sh", "scripts/sign-app.sh", "scripts/release-dryrun.sh",

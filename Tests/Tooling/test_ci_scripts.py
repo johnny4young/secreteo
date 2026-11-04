@@ -42,7 +42,8 @@ class ChangesTests(unittest.TestCase):
         self.assertTrue(ci_changes.classify(["Sources/DictationSession/Delivery/TextInserter.swift"])["delivery"])
         self.assertTrue(ci_changes.classify(["Tests/DictationSessionTests/Delivery/TextInsertionTargetTests.swift"])["delivery"])
         self.assertFalse(ci_changes.classify(["Sources/DictationSession/DictationController.swift"])["delivery"])
-        self.assertTrue(ci_changes.classify(["Sources/Triggers/GlobalHotkey.swift"])["delivery"])
+        self.assertTrue(ci_changes.classify(["Sources/DictationSession/Triggers/GlobalHotkey.swift"])["delivery"])
+        self.assertTrue(ci_changes.classify(["Tests/DictationSessionTests/Triggers/HotkeySettingTests.swift"])["delivery"])
         self.assertFalse(ci_changes.classify(["Sources/AppUI/A.swift"])["delivery"])
 
     def test_packaging_selects_the_release_dry_run(self):

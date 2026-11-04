@@ -111,6 +111,13 @@ class PortDiffTests(unittest.TestCase):
 
         self.assertEqual(code, 0, output)
 
+    def test_session_files_take_their_own_hotkey_signature(self):
+        source = 'let id = OSType(0x5056' + '_4F5A)  // "PV' + 'OZ"\n'
+
+        code, output = self.run_diff("Renames", 'let id = OSType(0x5343_5254)  // "SCRT"\n', source, "Sources/DictationSession/a.swift")
+
+        self.assertEqual(code, 0, output)
+
     def test_session_files_print_renamed_string_literals_for_review(self):
         source = 'let peer = "app.' + 'portavoz.mac"\n// ' + 'Portavoz\n'
         ported = 'let peer = "com.johnny4young.secreteo"\n// Secreteo\n'
