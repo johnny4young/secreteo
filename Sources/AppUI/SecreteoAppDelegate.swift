@@ -120,10 +120,14 @@ public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
         let model = AppModel(launchController: controller)
         model.updater = options.usesTemporaryStore ? InertUpdater() : makeUpdater(model)
         model.updateIsAvailable = options.reportsAvailableUpdate
-        if DictationFeature.mayRunInThisBuild,
-           let dictation = try? DictationFeature(usesTemporaryStore: options.usesTemporaryStore) {
-            model.dictation = dictation
-            dictation.start()
+        if DictationFeature.mayRunInThisBuild {
+            do {
+                let dictation = try DictationFeature(usesTemporaryStore: options.usesTemporaryStore)
+                model.dictation = dictation
+                dictation.start()
+            } catch {
+                model.dictationFailedToStart = true
+            }
         }
         let settings = SettingsWindowController(model: model)
         let statusItem = StatusItemController(model: model)

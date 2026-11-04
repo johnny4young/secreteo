@@ -37,6 +37,7 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored private var engine: ParakeetEngine?
     @ObservationIgnored private var engineLoad: Task<ParakeetEngine, Error>?
     @ObservationIgnored private var idleRelease: Task<Void, Never>?
+    @ObservationIgnored private var readinessPoll: Task<Void, Never>?
     private let controller: DictationController
 
     public private(set) var modelState = ModelState.missing
@@ -57,12 +58,13 @@ public final class DictationFeature: AppServices {
             consumer: StoreConsumer(bundleID: identifier, displayName: "Secreteo"))
         fixture = DictationUITestFixture(arguments: arguments, usesTemporaryStore: usesTemporaryStore)
         seedsMissingPermissions = usesTemporaryStore && arguments.contains("-seed-dictation-permissions-missing")
+        let seedsLegacyPeer = usesTemporaryStore && arguments.contains("-seed-dictation-legacy-peer")
         // A disposable launch has its own fixtures, so nothing real can be missing there.
         let readiness = ReadinessGap(usesTemporaryStore ? nil : "model")
         self.readiness = readiness
         ownership = .live(
             defaults: defaults, usesTemporaryStore: usesTemporaryStore,
-            missingForReadiness: { readiness.value.withLock { $0 } })
+            missingForReadiness: { readiness.value.withLock { $0 } }, seedsLegacyPeer: seedsLegacyPeer)
         controller = DictationController()
         // A disposable launch owns its own scratch folder, because no user is there to take it.
         if usesTemporaryStore { ownership.claimScratchOwnership() }
@@ -70,7 +72,7 @@ public final class DictationFeature: AppServices {
 
     public func start() {
         DictationTextPreferences.initialize(in: defaults, temporary: usesTemporaryMeetingStore)
-        ownership.onStateChange = { [weak self] _ in self?.syncDictationTriggers() }
+        ownership.onStateChange = { [weak self] previous in self?.ownershipChanged(from: previous) }
         ownership.onIntentChange = { [weak self] isLive in
             if isLive { self?.controller.ownershipIntentSeen() } else { self?.controller.ownershipIntentCleared() }
         }
@@ -123,6 +125,9 @@ public final class DictationFeature: AppServices {
                 modelState = .failed
                 return
             }
+            modelState = .ready
+            // Optional: without the detector the speech gate fails open and dictation still works.
+            _ = try? await modelStore.ensureAvailable(ModelCatalog.sileroVAD, seeds: [], progress: nil)
             await refreshReadiness()
         }
     }
@@ -140,6 +145,19 @@ public final class DictationFeature: AppServices {
     }
 
     public var isActive: Bool { controller.isActive }
+    /// Off, or owned by another app, a start would be refused with nothing to show for it.
+    public var canDictate: Bool { ownership.state == .owned || controller.isActive }
+    /// What the user can do when the protocol refuses this app. Readiness has its own controls.
+    public var unavailableMessage: String? {
+        guard case .unavailable(let reason) = ownership.state else { return nil }
+        switch reason {
+        case .notReady: return nil
+        case .legacyPeerActive: return L10n.text("Update Portavoz or turn off its dictation to use Secreteo.")
+        case .newerProtocol: return L10n.text("Update Secreteo to keep dictating.")
+        case .lockUnsupported, .corruptState, .ioError, .sandboxed:
+            return L10n.text("Dictation is unavailable right now.")
+        }
+    }
     public var canPasteLast: Bool { controller.hasPastableText && !controller.isActive }
     public var canPasteUnpolished: Bool { canPasteAlternate && !controller.lastText.alternateIsOriginal }
     public var canPasteOriginal: Bool { canPasteAlternate && controller.lastText.alternateIsOriginal }
@@ -201,15 +219,30 @@ public final class DictationFeature: AppServices {
         }
     }
 
+    /// Not ready yet, or another owner in place, is not a failure: Settings shows what to do next.
     private static func failed(_ outcome: HandoffOutcome) -> Bool {
         switch outcome {
-        case .completed, .alreadyOwner: false
-        default: true
+        case .timedOut, .triggerConflict, .targetNotReady, .busy, .ioError: true
+        case .completed, .alreadyOwner, .notConfirmed, .notAvailable, .superseded, .cancelled: false
+        }
+    }
+
+    private func ownershipChanged(from previous: ParticipantState) {
+        syncDictationTriggers()
+        // Two apps must not each keep a model warm.
+        if previous == .owned, ownership.state != .owned {
+            idleRelease?.cancel()
+            engine = nil
         }
     }
 
     private func syncDictationTriggers(promptIfNeeded: Bool = false) {
         controller.syncHotkey(services: self)
+        syncEventTaps(promptIfNeeded: promptIfNeeded)
+    }
+
+    /// Safe on any hint: unlike the hotkey, a tap already in place is left alone, so a held key keeps its release.
+    private func syncEventTaps(promptIfNeeded: Bool = false) {
         controller.syncMousePTT(services: self, promptIfNeeded: promptIfNeeded)
         controller.syncModifierPTT(services: self, promptIfNeeded: promptIfNeeded)
     }
@@ -217,10 +250,12 @@ public final class DictationFeature: AppServices {
     private func loadedEngine() async throws -> ParakeetEngine {
         if let engine { return engine }
         if let engineLoad { return try await engineLoad.value }
-        guard let installed = await modelStore.verifiedInstallation(ModelCatalog.parakeetTdtV3) else {
-            throw DictationFeatureError.modelMissing
+        let load = Task { [modelStore] in
+            guard let installed = await modelStore.verifiedInstallation(ModelCatalog.parakeetTdtV3) else {
+                throw DictationFeatureError.modelMissing
+            }
+            return try await ParakeetEngine.load(fromVerifiedDirectory: installed.directory)
         }
-        let load = Task { try await ParakeetEngine.load(fromVerifiedDirectory: installed.directory) }
         engineLoad = load
         defer { engineLoad = nil }
         let loaded = try await load.value
@@ -244,7 +279,11 @@ public final class DictationFeature: AppServices {
             return
         }
         let modelIsInstalled = await modelStore.verifiedInstallation(ModelCatalog.parakeetTdtV3) != nil
-        if modelState != .downloading { modelState = modelIsInstalled ? .ready : .missing }
+        if modelIsInstalled {
+            modelState = .ready
+        } else if modelState == .ready {
+            modelState = .missing
+        }
         let gap: String? = if !modelIsInstalled {
             "model"
         } else if microphonePermissions.state() != .authorized {
@@ -256,7 +295,20 @@ public final class DictationFeature: AppServices {
         }
         readiness.value.withLock { $0 = gap }
         ownership.reevaluate()
-        syncDictationTriggers()
+        syncEventTaps()
+        watchReadiness(gap: gap)
+    }
+
+    /// A permission granted in System Settings may never activate this agent app, so look again.
+    private func watchReadiness(gap: String?) {
+        readinessPoll?.cancel()
+        readinessPoll = nil
+        guard gap != nil, isEnabled else { return }
+        readinessPoll = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            await self?.refreshReadiness()
+        }
     }
 }
 

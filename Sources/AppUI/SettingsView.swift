@@ -12,6 +12,13 @@ public struct SettingsView: View {
             if let dictation = model.dictation {
                 DictationSettingsSection(dictation: dictation)
             }
+            if model.dictationFailedToStart {
+                Section {
+                    Text("Dictation could not start.")
+                        .foregroundStyle(.red)
+                        .accessibilityIdentifier("settings-dictation-failed-to-start")
+                }
+            }
             Section {
                 Toggle("Open at Login", isOn: launchBinding)
                     .accessibilityIdentifier("settings-launch-at-login")

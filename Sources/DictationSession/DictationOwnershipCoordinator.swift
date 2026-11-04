@@ -44,7 +44,8 @@ final class DictationOwnershipCoordinator {
     /// - Parameter missingForReadiness: names what is missing (microphone, Accessibility, engine),
     ///   or nil when ready. Ownership is offered and held only while this is nil.
     static func live(
-        defaults: UserDefaults, usesTemporaryStore: Bool, missingForReadiness: @escaping @Sendable () -> String?
+        defaults: UserDefaults, usesTemporaryStore: Bool, missingForReadiness: @escaping @Sendable () -> String?,
+        seedsLegacyPeer: Bool = false
     ) -> DictationOwnershipCoordinator {
         let participant = Bundle.main.bundleIdentifier ?? "com.johnny4young.secreteo.unbundled"
         let isReal = usesRealOwner(identifier: participant, usesTemporaryStore: usesTemporaryStore)
@@ -56,7 +57,7 @@ final class DictationOwnershipCoordinator {
             ParticipantConditions(
                 preferenceIsOn: preferences.bool(forKey: preferenceKey),
                 missingForReadiness: missingForReadiness(),
-                legacyPeerIsActive: peers?.activePeer() != nil)
+                legacyPeerIsActive: seedsLegacyPeer || peers?.activePeer() != nil)
         }
         let scratch = UUID().uuidString
         let ownership = isReal

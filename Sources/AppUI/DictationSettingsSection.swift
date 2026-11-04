@@ -28,6 +28,10 @@ struct DictationSettingsSection: View {
                 Button("Use Secreteo for Dictation") { dictation.takeOwnership() }
                     .accessibilityIdentifier("settings-dictation-take-ownership")
             }
+            if let message = dictation.unavailableMessage {
+                Text(message)
+                    .accessibilityIdentifier("settings-dictation-unavailable")
+            }
             if dictation.lastHandoffFailed {
                 Text("Could not take over dictation. Try again.")
                     .foregroundStyle(.red)

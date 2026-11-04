@@ -23,6 +23,7 @@ public final class AppModel {
     public var updater: (any UpdateChecking)?
     /// Nil in a build that may not run global dictation yet.
     public var dictation: DictationFeature?
+    public var dictationFailedToStart = false
 
     public let versionDescription: String
     public var openSettings: () -> Void = {}

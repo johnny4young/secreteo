@@ -610,6 +610,22 @@
         }
       }
     },
+    "Dictation could not start.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictation could not start."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El dictado no pudo iniciarse."
+          }
+        }
+      }
+    },
     "Dictation failed: %@": {
       "localizations": {
         "en": {
@@ -622,6 +638,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "El dictado falló: %@"
+          }
+        }
+      }
+    },
+    "Dictation is unavailable right now.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictation is unavailable right now."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El dictado no está disponible en este momento."
           }
         }
       }
@@ -1634,6 +1666,22 @@
         }
       }
     },
+    "Set Up Dictation…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set Up Dictation…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configurar dictado…"
+          }
+        }
+      }
+    },
     "Settings": {
       "localizations": {
         "en": {
@@ -1950,6 +1998,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Actualización disponible…"
+          }
+        }
+      }
+    },
+    "Update Portavoz or turn off its dictation to use Secreteo.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update Portavoz or turn off its dictation to use Secreteo."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualiza Portavoz o apaga su dictado para usar Secreteo."
+          }
+        }
+      }
+    },
+    "Update Secreteo to keep dictating.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update Secreteo to keep dictating."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualiza Secreteo para seguir dictando."
           }
         }
       }
