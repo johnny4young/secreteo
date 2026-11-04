@@ -17,6 +17,7 @@ struct DictationModels: Sendable {
     var remember: @Sendable (Part, _ isVerified: Bool) async -> Void
     var install: @Sendable (Part) async throws -> Void
     /// Retires this app's claims on models it no longer pins and clears what nobody needs.
+    /// `Part` is that list, so every model this app installs must be a case of it.
     var collectUnused: @Sendable () async -> Void
 
     func installAll() async -> Bool {

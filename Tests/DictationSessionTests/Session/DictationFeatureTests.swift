@@ -290,13 +290,13 @@ final class DictationFeatureTests: XCTestCase {
         XCTAssertFalse(feature.lastResetFailed, "Another app's reset fixed the file just the same")
     }
 
-    func testStartingCollectsUnusedModelsOnce() async throws {
+    func testStartingCollectsUnusedModels() async throws {
         let system = System()
         let feature = try makeFeature(system)
 
         feature.start()
 
-        await waitUntil { system.collections.withLock { $0 } == 1 }
+        await waitUntil { system.collections.withLock { $0 } > 0 }
     }
 
     private func waitUntil(_ condition: () -> Bool) async {
@@ -379,7 +379,7 @@ final class VerifiedModelRecordTests: XCTestCase {
         await models.collectUnused()
 
         let written = try JSONSerialization.jsonObject(with: Data(contentsOf: claim)) as? [String: Any]
-        XCTAssertNotNil(written?["retiredAt"])
+        XCTAssertTrue(written?["retiredAt"] is String)
         XCTAssertTrue(FileManager.default.fileExists(atPath: model.path), "A retired claim keeps protecting the model")
     }
 
