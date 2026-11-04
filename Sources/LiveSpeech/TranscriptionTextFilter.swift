@@ -1,0 +1,115 @@
+import Foundation
+import SpeechCore
+
+/// Small, deterministic transcript hygiene rules shared by live captions and
+/// the quality pass. These are intentionally conservative: ASR should keep
+/// real words, but punctuation-only deltas and repeated silence boilerplate
+/// should not become meeting facts.
+enum TranscriptionTextFilter {
+    private static let lexicalCharacters = CharacterSet.letters.union(.decimalDigits)
+    private static let whitespace = CharacterSet.whitespacesAndNewlines
+    private static let separators = whitespace.union(.punctuationCharacters)
+    private static let space = Unicode.Scalar(" ")
+    private static let silenceHallucinations: Set<String> = [
+        "thank you",
+        "thanks",
+        "thank you for watching",
+        "thanks for watching",
+        "gracias",
+        "gracias por ver",
+        "gracias por ver el video"
+    ]
+    /// Whisper learned subtitle markers: a speaker label such as "JOHN
+    /// MUELLER:" (one to three upper-case words, the first of three or more
+    /// letters) or a leading dialogue dash.
+    private static let captionMarker = try? NSRegularExpression(
+        pattern: #"^(?:-+\s+|\p{Lu}{3,}(?:[ .'-]+\p{Lu}+){0,2}:\s+)"#)
+
+    static func hasLexicalContent(_ text: String) -> Bool {
+        TranscriptContentPolicy.hasLexicalContent(text)
+    }
+
+    static func normalizedPhrase(_ text: String) -> String {
+        let folded = text.folding(
+            options: [.caseInsensitive, .diacriticInsensitive],
+            locale: Locale(identifier: "en_US_POSIX"))
+        var scalars = String.UnicodeScalarView()
+        var previousWasSpace = true
+        for scalar in folded.unicodeScalars {
+            if lexicalCharacters.contains(scalar) {
+                scalars.append(scalar)
+                previousWasSpace = false
+            } else if separators.contains(scalar) {
+                guard !previousWasSpace else { continue }
+                scalars.append(space)
+                previousWasSpace = true
+            }
+        }
+        return String(scalars).trimmingCharacters(in: .whitespaces)
+    }
+
+    static func strippingCaptionMarkers(_ text: String) -> String {
+        let range = NSRange(text.startIndex..., in: text)
+        guard let match = captionMarker?.firstMatch(in: text, range: range),
+            let labelRange = Range(match.range, in: text)
+        else { return text }
+        return String(text[labelRange.upperBound...])
+    }
+
+    static func isKnownSilenceHallucination(_ text: String) -> Bool {
+        silenceHallucinations.contains(normalizedPhrase(text))
+    }
+
+    /// Low mic signal makes the live engine emit character noise —
+    /// "DDDDD", "....", "kkkkkk" (field evidence, Jul 2026). A delta is
+    /// noise when, after normalizing, every "word" is the same character
+    /// repeated. Real words ("dado", "lll" inside a code name mixed with
+    /// prose) never consist ONLY of such runs.
+    static func isCharacterNoise(_ text: String) -> Bool {
+        let phrase = normalizedPhrase(text)
+        guard !phrase.isEmpty else { return true }
+        let words = phrase.split(separator: " ")
+        return words.allSatisfy { word in
+            guard let first = word.first else { return true }
+            return word.count >= 3 && word.allSatisfy { $0 == first }
+        }
+    }
+
+    /// Whisper silence hallucinations often arrive as the same short phrase
+    /// every VAD window (≈30 s). Drop the repeated/regular pattern so a
+    /// single genuine "Thank you" still survives. Field evidence (Jul 10):
+    /// with speaker bleed breaking the silence, the cadence turns irregular
+    /// while the phrase still floods the channel — from 5 occurrences the
+    /// count alone is proof enough and the cadence check is skipped.
+    static func repeatedSilenceHallucinationPhrases(
+        in segments: [TranscriptSegment],
+        minimumCount: Int = 3,
+        cadenceFreeCount: Int = 5
+    ) -> Set<String> {
+        var startsByPhrase: [String: [TimeInterval]] = [:]
+        for segment in segments
+            where segment.channel == .microphone && isKnownSilenceHallucination(segment.text) {
+            startsByPhrase[normalizedPhrase(segment.text), default: []].append(segment.startTime)
+        }
+
+        return Set(startsByPhrase.compactMap { phrase, starts in
+            guard starts.count >= minimumCount else { return nil }
+            guard starts.count >= cadenceFreeCount || looksLikeVADCadence(starts) else { return nil }
+            return phrase
+        })
+    }
+
+    private static func looksLikeVADCadence(_ starts: [TimeInterval]) -> Bool {
+        let sorted = starts.sorted()
+        let gaps = zip(sorted.dropFirst(), sorted).map { $0.0 - $0.1 }
+        guard gaps.count >= 2 else { return false }
+        guard gaps.allSatisfy({ $0 >= 5 }) else { return false }
+
+        let orderedGaps = gaps.sorted()
+        let median = orderedGaps[orderedGaps.count / 2]
+        guard median >= 8 else { return false }
+        let tolerance = max(3, median * 0.25)
+        let regularCount = gaps.filter { abs($0 - median) <= tolerance }.count
+        return regularCount >= max(2, gaps.count - 1)
+    }
+}

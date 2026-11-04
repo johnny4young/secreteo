@@ -60,7 +60,7 @@ No GPL code. Mechanisms from GPL projects may inform the design, but no code is 
 
 ## D13. FluidAudio from upstream with no traits
 
-Portavoz's fork is no longer needed for this graph. The pin moves only through explicit review with paired evidence (Portavoz D516), and Dependabot excludes it.
+Portavoz's fork is no longer needed for this graph. The pin is 0.18.2, with [paired evidence](spikes/fluidaudio-upstream.md). The pin moves only through explicit review with paired evidence (Portavoz D516), and Dependabot excludes it.
 
 ## D14. No URL scheme
 

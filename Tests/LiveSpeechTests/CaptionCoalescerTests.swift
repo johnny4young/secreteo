@@ -1,0 +1,368 @@
+import Foundation
+import XCTest
+
+@testable import SpeechCore
+@testable import LiveSpeech
+
+final class CaptionCoalescerTests: XCTestCase {
+    private let meetingID = MeetingID()
+    private let coalescer = CaptionCoalescer()
+
+    private func segment(
+        _ text: String,
+        channel: AudioChannel = .system,
+        start: TimeInterval,
+        end: TimeInterval,
+        isFinal: Bool = false
+    ) -> TranscriptSegment {
+        TranscriptSegment(
+            meetingID: meetingID, channel: channel, text: text,
+            startTime: start, endTime: end, isFinal: isFinal)
+    }
+
+    func testMidSentenceDeltasMergeIntoOneRow() {
+        var captions: [TranscriptSegment] = []
+        coalescer.apply(segment("over the usual agenda", start: 0, end: 1.2), to: &captions)
+        coalescer.apply(segment("pop submetric", start: 1.3, end: 2.0), to: &captions)
+        coalescer.apply(segment("for our three main topics", start: 2.1, end: 3.4), to: &captions)
+
+        XCTAssertEqual(captions.count, 1)
+        XCTAssertEqual(
+            captions[0].text, "over the usual agenda pop submetric for our three main topics")
+        XCTAssertEqual(captions[0].startTime, 0)
+        XCTAssertEqual(captions[0].endTime, 3.4)
+    }
+
+    func testRowIdentityIsStableWhileGrowing() {
+        var captions: [TranscriptSegment] = []
+        coalescer.apply(segment("hello", start: 0, end: 0.5), to: &captions)
+        let id = captions[0].id
+        coalescer.apply(segment("there", start: 0.6, end: 1.0), to: &captions)
+        XCTAssertEqual(captions[0].id, id)
+    }
+
+    func testChannelChangeStartsNewRow() {
+        var captions: [TranscriptSegment] = []
+        coalescer.apply(segment("their turn", channel: .system, start: 0, end: 1), to: &captions)
+        coalescer.apply(segment("my turn", channel: .microphone, start: 1.1, end: 2), to: &captions)
+
+        XCTAssertEqual(captions.count, 2)
+        XCTAssertEqual(captions[0].channel, .system)
+        XCTAssertEqual(captions[1].channel, .microphone)
+    }
+
+    func testSystemCaptionReplacesEarlierMicrophoneBleed() {
+        var captions: [TranscriptSegment] = []
+        coalescer.apply(
+            segment(
+                "eso lo podemos hacer esta semana",
+                channel: .microphone,
+                start: 10,
+                end: 12),
+            to: &captions)
+        coalescer.apply(
+            segment(
+                "eso lo podemos hacer esta semana",
+                channel: .system,
+                start: 10.2,
+                end: 12.1),
+            to: &captions)
+
+        XCTAssertEqual(captions.count, 1)
+        XCTAssertEqual(captions[0].channel, .system)
+    }
+
+    func testLateSystemEvidenceNeverDeletesAnAlreadyClosedMicrophoneRow() {
+        var captions: [TranscriptSegment] = []
+        coalescer.apply(
+            segment(
+                "the rollout can happen tomorrow",
+                channel: .microphone,
+                start: 10,
+                end: 12),
+            to: &captions)
+        coalescer.apply(
+            segment(
+                "a distinct interruption stays visible",
+                channel: .system,
+                start: 12.1,
+                end: 13),
+            to: &captions)
+        coalescer.apply(
+            segment(
+                "the rollout can happen tomorrow",
+                channel: .system,
+                start: 10.2,
+                end: 12.1),
+            to: &captions)
+
+        XCTAssertEqual(
+            captions.map(\.text),
+            [
+                "the rollout can happen tomorrow",
+                "a distinct interruption stays visible",
+                "the rollout can happen tomorrow",
+            ])
+    }
+
+    func testMicrophoneCaptionMatchingEarlierSystemAudioIsDropped() {
+        var captions: [TranscriptSegment] = []
+        coalescer.apply(
+            segment(
+                "we can deploy the change tomorrow",
+                channel: .system,
+                start: 20,
+                end: 22),
+            to: &captions)
+        coalescer.apply(
+            segment(
+                "we can deploy the change tomorrow",
+                channel: .microphone,
+                start: 20.3,
+                end: 22.2),
+            to: &captions)
+
+        XCTAssertEqual(captions.count, 1)
+        XCTAssertEqual(captions[0].channel, .system)
+    }
+
+    func testDistinctOverlappingMicrophoneSpeechRemainsVisible() {
+        var captions: [TranscriptSegment] = []
+        coalescer.apply(
+            segment(
+                "the remote team will review the schema",
+                channel: .system,
+                start: 30,
+                end: 32),
+            to: &captions)
+        coalescer.apply(
+            segment(
+                "I will prepare a separate rollout plan",
+                channel: .microphone,
+                start: 30.4,
+                end: 32.4),
+            to: &captions)
+
+        XCTAssertEqual(captions.map(\.channel), [.system, .microphone])
+    }
+
+    func testOverlappingTwoWordMicrophoneCopyIsSuppressedAsBleed() {
+        var captions: [TranscriptSegment] = []
+        coalescer.apply(
+            segment("thank you", channel: .system, start: 40, end: 41),
+            to: &captions)
+        coalescer.apply(
+            segment("thank you", channel: .microphone, start: 40.2, end: 41.2),
+            to: &captions)
+
+        XCTAssertEqual(captions.map(\.channel), [.system])
+    }
+
+    func testSequentialTwoWordAcknowledgementRemainsVisible() {
+        var captions: [TranscriptSegment] = []
+        coalescer.apply(
+            segment("thank you", channel: .system, start: 40, end: 41),
+            to: &captions)
+        coalescer.apply(
+            segment("thank you", channel: .microphone, start: 41.1, end: 42),
+            to: &captions)
+
+        XCTAssertEqual(captions.map(\.channel), [.system, .microphone])
+    }
+
+    func testRollingSystemSuffixSuppressesLongerMicrophoneCopy() {
+        var captions: [TranscriptSegment] = []
+        coalescer.apply(
+            segment(
+                "we can we can do it right now",
+                channel: .microphone,
+                start: 50,
+                end: 53),
+            to: &captions)
+        coalescer.apply(
+            segment("it right now", channel: .system, start: 51.8, end: 53.1),
+            to: &captions)
+
+        XCTAssertEqual(captions.map(\.text), ["it right now"])
+        XCTAssertEqual(captions.map(\.channel), [.system])
+    }
+
+    func testPausedSpeakerStaysOnOneRowUntilSentenceCloses() {
+        var captions: [TranscriptSegment] = []
+        // 4 s pause mid-sentence: still the same intervention.
+        coalescer.apply(segment("and the numbers show", start: 0, end: 1), to: &captions)
+        coalescer.apply(segment("a clear regression.", start: 5, end: 6.5), to: &captions)
+        XCTAssertEqual(captions.count, 1)
+
+        // Sentence closed + 3 s pause: new intervention.
+        coalescer.apply(segment("Moving on.", start: 9.5, end: 10.4), to: &captions)
+        XCTAssertEqual(captions.count, 2)
+    }
+
+    func testQuickMicrophoneFollowUpAfterSentenceKeepsFlowing() {
+        var captions: [TranscriptSegment] = []
+        coalescer.apply(
+            segment("it's around.", channel: .microphone, start: 0, end: 1),
+            to: &captions)
+        coalescer.apply(
+            segment("10:40 PM.", channel: .microphone, start: 1.4, end: 2.2),
+            to: &captions)
+        XCTAssertEqual(captions.count, 1)
+        XCTAssertEqual(captions[0].text, "it's around. 10:40 PM.")
+    }
+
+    func testSystemSentencePauseStartsNewOthersRow() {
+        var captions: [TranscriptSegment] = []
+        coalescer.apply(segment("That answered the question.", start: 0, end: 1), to: &captions)
+        coalescer.apply(segment("Another point from the next speaker.", start: 1.8, end: 2.8), to: &captions)
+
+        XCTAssertEqual(captions.count, 2)
+        XCTAssertEqual(captions.map(\.channel), [.system, .system])
+    }
+
+    func testLongSilenceStartsNewRowEvenMidSentence() {
+        var captions: [TranscriptSegment] = []
+        coalescer.apply(segment("and then we", start: 0, end: 1), to: &captions)
+        coalescer.apply(segment("resumed after the break", start: 9, end: 10.5), to: &captions)
+        XCTAssertEqual(captions.count, 2)
+    }
+
+    func testOverlongRowClosesAtNextDelta() {
+        var captions: [TranscriptSegment] = []
+        let long = String(repeating: "palabra ", count: 40)  // > 280 chars
+        coalescer.apply(segment(long, start: 0, end: 5), to: &captions)
+        coalescer.apply(segment("continues", start: 5.2, end: 6), to: &captions)
+        XCTAssertEqual(captions.count, 2)
+    }
+
+    func testPunctuationDeltaGluesWithoutSpace() {
+        var captions: [TranscriptSegment] = []
+        coalescer.apply(segment("which I think is normal", start: 0, end: 1.5), to: &captions)
+        coalescer.apply(segment(". And there's one spike", start: 1.6, end: 3), to: &captions)
+        XCTAssertEqual(captions[0].text, "which I think is normal. And there's one spike")
+    }
+
+    func testEmptyOrWhitespaceDeltasAreDropped() {
+        var captions: [TranscriptSegment] = []
+        coalescer.apply(segment("   ", start: 0, end: 0.5), to: &captions)
+        XCTAssertTrue(captions.isEmpty)
+    }
+
+    func testStandalonePunctuationDeltasAreDropped() {
+        var captions: [TranscriptSegment] = []
+        coalescer.apply(segment(".", channel: .microphone, start: 0, end: 0.2), to: &captions)
+        XCTAssertTrue(captions.isEmpty)
+    }
+
+    func testPunctuationOnlyDeltaCompletesCurrentRow() {
+        var captions: [TranscriptSegment] = []
+        coalescer.apply(segment("the number looks normal", start: 0, end: 1), to: &captions)
+        coalescer.apply(segment(".", start: 1.1, end: 1.2), to: &captions)
+
+        XCTAssertEqual(captions.count, 1)
+        XCTAssertEqual(captions[0].text, "the number looks normal.")
+    }
+
+    func testIsFinalTracksNewestDelta() {
+        var captions: [TranscriptSegment] = []
+        coalescer.apply(segment("draft text", start: 0, end: 1, isFinal: false), to: &captions)
+        coalescer.apply(segment("confirmed", start: 1.1, end: 2, isFinal: true), to: &captions)
+        XCTAssertTrue(captions[0].isFinal)
+    }
+}
+
+// MARK: - Chunk-echo overlap trim (field evidence, Jul 10 sprint demo)
+
+/// The live engine re-emits the tail of the previous chunk; before the
+/// trim, 54% of a real 56-min meeting's rows carried the stutter.
+final class CaptionCoalescerOverlapTests: XCTestCase {
+    func testWordEchoAtChunkBoundaryIsTrimmed() {
+        XCTAssertEqual(
+            CaptionCoalescer.join("we added a select all", "all button"),
+            "we added a select all button")
+        XCTAssertEqual(
+            CaptionCoalescer.join("feature roadmap here", "here I've included"),
+            "feature roadmap here I've included")
+    }
+
+    func testMultiWordEchoIsTrimmed() {
+        XCTAssertEqual(
+            CaptionCoalescer.join("I can kinda go over", "go over this"),
+            "I can kinda go over this")
+    }
+
+    func testMidWordSplitEchoIsTrimmed() {
+        XCTAssertEqual(
+            CaptionCoalescer.join("we added", "ed a select"),
+            "we added a select")
+        XCTAssertEqual(
+            CaptionCoalescer.join("cannot become compared", "ed between um"),
+            "cannot become compared between um")
+    }
+
+    func testPartialWordOverlapKeepsTheNewSuffix() {
+        // "subscription" + "criptions page" → the trailing "s" is NEW
+        // information: the row must read "subscriptions page".
+        XCTAssertEqual(
+            CaptionCoalescer.join("to the subscription", "criptions page"),
+            "to the subscriptions page")
+        XCTAssertEqual(
+            CaptionCoalescer.join("six percent", "cent now"),
+            "six percent now")
+    }
+
+    func testLegitimateShortWordsAreNeverEaten() {
+        XCTAssertEqual(
+            CaptionCoalescer.join("the plan", "an idea"),
+            "the plan an idea")
+        XCTAssertEqual(
+            CaptionCoalescer.join("I said", "id number"),
+            "I said id number")
+    }
+
+    func testNoOverlapJoinsWithASpace() {
+        XCTAssertEqual(
+            CaptionCoalescer.join("we shipped the fix", "and the tests pass"),
+            "we shipped the fix and the tests pass")
+    }
+}
+
+/// Low-mic character noise ("DDDDD", "....") must never become rows
+/// (field evidence, Jul 10: quiet mic produced letter runs as captions).
+final class CaptionCoalescerNoiseTests: XCTestCase {
+    private let coalescer = CaptionCoalescer()
+
+    private func segment(_ text: String, at start: TimeInterval = 10) -> TranscriptSegment {
+        TranscriptSegment(
+            meetingID: MeetingID(), speakerID: nil, channel: .microphone,
+            text: text, startTime: start, endTime: start + 1, isFinal: true)
+    }
+
+    func testLetterRunsAreDropped() {
+        var captions: [TranscriptSegment] = []
+        coalescer.apply(segment("DDDDD"), to: &captions)
+        coalescer.apply(segment("kkkkkk mmmm"), to: &captions)
+        XCTAssertTrue(captions.isEmpty)
+    }
+
+    func testLongPunctuationRunsAreDropped() {
+        var captions: [TranscriptSegment] = []
+        coalescer.apply(segment("Revisemos el presupuesto"), to: &captions)
+        coalescer.apply(segment("....", at: 11.2), to: &captions)
+        XCTAssertEqual(captions.count, 1)
+        XCTAssertEqual(captions[0].text, "Revisemos el presupuesto")
+    }
+
+    func testSingleSentenceCloserStillGlues() {
+        var captions: [TranscriptSegment] = []
+        coalescer.apply(segment("Revisemos el presupuesto"), to: &captions)
+        coalescer.apply(segment(".", at: 11.2), to: &captions)
+        XCTAssertEqual(captions[0].text, "Revisemos el presupuesto.")
+    }
+
+    func testRealWordsSurvive() {
+        var captions: [TranscriptSegment] = []
+        coalescer.apply(segment("dado que el deploy salió bien"), to: &captions)
+        XCTAssertEqual(captions.count, 1)
+    }
+}

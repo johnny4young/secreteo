@@ -10,7 +10,7 @@ The shell, plus dictation code that the app does not link yet:
 - `Apps/Secreteo/SparkleUpdater.swift` wraps Sparkle behind `UpdateChecking`, so `AppUI` does not link it. A scheduled update sets a menu row instead of showing an alert. `scripts/fetch-sparkle.sh` is the single source of the framework and its tools.
 - UI tests launch with `-use-temp-store`, which gives them their own instance lock and no real launch at login, and with `-show-menu-content`, which mounts the real menu content in a window.
 - `DictationOwnership` is the [ownership protocol](specs/ownership-protocol.md): state format, locks, admission, handoff and peer detection. Portavoz is adopting this product at a pinned revision, so a test keeps its imports to system frameworks. The app does not link it yet.
-- `SpeechCore` holds shared value types, `MicCapture` holds microphone capture and its permission, and `DictationKit` holds the dictation domain and pure text rules. Both are copied from Portavoz ([PROVENANCE](PROVENANCE.md#dictation-code)), and [PARITY](PARITY.md) tracks what has arrived.
+- `SpeechCore` holds shared value types, `MicCapture` holds microphone capture and its permission, `LiveSpeech` holds the recognition engines and the model pins, and `DictationKit` holds the dictation domain and pure text rules. Both are copied from Portavoz ([PROVENANCE](PROVENANCE.md#dictation-code)), and [PARITY](PARITY.md) tracks what has arrived.
 - `Tests/Plans/Smoke.txt` lists the PR tests, and `scripts/run-ui-tests.sh full` runs everything.
 
 ## Target module graph

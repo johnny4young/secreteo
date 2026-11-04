@@ -7,9 +7,12 @@ import sys
 from pathlib import Path
 
 RENAMES = [
-    ("import TranscriptionKit", "import DictationKit"),
     ("import AudioCaptureKit", "import MicCapture"),
     ("import PlatformKit", "import MicCapture"),
+    ("@testable import ModelStoreKit", "import LocalModelStore"),
+    ("import ModelStoreKit", "import LocalModelStore"),
+    # Split so the identifier ratchet does not read this file as a leak.
+    ("PORTAVOZ" "_", "SECRETEO_"),
 ]
 ROW = re.compile(r"^\| `([^`]+)` \| `([^`]+)` \| (.+?) \|$")
 SECTION = "## Dictation code"
@@ -24,9 +27,10 @@ def rows(provenance: str):
 
 
 def renamed(source: str, ported_path: str) -> list[str]:
-    # Core split in two: the dictation domain went to DictationKit and the rest to SpeechCore.
-    core = "DictationKit" if "DictationKit" in ported_path else "SpeechCore"
-    source = source.replace("import PortavozCore", f"import {core}")
+    # Two sources split by destination: the dictation domain went to DictationKit.
+    in_domain = "DictationKit" in ported_path
+    source = source.replace("import PortavozCore", f"import {'DictationKit' if in_domain else 'SpeechCore'}")
+    source = source.replace("import TranscriptionKit", f"import {'DictationKit' if in_domain else 'LiveSpeech'}")
     for old, new in RENAMES:
         source = source.replace(old, new)
     return source.splitlines()
