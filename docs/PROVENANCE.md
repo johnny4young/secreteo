@@ -22,7 +22,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationKit/DictationDictionaryTerms.swift` | `Sources/TranscriptionKit/DictationDictionaryTerms.swift` | Renames |
 | `Sources/DictationKit/DictationPolishFidelity.swift` | `Sources/TranscriptionKit/DictationPolishFidelity.swift` | Renames |
 | `Sources/DictationKit/DictationTextRules.swift` | `Sources/TranscriptionKit/DictationTextRules.swift` | Renames |
-| `Sources/SpeechCore/Identifiers.swift` | `Sources/PortavozCore/Identifiers.swift` | Seam: only `DictationRecordID`, the one identifier used so far |
+| `Sources/SpeechCore/Identifiers.swift` | `Sources/PortavozCore/Identifiers.swift` | Seam: only the four identifiers used so far |
 | `Tests/DictationKitTests/DictationDictionaryTermsTests.swift` | `Tests/PortavozKitTests/DictationDictionaryTermsTests.swift` | Renames |
 | `Tests/DictationKitTests/DictationPolishFidelityTests.swift` | `Tests/PortavozKitTests/DictationPolishFidelityTests.swift` | Renames |
 | `Tests/DictationKitTests/DictationTextRulesTests.swift` | `Tests/PortavozKitTests/DictationTextRulesTests.swift` | Renames |
@@ -48,6 +48,40 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/MicCaptureTests/LinearResamplerTests.swift` | `Tests/PortavozKitTests/LinearResamplerTests.swift` | Renames |
 | `Tests/MicCaptureTests/CapturePCMGeometryTests.swift` | `Tests/PortavozKitTests/CapturePCMGeometryTests.swift` | Extract: all but the file writer test |
 | `Tests/MicCaptureTests/AudioCaptureTests.swift` | `Tests/PortavozKitTests/AudioCaptureTests.swift` | Extract: format, route and downmix tests |
+| `Sources/LiveSpeech/ParakeetSegmentMapper.swift` | `Sources/TranscriptionKit/ParakeetSegmentMapper.swift` | Renames |
+| `Sources/LiveSpeech/ParakeetTokenRevisionReducer.swift` | `Sources/TranscriptionKit/ParakeetTokenRevisionReducer.swift` | Renames |
+| `Sources/LiveSpeech/ParakeetLiveWorkProbe.swift` | `Sources/TranscriptionKit/ParakeetLiveWorkProbe.swift` | Renames |
+| `Sources/LiveSpeech/CaptionCoalescer.swift` | `Sources/TranscriptionKit/CaptionCoalescer.swift` | Renames |
+| `Sources/LiveSpeech/MicBleedFilter.swift` | `Sources/TranscriptionKit/MicBleedFilter.swift` | Renames |
+| `Sources/LiveSpeech/TranscriptionTextFilter.swift` | `Sources/TranscriptionKit/TranscriptionTextFilter.swift` | Renames |
+| `Sources/LiveSpeech/SpeechAnalyzerLiveEngine.swift` | `Sources/TranscriptionKit/SpeechAnalyzerLiveEngine.swift` | Renames |
+| `Sources/LiveSpeech/SpeechAnalyzerEngine.swift` | `Sources/TranscriptionKit/SpeechAnalyzerEngine.swift` | Renames |
+| `Sources/LiveSpeech/BoundedLiveAudioFeeds.swift` | `Sources/TranscriptionKit/BoundedLiveAudioFeeds.swift` | Renames |
+| `Sources/LiveSpeech/SpokenLanguageDetector.swift` | `Sources/TranscriptionKit/SpokenLanguageDetector.swift` | Renames |
+| `Sources/LiveSpeech/VocabularyPrompt.swift` | `Sources/TranscriptionKit/VocabularyPrompt.swift` | Renames |
+| `Sources/LiveSpeech/TranscriptionEngine.swift` | `Sources/TranscriptionKit/TranscriptionEngine.swift` | Renames |
+| `Sources/LiveSpeech/FileTranscription.swift` | `Sources/TranscriptionKit/FileTranscription.swift` | Renames |
+| `Sources/LiveSpeech/ParakeetEngine.swift` | `Sources/TranscriptionKit/ParakeetEngine.swift` | Seam: loads through `LocalModelStore`, with v3 named directly instead of a routing table |
+| `Sources/LiveSpeech/SileroVoiceActivityDetector.swift` | `Sources/TranscriptionKit/SileroVoiceActivityDetector.swift` | Seam: loads through `LocalModelStore` |
+| `Sources/LiveSpeech/ModelCatalog.swift` | `Sources/ModelStoreKit/ModelRegistry.swift` | Extract: the Parakeet v3 pin as a `ModelManifest`, with no task or folder name |
+| `Sources/LiveSpeech/ModelCatalog+ParakeetUltra.swift` | `Sources/ModelStoreKit/ModelCatalog+ParakeetUltra.swift` | Seam: a `ModelManifest`, with no task or folder name |
+| `Sources/LiveSpeech/ModelCatalog+SileroVAD.swift` | `Sources/ModelStoreKit/ModelCatalog+SileroVAD.swift` | Seam: a `ModelManifest`, with no task or folder name |
+| `Sources/SpeechCore/TranscriptTypes.swift` | `Sources/PortavozCore/TranscriptTypes.swift` | Renames |
+| `Sources/SpeechCore/LanguagePolicy.swift` | `Sources/PortavozCore/LanguagePolicy.swift` | Renames |
+| `Sources/SpeechCore/TranscriptContentPolicy.swift` | `Sources/PortavozCore/TranscriptContentPolicy.swift` | Renames |
+| `Tests/LiveSpeechTests/CaptionCoalescerTests.swift` | `Tests/PortavozKitTests/CaptionCoalescerTests.swift` | Renames |
+| `Tests/LiveSpeechTests/CaptionCoalescerTokenModeTests.swift` | `Tests/PortavozKitTests/CaptionCoalescerTokenModeTests.swift` | Renames |
+| `Tests/LiveSpeechTests/ParakeetLanguageConfigurationTests.swift` | `Tests/PortavozKitTests/ParakeetLanguageConfigurationTests.swift` | Renames |
+| `Tests/LiveSpeechTests/ParakeetTokenRevisionReducerTests.swift` | `Tests/PortavozKitTests/ParakeetTokenRevisionReducerTests.swift` | Renames |
+| `Tests/LiveSpeechTests/ParakeetAudioChunkTests.swift` | `Tests/PortavozKitTests/ParakeetAudioChunkTests.swift` | Renames |
+| `Tests/LiveSpeechTests/ParakeetLiveWorkProbeTests.swift` | `Tests/PortavozKitTests/ParakeetLiveWorkProbeTests.swift` | Renames |
+| `Tests/LiveSpeechTests/SpeechAnalyzerLiveEngineTests.swift` | `Tests/PortavozKitTests/SpeechAnalyzerLiveEngineTests.swift` | Renames |
+| `Tests/LiveSpeechTests/SpeechAnalyzerLifetimeTests.swift` | `Tests/PortavozKitTests/SpeechAnalyzerLifetimeTests.swift` | Renames |
+| `Tests/LiveSpeechTests/ParakeetIntegrationTests.swift` | `Tests/PortavozKitTests/ParakeetIntegrationTests.swift` | Seam: an explicit scratch store from `SECRETEO_MODEL_ROOT` |
+| `Tests/LiveSpeechTests/SileroVoiceActivityDetectorTests.swift` | `Tests/PortavozKitTests/SileroVoiceActivityDetectorTests.swift` | Seam: an explicit scratch store |
+| `Tests/LiveSpeechTests/TranscriptionTests.swift` | `Tests/PortavozAppTests/TranscriptionTests.swift` | Extract: the engine tests, without the catalog, store and Whisper ones |
+| `Tests/LiveSpeechTests/ModelCatalogTests.swift` | `Tests/PortavozAppTests/TranscriptionTests.swift` | Extract: the three pins, without task or folder name checks |
+| `Tests/LiveSpeechTests/ParakeetSegmentMapper+LiveStream.swift` | `Tests/PortavozAppTests/DictationVendorProbe.swift` | Extract: the mapper test helper |
 
 ## Repository bootstrap
 

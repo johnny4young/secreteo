@@ -40,6 +40,11 @@ class PortDiffTests(unittest.TestCase):
 
         self.assertEqual(code, 0)
 
+    def test_the_old_speech_module_goes_to_live_speech_outside_the_domain(self):
+        code, _ = self.run_diff("Renames", "@testable import LiveSpeech\n", "@testable import TranscriptionKit\n")
+
+        self.assertEqual(code, 0)
+
     def test_core_outside_the_domain_is_not_dictation_kit(self):
         code, _ = self.run_diff("Renames", "import DictationKit\n", "import PortavozCore\n")
 

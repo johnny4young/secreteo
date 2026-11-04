@@ -219,6 +219,28 @@ struct ModuleImportTests {
     }
 
     @Test
+    func speechStaysFreeOfUIAndSessions() throws {
+        let allowed: Set<String> = [
+            "AVFoundation", "CoreML", "FluidAudio", "Foundation", "LocalModelStore", "NaturalLanguage", "os", "Speech",
+            "SpeechCore"
+        ]
+        #expect(try imports(ofTarget: "LiveSpeech").isSubset(of: allowed))
+    }
+
+    @Test
+    func theDependencyGraphHasNoMLXWhisperOrDiarization() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let resolved = try String(contentsOf: root.appendingPathComponent("Package.resolved"), encoding: .utf8)
+        let manifest = try String(contentsOf: root.appendingPathComponent("Package.swift"), encoding: .utf8)
+        let pins = try #require(try JSONSerialization.jsonObject(with: Data(resolved.utf8)) as? [String: Any])
+        let identities = (pins["pins"] as? [[String: Any]])?.compactMap { $0["identity"] as? String } ?? []
+
+        #expect(Set(identities) == ["fluidaudio", "local-model-store"])
+        #expect(manifest.contains("traits: []"))
+    }
+
+    @Test
     func theDomainStaysFreeOfUIAndSessions() throws {
         #expect(try imports(ofTarget: "DictationKit").isSubset(of: ["Foundation", "NaturalLanguage", "SpeechCore"]))
     }

@@ -33,6 +33,13 @@ let package = Package(
         .executableTarget(name: "ownership-test-client", dependencies: ["DictationOwnership"], path: "Tests/OwnershipTestClient"),
         .testTarget(name: "AppUITests", dependencies: ["AppUI"]),
         .testTarget(name: "DictationKitTests", dependencies: ["DictationKit", "SpeechCore"]),
+        .testTarget(
+            name: "LiveSpeechTests",
+            dependencies: [
+                "LiveSpeech", "SpeechCore",
+                .product(name: "FluidAudio", package: "FluidAudio"),
+                .product(name: "LocalModelStore", package: "local-model-store")
+            ]),
         .testTarget(name: "MicCaptureTests", dependencies: ["MicCapture", "SpeechCore"]),
         .testTarget(name: "DictationOwnershipTests", dependencies: ["DictationOwnership", "ownership-test-client"])
     ]

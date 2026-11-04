@@ -18,15 +18,15 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 
 | Capability or case | Portavoz source | Portavoz test | Secreteo test | State |
 |---|---|---|---|---|
-| Parakeet recognition, EN and ES | `ParakeetEngine`, `ParakeetTokenRevisionReducer` | `ParakeetLanguageConfigurationTests`, `ParakeetTokenRevisionReducerTests`, `ParakeetIntegrationTests` | | Pending, P2 |
-| Parakeet Ultra | `AppServices+ParakeetUltra` | `ParakeetUltraSelectionTests`, `ParakeetUltraRuntimeTests` | | Pending, P2 |
-| Apple Speech | `SpeechAnalyzerLiveEngine`, `SpeechAnalyzerEngine` | `SpeechAnalyzerLiveEngineTests`, `SpeechAnalyzerLifetimeTests` | | Pending, P2 |
-| Silero voice detection | `SileroVoiceActivityDetector`, `SileroSpeechRegionDetector` | `SileroVoiceActivityDetectorTests` | | Pending, P2 |
+| Parakeet recognition, EN and ES | `ParakeetEngine`, `ParakeetTokenRevisionReducer`, `ParakeetSegmentMapper` | `ParakeetLanguageConfigurationTests`, `ParakeetTokenRevisionReducerTests`, `TranscriptionTests`, `ParakeetIntegrationTests` | The same tests | Logic ported. A run with the real model is still pending |
+| Parakeet Ultra | `ModelCatalog+ParakeetUltra`, `AppServices+ParakeetUltra` | `ParakeetUltraSelectionTests`, `ParakeetUltraRuntimeTests` | | Pin ported. Selection pending, P3 |
+| Apple Speech | `SpeechAnalyzerLiveEngine`, `SpeechAnalyzerEngine` | `SpeechAnalyzerLiveEngineTests`, `SpeechAnalyzerLifetimeTests` | The same tests | Ported |
+| Silero voice detection | `SileroVoiceActivityDetector` | `SileroVoiceActivityDetectorTests` | The same tests | Logic ported. A run with the real model is still pending |
 | Microphone capture | `MicrophoneSource`, `AudioDeviceCatalog`, `CaptureDeliveryBuffer` | `AudioCaptureTests`, `CaptureDeliveryBufferTests`, `MicrophoneTapTransitionTests`, `LinearResamplerTests`, `CapturePCMGeometryTests` | The same tests | Logic ported. Engine start and route changes on a real device still have to be checked |
 | Microphone permission | `MicrophonePermissionClient` | `MicrophonePermissionClientTests` | `MicrophonePermissionClientTests` | Ported |
 | Choice of microphone | `MicrophoneInputSelection` | `DictationReadinessTests` | | Pending, P3 |
-| Model download and storage | `ModelStore`, then `LocalModelStore` | `ModelStoreDownloadFailureTests` | | Pending, P2 |
-| Choice of live engine | `LiveSpeechSelection` | `LiveSpeechSelectionTests` | | Pending, P2 |
+| Model download and storage | `ModelStore`, then `LocalModelStore` | `ModelStoreDownloadFailureTests` | In `local-model-store`, and `ModelCatalogTests` for the pins | Ported. The seed from Portavoz's models and the warm-up wait for P5 |
+| Choice of live engine | `LiveSpeechSelection` | `LiveSpeechSelectionTests`, which has to be rewritten | | Pending, P3 |
 
 ## Triggers
 
