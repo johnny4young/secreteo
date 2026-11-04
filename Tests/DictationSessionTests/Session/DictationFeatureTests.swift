@@ -21,6 +21,7 @@ final class DictationFeatureTests: XCTestCase {
         let remembered = Mutex<Set<DictationModels.Part>>([])
         let failsToInstall = Mutex<Set<DictationModels.Part>>([])
         let installed = Mutex<[DictationModels.Part]>([])
+        let collections = Mutex(0)
         let asked = Mutex(0)
         let opened = Mutex(0)
         /// When set, a model check waits here until the test releases it.
@@ -50,7 +51,8 @@ final class DictationFeatureTests: XCTestCase {
                         if self.failsToInstall.withLock({ $0.contains(part) }) { throw InstallFailed() }
                         self.installed.withLock { $0.append(part) }
                         self.verified.withLock { _ = $0.insert(part) }
-                    }))
+                    },
+                    collectUnused: { self.collections.withLock { $0 += 1 } }))
         }
     }
 
@@ -288,6 +290,15 @@ final class DictationFeatureTests: XCTestCase {
         XCTAssertFalse(feature.lastResetFailed, "Another app's reset fixed the file just the same")
     }
 
+    func testStartingCollectsUnusedModels() async throws {
+        let system = System()
+        let feature = try makeFeature(system)
+
+        feature.start()
+
+        await waitUntil { system.collections.withLock { $0 } > 0 }
+    }
+
     private func waitUntil(_ condition: () -> Bool) async {
         for _ in 0..<200 where !condition() {
             try? await Task.sleep(for: .milliseconds(10))
@@ -341,6 +352,61 @@ final class VerifiedModelRecordTests: XCTestCase {
 
         try FileManager.default.removeItem(at: file)
         XCTAssertNil(VerifiedModelRecord.fingerprint(of: manifest(), in: directory))
+    }
+
+    private func scratchDefaults() throws -> UserDefaults {
+        let name = "VerifiedModelRecordTests.\(UUID().uuidString)"
+        addTeardownBlock { UserDefaults(suiteName: name)?.removePersistentDomain(forName: name) }
+        return try XCTUnwrap(UserDefaults(suiteName: name))
+    }
+
+    func testCollectingRetiresAClaimOnAModelNoLongerPinned() async throws {
+        let scratch = try makeScratch()
+        let consumer = StoreConsumer(bundleID: "com.example.test", displayName: "Test")
+        let store = try LocalModelStore(location: .directory(scratch), consumer: consumer)
+        let version = scratch.appendingPathComponent("v1.noindex")
+        let model = version.appendingPathComponent("models/old@rev-digest/payload")
+        let claim = version.appendingPathComponent("claims/old@rev-digest/\(consumer.bundleID).json")
+        try FileManager.default.createDirectory(at: model, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            at: claim.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data("""
+        {"consumer":"\(consumer.bundleID)","displayName":"Test",\
+        "firstClaimedAt":"2026-11-02T12:00:00Z","lastUsedAt":"2026-11-02T12:00:00Z"}
+        """.utf8).write(to: claim)
+        let models = DictationModels.live(store: store, defaults: try scratchDefaults())
+
+        await models.collectUnused()
+
+        let written = try JSONSerialization.jsonObject(with: Data(contentsOf: claim)) as? [String: Any]
+        XCTAssertTrue(written?["retiredAt"] is String)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: model.path), "A retired claim keeps protecting the model")
+    }
+
+    func testCollectingClearsAModelNobodyClaims() async throws {
+        let scratch = try makeScratch()
+        let store = try LocalModelStore(
+            location: .directory(scratch),
+            consumer: StoreConsumer(bundleID: "com.example.test", displayName: "Test"))
+        let model = scratch.appendingPathComponent("v1.noindex/models/old@rev-digest/payload")
+        try FileManager.default.createDirectory(at: model, withIntermediateDirectories: true)
+        let models = DictationModels.live(store: store, defaults: try scratchDefaults())
+
+        await models.collectUnused()
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: model.path))
+    }
+
+    func testCollectingCreatesNothingWhenNoStoreExists() async throws {
+        let scratch = try makeScratch().appendingPathComponent("never-created")
+        let store = try LocalModelStore(
+            location: .directory(scratch),
+            consumer: StoreConsumer(bundleID: "com.example.test", displayName: "Test"))
+        let models = DictationModels.live(store: store, defaults: try scratchDefaults())
+
+        await models.collectUnused()
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: scratch.path))
     }
 
     func testTheLiveModelsRememberBetweenLaunchesOnlyWhatStaysUnchanged() async throws {
