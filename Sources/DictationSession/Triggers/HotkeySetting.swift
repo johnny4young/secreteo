@@ -2,8 +2,8 @@ import AppKit
 import Carbon.HIToolbox
 
 /// The dictation hotkey as stored settings: Carbon key code + Carbon
-/// modifier mask + a display label ("⌥⌘D"). Pure and testable; the
-/// recorder UI below writes it, `DictationController` reads it.
+/// modifier mask + a display label. Pure and testable; the recorder UI writes it,
+/// `DictationController` reads it.
 struct HotkeySetting: Equatable {
     static let keyCodeKey = "dictationHotkeyKeyCode"
     static let modifiersKey = "dictationHotkeyModifiers"
@@ -16,8 +16,8 @@ struct HotkeySetting: Equatable {
 
     static let `default` = HotkeySetting(
         keyCode: UInt32(kVK_ANSI_D),
-        modifiers: UInt32(optionKey | cmdKey),
-        label: "⌥⌘D")
+        modifiers: UInt32(controlKey | optionKey | cmdKey),
+        label: "⌃⌥⌘D")
 
     static func load(from defaults: UserDefaults = .standard) -> HotkeySetting {
         restore(from: defaults).setting

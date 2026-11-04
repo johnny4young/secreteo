@@ -39,3 +39,17 @@ enum MousePTTGesture {
         }
     }
 }
+
+/// Tracks the button so a release lost with a disabled tap still ends the hold.
+struct MousePTTHold {
+    private var isHeld = false
+
+    mutating func press() { isHeld = true }
+    mutating func release() { isHeld = false }
+
+    /// True once when the tap was lost during a hold.
+    mutating func tapLost() -> Bool {
+        defer { isHeld = false }
+        return isHeld
+    }
+}

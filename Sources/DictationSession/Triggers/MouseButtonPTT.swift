@@ -43,6 +43,7 @@ final class MouseButtonPTT {
     private let button: Int64
     private let onPress: () -> Void
     private let onRelease: () -> Void
+    private var hold = MousePTTHold()
 
     init?(
         button: Int,
@@ -93,12 +94,15 @@ final class MouseButtonPTT {
         // would strand the user mid-dictation, so always re-arm.
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
+            if hold.tapLost() { onRelease() }
             return false
         }
         guard button == self.button else { return false }
         if type == .otherMouseDown {
+            hold.press()
             onPress()
         } else {
+            hold.release()
             onRelease()
         }
         return true

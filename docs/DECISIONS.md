@@ -81,3 +81,7 @@ Import is typed and versioned, with a preview and an idempotent apply. Activatio
 ## D18. The delivery lane signs ad-hoc
 
 The hosted delivery lane signs ad-hoc and grants TCC through `cdhash` rows, written after the final build, on the disposable VM only. It needs no secret. Developer ID signing happens only in `release.yml` ([evidence](spikes/tcc-adhoc-signing.md)).
+
+## D19. The default shortcut is ⌃⌥⌘D
+
+The [ownership protocol](specs/ownership-protocol.md) requires a shortcut other than Portavoz's ⌥⌘D. That one is also the system's Dock shortcut. ⌃⌥⌘D keeps the D and adds a third modifier to make a clash less likely. It has not been checked on a real Mac, and a conflict shows as an unavailable shortcut in Settings.
