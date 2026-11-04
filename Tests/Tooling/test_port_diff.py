@@ -99,6 +99,20 @@ class PortDiffTests(unittest.TestCase):
 
         self.assertNotIn("x:", output)
 
+    def test_session_files_take_the_new_app_name(self):
+        source = 'import ' + 'PortavozCore\nlet id = "app.' + 'portavoz.mac"\nlet isUp = ' + 'portavoz' + 'IsActive\n// ' + 'Portavoz\n'
+        ported = 'import DictationKit\nlet id = "com.johnny4young.secreteo"\nlet isUp = appIsActive\n// Secreteo\n'
+
+        code, output = self.run_diff("Renames", ported, source, "Sources/DictationSession/a.swift")
+
+        self.assertEqual(code, 0, output)
+
+    def test_other_files_keep_the_old_app_name_in_prose(self):
+        source = '// ' + 'Portavoz\n'
+
+        code, _ = self.run_diff("Renames", "// Secreteo\n", source, "Sources/LiveSpeech/a.swift")
+
+        self.assertEqual(code, 1)
 
 if __name__ == "__main__":
     unittest.main()
