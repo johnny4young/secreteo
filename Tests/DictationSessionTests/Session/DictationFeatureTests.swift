@@ -276,6 +276,16 @@ final class DictationFeatureTests: XCTestCase {
         XCTAssertFalse(try makeFeature().canResetOwnership)
     }
 
+    func testASpokenCorrectionFixtureDeliversToAFieldItCanEditLater() async throws {
+        let feature = try makeFeature(arguments: ["-seed-dictation", "-seed-dictation-correction"])
+        let destination = feature.makeDictationSessionDependencies().captureDestination()
+        let outcome = await destination.insert("Keep these notes.")
+        XCTAssertEqual(outcome, .verified)
+        let last = try XCTUnwrap(destination.lastInsertion(), "Without it, every correction is refused")
+        XCTAssertEqual(last.text, "Keep these notes.")
+        XCTAssertTrue(last.isIntact())
+    }
+
     func testAResetThatCouldNotRunIsShown() throws {
         let feature = try makeFeature()
         for change in [OwnershipChange.busy, .failed] {

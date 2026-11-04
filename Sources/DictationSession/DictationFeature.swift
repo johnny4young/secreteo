@@ -217,6 +217,9 @@ public final class DictationFeature: AppServices {
         dependencies.storesPreferencesTemporarily = true
         dependencies.polishDictation = DictationUITestFixture.polishing(fixture)
         dependencies.translateDictation = DictationUITestFixture.translating(fixture)
+        if let fixture, fixture.correctsByVoice {
+            dependencies.captureDestination = { DictationUITestFixture.correctionDestination(fixture) }
+        }
         return dependencies
     }
 
