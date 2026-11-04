@@ -122,7 +122,15 @@ acquire(kind) -> lease | refused(reason)
 6. Return the lease, carrying `owner` and `generation`.
 ```
 
-Every refusal closes the lock first. Admission never waits, and because it does file I/O it never runs in an audio or event tap callback. A second operation in the same process is refused `busy`, because it opens its own descriptor.
+Every refusal closes the lock first. Admission never waits, and because it does file I/O it never runs in an audio or event tap callback. `acquire` refuses a second operation in the same process with `busy`, because it opens its own descriptor.
+
+**Sharing in one process.** A participant's adapter may let a new session share its held lease, instead of refusing it `busy`, while the previous session only waits for the pasteboard restore. Other participants still see one held lock, so nothing changes between apps. All of these apply:
+
+1. Capture and delivery have finished and Stop has drained. Never during capture, transcription or delivery.
+2. Each joining session repeats steps 2 to 5 on the held lock, not from a cached state. A live intent refuses it `transferring`, so sessions in a row cannot hold off a handoff.
+3. A joining session's delivery, including retry and paste-last, waits for the pending restore, which is never cut short.
+4. The lock is released only after the last session finishes, because `LOCK_UN` frees it for everyone sharing the descriptor. Each attempt keeps its own token, a late Stop does nothing, and `revalidate()` runs before each delivery. On an intent, each session follows the [handoff table](#handoff) by its own stage.
+5. Only `global` sessions share, and a `global` session never joins a `practice` lease.
 
 **Kinds.** `global` is everything above. `practice` skips steps 4 and 5, so a participant that is not the owner or not ready yet can run the practice it needs. It competes for capture and refuses on an intent, and it never delivers outside the app's own window.
 
@@ -153,10 +161,12 @@ Ownership moves only on a user action, with one exception: [First run](#first-ru
 |---|---|
 | `preparing`, before the microphone opens | Cancels at once |
 | `listening`, microphone open | Runs for at most 5 seconds more, then cancels |
-| Microphone closed: transcribing, polishing, delivering, restoring the pasteboard | Runs to the end. A session that has no microphone stage, such as Rewrite or paste-last, is here |
+| Microphone closed: transcribing, polishing, delivering, restoring the pasteboard | Runs to the end. An operation with no microphone stage, such as paste-last or a Rewrite's read or replace, is here |
 | A practice lease, in any participant | Cancels at once, whoever the intent names |
 
 The rename in step 6 is the commit. It means no one held a lease, because `T` held the capture lock, and `T` was armed. A failure after it, including a failed notification, undoes nothing. Nothing changes hands during a delivery, because a delivery holds the lease.
+
+**Rewrite.** Reading the selection and replacing it are separate operations, each with its own lease. No lease is held while the user chooses or previews, because that can wait on a person without limit, so a handoff can complete with a preview open. A spoken instruction opens the microphone, so it follows the `listening` row. Before replacing, the app compares the new lease's `generation` with the read's, because a handoff there and back returns the same owner. A refusal or a different generation means no replace, and the text stays available to copy.
 
 **Rollback.** Before the commit the owner has not changed. On any failure, `T` always disarms and releases the lock, tries to clear its own intent if the `id` still matches, and posts the notification. If it cannot write, the intent simply expires.
 
@@ -247,6 +257,7 @@ A change clients must understand raises `version`. An older client then fails cl
 3. Claim at [First run](#first-run) when its preference is on.
 4. Never write its preference because of ownership. Offer the two actions in [Recovery](#recovery).
 5. The version that removes dictation sets the key to `0`. If it finds itself owner on first launch, it publishes `owner: null` under both locks.
+6. Depend on the `DictationOwnership` product of this repository, pinned to a revision, instead of keeping a copy.
 
 ## Acceptance matrix
 
@@ -291,3 +302,18 @@ Not covered:
 
 - Home directories on network volumes, tracked in [GAPS](../GAPS.md#g8-ownership-on-a-network-home).
 - A second macOS user logged in at the same time, who has their own files and locks.
+
+### App acceptance
+
+Each app proves these itself, because they live above the reference implementation.
+
+| Scenario | Expected |
+|---|---|
+| New session during the pasteboard restore | Shares the lease, and its delivery waits for the restore. Dictated text is never saved as the user's clipboard |
+| New session during capture, transcription or delivery | Refused `busy` |
+| New session right after a cancel | Refused `busy` until Stop has drained |
+| New session during a restore, with a live intent | Refused `transferring`. The handoff completes if the restore ends before the deadline |
+| Early release of a shared lease | The lock stays held until the last session finishes, then is free at once |
+| Handoff with a Rewrite preview open | The handoff completes. The replace is refused and the text stays available to copy |
+| Handoff there and back with a Rewrite preview open | Same owner, different generation. The replace is refused and the text stays available to copy |
+| Handoff during a spoken Rewrite instruction | Ends or is cancelled within 5 seconds |
