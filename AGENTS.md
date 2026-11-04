@@ -13,6 +13,7 @@ Secreteo: a menu bar app for global, local, private dictation on macOS, built wi
 | Release recipe | [docs/RELEASING.md](docs/RELEASING.md) |
 | Runtime contracts | [docs/specs/](docs/specs/README.md) |
 | Origin of copied code | [docs/PROVENANCE.md](docs/PROVENANCE.md) |
+| What has arrived from Portavoz | [docs/PARITY.md](docs/PARITY.md) |
 
 Update the document whose truth changed in the same commit. Tracked docs are written in English.
 

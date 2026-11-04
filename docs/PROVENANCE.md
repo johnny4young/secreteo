@@ -6,10 +6,30 @@ Secreteo starts from a fresh git history ([D10](DECISIONS.md#d10-fresh-git-histo
 
 Copied from an export (`git archive`) of one frozen commit of [`johnny4young/portavoz`](https://github.com/johnny4young/portavoz).
 
-**Frozen commit:** set when porting begins.
+**Frozen commit:** `a957253b0a54eb385a400bed0e80d853a8e8b41a`.
 
-| Secreteo path | Portavoz path |
-|---|---|
+`scripts/port_diff.py <export>` compares each row with an unpacked export of that commit. `Renames` must match after the renames in that script, and any other row prints its differences for review.
+
+| Secreteo path | Portavoz path | Change |
+|---|---|---|
+| `Sources/DictationKit/DictationDeliveryOutcome.swift` | `Sources/PortavozCore/DictationDeliveryOutcome.swift` | Renames |
+| `Sources/DictationKit/DictationRecipe.swift` | `Sources/PortavozCore/DictationRecipe.swift` | Renames |
+| `Sources/DictationKit/DictationTextMode.swift` | `Sources/PortavozCore/DictationTextMode.swift` | Renames |
+| `Sources/DictationKit/DictationHistory.swift` | `Sources/PortavozCore/DictationHistory.swift` | Seam: imports `SpeechCore`; no meeting-note types ([D2](DECISIONS.md#d2-scope-and-approved-losses)); a comment no longer names Ask |
+| `Sources/DictationKit/DictationStats.swift` | `Sources/PortavozCore/DictationStats.swift` | Seam: imports `SpeechCore` |
+| `Sources/DictationKit/DictationAssembler.swift` | `Sources/TranscriptionKit/DictationAssembler.swift` | Renames |
+| `Sources/DictationKit/DictationCorrectionCommand.swift` | `Sources/TranscriptionKit/DictationCorrectionCommand.swift` | Renames |
+| `Sources/DictationKit/DictationDictionaryTerms.swift` | `Sources/TranscriptionKit/DictationDictionaryTerms.swift` | Renames |
+| `Sources/DictationKit/DictationPolishFidelity.swift` | `Sources/TranscriptionKit/DictationPolishFidelity.swift` | Renames |
+| `Sources/DictationKit/DictationTextRules.swift` | `Sources/TranscriptionKit/DictationTextRules.swift` | Renames |
+| `Sources/SpeechCore/Identifiers.swift` | `Sources/PortavozCore/Identifiers.swift` | Seam: only `DictationRecordID`, the one identifier used so far |
+| `Tests/DictationKitTests/DictationDictionaryTermsTests.swift` | `Tests/PortavozKitTests/DictationDictionaryTermsTests.swift` | Renames |
+| `Tests/DictationKitTests/DictationPolishFidelityTests.swift` | `Tests/PortavozKitTests/DictationPolishFidelityTests.swift` | Renames |
+| `Tests/DictationKitTests/DictationTextRulesTests.swift` | `Tests/PortavozKitTests/DictationTextRulesTests.swift` | Renames |
+| `Tests/DictationKitTests/DictationAssemblerTests.swift` | `Tests/PortavozAppTests/DictationTests.swift` | Extract: the tests with no app |
+| `Tests/DictationKitTests/DictationCorrectionCommandTests.swift` | `Tests/PortavozAppTests/DictationCorrectionTests.swift` | Extract: the tests with no app |
+| `Tests/DictationKitTests/DictationRecipeFidelityTests.swift` | `Tests/PortavozAppTests/DictationRecipeTests.swift` | Extract: the tests with no app |
+| `Tests/DictationKitTests/DictationStatsTests.swift` | `Tests/PortavozAppTests/DictationStatsTests.swift` | Extract: the tests with no app |
 
 ## Repository bootstrap
 
