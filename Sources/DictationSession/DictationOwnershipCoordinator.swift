@@ -67,7 +67,7 @@ final class DictationOwnershipCoordinator {
     }
 
     /// Every Secreteo build has the protocol, so only the other app can be a legacy peer.
-    static func legacyPeers() -> NonCooperatingPeers {
+    private static func legacyPeers() -> NonCooperatingPeers {
         NonCooperatingPeers(
             known: KnownDictationPeers.all,
             running: {
@@ -126,25 +126,48 @@ final class DictationOwnershipCoordinator {
         }
     }
 
-    /// The user's own action in Settings or onboarding.
+    /// The user's own action in Settings or onboarding. The result says why turning on
+    /// did not make this app the owner; nil when turning off.
+    @discardableResult
     func preferenceChanged(
         isOn: Bool, arm: @escaping @MainActor () -> Bool, disarm: @escaping @MainActor () -> Void
-    ) async {
+    ) async -> HandoffOutcome? {
+        var outcome: HandoffOutcome?
         if isOn {
-            let triggers = HandoffTriggers(
-                arm: { [weak self] in
-                    self?.armsForHandoff = true
-                    return arm()
-                },
-                disarm: { [weak self] in
-                    self?.armsForHandoff = false
-                    disarm()
-                })
-            _ = await ownership.preferenceTurnedOn(triggers: triggers)
+            outcome = await ownership.preferenceTurnedOn(triggers: handoffTriggers(arm: arm, disarm: disarm))
         } else {
             let change = await ownership.turnOff()
             turnOffIsPending = change == .busy || change == .failed
         }
+        await settleAfterChange()
+        return outcome
+    }
+
+    /// The user's choice to take dictation from another owner, offered only in `available`.
+    func takeOwnership(
+        arm: @escaping @MainActor () -> Bool, disarm: @escaping @MainActor () -> Void
+    ) async -> HandoffOutcome {
+        let outcome = await ownership.takeOwnership(
+            userConfirmed: true, triggers: handoffTriggers(arm: arm, disarm: disarm))
+        await settleAfterChange()
+        return outcome
+    }
+
+    private func handoffTriggers(
+        arm: @escaping @MainActor () -> Bool, disarm: @escaping @MainActor () -> Void
+    ) -> HandoffTriggers {
+        HandoffTriggers(
+            arm: { [weak self] in
+                self?.armsForHandoff = true
+                return arm()
+            },
+            disarm: { [weak self] in
+                self?.armsForHandoff = false
+                disarm()
+            })
+    }
+
+    private func settleAfterChange() async {
         armsForHandoff = false
         publish(ownership.status())
         await observer?.reevaluate()

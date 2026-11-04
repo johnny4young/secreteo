@@ -109,6 +109,40 @@ struct DictationOwnershipCoordinatorTests {
     }
 
     @Test
+    func theUserCanTakeOwnershipFromAnotherOwner() async throws {
+        let scratch = Scratch()
+        _ = scratch.participant(Self.other).claimAtFirstRun()
+        let coordinator = DictationOwnershipCoordinator(ownership: scratch.participant(Self.secreteo)) {}
+        coordinator.start()
+        #expect(coordinator.state == .available)
+
+        let outcome = await coordinator.takeOwnership(arm: { true }, disarm: {})
+
+        #expect(outcome == .completed(generation: 2))
+        #expect(coordinator.state == .owned)
+    }
+
+    @Test
+    func turningOnReportsWhyItDidNotBecomeTheOwner() async throws {
+        let scratch = Scratch()
+        let quick = OwnershipTimings(changeDeadline: .milliseconds(100), capturePoll: .milliseconds(2), armRetry: .milliseconds(5))
+        let ownership = DictationOwnership(
+            participant: Self.secreteo, root: scratch.root,
+            conditions: {
+                ParticipantConditions(preferenceIsOn: true, missingForReadiness: nil, legacyPeerIsActive: false)
+            },
+            notificationName: "com.johnny4young.secreteo.ownership-tests.\(scratch.root.lastPathComponent)",
+            timings: quick)
+        let coordinator = DictationOwnershipCoordinator(ownership: ownership) {}
+        coordinator.start()
+
+        let outcome = await coordinator.preferenceChanged(isOn: true, arm: { false }, disarm: {})
+
+        #expect(outcome == .triggerConflict)
+        #expect(coordinator.state == .available)
+    }
+
+    @Test
     func aFirstRunNeverClaimsEvenWithThePreferenceOn() throws {
         let scratch = Scratch()
         let ownership = scratch.participant(Self.secreteo)
