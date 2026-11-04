@@ -22,7 +22,12 @@ let package = Package(
         .target(name: "AppUI"),
         .target(name: "DictationKit", dependencies: ["SpeechCore"]),
         .target(name: "DictationOwnership"),
-        .target(name: "DictationSession", dependencies: ["DictationKit", "SpeechCore"]),
+        .target(
+            name: "DictationSession",
+            dependencies: [
+                "DictationKit", "LiveSpeech", "MicCapture", "SpeechCore",
+                .product(name: "LocalModelStore", package: "local-model-store")
+            ]),
         .target(
             name: "LiveSpeech",
             dependencies: [
@@ -35,7 +40,12 @@ let package = Package(
         .executableTarget(name: "ownership-test-client", dependencies: ["DictationOwnership"], path: "Tests/OwnershipTestClient"),
         .testTarget(name: "AppUITests", dependencies: ["AppUI"]),
         .testTarget(name: "DictationKitTests", dependencies: ["DictationKit", "SpeechCore"]),
-        .testTarget(name: "DictationSessionTests", dependencies: ["DictationSession", "DictationKit", "SpeechCore"]),
+        .testTarget(
+            name: "DictationSessionTests",
+            dependencies: [
+                "DictationSession", "DictationKit", "LiveSpeech", "SpeechCore",
+                .product(name: "LocalModelStore", package: "local-model-store")
+            ]),
         .testTarget(
             name: "LiveSpeechTests",
             dependencies: [

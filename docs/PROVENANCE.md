@@ -99,6 +99,29 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/DictationSessionTests/Delivery/TextInsertionTargetTests.swift` | `Tests/PortavozAppTests/TextInsertionTargetTests.swift` | Renames |
 | `Tests/DictationSessionTests/Support/TestPolling.swift` | `Tests/PortavozTestSupport/TestPolling.swift` | Renames |
 | `Tests/DictationSessionTests/Support/ControlledTestSleep.swift` | `Tests/PortavozTestSupport/ControlledTestSleep.swift` | Renames |
+| `Sources/DictationSession/AppLanguage.swift` | `Sources/portavoz-app/AppLanguage.swift` | Extract: without the view modifier, which arrives with Settings |
+| `Sources/DictationSession/DictationAutoStop.swift` | `Sources/portavoz-app/DictationAutoStop.swift` | Seam: imports `LiveSpeech`, uses `LocalModelStore` |
+| `Sources/DictationSession/DictationCaptureOwnership.swift` | `Sources/portavoz-app/DictationCaptureOwnership.swift` | Renames |
+| `Sources/DictationSession/DictationCapturePolicy.swift` | `Sources/portavoz-app/DictationCapturePolicy.swift` | Seam: imports `SpeechCore` |
+| `Sources/DictationSession/DictationCorrections.swift` | `Sources/portavoz-app/DictationCorrections.swift` | Renames |
+| `Sources/DictationSession/DictationFeedbackTimer.swift` | `Sources/portavoz-app/DictationFeedbackTimer.swift` | Renames |
+| `Sources/DictationSession/DictationLastText.swift` | `Sources/portavoz-app/DictationLastText.swift` | Seam: expired text leaves memory on time |
+| `Sources/DictationSession/DictationMicrophoneReadiness.swift` | `Sources/portavoz-app/DictationMicrophoneReadiness.swift` | Seam: imports `SpeechCore` |
+| `Sources/DictationSession/DictationPauseDetector.swift` | `Sources/portavoz-app/DictationPauseDetector.swift` | Seam: imports `SpeechCore` |
+| `Sources/DictationSession/DictationRuntimeAcquisition.swift` | `Sources/portavoz-app/DictationRuntimeAcquisition.swift` | Renames |
+| `Sources/DictationSession/DictationSessionMeasurement.swift` | `Sources/portavoz-app/DictationSessionMeasurement.swift` | Seam: imports `SpeechCore` |
+| `Sources/DictationSession/DictationSoundCue.swift` | `Sources/portavoz-app/DictationSoundCue.swift` | Renames |
+| `Sources/DictationSession/DictationSpeechGate.swift` | `Sources/portavoz-app/DictationSpeechGate.swift` | Seam: imports `SpeechCore` |
+| `Sources/DictationSession/DictationTranscriptProjection.swift` | `Sources/portavoz-app/DictationTranscriptProjection.swift` | Seam: imports `SpeechCore` and `LiveSpeech` |
+| `Sources/DictationSession/L10n.swift` | `Sources/portavoz-app/L10n.swift` | Renames |
+| `Sources/DictationSession/LiveSpeechSelection.swift` | `Sources/portavoz-app/LiveSpeechSelection.swift` | Seam: imports `LiveSpeech`, dictation only with no meeting lane |
+| `Sources/DictationSession/MicrophoneInputSelection.swift` | `Sources/portavoz-app/MicrophoneInputSelection.swift` | Renames |
+| `Sources/DictationSession/LiveTranscriptionRuntime.swift` | `Sources/portavoz-app/LiveTranscriptionAttacher.swift` | Extract: only the runtime handle, the attacher is meeting code |
+| `Sources/DictationSession/DictationSpeechGate+Silero.swift` | `Sources/portavoz-app/AppServices+DictationSpeechGate.swift` | Extract: the gate rules, with `LocalModelStore` |
+| `Tests/DictationSessionTests/DictationPauseDetectorTests.swift` | `Tests/PortavozAppTests/DictationPauseDetectorTests.swift` | Seam: imports `SpeechCore` |
+| `Tests/DictationSessionTests/DictationSpeechGateTests.swift` | `Tests/PortavozAppTests/DictationSpeechGateTests.swift` | Extract: without the tests of the composition, which arrive with it |
+| `Tests/DictationSessionTests/DictationTranscriptProjectionTests.swift` | `Tests/PortavozAppTests/DictationTranscriptProjectionTests.swift` | Seam: imports `LiveSpeech` and `SpeechCore` |
+| `Tests/DictationSessionTests/LiveSpeechSelectionTests.swift` | `Tests/PortavozAppTests/LiveSpeechSelectionTests.swift` | Extract: the dictation preference, routing arrives with the composition |
 
 ## Repository bootstrap
 
