@@ -15,9 +15,17 @@ final class DictationSessionFixesTests: XCTestCase {
 
     private func finish(_ harness: DictationControllerHarness, _ dependencies: DictationSessionDependencies) async {
         harness.controller.toggle(using: dependencies)
-        _ = await TestPolling.until { harness.controller.partialText == harness.text }
+        let heard = await TestPolling.until { harness.controller.partialText == harness.text }
+        XCTAssertTrue(heard)
         harness.now = harness.now.addingTimeInterval(1)
         harness.controller.toggle(using: dependencies)
+    }
+
+    private func hasFailed(_ harness: DictationControllerHarness) async -> Bool {
+        await TestPolling.until {
+            if case .failed = harness.controller.phase { return true }
+            return false
+        }
     }
 
     private func correcting(
@@ -39,7 +47,8 @@ final class DictationSessionFixesTests: XCTestCase {
         let first = DictationControllerHarness(text: inserted)
         defer { first.controller.cancel() }
         await finish(first, correcting(first, receiver: receiver))
-        _ = await TestPolling.until { !first.controller.isActive }
+        let delivered = await TestPolling.until { !first.controller.isActive }
+        XCTAssertTrue(delivered)
         XCTAssertEqual(receiver.text, inserted)
 
         let command = DictationControllerHarness(text: "change friday to monday", controller: first.controller)
@@ -54,7 +63,8 @@ final class DictationSessionFixesTests: XCTestCase {
         dependencies.admission = DictationAdmission(
             acquire: { _ in .success(DictationLease(end: { ended = true })) }, isEligible: { true })
         await finish(command, dependencies)
-        _ = await TestPolling.until { command.controller.phase == .delivering }
+        let delivering = await TestPolling.until { command.controller.phase == .delivering }
+        XCTAssertTrue(delivering)
 
         command.controller.cancel()
         let settled = await TestPolling.until { ended }
@@ -80,15 +90,17 @@ final class DictationSessionFixesTests: XCTestCase {
             return .kept(.failed)
         }
         await finish(first, polishing)
-        _ = await TestPolling.until { first.controller.isPolishing }
+        let isPolishing = await TestPolling.until { first.controller.isPolishing }
+        XCTAssertTrue(isPolishing)
 
         first.controller.cancel()
         let next = DictationControllerHarness(text: "next words", controller: first.controller)
         var nextDependencies = next.dependencies
         nextDependencies.registerCancelKey = register
         first.controller.toggle(using: nextDependencies)
-        _ = await TestPolling.until { first.controller.partialText == next.text }
+        let listening = await TestPolling.until { first.controller.partialText == next.text }
 
+        XCTAssertTrue(listening)
         XCTAssertEqual(keys.last?.unregistered, false)
     }
 
@@ -103,13 +115,12 @@ final class DictationSessionFixesTests: XCTestCase {
             return true
         }
         harness.controller.toggle(using: dependencies)
-        _ = await TestPolling.until { harness.controller.partialText == text }
+        let heard = await TestPolling.until { harness.controller.partialText == text }
+        XCTAssertTrue(heard)
 
         await harness.microphone.fail(CaptureBroke())
-        _ = await TestPolling.until {
-            if case .failed = harness.controller.phase { return true }
-            return false
-        }
+        let failed = await hasFailed(harness)
+        XCTAssertTrue(failed)
         harness.controller.copyPendingText()
 
         XCTAssertTrue(harness.insertions.isEmpty)
@@ -118,20 +129,91 @@ final class DictationSessionFixesTests: XCTestCase {
         XCTAssertEqual(copied, [text])
     }
 
-    func testAFailureBeforeAnyWordsKeepsNothing() async {
+    func testAFailureThatKeptWordsCanBeClosedAndPasteLastStillHasThem() async {
+        let text = "No borres estas notas"
+        let harness = DictationControllerHarness(text: text)
+        defer { harness.controller.cancel() }
+        harness.controller.toggle(using: harness.dependencies)
+        let heard = await TestPolling.until { harness.controller.partialText == text }
+        XCTAssertTrue(heard)
+        await harness.microphone.fail(CaptureBroke())
+        let failed = await hasFailed(harness)
+        XCTAssertTrue(failed)
+
+        harness.controller.dismissFeedback()
+
+        XCTAssertEqual(harness.controller.phase, .idle)
+        XCTAssertEqual(harness.controller.recoveryText, "")
+        XCTAssertEqual(harness.controller.lastText.current, text)
+    }
+
+    func testAFailureWithNoWordsIsNotDismissedAsIfItHadThem() async {
         let harness = DictationControllerHarness(text: "words that never arrive")
         defer { harness.controller.cancel() }
         var dependencies = harness.dependencies
         dependencies.authorizeMicrophone = { false }
-
         harness.controller.toggle(using: dependencies)
-        _ = await TestPolling.until {
-            if case .failed = harness.controller.phase { return true }
-            return false
-        }
+        let failed = await hasFailed(harness)
+        XCTAssertTrue(failed)
 
+        harness.controller.dismissFeedback()
+
+        let stillFailed = await hasFailed(harness)
+        XCTAssertTrue(stillFailed)
+    }
+
+    func testACaptureFailureBeforeAnyWordsKeepsNothing() async {
+        let harness = DictationControllerHarness(text: "")
+        defer { harness.controller.cancel() }
+        harness.controller.toggle(using: harness.dependencies)
+        let listening = await TestPolling.until { harness.controller.phase == .listening }
+        XCTAssertTrue(listening)
+
+        await harness.microphone.fail(CaptureBroke())
+        let failed = await hasFailed(harness)
+
+        XCTAssertTrue(failed)
         XCTAssertEqual(harness.controller.recoveryText, "")
         XCTAssertNil(harness.controller.lastText.current)
+    }
+
+    func testAnInternalSessionsWordsNeverReachPasteLast() async {
+        let text = "make it shorter"
+        let harness = DictationControllerHarness(text: text)
+        defer { harness.controller.cancel() }
+        var dependencies = harness.dependencies
+        dependencies.deliversInternally = true
+        harness.controller.toggle(using: dependencies)
+        let heard = await TestPolling.until { harness.controller.partialText == text }
+        XCTAssertTrue(heard)
+
+        await harness.microphone.fail(CaptureBroke())
+        let failed = await hasFailed(harness)
+
+        XCTAssertTrue(failed)
+        XCTAssertEqual(harness.controller.recoveryText, "")
+        XCTAssertNil(harness.controller.lastText.current)
+    }
+
+    func testAnEngineFailureWithWordsStaysUntilTheUserActs() async {
+        struct EngineBroke: Error {}
+        let text = "No borres estas notas"
+        let harness = DictationControllerHarness(text: text)
+        defer { harness.controller.cancel() }
+        var scheduledDismissal = false
+        var dependencies = harness.dependencies
+        dependencies.waitForFeedbackDismissal = { _ in scheduledDismissal = true }
+        harness.controller.toggle(using: dependencies)
+        let heard = await TestPolling.until { harness.controller.partialText == text }
+        XCTAssertTrue(heard)
+
+        harness.transcriptOutput?.finish(throwing: EngineBroke())
+        let failed = await hasFailed(harness)
+        await Task.yield()
+
+        XCTAssertTrue(failed)
+        XCTAssertFalse(scheduledDismissal)
+        XCTAssertEqual(harness.controller.recoveryText, text)
     }
 
     func testClearingTheLastTextClearsTheSessionsCopies() async {
@@ -143,7 +225,8 @@ final class DictationSessionFixesTests: XCTestCase {
         var dependencies = harness.dependencies
         dependencies.beginHistory = { { _ in true } }
         await finish(harness, dependencies)
-        _ = await TestPolling.until { harness.insertions == [text] && !harness.controller.isActive }
+        let delivered = await TestPolling.until { harness.insertions == [text] && !harness.controller.isActive }
+        XCTAssertTrue(delivered)
         XCTAssertEqual(harness.controller.confirmedText, text)
         XCTAssertEqual(harness.controller.history?.hasDraft, true)
 
@@ -161,7 +244,8 @@ final class DictationSessionFixesTests: XCTestCase {
             text: text, controller: DictationController(presentsPanel: false, lastText: last))
         defer { harness.controller.cancel() }
         harness.controller.toggle(using: harness.dependencies)
-        _ = await TestPolling.until { harness.controller.partialText == text }
+        let heard = await TestPolling.until { harness.controller.partialText == text }
+        XCTAssertTrue(heard)
 
         last.clear()
 
@@ -173,18 +257,20 @@ final class DictationSessionFixesTests: XCTestCase {
         let harness = DictationControllerHarness(text: text)
         defer { harness.controller.cancel() }
         await finish(harness, harness.dependencies)
-        _ = await TestPolling.until { harness.insertions == [text] && !harness.controller.isActive }
+        let delivered = await TestPolling.until { harness.insertions == [text] && !harness.controller.isActive }
+        XCTAssertTrue(delivered)
 
         var release: CheckedContinuation<Void, Never>?
-        var holding = harness.dependencies
-        holding.captureDestination = {
+        var held = harness.dependencies
+        held.captureDestination = {
             CapturedDictationDestination(name: "Receiver", canRetry: true) { _ in
                 await withCheckedContinuation { release = $0 }
                 return .dispatched
             }
         }
-        harness.controller.pasteLastDictation(using: holding)
-        _ = await TestPolling.until { release != nil }
+        harness.controller.pasteLastDictation(using: held)
+        let holding = await TestPolling.until { release != nil }
+        XCTAssertTrue(holding)
         harness.controller.dismissFeedback()
         release?.resume()
         let freed = await TestPolling.until { harness.controller.retryDeliveryTask == nil }

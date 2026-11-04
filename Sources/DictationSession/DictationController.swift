@@ -528,7 +528,9 @@ private extension DictationController {
     }
 
     /// Read before the session completes, while its text policy still applies.
+    /// An internal destination's words are not dictation, so Paste last never keeps them.
     func heardWords() -> String? {
+        guard dependencies?.deliversInternally != true else { return nil }
         let heard = textPolicy.applying(to: DictationAssembler.text(confirmed: confirmedText, partial: partialText))
         return DictationAssembler.hasLexicalContent(heard) ? heard : nil
     }
@@ -722,6 +724,7 @@ extension DictationController {
     func dismissFeedback() {
         switch phase {
         case .verified, .dispatched: closeFeedback()
+        case .failed where !recoveryText.isEmpty: closeFeedback()
         default: return
         }
     }
