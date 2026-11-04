@@ -127,15 +127,6 @@ final class DictationController {
         self.lastText.onClear = { [weak self] in self?.forgetDictatedText() }
     }
 
-    /// When Paste last ends, the same words leave the session's state too, unless a session is using them.
-    private func forgetDictatedText() {
-        guard !isActive else { return }
-        confirmedText = ""
-        partialText = ""
-        lastInsertion = nil
-        history?.forgetDraft()
-    }
-
     private func showPanel() {
         if presentsPanel { panel.show(controller: self) }
     }
@@ -517,22 +508,40 @@ final class DictationController {
         guard activeSessionID == id else { return }
         let wait: @MainActor (Duration) async throws -> Void = sessionFeedbackWait
             ?? { try await Task.sleep(for: $0) }
-        let heard = keepsWords
-            ? textPolicy.applying(to: DictationAssembler.text(confirmed: confirmedText, partial: partialText)) : ""
-        let keptWords = DictationAssembler.hasLexicalContent(heard)
+        let heard = keepsWords ? heardWords() : nil
         completeSession(id: id)
         destination = nil
-        if keptWords {
-            lastText.remember(heard)
-            recoveryText = heard
-            copyStatus = .idle
-        } else {
-            dependencies = nil
-        }
+        keepAfterFailure(heard)
         phase = .failed(message)
-        if autoDismiss, !keptWords { scheduleFeedbackDismiss(after: .seconds(6), wait: wait) }
+        if autoDismiss, heard == nil { scheduleFeedbackDismiss(after: .seconds(6), wait: wait) }
+    }
+}
+
+private extension DictationController {
+    /// When Paste last ends, the same words leave the session's state too, unless a session is using them.
+    func forgetDictatedText() {
+        guard !isActive else { return }
+        confirmedText = ""
+        partialText = ""
+        lastInsertion = nil
+        history?.forgetDraft()
     }
 
+    /// Read before the session completes, while its text policy still applies.
+    func heardWords() -> String? {
+        let heard = textPolicy.applying(to: DictationAssembler.text(confirmed: confirmedText, partial: partialText))
+        return DictationAssembler.hasLexicalContent(heard) ? heard : nil
+    }
+
+    func keepAfterFailure(_ heard: String?) {
+        guard let heard else {
+            dependencies = nil
+            return
+        }
+        lastText.remember(heard)
+        recoveryText = heard
+        copyStatus = .idle
+    }
 }
 
 private extension DictationController {
