@@ -1,0 +1,277 @@
+import Foundation
+import SpeechCore
+
+/// Merges live caption deltas into readable, sentence-shaped rows.
+///
+/// The live path emits sub-sentence deltas (one per ~1 s chunk); as list rows
+/// they read as noise ("ration of" / "ation overall") and explode the row
+/// count on long meetings. The coalescer grows the newest row while it stays
+/// on the same channel, so one intervention reads as one line, and starts a
+/// new row when the sentence closed and the speaker actually paused.
+///
+/// The newest row normally grows. Replacing a microphone echo can expose and
+/// extend the preceding remote row; consumers must honor the returned
+/// invalidation index rather than assume the closed prefix never changes.
+public struct CaptionCoalescer: Sendable {
+    /// Cross-channel comparisons stay bounded so a long meeting never turns
+    /// live caption admission into a whole-transcript scan.
+    private static let micBleedLookbackRows = 12
+
+    /// A silence this long always starts a new row, even mid-sentence.
+    public var maxGapSeconds: TimeInterval
+    /// After a closed sentence, a pause this long starts a new row; quicker
+    /// follow-ups keep flowing speech together.
+    public var sentencePauseSeconds: TimeInterval
+    /// Remote/system audio contains every non-user speaker. Without live
+    /// diarization, a shorter post-sentence pause keeps back-to-back people
+    /// visible as separate "Ellos" rows before the refine pass.
+    public var systemSentencePauseSeconds: TimeInterval
+    /// A row longer than this closes at the next delta regardless, keeping
+    /// rows scannable.
+    public var maxRowCharacters: Int
+
+    public init(
+        maxGapSeconds: TimeInterval = 6.0,
+        sentencePauseSeconds: TimeInterval = 2.0,
+        systemSentencePauseSeconds: TimeInterval = 0.6,
+        maxRowCharacters: Int = 280
+    ) {
+        self.maxGapSeconds = maxGapSeconds
+        self.sentencePauseSeconds = sentencePauseSeconds
+        self.systemSentencePauseSeconds = systemSentencePauseSeconds
+        self.maxRowCharacters = maxRowCharacters
+    }
+
+    /// Folds one live delta into the caption list: extends the newest row
+    /// when it belongs to the same channel and is still "open", appends a
+    /// fresh row otherwise. The merged row keeps its identity (`id`,
+    /// `startTime`) so UI diffing and translation caches stay stable.
+    /// Returns the earliest written row index; every preceding row is unchanged.
+    /// `nil` means admission left the list untouched. A replacement can reduce
+    /// the count and reopen a preceding row, so count growth is not invalidation.
+    @discardableResult
+    public func apply(_ segment: TranscriptSegment, to captions: inout [TranscriptSegment]) -> Int? {
+        guard segment.liveUpdateMode != .tokenPreview else { return nil }
+        let text = segment.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return nil }
+        let hasLexicalContent = TranscriptionTextFilter.hasLexicalContent(text)
+        if !hasLexicalContent {
+            return appendPunctuationOnlyDelta(text, from: segment, to: &captions)
+        }
+        // Low mic signal produces character noise ("DDDDD") — never a row.
+        if TranscriptionTextFilter.isCharacterNoise(text) { return nil }
+        if suppressMicrophoneBleed(segment, in: &captions) { return nil }
+
+        guard let last = captions.last, last.channel == segment.channel,
+            shouldExtend(last, with: segment)
+        else {
+            var fresh = segment
+            fresh.text = text
+            captions.append(fresh)
+            return captions.count - 1
+        }
+
+        captions[captions.count - 1] = TranscriptSegment(
+            id: last.id,
+            meetingID: last.meetingID,
+            speakerID: last.speakerID,
+            channel: last.channel,
+            text: Self.join(last.text, text, mode: segment.liveUpdateMode),
+            language: last.language ?? segment.language,
+            startTime: last.startTime,
+            endTime: max(last.endTime, segment.endTime),
+            confidence: last.confidence,
+            isFinal: segment.isFinal
+        )
+        return captions.count - 1
+    }
+
+    /// The system tap is the direct source for remote participants. When the
+    /// room copy reaches the microphone, Parakeet can emit the same phrase on
+    /// both channels a fraction of a second apart. Prefer the direct system
+    /// row, whether it arrived before or after the microphone copy.
+    ///
+    /// One-word acknowledgements remain untouched. Exact two-word copies are
+    /// suppressed only when the channel timelines truly overlap; sequential
+    /// "thank you" turns remain separate.
+    private func suppressMicrophoneBleed(
+        _ incoming: TranscriptSegment,
+        in captions: inout [TranscriptSegment]
+    ) -> Bool {
+        let lowerBound = max(0, captions.count - Self.micBleedLookbackRows)
+        let recentRemote = captions[lowerBound...].filter(Self.isRemoteChannel)
+
+        if incoming.channel == .microphone {
+            return MicBleedFilter.isBleed(incoming, system: Array(recentRemote))
+        }
+        guard Self.isRemoteChannel(incoming) else { return false }
+
+        // Never remove a closed microphone row: consumers may retain its
+        // identity. Only the newest microphone row is eligible for removal.
+        // Removing the tail can reopen the preceding remote row; apply
+        // reports that earlier invalidation. The normal delayed-callback
+        // case is adjacent: a microphone copy opens, then the direct system
+        // result arrives and replaces it before it closes.
+        if let index = captions.indices.last,
+            captions[index].channel == .microphone,
+            MicBleedFilter.isBleed(
+                captions[index],
+                system: Array(recentRemote) + [incoming]) {
+            captions.remove(at: index)
+        }
+        return false
+    }
+
+    /// Whether `segment` would extend the open row instead of starting one.
+    public func extendsOpenRow(_ segment: TranscriptSegment, in captions: [TranscriptSegment]) -> Bool {
+        guard let last = captions.last, last.channel == segment.channel else { return false }
+        return shouldExtend(last, with: segment)
+    }
+
+    private static func isRemoteChannel(_ segment: TranscriptSegment) -> Bool {
+        segment.channel == .system || segment.channel == .room
+    }
+
+    private func shouldExtend(_ last: TranscriptSegment, with segment: TranscriptSegment) -> Bool {
+        // A delayed callback can describe audio that predates the current
+        // open row. Never fold that older turn into newer visible speech;
+        // append it with its own stable identity instead. Normal chunk
+        // overlap remains mergeable because its start is still at or after
+        // the row's original start.
+        guard segment.startTime >= last.startTime else { return false }
+        // A subword continues the row's last word; caps and pauses cannot split it.
+        if segment.liveUpdateMode == .tokenContinuation { return true }
+        let gap = segment.startTime - last.endTime
+        guard gap < maxGapSeconds else { return false }
+        guard last.text.count < maxRowCharacters else { return false }
+        if Self.endsSentence(last.text) {
+            return gap < sentencePauseSeconds(for: last.channel)
+        }
+        return true
+    }
+
+    private func sentencePauseSeconds(for channel: AudioChannel) -> TimeInterval {
+        switch channel {
+        case .system, .room:
+            systemSentencePauseSeconds
+        case .microphone:
+            sentencePauseSeconds
+        }
+    }
+
+    private func appendPunctuationOnlyDelta(
+        _ text: String,
+        from segment: TranscriptSegment,
+        to captions: inout [TranscriptSegment]
+    ) -> Int? {
+        guard
+            let last = captions.last,
+            last.channel == segment.channel,
+            shouldExtend(last, with: segment),
+            segment.liveUpdateMode == .tokenDelta || segment.liveUpdateMode == .tokenContinuation
+                || text.contains(where: { ".!?…".contains($0) }),
+            // A real sentence closer is 1-3 characters ("." / "?!" / "…");
+            // longer runs ("....") are low-signal noise, unless the producer committed them.
+            text.count <= 3 || segment.liveUpdateMode == .tokenDelta
+                || segment.liveUpdateMode == .tokenContinuation
+        else { return nil }
+
+        captions[captions.count - 1] = TranscriptSegment(
+            id: last.id,
+            meetingID: last.meetingID,
+            speakerID: last.speakerID,
+            channel: last.channel,
+            text: Self.join(last.text, text, mode: segment.liveUpdateMode),
+            language: last.language ?? segment.language,
+            startTime: last.startTime,
+            endTime: max(last.endTime, segment.endTime),
+            confidence: last.confidence,
+            isFinal: segment.isFinal
+        )
+        return captions.count - 1
+    }
+
+    static func endsSentence(_ text: String) -> Bool {
+        guard let final = text.trimmingCharacters(in: .whitespacesAndNewlines).last else {
+            return false
+        }
+        return ".!?…".contains(final)
+    }
+
+    /// Producer-owned tokens preserve repetitions and subword boundaries.
+    private static func join(_ head: String, _ tail: String, mode: LiveTranscriptUpdateMode?) -> String {
+        guard mode == .tokenDelta || mode == .tokenContinuation else { return join(head, tail) }
+        guard let first = tail.first else { return head }
+        if mode == .tokenContinuation || ".,;:!?…)".contains(first) { return head + tail }
+        return head + " " + tail
+    }
+
+    /// Deltas that open with punctuation glue onto the row; words get a space.
+    ///
+    /// The live engine re-emits the tail of the previous chunk at every
+    /// chunk boundary ("we added" + "ed a select all" + "all button"), so a
+    /// naive concatenation stutters — a real 56-min meeting had the echo in
+    /// 54% of its rows. The overlap trim below removes the longest character
+    /// overlap between the row's end and the delta's start before joining.
+    static func join(_ head: String, _ tail: String) -> String {
+        let (trimmed, continuesWord) = trimOverlap(head: head, tail: tail)
+        guard let first = trimmed.first else { return head }
+        if continuesWord || ".,;:!?…)".contains(first) {
+            return head + trimmed
+        }
+        return head + " " + trimmed
+    }
+
+    /// Longest suffix of `head` that the delta re-emits as its prefix,
+    /// capped at 30 characters, minimum 3 ("select all" + "all button",
+    /// "subscription" + "criptions page", "percent" + "cent now"). The
+    /// deliberate trade-off is that a REAL immediate repetition ("very very
+    /// good") also collapses — far rarer than the engine's chunk echo.
+    /// Returns the delta with the echoed overlap removed, plus whether the
+    /// leftover continues the head's last word ("subscription" +
+    /// "criptions page" → rest "s page" glues: "subscriptions page").
+    static func trimOverlap(head: String, tail: String) -> (rest: String, continuesWord: Bool) {
+        let headCompare = head.lowercased()
+        let tailCompare = tail.lowercased()
+        let maxOverlap = min(30, headCompare.count, tailCompare.count)
+        for length in stride(from: maxOverlap, through: 3, by: -1) {
+            let suffix = headCompare.suffix(length)
+            guard tailCompare.hasPrefix(suffix) else { continue }
+            var rest = String(tail.dropFirst(length))
+            if rest.first == " " {
+                rest.removeFirst()
+                return (rest, false)
+            }
+            // Mid-word cut: the leftover letters finish the head's word.
+            return (rest, rest.first?.isLetter == true)
+        }
+        return (trimSplitWordEcho(head: headCompare, tail: tail), false)
+    }
+
+    /// English/Spanish words the split-word rule must never eat: they are
+    /// legitimate sentence starters that happen to be common word suffixes
+    /// ("the plan" + "an idea", "I said" + "id number").
+    private static let protectedShortWords: Set<Substring> = [
+        "an", "at", "as", "in", "on", "it", "is", "id", "be", "he", "me", "we",
+        "do", "go", "no", "so", "to", "up", "or", "of", "us", "my", "by", "if",
+        "es", "en", "un", "el", "la", "lo", "de", "se", "te", "si", "ya", "ha", "le"
+    ]
+
+    /// The engine also splits WORDS at chunk boundaries and re-emits the
+    /// fragment: "we added" + "ed a select…". The 2-character overlap is
+    /// below the general minimum, so this narrower rule handles it: drop
+    /// the tail's first token when it is a strict suffix of the head's last
+    /// word AND not a real short word on its own.
+    private static func trimSplitWordEcho(head: String, tail: String) -> String {
+        let token = tail.lowercased().prefix { $0.isLetter }
+        guard token.count >= 2, token.count <= 10,
+            !protectedShortWords.contains(token),
+            let lastWord = head.split(whereSeparator: { !$0.isLetter }).last,
+            lastWord.count > token.count,
+            lastWord.hasSuffix(token)
+        else { return tail }
+        var rest = String(tail.dropFirst(token.count))
+        if rest.first == " " { rest.removeFirst() }
+        return rest
+    }
+}
