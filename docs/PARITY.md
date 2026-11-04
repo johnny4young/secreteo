@@ -22,7 +22,9 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Parakeet Ultra | `AppServices+ParakeetUltra` | `ParakeetUltraSelectionTests`, `ParakeetUltraRuntimeTests` | | Pending, P2 |
 | Apple Speech | `SpeechAnalyzerLiveEngine`, `SpeechAnalyzerEngine` | `SpeechAnalyzerLiveEngineTests`, `SpeechAnalyzerLifetimeTests` | | Pending, P2 |
 | Silero voice detection | `SileroVoiceActivityDetector`, `SileroSpeechRegionDetector` | `SileroVoiceActivityDetectorTests` | | Pending, P2 |
-| Microphone capture and choice | `MicrophoneSource`, `AudioDeviceCatalog`, `MicrophoneInputSelection` | `AudioCaptureTests` | | Pending, P2 |
+| Microphone capture | `MicrophoneSource`, `AudioDeviceCatalog`, `CaptureDeliveryBuffer` | `AudioCaptureTests`, `CaptureDeliveryBufferTests`, `MicrophoneTapTransitionTests`, `LinearResamplerTests`, `CapturePCMGeometryTests` | The same tests | Ported |
+| Microphone permission | `MicrophonePermissionClient` | `MicrophonePermissionClientTests` | `MicrophonePermissionClientTests` | Ported |
+| Choice of microphone | `MicrophoneInputSelection` | `DictationReadinessTests` | | Pending, P3 |
 | Model download and storage | `ModelStore`, then `LocalModelStore` | `ModelStoreDownloadFailureTests` | | Pending, P2 |
 | Choice of live engine | `LiveSpeechSelection` | `LiveSpeechSelectionTests` | | Pending, P2 |
 

@@ -28,7 +28,7 @@ class PortDiffTests(unittest.TestCase):
             return code, output.getvalue()
 
     def test_a_rename_alone_matches(self):
-        code, output = self.run_diff("Renames", "import DictationKit\nlet a = 1\n", "import PortavozCore\nlet a = 1\n")
+        code, output = self.run_diff("Renames", "import SpeechCore\nlet a = 1\n", "import PortavozCore\nlet a = 1\n")
 
         self.assertEqual(code, 0)
         self.assertIn("a.swift: same", output)

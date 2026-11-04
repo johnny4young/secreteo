@@ -7,8 +7,9 @@ import sys
 from pathlib import Path
 
 RENAMES = [
-    ("import PortavozCore", "import DictationKit"),
     ("import TranscriptionKit", "import DictationKit"),
+    ("import AudioCaptureKit", "import MicCapture"),
+    ("import PlatformKit", "import MicCapture"),
 ]
 ROW = re.compile(r"^\| `([^`]+)` \| `([^`]+)` \| (.+?) \|$")
 SECTION = "## Dictation code"
@@ -22,14 +23,17 @@ def rows(provenance: str):
             yield match.groups()
 
 
-def renamed(source: str) -> list[str]:
+def renamed(source: str, ported_path: str) -> list[str]:
+    # Core split in two: the dictation domain went to DictationKit and the rest to SpeechCore.
+    core = "DictationKit" if "DictationKit" in ported_path else "SpeechCore"
+    source = source.replace("import PortavozCore", f"import {core}")
     for old, new in RENAMES:
         source = source.replace(old, new)
     return source.splitlines()
 
 
-def changes(ported: str, source: str) -> list[str]:
-    diff = difflib.unified_diff(renamed(source), ported.splitlines(), "export", "ported", lineterm="", n=0)
+def changes(ported: str, source: str, ported_path: str) -> list[str]:
+    diff = difflib.unified_diff(renamed(source, ported_path), ported.splitlines(), "export", "ported", lineterm="", n=0)
     return [line for line in diff if not line.startswith(("---", "+++", "@@"))]
 
 
@@ -43,7 +47,7 @@ def main(arguments: list[str], root: Path) -> int:
         return 1
     failed = False
     for ported, source, change in table:
-        found = changes((root / ported).read_text(), (options.export / source).read_text())
+        found = changes((root / ported).read_text(), (options.export / source).read_text(), ported)
         if change == "Renames":
             print(f"{ported}: {'same' if not found else 'DIFFERS'}")
             failed = failed or bool(found)
