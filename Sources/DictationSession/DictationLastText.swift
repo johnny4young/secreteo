@@ -16,9 +16,17 @@ final class DictationLastText {
     private var storedAt: Date?
     @ObservationIgnored private let now: () -> Date
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
+    @ObservationIgnored private let waitForExpiry: @MainActor (Duration) async -> Void
+    @ObservationIgnored private var expiry: Task<Void, Never>?
 
-    init(now: @escaping () -> Date = Date.init, observesSystem: Bool = true) {
+    var hasStoredText: Bool { text != nil }
+
+    init(
+        now: @escaping () -> Date = Date.init, observesSystem: Bool = true,
+        waitForExpiry: @escaping @MainActor (Duration) async -> Void = { try? await Task.sleep(for: $0) }
+    ) {
         self.now = now
+        self.waitForExpiry = waitForExpiry
         guard observesSystem else { return }
         let workspace = NSWorkspace.shared.notificationCenter
         let distributed = DistributedNotificationCenter.default()
@@ -60,9 +68,18 @@ final class DictationLastText {
         self.alternate = alternate == value ? nil : alternate
         alternateIsOriginal = self.alternate != nil && isOriginal
         storedAt = now()
+        expiry?.cancel()
+        // Expired text leaves memory on time, whether or not anything asks for it.
+        expiry = Task { [weak self, waitForExpiry] in
+            await waitForExpiry(.seconds(Self.lifetime))
+            guard !Task.isCancelled else { return }
+            self?.clear()
+        }
     }
 
     func clear() {
+        expiry?.cancel()
+        expiry = nil
         text = nil
         alternate = nil
         alternateIsOriginal = false

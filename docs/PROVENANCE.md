@@ -99,13 +99,13 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/DictationSessionTests/Delivery/TextInsertionTargetTests.swift` | `Tests/PortavozAppTests/TextInsertionTargetTests.swift` | Renames |
 | `Tests/DictationSessionTests/Support/TestPolling.swift` | `Tests/PortavozTestSupport/TestPolling.swift` | Renames |
 | `Tests/DictationSessionTests/Support/ControlledTestSleep.swift` | `Tests/PortavozTestSupport/ControlledTestSleep.swift` | Renames |
-| `Sources/DictationSession/AppLanguage.swift` | `Sources/portavoz-app/AppLanguage.swift` | Renames |
+| `Sources/DictationSession/AppLanguage.swift` | `Sources/portavoz-app/AppLanguage.swift` | Extract: without the view modifier, which arrives with Settings |
 | `Sources/DictationSession/DictationAutoStop.swift` | `Sources/portavoz-app/DictationAutoStop.swift` | Seam: imports `LiveSpeech`, uses `LocalModelStore` |
 | `Sources/DictationSession/DictationCaptureOwnership.swift` | `Sources/portavoz-app/DictationCaptureOwnership.swift` | Renames |
 | `Sources/DictationSession/DictationCapturePolicy.swift` | `Sources/portavoz-app/DictationCapturePolicy.swift` | Seam: imports `SpeechCore` |
 | `Sources/DictationSession/DictationCorrections.swift` | `Sources/portavoz-app/DictationCorrections.swift` | Renames |
 | `Sources/DictationSession/DictationFeedbackTimer.swift` | `Sources/portavoz-app/DictationFeedbackTimer.swift` | Renames |
-| `Sources/DictationSession/DictationLastText.swift` | `Sources/portavoz-app/DictationLastText.swift` | Renames |
+| `Sources/DictationSession/DictationLastText.swift` | `Sources/portavoz-app/DictationLastText.swift` | Seam: expired text leaves memory on time |
 | `Sources/DictationSession/DictationMicrophoneReadiness.swift` | `Sources/portavoz-app/DictationMicrophoneReadiness.swift` | Seam: imports `SpeechCore` |
 | `Sources/DictationSession/DictationPauseDetector.swift` | `Sources/portavoz-app/DictationPauseDetector.swift` | Seam: imports `SpeechCore` |
 | `Sources/DictationSession/DictationRuntimeAcquisition.swift` | `Sources/portavoz-app/DictationRuntimeAcquisition.swift` | Renames |

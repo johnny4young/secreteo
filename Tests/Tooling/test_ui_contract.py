@@ -12,6 +12,7 @@ LITERAL = re.compile(
     r'(?:\bText|\bButton|\bToggle|\bLabel|\bLabeledContent)\(\s*"([^"\\]+)"'
     r'|String\(localized:\s*"([^"\\]+)"'
     r'|MenuRow\(title:\s*"([^"\\]+)"'
+    r'|L10n\.(?:text|format)\(\s*"([^"\\]+)"'
 )
 # A locale also takes `identifier:`, and it names no control.
 IDENTIFIER = re.compile(r'accessibilityIdentifier\("([^"]+)"\)|(?<!Locale\()identifier:\s*"([a-z][a-z-]+)"')

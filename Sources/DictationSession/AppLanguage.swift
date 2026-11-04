@@ -1,8 +1,6 @@
 import Foundation
-import SwiftUI
 
-/// User-facing app UI language. This only affects Secreteo chrome; transcript
-/// and summary policies remain independent in Intelligence settings.
+/// User-facing app UI language. This only affects Secreteo chrome, not the dictated language.
 enum AppLanguage: String, CaseIterable, Identifiable, Sendable {
     case system
     case english = "en"
@@ -35,21 +33,5 @@ enum AppLanguage: String, CaseIterable, Identifiable, Sendable {
 
     static func fromStorage(_ rawValue: String) -> AppLanguage {
         AppLanguage(rawValue: rawValue) ?? .system
-    }
-}
-
-private struct AppLocaleModifier: ViewModifier {
-    @AppStorage(AppLanguage.storageKey) private var appLanguageRaw = AppLanguage.system.rawValue
-
-    func body(content: Content) -> some View {
-        let language = AppLanguage.fromStorage(appLanguageRaw)
-        content.environment(\.locale, language.locale)
-    }
-}
-
-extension View {
-    /// Applies Secreteo's app-only language override to SwiftUI-localized UI.
-    func secreteoLocalized() -> some View {
-        modifier(AppLocaleModifier())
     }
 }

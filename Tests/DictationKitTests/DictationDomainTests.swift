@@ -192,7 +192,7 @@ struct ModuleImportTests {
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("Sources/\(target)")
         var found = Set<String>()
-        for name in try FileManager.default.contentsOfDirectory(atPath: sources.path) {
+        for name in try FileManager.default.contentsOfDirectory(atPath: sources.path) where name.hasSuffix(".swift") {
             let text = try String(contentsOf: sources.appendingPathComponent(name), encoding: .utf8)
             let lines = text.split(separator: "\n").map { String($0).trimmingCharacters(in: .whitespaces) }
             // Attributes and access levels come before the keyword, as in `@preconcurrency import AppKit`.
@@ -225,6 +225,12 @@ struct ModuleImportTests {
             "SpeechCore"
         ]
         #expect(try imports(ofTarget: "LiveSpeech").isSubset(of: allowed))
+    }
+
+    @Test
+    func sessionPartsStayFreeOfUIAndTheStore() throws {
+        let forbidden: Set<String> = ["AppUI", "GRDB", "Sparkle", "SwiftUI"]
+        #expect(try imports(ofTarget: "DictationSession").isDisjoint(with: forbidden))
     }
 
     @Test

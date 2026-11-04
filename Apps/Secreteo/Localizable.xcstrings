@@ -2,6 +2,86 @@
   "sourceLanguage": "en",
   "version": "1.0",
   "strings": {
+    "Allow microphone access in System Settings, then try dictation again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow microphone access in System Settings, then try dictation again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permite el acceso al micrófono en Ajustes del Sistema y vuelve a intentar el dictado."
+          }
+        }
+      }
+    },
+    "Apple Speech could not start. Try Parakeet in Dictation settings.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Speech could not start. Try Parakeet in Dictation settings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Speech no pudo iniciarse. Prueba Parakeet en los ajustes de Dictado."
+          }
+        }
+      }
+    },
+    "Apple Speech does not support this language. Choose Parakeet in Dictation settings.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Speech does not support this language. Choose Parakeet in Dictation settings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Speech no admite este idioma. Elige Parakeet en los ajustes de Dictado."
+          }
+        }
+      }
+    },
+    "Apple Speech is unavailable. Choose Parakeet in Dictation settings.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Speech is unavailable. Choose Parakeet in Dictation settings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Speech no está disponible. Elige Parakeet en los ajustes de Dictado."
+          }
+        }
+      }
+    },
+    "Audio capture was interrupted. Nothing was inserted. Try dictating again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio capture was interrupted. Nothing was inserted. Try dictating again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se interrumpió la captura de audio. No se insertó nada. Vuelve a dictar."
+          }
+        }
+      }
+    },
     "Check for Updates…": {
       "localizations": {
         "en": {
@@ -14,6 +94,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Buscar actualizaciones…"
+          }
+        }
+      }
+    },
+    "Choose English or Spanish for Apple Speech in Dictation settings.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose English or Spanish for Apple Speech in Dictation settings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige inglés o español para Apple Speech en los ajustes de Dictado."
           }
         }
       }
@@ -98,6 +194,22 @@
         }
       }
     },
+    "Dictation failed: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictation failed: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El dictado falló: %@"
+          }
+        }
+      }
+    },
     "Edit": {
       "localizations": {
         "en": {
@@ -162,6 +274,38 @@
         }
       }
     },
+    "No microphone audio arrived. Check the microphone in Audio settings and try again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No microphone audio arrived. Check the microphone in Audio settings and try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No llegó audio del micrófono. Revisa el micrófono en los ajustes de Audio e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "No microphone is available. Choose an input in Audio settings and try again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No microphone is available. Choose an input in Audio settings and try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay un micrófono disponible. Elige una entrada en los ajustes de Audio e inténtalo de nuevo."
+          }
+        }
+      }
+    },
     "Not Now": {
       "localizations": {
         "en": {
@@ -222,6 +366,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pegar"
+          }
+        }
+      }
+    },
+    "Prepare the Apple Speech language asset in Dictation settings first.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prepare the Apple Speech language asset in Dictation settings first."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primero prepara el recurso de idioma de Apple Speech en los ajustes de Dictado."
           }
         }
       }
@@ -302,6 +462,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ajustes…"
+          }
+        }
+      }
+    },
+    "The dictation session ended unexpectedly. Nothing was typed.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The dictation session ended unexpectedly. Nothing was typed."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La sesión de dictado terminó inesperadamente. No se escribió nada."
+          }
+        }
+      }
+    },
+    "The microphone sent unusable audio. Check the input device and try again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The microphone sent unusable audio. Check the input device and try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El micrófono envió audio no válido. Revisa el dispositivo de entrada e inténtalo de nuevo."
           }
         }
       }

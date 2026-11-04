@@ -2,7 +2,7 @@ import Foundation
 import DictationKit
 import LiveSpeech
 
-/// Dictation defaults to Ultra (D613), which falls back to v3 until the person downloads it.
+/// Dictation defaults to Ultra, which falls back to v3 until the person downloads it.
 enum LiveSpeechSelection: String, CaseIterable {
     case parakeet
     case parakeetUltra
