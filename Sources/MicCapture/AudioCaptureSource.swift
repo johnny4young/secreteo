@@ -1,0 +1,27 @@
+import Foundation
+import SpeechCore
+
+/// A source of audio (microphone, per-app system tap, room device).
+/// Implementations: `MicrophoneSource` (AVAudioEngine), `ProcessTapSource`
+/// (Core Audio process taps). Arrives in M1.
+public protocol AudioCaptureSource: Sendable {
+    var channel: AudioChannel { get }
+    /// Starts capture. The stream finishes on `stop()` and throws on device errors.
+    func start() async throws -> AsyncThrowingStream<AudioChunk, Error>
+    func stop() async
+}
+
+/// Optional capability for sources that can rebuild their platform graph
+/// without ending the recording stream. RecordingSession discovers this
+/// capability after a liveness stall; ordinary sources remain valid and are
+/// still reported as stalled even when they cannot recover in place.
+public protocol RecoverableAudioCaptureSource: AudioCaptureSource {
+    func requestRecovery() async
+}
+
+/// Optional producer-side authority. Legacy/external sources remain valid but
+/// cannot claim known accepted/rejected counts. Notifications carry no PCM.
+public protocol CaptureReportingSource: AudioCaptureSource {
+    var captureReport: CaptureChannelReport { get }
+    func setCaptureFailureHandler(_ handler: @escaping @Sendable () -> Void)
+}

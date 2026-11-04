@@ -12,26 +12,38 @@ spec.loader.exec_module(port_diff)
 
 
 class PortDiffTests(unittest.TestCase):
-    def run_diff(self, change: str, ported: str, source: str) -> tuple[int, str]:
+    def run_diff(self, change: str, ported: str, source: str, ported_path: str = "a.swift") -> tuple[int, str]:
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder) / "repo"
             export = Path(folder) / "export"
             (root / "docs").mkdir(parents=True)
             export.mkdir()
-            (root / "a.swift").write_text(ported)
+            (root / ported_path).parent.mkdir(parents=True, exist_ok=True)
+            (root / ported_path).write_text(ported)
             (export / "b.swift").write_text(source)
             (root / "docs/PROVENANCE.md").write_text(
-                f"## Dictation code\n\n| `a.swift` | `b.swift` | {change} |\n\n## Other\n\n| `x` | `y` | z |\n")
+                f"## Dictation code\n\n| `{ported_path}` | `b.swift` | {change} |\n\n## Other\n\n| `x` | `y` | z |\n")
             output = StringIO()
             with redirect_stdout(output):
                 code = port_diff.main([str(export)], root)
             return code, output.getvalue()
 
     def test_a_rename_alone_matches(self):
-        code, output = self.run_diff("Renames", "import DictationKit\nlet a = 1\n", "import PortavozCore\nlet a = 1\n")
+        code, output = self.run_diff("Renames", "import SpeechCore\nlet a = 1\n", "import PortavozCore\nlet a = 1\n")
 
         self.assertEqual(code, 0)
         self.assertIn("a.swift: same", output)
+
+    def test_core_goes_to_the_domain_by_destination(self):
+        code, _ = self.run_diff(
+            "Renames", "import DictationKit\n", "import PortavozCore\n", ported_path="Sources/DictationKit/a.swift")
+
+        self.assertEqual(code, 0)
+
+    def test_core_outside_the_domain_is_not_dictation_kit(self):
+        code, _ = self.run_diff("Renames", "import DictationKit\n", "import PortavozCore\n")
+
+        self.assertEqual(code, 1)
 
     def test_any_other_change_to_a_renamed_file_fails(self):
         code, output = self.run_diff("Renames", "let a = 2\n", "let a = 1\n")

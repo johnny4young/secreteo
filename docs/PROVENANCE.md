@@ -30,6 +30,24 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/DictationKitTests/DictationCorrectionCommandTests.swift` | `Tests/PortavozAppTests/DictationCorrectionTests.swift` | Extract: the tests with no app |
 | `Tests/DictationKitTests/DictationRecipeFidelityTests.swift` | `Tests/PortavozAppTests/DictationRecipeTests.swift` | Extract: the tests with no app |
 | `Tests/DictationKitTests/DictationStatsTests.swift` | `Tests/PortavozAppTests/DictationStatsTests.swift` | Extract: the tests with no app |
+| `Sources/MicCapture/AudioDeviceCatalog.swift` | `Sources/AudioCaptureKit/AudioDeviceCatalog.swift` | Renames |
+| `Sources/MicCapture/Support.swift` | `Sources/AudioCaptureKit/Support.swift` | Renames |
+| `Sources/MicCapture/Downmix.swift` | `Sources/AudioCaptureKit/Downmix.swift` | Renames |
+| `Sources/MicCapture/CapturePCMGeometry.swift` | `Sources/AudioCaptureKit/CapturePCMGeometry.swift` | Renames |
+| `Sources/MicCapture/CaptureDeliveryBuffer.swift` | `Sources/AudioCaptureKit/CaptureDeliveryBuffer.swift` | Renames |
+| `Sources/MicCapture/AudioCaptureSource.swift` | `Sources/AudioCaptureKit/AudioCaptureSource.swift` | Seam: no `AudioRetentionPolicy`, which only meetings use |
+| `Sources/MicCapture/MicrophoneSource.swift` | `Sources/AudioCaptureKit/MicrophoneSource.swift` | Seam: queue label and two comments name Secreteo |
+| `Sources/MicCapture/MicrophonePermissionClient.swift` | `Sources/PlatformKit/MicrophonePermissionClient.swift` | Renames |
+| `Sources/SpeechCore/CaptureReport.swift` | `Sources/PortavozCore/CaptureReport.swift` | Renames |
+| `Sources/SpeechCore/StreamingLinearResampler.swift` | `Sources/PortavozCore/StreamingLinearResampler.swift` | Renames |
+| `Sources/SpeechCore/AudioTypes.swift` | `Sources/PortavozCore/AudioTypes.swift` | Seam: a comment about meeting channels is removed |
+| `Tests/MicCaptureTests/MicrophoneTapTransitionTests.swift` | `Tests/PortavozKitTests/MicrophoneTapTransitionTests.swift` | Renames |
+| `Tests/MicCaptureTests/MicrophonePermissionClientTests.swift` | `Tests/PortavozKitTests/MicrophonePermissionClientTests.swift` | Renames |
+| `Tests/MicCaptureTests/StreamingLinearResamplerTests.swift` | `Tests/PortavozKitTests/StreamingLinearResamplerTests.swift` | Renames |
+| `Tests/MicCaptureTests/CaptureDeliveryBufferTests.swift` | `Tests/PortavozKitTests/CaptureDeliveryBufferTests.swift` | Extract: all but the recording session test |
+| `Tests/MicCaptureTests/LinearResamplerTests.swift` | `Tests/PortavozKitTests/LinearResamplerTests.swift` | Renames |
+| `Tests/MicCaptureTests/CapturePCMGeometryTests.swift` | `Tests/PortavozKitTests/CapturePCMGeometryTests.swift` | Extract: all but the file writer test |
+| `Tests/MicCaptureTests/AudioCaptureTests.swift` | `Tests/PortavozKitTests/AudioCaptureTests.swift` | Extract: format, route and downmix tests |
 
 ## Repository bootstrap
 
