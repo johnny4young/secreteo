@@ -186,7 +186,7 @@ struct DictationStatsValueTests {
     }
 }
 
-struct DictationKitModuleTests {
+struct ModuleImportTests {
     private func imports(ofTarget target: String) throws -> Set<String> {
         let sources = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
@@ -210,6 +210,12 @@ struct DictationKitModuleTests {
     @Test
     func speechCoreImportsNoUIStoreOrModels() throws {
         #expect(try imports(ofTarget: "SpeechCore") == ["Foundation"])
+    }
+
+    @Test
+    func captureStaysFreeOfUIAndModels() throws {
+        let allowed: Set<String> = ["AudioToolbox", "AVFAudio", "AVFoundation", "CoreAudio", "Foundation", "os", "SpeechCore"]
+        #expect(try imports(ofTarget: "MicCapture").isSubset(of: allowed))
     }
 
     @Test
