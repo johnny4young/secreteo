@@ -85,3 +85,15 @@ The hosted delivery lane signs ad-hoc and grants TCC through `cdhash` rows, writ
 ## D19. The default shortcut is ⌃⌥⌘D
 
 The [ownership protocol](specs/ownership-protocol.md) requires a shortcut other than Portavoz's ⌥⌘D. That one is also the system's Dock shortcut. ⌃⌥⌘D keeps the D and adds a third modifier to make a clash less likely. It has not been checked on a real Mac, and a conflict shows as an unavailable shortcut in Settings.
+
+## D20. Release builds do not run global dictation yet
+
+`SECRETEO_GLOBAL_DICTATION` is off in Release and on in Debug and `make install`. With it off the app does not create `DictationFeature`, so no trigger, event tap or lease can exist. A binary must not arm global dictation before Portavoz's cooperating version ships, and this makes that true of any tag. Turning it on is one line in `project.yml`, after that release.
+
+## D21. A remembered model shows as ready while its hash runs
+
+Secreteo keeps, between launches, what a model's files looked like after their last clean hash: inode, size and both timestamps of each file and directory. While it matches, the model reads as ready during the first hash of a launch, so the shortcut works at once and Settings does not offer a download for an installed model. The hash still runs and takes this back if the bytes are bad, and a load still needs `verifiedInstallation`, so the record can never put unverified files in front of a loader. `LocalModelStore` asks callers not to infer readiness from their own file checks. This is the one exception, and it applies only until that first hash ends.
+
+## D22. The voice detector is part of the model download
+
+Settings offers the download until Parakeet and Silero are both verified, and a failure of either shows and can be retried. Only Parakeet holds dictation back: without Silero the speech gate fails open, so dictation keeps working and can paste silence until the download succeeds.

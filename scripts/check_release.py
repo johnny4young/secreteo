@@ -20,6 +20,14 @@ def project_setting(project_yml: str, name: str) -> str:
     return match.group(1) if match else ""
 
 
+def parent_key(lines: list[str], index: int) -> str:
+    indent = len(lines[index]) - len(lines[index].lstrip())
+    for line in reversed(lines[:index]):
+        if line.strip() and not line.lstrip().startswith("#") and len(line) - len(line.lstrip()) < indent:
+            return line.strip()
+    return ""
+
+
 def release_notes(changelog: str, version: str) -> str:
     sections = list(SECTION.finditer(changelog))
     for index, section in enumerate(sections):
@@ -27,6 +35,18 @@ def release_notes(changelog: str, version: str) -> str:
             end = sections[index + 1].start() if index + 1 < len(sections) else len(changelog)
             return changelog[section.end():end].strip()
     return ""
+
+
+def arms_global_dictation(project_yml: str) -> bool:
+    # The base value is what a Release build gets. Anything but an explicit NO counts as armed.
+    lines = project_yml.splitlines()
+    values = [
+        match.group(1)
+        for index, line in enumerate(lines)
+        if (match := re.match(r'\s*SECRETEO_GLOBAL_DICTATION:\s*"?([^"\s#]*)', line))
+        and parent_key(lines, index) != "Debug:"
+    ]
+    return not values or any(value != "NO" for value in values)
 
 
 def problems(tag: str, project_yml: str, changelog: str, on_main: bool, arms_dictation: bool,
@@ -62,8 +82,9 @@ def main() -> None:
         return
     on_main = subprocess.run(["git", "merge-base", "--is-ancestor", "HEAD", "origin/main"], cwd=ROOT,
                              check=False).returncode == 0
-    found = problems(argument, (ROOT / "project.yml").read_text(), changelog, on_main,
-                     (ROOT / "Sources/Triggers").exists(), os.environ.get("GLOBAL_DICTATION_CLEARED") == "true")
+    project_yml = (ROOT / "project.yml").read_text()
+    found = problems(argument, project_yml, changelog, on_main,
+                     arms_global_dictation(project_yml), os.environ.get("GLOBAL_DICTATION_CLEARED") == "true")
     for problem in found:
         print(f"::error::{problem}")
     if found:

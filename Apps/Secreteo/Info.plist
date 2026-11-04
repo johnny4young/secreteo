@@ -20,6 +20,8 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>DictationOwnershipProtocol</key>
+	<integer>1</integer>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>
 	<key>LSMinimumSystemVersion</key>
@@ -28,11 +30,15 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 Johnny Young</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Secreteo uses the microphone only while you dictate.</string>
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
 	<key>SUFeedURL</key>
 	<string>https://github.com/johnny4young/secreteo/releases/latest/download/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>$(SPARKLE_PUBLIC_ED_KEY)</string>
+	<key>SecreteoGlobalDictation</key>
+	<string>$(SECRETEO_GLOBAL_DICTATION)</string>
 </dict>
 </plist>

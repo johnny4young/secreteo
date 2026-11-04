@@ -201,6 +201,21 @@ struct DictationOwnershipCoordinatorTests {
     }
 
     @Test
+    func aSeededLegacyPeerRefusesOnlyAsTheRealOneWould() throws {
+        let suite = "secreteo-ownership-legacy-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(true, forKey: DictationController.defaultsKey)
+
+        let coordinator = DictationOwnershipCoordinator.live(
+            defaults: defaults, usesTemporaryStore: true, missingForReadiness: { nil }, seedsLegacyPeer: true)
+        coordinator.start()
+
+        #expect(coordinator.state == .unavailable(.legacyPeerActive))
+        #expect(!coordinator.armsTriggers)
+    }
+
+    @Test
     func aFirstRunNeverClaimsEvenWithThePreferenceOn() throws {
         let scratch = Scratch()
         let ownership = scratch.participant(Self.secreteo)

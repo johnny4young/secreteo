@@ -1,4 +1,5 @@
 import AppKit
+import DictationSession
 import SwiftUI
 
 /// Launch options. `-use-temp-store` keeps a test away from real state: no real launch
@@ -9,12 +10,16 @@ struct RuntimeOptions {
     let showsMenuContentWindow: Bool
     let failsLaunchAtLogin: Bool
     let reportsAvailableUpdate: Bool
+    /// The status item cannot be automated, so a test names the app a menu row gives focus to.
+    let menuFocusTarget: String?
 
     init(arguments: [String], allowsTestFlags: Bool = RuntimeOptions.isDebugBuild) {
         usesTemporaryStore = allowsTestFlags && arguments.contains("-use-temp-store")
         showsMenuContentWindow = usesTemporaryStore && arguments.contains("-show-menu-content")
         failsLaunchAtLogin = usesTemporaryStore && arguments.contains("-fail-launch-at-login")
         reportsAvailableUpdate = usesTemporaryStore && arguments.contains("-report-available-update")
+        let focusFlag = showsMenuContentWindow ? arguments.firstIndex(of: "-return-menu-focus-to") : nil
+        menuFocusTarget = focusFlag.flatMap { arguments.indices.contains($0 + 1) ? arguments[$0 + 1] : nil }
     }
 
     #if DEBUG
@@ -72,6 +77,10 @@ public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
         compose()
     }
 
+    public func applicationDidBecomeActive(_ notification: Notification) {
+        model?.dictation?.applicationDidBecomeActive()
+    }
+
     public func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
     }
@@ -115,6 +124,15 @@ public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
         let model = AppModel(launchController: controller)
         model.updater = options.usesTemporaryStore ? InertUpdater() : makeUpdater(model)
         model.updateIsAvailable = options.reportsAvailableUpdate
+        if DictationFeature.mayRunInThisBuild {
+            do {
+                let dictation = try DictationFeature(usesTemporaryStore: options.usesTemporaryStore)
+                model.dictation = dictation
+                dictation.start()
+            } catch {
+                model.dictationFailedToStart = true
+            }
+        }
         let settings = SettingsWindowController(model: model)
         let statusItem = StatusItemController(model: model)
         model.openSettings = { [weak settings, weak statusItem] in
@@ -144,7 +162,15 @@ public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func showMenuContentWindow(model: AppModel) {
-        let window = NSWindow(contentViewController: NSHostingController(rootView: MenuContentView(model: model)))
+        let content = options.menuFocusTarget.map { target in
+            let focusReturn = MenuFocusReturn()
+            return MenuContentView(model: model) { action in
+                let running = NSRunningApplication.runningApplications(withBundleIdentifier: target).first
+                focusReturn.aim(at: running?.processIdentifier)
+                focusReturn.run(action)
+            }
+        } ?? MenuContentView(model: model)
+        let window = NSWindow(contentViewController: NSHostingController(rootView: content))
         window.title = "Menu"
         window.styleMask = [.titled]
         window.isReleasedWhenClosed = false

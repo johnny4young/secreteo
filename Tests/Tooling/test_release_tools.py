@@ -147,6 +147,29 @@ def release_problems(tag="v1.2.3", project=PROJECT, changelog=CHANGELOG, on_main
 
 
 class CheckReleaseTests(unittest.TestCase):
+    def test_the_command_reports_problems_instead_of_crashing(self):
+        script = Path(__file__).resolve().parents[2] / "scripts/check_release.py"
+
+        result = subprocess.run(
+            [sys.executable, str(script), "check", "v0.0.0-test"], capture_output=True, text=True, check=False)
+
+        self.assertNotIn("Traceback", result.stderr)
+        self.assertIn("::error::", result.stdout)
+
+    def test_a_release_build_arms_dictation_unless_the_project_says_no(self):
+        self.assertFalse(check_release.arms_global_dictation("        SECRETEO_GLOBAL_DICTATION: NO\n"))
+        self.assertTrue(check_release.arms_global_dictation("        SECRETEO_GLOBAL_DICTATION: YES\n"))
+        self.assertTrue(check_release.arms_global_dictation("        OTHER: NO\n"))
+        repository = Path(__file__).resolve().parents[2]
+        self.assertFalse(check_release.arms_global_dictation((repository / "project.yml").read_text()))
+
+    def test_only_a_debug_config_may_turn_dictation_on(self):
+        base = "settings:\n  base:\n    SECRETEO_GLOBAL_DICTATION: NO\n  configs:\n"
+        self.assertFalse(check_release.arms_global_dictation(base + "    Debug:\n      SECRETEO_GLOBAL_DICTATION: YES\n"))
+        self.assertTrue(check_release.arms_global_dictation(base + "    Release:\n      SECRETEO_GLOBAL_DICTATION: YES\n"))
+        self.assertTrue(check_release.arms_global_dictation(
+            base + "    Debug:\n      SECRETEO_GLOBAL_DICTATION: YES\n    Release:\n      SECRETEO_GLOBAL_DICTATION: YES\n"))
+
     def test_a_correct_tag_passes(self):
         self.assertEqual(release_problems(), [])
 

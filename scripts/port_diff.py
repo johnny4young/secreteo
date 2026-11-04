@@ -23,6 +23,8 @@ SESSION_RENAMES = [
     ("portavoz" "Has", "appHas"),
     ("Portavoz", "Secreteo"),
     ("portavoz", "secreteo"),
+    ("PV" "Design", "SecreteoDesign"),
+    ("PV" "Symbol", "SecreteoSymbol"),
     # The Carbon hotkey signature, so the two apps never read each other's events.
     ("0x5056" "_4F5A", "0x5343_5254"),
     ('"PV' 'OZ"', '"SCRT"'),

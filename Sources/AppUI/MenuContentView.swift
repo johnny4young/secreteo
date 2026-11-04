@@ -4,13 +4,49 @@ import SwiftUI
 /// status item itself cannot be automated reliably.
 public struct MenuContentView: View {
     private let model: AppModel
+    /// Runs a row whose words go to the app with focus.
+    private let inTargetApp: @MainActor (@escaping @MainActor () -> Void) -> Void
 
-    public init(model: AppModel) {
+    public init(
+        model: AppModel, inTargetApp: @escaping @MainActor (@escaping @MainActor () -> Void) -> Void = { $0() }
+    ) {
         self.model = model
+        self.inTargetApp = inTargetApp
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
+            if let dictation = model.dictation {
+                if dictation.isActive {
+                    MenuRow(title: "Stop Dictating", identifier: "menu-bar-dictate") {
+                        inTargetApp { dictation.toggleDictation() }
+                    }
+                } else if dictation.canDictate {
+                    MenuRow(title: "Dictate", identifier: "menu-bar-dictate") {
+                        inTargetApp { dictation.toggleDictation() }
+                    }
+                } else {
+                    MenuRow(title: "Set Up Dictation…", identifier: "menu-bar-set-up-dictation") {
+                        model.openSettings()
+                    }
+                }
+                if dictation.canPasteLast {
+                    MenuRow(title: "Paste Last Dictation", identifier: "menu-bar-paste-last") {
+                        inTargetApp { dictation.pasteLast() }
+                    }
+                }
+                if dictation.canPasteUnpolished {
+                    MenuRow(title: "Paste Without Polish", identifier: "menu-bar-paste-unpolished") {
+                        inTargetApp { dictation.pasteLast(alternate: true) }
+                    }
+                }
+                if dictation.canPasteOriginal {
+                    MenuRow(title: "Paste the Original", identifier: "menu-bar-paste-original") {
+                        inTargetApp { dictation.pasteLast(alternate: true) }
+                    }
+                }
+                Divider()
+            }
             if model.updateIsAvailable {
                 MenuRow(title: "Update Available…", identifier: "menu-update-available", action: model.checkForUpdates)
                 Divider()

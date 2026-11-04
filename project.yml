@@ -58,6 +58,11 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         ENABLE_APP_SANDBOX: NO
         SWIFT_EMIT_LOC_STRINGS: YES
+        # Global dictation stays off in Release until the other app's cooperating version ships.
+        SECRETEO_GLOBAL_DICTATION: NO
+      configs:
+        Debug:
+          SECRETEO_GLOBAL_DICTATION: YES
     info:
       path: Apps/Secreteo/Info.plist
       properties:
@@ -67,6 +72,9 @@ targets:
         LSApplicationCategoryType: public.app-category.productivity
         LSMinimumSystemVersion: "26.0"
         LSUIElement: true
+        NSMicrophoneUsageDescription: Secreteo uses the microphone only while you dictate.
+        DictationOwnershipProtocol: 1
+        SecreteoGlobalDictation: $(SECRETEO_GLOBAL_DICTATION)
         SUFeedURL: https://github.com/johnny4young/secreteo/releases/latest/download/appcast.xml
         SUPublicEDKey: $(SPARKLE_PUBLIC_ED_KEY)
         SUEnableAutomaticChecks: true

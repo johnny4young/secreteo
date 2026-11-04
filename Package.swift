@@ -19,7 +19,7 @@ let package = Package(
         .package(url: "https://github.com/johnny4young/local-model-store.git", exact: "0.1.0")
     ],
     targets: [
-        .target(name: "AppUI"),
+        .target(name: "AppUI", dependencies: ["DictationSession"]),
         .target(name: "DictationKit", dependencies: ["SpeechCore"]),
         .target(name: "DictationOwnership"),
         .target(

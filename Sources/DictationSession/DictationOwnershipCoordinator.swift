@@ -44,7 +44,8 @@ final class DictationOwnershipCoordinator {
     /// - Parameter missingForReadiness: names what is missing (microphone, Accessibility, engine),
     ///   or nil when ready. Ownership is offered and held only while this is nil.
     static func live(
-        defaults: UserDefaults, usesTemporaryStore: Bool, missingForReadiness: @escaping @Sendable () -> String?
+        defaults: UserDefaults, usesTemporaryStore: Bool, missingForReadiness: @escaping @Sendable () -> String?,
+        seedsLegacyPeer: Bool = false, seedsCorruptState: Bool = false
     ) -> DictationOwnershipCoordinator {
         let participant = Bundle.main.bundleIdentifier ?? "com.johnny4young.secreteo.unbundled"
         let isReal = usesRealOwner(identifier: participant, usesTemporaryStore: usesTemporaryStore)
@@ -56,15 +57,21 @@ final class DictationOwnershipCoordinator {
             ParticipantConditions(
                 preferenceIsOn: preferences.bool(forKey: preferenceKey),
                 missingForReadiness: missingForReadiness(),
-                legacyPeerIsActive: peers?.activePeer() != nil)
+                legacyPeerIsActive: seedsLegacyPeer || peers?.activePeer() != nil)
         }
         let scratch = UUID().uuidString
+        let scratchRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("dictation-ownership-\(scratch)", isDirectory: true)
+        if seedsCorruptState, !isReal {
+            try? FileManager.default.createDirectory(
+                at: scratchRoot, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+            try? Data("{".utf8).write(to: scratchRoot.appendingPathComponent("ownership.json"))
+        }
         let ownership = isReal
             ? DictationOwnership(participant: participant, conditions: conditions)
             : DictationOwnership(
                 participant: participant,
-                root: FileManager.default.temporaryDirectory
-                    .appendingPathComponent("dictation-ownership-\(scratch)", isDirectory: true),
+                root: scratchRoot,
                 conditions: conditions,
                 notificationName: "com.johnny4young.secreteo.dictation-ownership.scratch.\(scratch)")
         return DictationOwnershipCoordinator(ownership: ownership) {
@@ -81,6 +88,11 @@ final class DictationOwnershipCoordinator {
                     app.bundleIdentifier.map { RunningApp(identifier: $0, bundleURL: app.bundleURL) }
                 }
             })
+    }
+
+    /// For a disposable launch only, which has its own root and no user to take ownership.
+    func claimScratchOwnership() {
+        _ = ownership.claimAtFirstRun()
     }
 
     var admission: DictationAdmission {
@@ -161,6 +173,12 @@ final class DictationOwnershipCoordinator {
             userConfirmed: true, triggers: handoffTriggers(arm: arm, disarm: disarm))
         await settleAfterChange()
         return outcome
+    }
+
+    func resetCorruptState() async -> OwnershipChange {
+        let change = await ownership.resetCorruptState()
+        await settleAfterChange()
+        return change
     }
 
     private func handoffTriggers(
