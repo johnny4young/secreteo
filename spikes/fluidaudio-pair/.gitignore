@@ -1,0 +1,9 @@
+.build-*/
+Package.resolved
+Sources/SpeechCore/
+Sources/LiveSpeech/
+clips/
+results/
+results2/
+store/
+refs.json
