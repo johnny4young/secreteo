@@ -14,13 +14,15 @@ final class DeliveryFixesTests: XCTestCase {
 
     func testASentenceStartKeepsSpellingsACapitalWouldBreak() {
         let caretCase = DictationCaretCase(protectedWords: ["secreteo"])
-        let kept = ["macOS is fine", "iPhone works", "secreteo runs", "www.example.com works", "me@example.com works",
-                    "src/main.swift fails", "snake_case fails"]
+        let kept = ["macOS is fine", "iPhone works", "secreteo runs", "www.example.com works", "www.example.com. Works",
+                    "me@example.com works", "src/main.swift fails", "snake_case fails"]
 
         for text in kept {
             XCTAssertEqual(caretCase.adapt(text, after: "Done. ", atFieldStart: false), text)
         }
         XCTAssertEqual(caretCase.adapt("then we left.", after: "Done. ", atFieldStart: false), "Then we left.")
+        XCTAssertEqual(caretCase.adapt("well... ok", after: "Done. ", atFieldStart: false), "Well... ok")
+        XCTAssertEqual(caretCase.adapt("\"hello.\" ok", after: "Done. ", atFieldStart: false), "\"Hello.\" ok")
     }
 
     func testLiveProtectsReplacementWordsWithoutTheirPunctuation() throws {
@@ -50,6 +52,22 @@ final class DeliveryFixesTests: XCTestCase {
         XCTAssertTrue(restored)
     }
 
+    func testALaterOwnerDuringTheCopiedReadIsNotReplaced() async throws {
+        let board = makeBoard()
+        defer { board.releaseGlobally() }
+        let clipboard = DictationClipboard()
+        let provider = PublishingProvider(board: board)
+
+        let copied = await clipboard.copySelection(on: board, timeout: .seconds(30)) {
+            let item = NSPasteboardItem()
+            item.setDataProvider(provider, forTypes: [.string])
+            board.clearContents()
+            return board.writeObjects([item])
+        }
+
+        XCTAssertEqual(board.string(forType: .string), "Later owner", "Read back: \(copied ?? "nothing")")
+    }
+
     func testABorrowIsRefusedWhileACopyIsOnItsWay() async {
         let board = makeBoard()
         defer { board.releaseGlobally() }
@@ -75,15 +93,48 @@ final class DeliveryFixesTests: XCTestCase {
         clipboard.restoreLater(loan, on: board, after: .zero)
 
         clipboard.isMutating = true
-        let waiter = Task { await clipboard.waitForRestoration(on: board) }
-        await Task.yield()
-        await Task.yield()
+        var started = false
+        let waiter = Task {
+            started = true
+            return await clipboard.waitForRestoration(on: board)
+        }
+        _ = await TestPolling.until { started }
         clipboard.isMutating = false
         _ = await waiter.value
 
         let restored = await TestPolling.until { board.string(forType: .string) == "Original" }
         XCTAssertTrue(restored)
         XCTAssertEqual(clipboard.pendingLoanCount, 0)
+    }
+
+    func testAWaiterOnALoanAlsoWaitsForACopyThatStartsMeanwhile() async throws {
+        let board = makeBoard()
+        defer { board.releaseGlobally() }
+        let clipboard = DictationClipboard()
+        let loan = try XCTUnwrap(clipboard.borrow("Own text", on: board))
+        clipboard.restoreLater(loan, on: board, after: .seconds(30))
+        var started = false
+        let waiter = Task {
+            started = true
+            return await clipboard.waitForRestoration(on: board)
+        }
+        _ = await TestPolling.until { started }
+
+        clipboard.restore(loan, on: board)
+        var posted = false
+        let copy = Task {
+            await clipboard.copySelection(on: board, timeout: .milliseconds(20), lateWindow: .milliseconds(200)) {
+                posted = true
+                return true
+            }
+        }
+        _ = await TestPolling.until { posted }
+        _ = await waiter.value
+        let accepted = clipboard.borrow("Next", on: board)
+
+        XCTAssertNotNil(accepted)
+        if let accepted { clipboard.restore(accepted, on: board) }
+        _ = await copy.value
     }
 
     func testAnEditOutsideTheInsertionIsRefused() {
@@ -107,5 +158,21 @@ final class DeliveryFixesTests: XCTestCase {
                          "com.apple.keylayout.Dvorak"] {
             XCTAssertFalse(TextInserter.usesQwertyCommandPositions(sourceID: sourceID), sourceID)
         }
+    }
+}
+
+/// Publishes another owner's text from inside the read of the copied string.
+private final class PublishingProvider: NSObject, NSPasteboardItemDataProvider {
+    private let board: NSPasteboard
+
+    init(board: NSPasteboard) {
+        self.board = board
+    }
+
+    func pasteboard(_ pasteboard: NSPasteboard?, item: NSPasteboardItem,
+                    provideDataForType type: NSPasteboard.PasteboardType) {
+        item.setString("Selection", forType: type)
+        board.clearContents()
+        board.setString("Later owner", forType: .string)
     }
 }

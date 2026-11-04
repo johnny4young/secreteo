@@ -43,16 +43,14 @@ final class DictationClipboard {
     /// the board, and the loan is retired, so dictation can never hang behind
     /// it and the user's original clipboard is not left replaced.
     func waitForRestoration(on pasteboard: NSPasteboard) async -> Bool {
-        while copying.contains(pasteboard.name) {
-            do { try await Task.sleep(for: .milliseconds(25)) } catch { return false }
-        }
-        while let state = states[pasteboard.name], let restoration = state.restoration {
+        while copying.contains(pasteboard.name) || states[pasteboard.name]?.restoration != nil {
             // A mutation in progress would turn the restore into a no-op, so it waits too.
-            guard ContinuousClock.now < restoration.deadline || isMutating else {
+            if !copying.contains(pasteboard.name), !isMutating, let state = states[pasteboard.name],
+               let restoration = state.restoration, ContinuousClock.now >= restoration.deadline {
                 Self.logger.error("Clipboard restoration missed its window; restoring before retiring the loan.")
                 restore(state.loan, on: pasteboard)
                 retire(pasteboard.name)
-                break
+                continue
             }
             do { try await Task.sleep(for: .milliseconds(25)) } catch { return false }
         }
@@ -91,16 +89,16 @@ final class DictationClipboard {
         copying.insert(pasteboard.name)
         // Copy is on its way: the board goes back even if the caller has given up.
         return await Task {
-            if await Self.changes(pasteboard, from: original.changeCount, within: timeout) {
+            if let copied = await Self.change(of: pasteboard, from: original.changeCount, within: timeout) {
                 let text = pasteboard.string(forType: .string)
-                restore(original, after: pasteboard.changeCount, to: pasteboard)
+                restore(original, after: copied, to: pasteboard)
                 copying.remove(pasteboard.name)
                 return text
             }
             // A slow editor may still service the copy; it must not keep the user's clipboard.
             Task {
-                if await Self.changes(pasteboard, from: original.changeCount, within: lateWindow) {
-                    restore(original, after: pasteboard.changeCount, to: pasteboard)
+                if let copied = await Self.change(of: pasteboard, from: original.changeCount, within: lateWindow) {
+                    restore(original, after: copied, to: pasteboard)
                 }
                 copying.remove(pasteboard.name)
             }
@@ -108,12 +106,14 @@ final class DictationClipboard {
         }.value
     }
 
-    private static func changes(_ pasteboard: NSPasteboard, from count: Int, within limit: Duration) async -> Bool {
+    /// The count the copy produced, kept so a later owner can still be told apart from it.
+    private static func change(of pasteboard: NSPasteboard, from count: Int, within limit: Duration) async -> Int? {
         let deadline = ContinuousClock.now.advanced(by: limit)
         while pasteboard.changeCount == count, ContinuousClock.now < deadline {
             do { try await Task.sleep(for: .milliseconds(20)) } catch { break }
         }
-        return pasteboard.changeCount != count
+        let latest = pasteboard.changeCount
+        return latest == count ? nil : latest
     }
 
     private func restore(_ original: PasteboardSnapshot, after copied: Int, to pasteboard: NSPasteboard) {

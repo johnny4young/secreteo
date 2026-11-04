@@ -82,7 +82,8 @@ struct DictationCaretCase {
     private func keepsSpelling(_ word: String, in text: Substring) -> Bool {
         if protectedWords.contains(word) || word.contains(where: \.isUppercase) { return true }
         let token = text.prefix { !$0.isWhitespace }
-        return token.contains { "/@_".contains($0) } || token.dropLast().contains(".")
+        return token.contains { "/@_".contains($0) }
+            || token.trimmingCharacters(in: .punctuationCharacters).contains(".")
     }
 
     private func keepsCapital(_ word: String, sentence: String) -> Bool {

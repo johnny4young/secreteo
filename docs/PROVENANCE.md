@@ -85,7 +85,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationSession/Delivery/CapturedDictationDestination.swift` | `Sources/portavoz-app/CapturedDictationDestination.swift` | Renames |
 | `Sources/DictationSession/Delivery/DictationCaretCase.swift` | `Sources/portavoz-app/DictationCaretCase.swift` | Seam: a sentence start keeps protected and mixed-case spellings |
 | `Sources/DictationSession/Delivery/DictationCaretJoin.swift` | `Sources/portavoz-app/DictationCaretJoin.swift` | Renames |
-| `Sources/DictationSession/Delivery/DictationClipboard.swift` | `Sources/portavoz-app/DictationClipboard.swift` | Seam: a late copy still restores, and a borrow waits for an open copy and an overdue restore |
+| `Sources/DictationSession/Delivery/DictationClipboard.swift` | `Sources/portavoz-app/DictationClipboard.swift` | Seam: a late copy still restores, a borrow is refused during a copy, and an overdue restore outlasts a mutation |
 | `Sources/DictationSession/Delivery/DictationInsertion.swift` | `Sources/portavoz-app/DictationInsertion.swift` | Seam: a correction range is checked before the field is touched |
 | `Sources/DictationSession/Delivery/DictationTextReadback+Accessibility.swift` | `Sources/portavoz-app/DictationTextReadback+Accessibility.swift` | Renames |
 | `Sources/DictationSession/Delivery/DictationTextReadback.swift` | `Sources/portavoz-app/DictationTextReadback.swift` | Renames |
