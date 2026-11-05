@@ -139,7 +139,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationSession/DictationController+Hotkey.swift` | `Sources/portavoz-app/DictationController+Hotkey.swift` | Renames |
 | `Sources/DictationSession/DictationController+ModifierKey.swift` | `Sources/portavoz-app/DictationController+ModifierKey.swift` | Renames |
 | `Sources/DictationSession/DictationController+Ownership.swift` | `Sources/portavoz-app/DictationController+Ownership.swift` | Renames |
-| `Sources/DictationSession/DictationController+PasteLast.swift` | `Sources/portavoz-app/DictationController+PasteLast.swift` | Renames |
+| `Sources/DictationSession/DictationController+PasteLast.swift` | `Sources/portavoz-app/DictationController+PasteLast.swift` | Seam: paste chooses its text by the kind of session, in `DictationController.swift` |
 | `Sources/DictationSession/DictationController+Stats.swift` | `Sources/portavoz-app/DictationController+Stats.swift` | Seam: imports the split targets |
 | `Sources/DictationSession/DictationSessionDependencies.swift` | `Sources/portavoz-app/DictationSessionDependencies.swift` | Seam: imports the split targets, and caret case reads the injected defaults |
 | `Sources/DictationSession/DictationAdmission.swift` | `Sources/portavoz-app/DictationAdmission.swift` | Extract: the port and lease, the composition stays out |
@@ -191,6 +191,10 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationSession/Settings/HotkeyRecorder.swift` | `Sources/portavoz-app/HotkeySetting.swift` | Extract: the recorder view, which hands the setting back instead of saving it and frees the shortcut while listening |
 | `Sources/DictationSession/Settings/MouseButtonRecorder.swift` | `Sources/portavoz-app/MouseButtonPTT.swift` | Extract: the recorder view, which hands the button back instead of saving it |
 | `Sources/DictationSession/Settings/DictationShortcutSettings.swift` | `Sources/portavoz-app/DictationShortcutSettings.swift` | Seam: no helper text, and saving goes through the caller |
+| `Sources/DictationSession/DictationPracticeField.swift` | `Sources/portavoz-app/DictationPracticeField.swift` | Seam: tells its owner when the words go. Fixes: practice words no longer replace the last dictation |
+| `Sources/DictationSession/Settings/DictationPracticeView.swift` | `Sources/portavoz-app/DictationPracticeView.swift` | Seam: reads the feature, no helper text or prefix, no model preparation, which Settings already offers, and the window rather than the row holds the field |
+| `Tests/DictationSessionTests/Session/DictationPracticeFieldTests.swift` | `Tests/PortavozAppTests/DictationPracticeFieldTests.swift` | Seam: builds the feature instead of the app's services |
+| `Tests/SecreteoUITests/DictationPracticeUITests.swift` | `Tests/PortavozUITests/DictationPracticeUITests.swift` | Seam: the Settings journey only, and closing the window forgets the words |
 | `Sources/DictationSession/Triggers/PasteLastShortcut.swift` | `Sources/portavoz-app/AppServices+PasteLastDictation.swift` | Extract: the key and its default, as a `HotkeySetting`. The registration is in `DictationFeature.swift`, frees the key while a shortcut is being recorded, and is injectable |
 | `Sources/DictationSession/DictationModelMemory.swift` | `Sources/portavoz-app/AppServices+DictationPrewarm.swift` | Extract: the prewarm policy, and the profile and dictation's idle delays from `AppModelMemoryPreferences.swift` and `AppModelIdleReleaseScheduler.swift` |
 | `Sources/DictationSession/Settings/DictationDictionaryEditor.swift` | `Sources/portavoz-app/DictationDictionaryEditor.swift` | Seam: its text comes through a binding, and imports `DictationKit` |

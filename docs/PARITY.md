@@ -39,7 +39,7 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | App Intents | `AppServices+DictationIntents` | `DictationIntentTests` | | Pending, P8 |
 | Paste last | `DictationController+PasteLast`, `AppServices+PasteLastDictation` | `DictationPasteLastTests` | The same tests | In the menu, and with an optional shortcut |
 | Selection Rewrite | `SelectionRewriteController`, `SelectionCapture` | `SelectionRewriteTests`, `SelectionRewriteUITests` | | Pending, P6 |
-| Practice | `DictationPracticeField`, `DictationPracticeView` | `DictationPracticeFieldTests`, `DictationPracticeUITests` | | Pending, P5 |
+| Practice | `DictationPracticeField`, `DictationPracticeView` | `DictationPracticeFieldTests`, `DictationPracticeUITests` | The same tests, without the onboarding journeys | In Settings. Onboarding is still to come |
 | One owner per Mac | `DictationOwnershipCoordinator`, `DictationAdmission` | `DictationOwnershipCoordinatorTests`, `DictationAdmissionTests` | The same tests, without the composition's, plus `KnownDictationPeersTests` and the reference tests | Coordinator ported. The app does not run it yet, and it has not run against a real Portavoz |
 
 ## Sessions and delivery
@@ -89,7 +89,6 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Test | Waits for |
 |---|---|
 | In `DictationOwnershipCoordinatorTests`: `anActivationBeforeLaunchFinishesPublishesNothing`, `turningThePreferenceOnTakesOwnershipFromNobody`, `onlyTheOwnerArmsTheShortcut`, `aWorkspaceChangeIsAHintToLookAgain`, `aHeldTriggerKeepsItsWordsWhenAHandoffDisarmsIt`, `aHeldTriggerStillCancelsWhenItIsDisabledWithNoHandoff` | The composition |
-| In `DictationOwnershipCoordinatorTests`: `anIntentCancelsAPracticeSessionAtOnce`, `anIntentCancelsAPracticeSessionEvenWhileItDelivers`. In `DictationAdmissionTests`: `thePracticeFieldAsksForPracticeOnlyWhileItIsTheTarget`, `aPracticeSessionRunsWithTheGlobalPreferenceOff`, `pasteLastIntoThePracticeFieldRunsWithTheGlobalPreferenceOff` | Practice |
 | In `DictationOwnershipCoordinatorTests`: `aSpokenInstructionKeepsItsWordsWhenTheGraceEnds`, `aPreviewGivesUpItsGlobalKeysWhenOwnershipIsLost`, `aPreviewFromBeforeAResetCannotReplace`, `aRewriteReplaceIsRefusedAfterAHandoffThereAndBack`, `aHandoffCompletesWithARewritePreviewOpenAndTheReplaceIsRefused`, `aHandoffThereAndBackWithARewritePreviewOpenRefusesTheReplace`. In `DictationAdmissionTests`: `aRefusedRewriteReadsNothing`, `aRewriteHoldsNoLeaseWhileTheUserDecides`, `aRefusedRewriteLeavesTheOneInProgressAlone`, `aRefusedSpokenInstructionLeavesTheChoicesOpen`, `aCancelledRewriteKeepsItsLeaseUntilTheReadEnds`, `aReplaceHoldsItsLeaseThroughTheClipboardRestore`, `aRefusedReplaceKeepsTheRewriteToCopy` | Rewrite |
 | In `DictationAdmissionTests`: `compositionReadsOwnershipForPrewarmAndAdmission` | The composition |
 | `DictationHistoryRecordingTests` | The store |
@@ -98,5 +97,4 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | In `DictationTextModeDeliveryTests`: `firstEnableAfterAppCompositionStillDeliversLiteral`, `chooserWithoutAnOwnedWindowReportsFailureAndRetiresSelection`, `failedDatabaseAdmissionDoesNotInitializeTextPreferences`, `corruptProfilesStayRecoverableWithoutOverridingGlobalMode`, `settingsMutationsStayBoundedAndTemporary`, `fillerAndReplacementControlsFollowAnyCleanUse`, `rejectedIdentifiersCannotReplaceTheSavedProfile`, `chooserFixtureRequiresAllIsolationConditions` | The composition and Settings |
 | In `DictationSpeechGateTests`: `testTurningOnDictationPreparesTheDetectorOnlyWhenTheGateIsOn`, `testDisposableCompositionNeverDownloadsTheDetector` | The composition |
 | In `LiveSpeechSelectionTests`: `testTheDefaultUltraNeitherDownloadsNorBlocksDictation`, `testSelectedAppleWithAutomaticLanguageNeverStartsAModelLoad` | The composition |
-| In `DictationCorrectionTests`: `aPracticeSessionNeverEditsAnotherAppsInsertion` | Practice |
 | In `DictationShortcutTests`: the fixture half of `testNoRegistrarKeepsTemporaryCompositionInert` | The shortcut fixture |

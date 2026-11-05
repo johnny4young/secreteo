@@ -36,6 +36,64 @@ struct DictationAdmissionTests {
         try #require(condition())
     }
 
+    @Test
+    func thePracticeFieldAsksForPracticeOnlyWhileItIsTheTarget() {
+        let harness = DictationControllerHarness(text: "Hola")
+        let practice = DictationPracticeField()
+        let holder = UUID()
+
+        #expect(practice.route(harness.dependencies, appIsActive: true).admissionKind == .global)
+        practice.show(holder, isKey: true)
+        #expect(practice.route(harness.dependencies, appIsActive: false).admissionKind == .global)
+        #expect(practice.route(harness.dependencies, appIsActive: true).admissionKind == .practice)
+    }
+
+    @Test
+    func aPracticeSessionRunsWithTheGlobalPreferenceOff() async throws {
+        let harness = DictationControllerHarness(text: "Hola")
+        defer { harness.controller.cancel() }
+        let practice = DictationPracticeField()
+        practice.show(UUID(), isKey: true)
+        var dependencies = practice.route(harness.dependencies, appIsActive: true)
+        dependencies.admission = .preference(in: harness.defaults)
+
+        try await dictate(harness, dependencies)
+
+        try await eventually { practice.text == "Hola" }
+    }
+
+    @Test
+    func practiceWordsNeverReplaceTheLastDictation() async throws {
+        let harness = DictationControllerHarness(text: "Hola")
+        defer { harness.controller.cancel() }
+        let realWords = "Real words"
+        harness.controller.lastText.remember(realWords)
+        let practice = DictationPracticeField()
+        practice.show(UUID(), isKey: true)
+
+        try await dictate(harness, practice.route(harness.dependencies, appIsActive: true))
+        try await eventually { practice.text == harness.text && !harness.controller.isActive }
+
+        #expect(harness.controller.lastText.current == realWords)
+        #expect(harness.controller.practiceLastText.current == harness.text)
+    }
+
+    @Test
+    func pasteLastIntoThePracticeFieldRunsWithTheGlobalPreferenceOff() async throws {
+        let harness = DictationControllerHarness(text: "Hola")
+        defer { harness.controller.cancel() }
+        let practice = DictationPracticeField()
+        practice.show(UUID(), isKey: true)
+        var dependencies = practice.route(harness.dependencies, appIsActive: true)
+        dependencies.admission = .preference(in: harness.defaults)
+        try await dictate(harness, dependencies)
+        try await eventually { practice.text == "Hola" && !harness.controller.isActive }
+
+        harness.controller.pasteLastDictation(using: dependencies)
+
+        try await eventually { practice.text == "Hola Hola" }
+    }
+
     private func dictate(
         _ harness: DictationControllerHarness, _ dependencies: DictationSessionDependencies
     ) async throws {

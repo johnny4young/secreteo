@@ -365,6 +365,64 @@ final class DictationFeatureTests: XCTestCase {
             DictationModelMemory.balanced.idleLimit(underPressure: false))
     }
 
+    func testPracticeWaitsForTheSpeechModelButNotTheDetector() async throws {
+        let system = System()
+        system.verified.withLock { $0 = [] }
+        let feature = try makeFeature(system)
+
+        await feature.refreshReadiness()
+        XCTAssertFalse(feature.canPractice)
+
+        system.verified.withLock { $0 = [.speech] }
+        await feature.refreshReadiness()
+        XCTAssertTrue(feature.canPractice)
+        XCTAssertEqual(feature.modelState, .missing)
+
+        system.verified.withLock { $0 = [] }
+        await feature.refreshReadiness()
+        XCTAssertFalse(feature.canPractice, "A damaged model takes the field back")
+    }
+
+    func testTheSettingsWindowArmsThePracticeFieldWhileItIsKey() throws {
+        let feature = try makeFeature()
+
+        feature.settingsWindowChanged(isKey: true)
+        XCTAssertTrue(feature.practice.isArmed)
+
+        feature.settingsWindowChanged(isKey: false)
+        XCTAssertFalse(feature.practice.isArmed)
+    }
+
+    func testClosingTheSettingsWindowForgetsThePracticeWords() throws {
+        let feature = try makeFeature()
+        feature.settingsWindowChanged(isKey: true)
+        XCTAssertEqual(feature.practice.receive("Hola"), .verified)
+
+        feature.settingsWindowClosed()
+
+        XCTAssertEqual(feature.practice.text, "")
+        XCTAssertFalse(feature.practice.isArmed)
+    }
+
+    func testTurningDictationOffHidesThePracticeFieldAndForgetsItsWords() throws {
+        let defaults = makeDefaults()
+        defaults.set(true, forKey: DictationController.defaultsKey)
+        let feature = try makeFeature(defaults: defaults)
+        feature.settingsWindowChanged(isKey: true)
+        XCTAssertEqual(feature.practice.receive("Hola"), .verified)
+
+        feature.setEnabled(false)
+
+        XCTAssertFalse(feature.practiceIsShown)
+        XCTAssertEqual(feature.practice.text, "")
+    }
+
+    func testADisposableLaunchPracticesWithNoModel() throws {
+        let feature = try DictationFeature(usesTemporaryStore: true, arguments: [], defaults: makeDefaults())
+
+        XCTAssertTrue(feature.canPractice)
+    }
+
     func testAFailedDetectorDownloadIsShownAndCanBeRetried() async throws {
         let system = System()
         system.verified.withLock { $0 = [] }

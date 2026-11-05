@@ -49,6 +49,11 @@ public struct DictationSettingsSection: View {
                     .accessibilityIdentifier("settings-dictation-handoff-failed")
             }
         }
+        if dictation.practiceIsShown {
+            Section("Try It Here") {
+                DictationPracticeView(dictation: dictation)
+            }
+        }
         if dictation.isEnabled {
             DictationSettingsControls(dictation: dictation)
         }
