@@ -177,9 +177,37 @@ final class DictationColdStartTests: XCTestCase {
         XCTAssertEqual(cues, [.start], "Cancel closes silently")
     }
 
-    func testSoundsAreOffByDefault() async {
+    func testSoundsAndPrewarmAreOffByDefault() async {
         let defaults = UserDefaults(suiteName: "dictation-cues-\(UUID().uuidString)")!
         XCTAssertFalse(defaults.bool(forKey: DictationSoundCue.defaultsKey))
+        XCTAssertFalse(DictationPrewarmPolicy.shouldWarm(.init(
+            dictationEnabled: true, prewarmEnabled: defaults.bool(forKey: DictationPrewarmPolicy.defaultsKey),
+            profile: .balanced, engine: .parakeet, underPressure: false, lowPowerMode: false,
+            temporaryStore: false)))
+    }
+
+    func testPrewarmRunsOnlyWhenEveryConditionAllowsIt() async {
+        let allowed = DictationPrewarmPolicy.Conditions(
+            dictationEnabled: true, prewarmEnabled: true, profile: .balanced, engine: .parakeet,
+            underPressure: false, lowPowerMode: false, temporaryStore: false)
+        XCTAssertTrue(DictationPrewarmPolicy.shouldWarm(allowed))
+        var ultra = allowed
+        ultra.engine = .parakeetUltra
+        XCTAssertTrue(DictationPrewarmPolicy.shouldWarm(ultra), "the selected Ultra checkpoint warms too")
+        let blocked: [(String, (inout DictationPrewarmPolicy.Conditions) -> Void)] = [
+            ("dictation off", { $0.dictationEnabled = false }),
+            ("setting off", { $0.prewarmEnabled = false }),
+            ("lightweight", { $0.profile = .lightweight }),
+            ("apple speech", { $0.engine = .appleSpeech }),
+            ("pressure", { $0.underPressure = true }),
+            ("low power", { $0.lowPowerMode = true }),
+            ("temporary store", { $0.temporaryStore = true })
+        ]
+        for (name, change) in blocked {
+            var conditions = allowed
+            change(&conditions)
+            XCTAssertFalse(DictationPrewarmPolicy.shouldWarm(conditions), name)
+        }
     }
 
     func testRelayPolicyMeasuresQueuedAudioTime() async {

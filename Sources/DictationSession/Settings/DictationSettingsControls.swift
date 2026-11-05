@@ -42,6 +42,13 @@ struct DictationSettingsControls: View {
                 DictationCaretCase.defaultsKey, default: false))
                 .accessibilityIdentifier("settings-dictation-caret-case")
         }
+        Section("Model Memory") {
+            Toggle("Free the Model Soon After Dictating", isOn: dictation.usesLightweightMemory)
+                .accessibilityIdentifier("settings-model-memory-lightweight")
+            Toggle("Load the Speech Model at Launch", isOn: dictation.prewarmBinding)
+                .disabled(dictation.usesLightweightMemory.wrappedValue)
+                .accessibilityIdentifier("settings-dictation-prewarm")
+        }
         Section("Language and Microphone") {
             Picker("Language", selection: dictation.preference(DictationController.languageKey, default: "auto")) {
                 Text("Automatic").tag("auto")

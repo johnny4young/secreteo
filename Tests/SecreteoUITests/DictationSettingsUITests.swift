@@ -60,7 +60,8 @@ final class DictationSettingsUITests: SecreteoUITestCase {
             "settings-dictation-mouse-recorder", "settings-dictation-modifier-key",
             "settings-dictation-paste-last-hotkey", "settings-dictation-sounds",
             "settings-dictation-compact", "settings-dictation-speech-gate", "settings-dictation-auto-stop",
-            "settings-dictation-corrections", "settings-dictation-caret-case", "settings-dictation-language",
+            "settings-dictation-corrections", "settings-dictation-caret-case",
+            "settings-model-memory-lightweight", "settings-dictation-prewarm", "settings-dictation-language",
             "settings-dictation-microphone-device", "settings-dictation-text-mode", "settings-dictation-filler",
             "settings-dictation-dict-trigger", "settings-dictation-dict-replacement", "settings-dictation-dict-add",
             "settings-dictation-vocabulary-field", "settings-dictation-vocabulary-add"
@@ -88,6 +89,19 @@ final class DictationSettingsUITests: SecreteoUITestCase {
             toggle.value as? Int == 1 || toggle.value as? String == "1"
         })
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-paste-last-taken").exists)
+    }
+
+    func testFreeingTheModelSoonRulesOutLoadingItAtLaunch() throws {
+        let app = try launchEnabled()
+        defer { finishUITestApplication(app) }
+        let lightweight = app.control(withIdentifier: "settings-model-memory-lightweight")
+        let prewarm = app.control(withIdentifier: "settings-dictation-prewarm")
+        XCTAssertTrue(lightweight.waitForStableFrame(timeout: 5))
+        XCTAssertTrue(prewarm.isEnabled)
+
+        lightweight.click()
+
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) { !prewarm.isEnabled })
     }
 
     func testChoosingAShortcutShowsItAndOffersTheDefaultBack() throws {

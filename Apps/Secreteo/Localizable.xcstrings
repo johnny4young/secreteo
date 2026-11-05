@@ -978,6 +978,22 @@
         }
       }
     },
+    "Free the Model Soon After Dictating" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free the Model Soon After Dictating"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liberar el modelo poco después de dictar"
+          }
+        }
+      }
+    },
     "From now on, “%@” is written “%@”." : {
       "localizations" : {
         "en" : {
@@ -1186,6 +1202,22 @@
         }
       }
     },
+    "Load the Speech Model at Launch" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load the Speech Model at Launch"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cargar el modelo de voz al abrir"
+          }
+        }
+      }
+    },
     "Loading speech model…" : {
       "localizations" : {
         "en" : {
@@ -1246,6 +1278,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Micrófono"
+          }
+        }
+      }
+    },
+    "Model Memory" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model Memory"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memoria del modelo"
           }
         }
       }

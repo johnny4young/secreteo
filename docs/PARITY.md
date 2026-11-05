@@ -56,8 +56,8 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Speech gate and auto stop | `DictationSpeechGate`, `DictationAutoStop` | `DictationSpeechGateTests`, `DictationPauseDetectorTests` | The same tests, without the composition's | Detector and pause logic ported. Session wiring arrives with the controller |
 | Spoken correction in delivery | `DictationCorrections` | `DictationCorrectionTests` | The same tests, without the practice test | Logic ported. A real field still has to be checked |
 | Panel, compact indicator and waveform | `DictationPanel`, `DictationCompactIndicator` | `DictationPanelAnchorTests`, `DictationCompactIndicatorTests` | `DictationUITests` | Ported. Its unit tests are still to come |
-| Sounds and prewarm | `DictationSoundCue`, `AppServices+DictationPrewarm` | `DictationColdStartTests` | The same tests, without prewarm | Sounds and cold start ported. Prewarm arrives with the composition |
-| Memory: model residency | `AppModelResidencyLedger`, `AppModelIdleReleaseScheduler` | `DictationResourceOwnershipTests`, which asserts sharing in one process and has to be rewritten | | A loaded model is released after 10 idle minutes. Memory profiles and pressure are pending |
+| Sounds and prewarm | `DictationSoundCue`, `AppServices+DictationPrewarm` | `DictationColdStartTests` | The same tests | Ported. Prewarm is off by default and never downloads |
+| Memory: model residency | `AppModelResidencyLedger`, `AppModelIdleReleaseScheduler` | `DictationResourceOwnershipTests`, which asserts sharing in one process and has to be rewritten | | A loaded model is released after 10 idle minutes, or one with the lightweight profile, and under memory pressure |
 
 ## Text features and data
 
@@ -71,7 +71,7 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Search | Store | `DictationSearchStoreTests` | | Pending, P7 |
 | Statistics | `DictationStatsModel`, store | `DictationStatsStoreTests`, `DictationStatsTests` | | Pending, P7 |
 | Read-only MCP | `DictationToolbox` | `DictationToolboxTests`, `DictationAgentAccessStoreTests` | | Pending, P8 |
-| Settings: vocabulary, microphone, memory and Polish panels | `DictationSection`, `DictationTextSettingsSection`, `DictationDictionaryEditor` | `SettingsUITests` | `DictationSettingsUITests`, `DictationPreferenceStoreTests` | Triggers, language, microphone, replacements, vocabulary and text mode ported, without vocabulary suggestions from meetings. Memory, Polish and recipes are pending |
+| Settings: vocabulary, microphone, memory and Polish panels | `DictationSection`, `DictationTextSettingsSection`, `DictationDictionaryEditor` | `SettingsUITests` | `DictationSettingsUITests`, `DictationPreferenceStoreTests` | Triggers, language, microphone, replacements, vocabulary and text mode ported, without vocabulary suggestions from meetings. Memory is ported without its hardware suggestion. Polish and recipes are pending |
 | Onboarding | `OnboardingDictationStep`, `OnboardingModelPreparation` | `OnboardingUITests`, `OnboardingModelPreparationTests` | | Pending, P5 |
 | Preference import | `PortableSettings` | `PortableSettingsTests` | | Pending, P5 |
 | English and Spanish | `Localizable.xcstrings` | `LocalizationTests` | | Pending, P5 |
@@ -98,6 +98,5 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | In `DictationTextModeDeliveryTests`: `firstEnableAfterAppCompositionStillDeliversLiteral`, `chooserWithoutAnOwnedWindowReportsFailureAndRetiresSelection`, `failedDatabaseAdmissionDoesNotInitializeTextPreferences`, `corruptProfilesStayRecoverableWithoutOverridingGlobalMode`, `settingsMutationsStayBoundedAndTemporary`, `fillerAndReplacementControlsFollowAnyCleanUse`, `rejectedIdentifiersCannotReplaceTheSavedProfile`, `chooserFixtureRequiresAllIsolationConditions` | The composition and Settings |
 | In `DictationSpeechGateTests`: `testTurningOnDictationPreparesTheDetectorOnlyWhenTheGateIsOn`, `testDisposableCompositionNeverDownloadsTheDetector` | The composition |
 | In `LiveSpeechSelectionTests`: `testTheDefaultUltraNeitherDownloadsNorBlocksDictation`, `testSelectedAppleWithAutomaticLanguageNeverStartsAModelLoad` | The composition |
-| In `DictationColdStartTests`: `testPrewarmRunsOnlyWhenEveryConditionAllowsIt`, and the prewarm half of `testSoundsAndPrewarmAreOffByDefault` | The composition |
 | In `DictationCorrectionTests`: `aPracticeSessionNeverEditsAnotherAppsInsertion` | Practice |
 | In `DictationShortcutTests`: the fixture half of `testNoRegistrarKeepsTemporaryCompositionInert` | The shortcut fixture |

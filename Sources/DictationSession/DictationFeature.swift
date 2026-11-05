@@ -35,6 +35,8 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored let readiness: ReadinessGap
     @ObservationIgnored private let warmEngine: WarmModel<ParakeetEngine>
     @ObservationIgnored private var readinessPoll: Task<Void, Never>?
+    @ObservationIgnored private var memoryPressure: (any DispatchSourceMemoryPressure)?
+    @ObservationIgnored private(set) var isUnderMemoryPressure = false
     @ObservationIgnored var pasteLastRegistrar: DictationShortcut.Registrar?
     @ObservationIgnored private var pasteLastRegistration: (any GlobalHotkeyRegistration)?
     @ObservationIgnored private var isRecordingShortcut = false
@@ -86,12 +88,15 @@ public final class DictationFeature: AppServices {
             seedsCorruptState: usesTemporaryStore && arguments.contains("-seed-dictation-corrupt-ownership"))
         self.ownership = ownership
         // Two apps must not each keep a model warm.
-        warmEngine = WarmModel(mayKeep: { ownership.state == .owned }, load: {
-            guard let installed = await modelStore.verifiedInstallation(ModelCatalog.parakeetTdtV3) else {
-                throw DictationFeatureError.modelMissing
-            }
-            return try await ParakeetEngine.load(fromVerifiedDirectory: installed.directory)
-        })
+        warmEngine = WarmModel(
+            idleLimit: { DictationModelMemory.current(in: defaults).idleLimit },
+            mayKeep: { ownership.state == .owned },
+            load: {
+                guard let installed = await modelStore.verifiedInstallation(ModelCatalog.parakeetTdtV3) else {
+                    throw DictationFeatureError.modelMissing
+                }
+                return try await ParakeetEngine.load(fromVerifiedDirectory: installed.directory)
+            })
         controller = DictationController()
         pasteLastRegistrar = usesTemporaryStore ? nil : DictationShortcut.liveRegistrar
         // A learned correction writes here directly, and an open Settings window must show it.
@@ -119,6 +124,8 @@ public final class DictationFeature: AppServices {
         if let models = environment.models {
             Task.detached(priority: .utility) { await models.collectUnused() }
         }
+        watchMemoryPressure()
+        prewarmIfConfigured()
     }
 
     /// A hint from the app: permissions may have changed in System Settings.
@@ -135,6 +142,7 @@ public final class DictationFeature: AppServices {
                 isOn: enabled, arm: armForHandoff, disarm: { self.syncDictationTriggers() })
             recordHandoff(outcome)
             await refreshReadiness()
+            prewarmIfConfigured()
         }
     }
 
@@ -268,6 +276,48 @@ public final class DictationFeature: AppServices {
     private func ownershipChanged(from previous: ParticipantState) {
         syncDictationTriggers()
         if previous == .owned, ownership.state != .owned { warmEngine.release() }
+        if previous != .owned, ownership.state == .owned { prewarmIfConfigured() }
+    }
+
+    var prewarmConditions: DictationPrewarmPolicy.Conditions {
+        DictationPrewarmPolicy.Conditions(
+            dictationEnabled: dictationAdmission.isEligible(),
+            prewarmEnabled: defaults.bool(forKey: DictationPrewarmPolicy.defaultsKey),
+            profile: DictationModelMemory.current(in: defaults),
+            engine: LiveSpeechPurpose.dictation.selectedEngine(in: defaults),
+            underPressure: isUnderMemoryPressure,
+            lowPowerMode: ProcessInfo.processInfo.isLowPowerModeEnabled,
+            temporaryStore: usesTemporaryMeetingStore)
+    }
+
+    /// Loads only an installed, verified model, because `warmEngine` never downloads.
+    func prewarmIfConfigured() {
+        guard DictationPrewarmPolicy.shouldWarm(prewarmConditions) else { return }
+        Task {
+            guard (try? await warmEngine.acquire()) != nil else { return }
+            warmEngine.releaseWhenIdle()
+        }
+    }
+
+    func modelMemoryChanged() {
+        warmEngine.idleLimitChanged()
+        prewarmIfConfigured()
+    }
+
+    func memoryPressureChanged(isUnderPressure: Bool) {
+        isUnderMemoryPressure = isUnderPressure
+        if isUnderPressure { warmEngine.release() }
+    }
+
+    private func watchMemoryPressure() {
+        guard memoryPressure == nil, !usesTemporaryMeetingStore else { return }
+        let source = DispatchSource.makeMemoryPressureSource(eventMask: [.normal, .warning, .critical], queue: .main)
+        source.setEventHandler { [weak self, weak source] in
+            guard let event = source?.data else { return }
+            MainActor.assumeIsolated { self?.memoryPressureChanged(isUnderPressure: event != .normal) }
+        }
+        source.activate()
+        memoryPressure = source
     }
 
     func triggersChanged(promptIfNeeded: Bool = false) {
