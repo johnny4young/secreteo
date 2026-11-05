@@ -122,7 +122,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/DictationSessionTests/DictationSpeechGateTests.swift` | `Tests/PortavozAppTests/DictationSpeechGateTests.swift` | Extract: without the tests of the composition, which arrive with it |
 | `Tests/DictationSessionTests/DictationTranscriptProjectionTests.swift` | `Tests/PortavozAppTests/DictationTranscriptProjectionTests.swift` | Seam: imports `LiveSpeech` and `SpeechCore` |
 | `Tests/DictationSessionTests/LiveSpeechSelectionTests.swift` | `Tests/PortavozAppTests/LiveSpeechSelectionTests.swift` | Extract: the dictation preference, routing arrives with the composition |
-| `Sources/DictationSession/Triggers/DictationShortcut.swift` | `Sources/portavoz-app/DictationShortcut.swift` | Renames |
+| `Sources/DictationSession/Triggers/DictationShortcut.swift` | `Sources/portavoz-app/DictationShortcut.swift` | Seam: `pause()`, which frees the combination while the recorder listens |
 | `Sources/DictationSession/Triggers/GlobalHotkey.swift` | `Sources/portavoz-app/GlobalHotkey.swift` | Renames |
 | `Sources/DictationSession/Triggers/HotkeySetting.swift` | `Sources/portavoz-app/HotkeySetting.swift` | Seam: its own default shortcut, and without the recorder view, which is in `Settings/HotkeyRecorder.swift` |
 | `Sources/DictationSession/Triggers/HotkeySetting+Labels.swift` | `Sources/portavoz-app/HotkeySetting+Labels.swift` | Renames |
@@ -186,7 +186,9 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationSession/Panel/DictationUnverifiedDeliveryView.swift` | `Sources/portavoz-app/DictationUnverifiedDeliveryView.swift` | Renames |
 | `Sources/DictationSession/Panel/DictationWaveform.swift` | `Sources/portavoz-app/DictationWaveform.swift` | Renames |
 | `Sources/DictationSession/Panel/DictationTextPickers.swift` | `Sources/portavoz-app/DictationTextSettingsSection.swift` | Extract: the two pickers the panel uses |
-| `Sources/DictationSession/Settings/HotkeyRecorder.swift` | `Sources/portavoz-app/HotkeySetting.swift` | Extract: the recorder view, which hands the setting back instead of saving it |
+| `Sources/DictationSession/Settings/DictationSettingsControls.swift` | `Sources/portavoz-app/DictationSection.swift` | Seam: the controls and labels that have behavior here, grouped anew, with no helper text, and the microphone picker from `AudioSection.swift` |
+| `Sources/DictationSession/Settings/DictationVocabularyEditor.swift` | `Sources/portavoz-app/SettingsView.swift` | Extract: the vocabulary list and add field, with no suggestions from meetings |
+| `Sources/DictationSession/Settings/HotkeyRecorder.swift` | `Sources/portavoz-app/HotkeySetting.swift` | Extract: the recorder view, which hands the setting back instead of saving it and frees the shortcut while listening |
 | `Sources/DictationSession/Settings/MouseButtonRecorder.swift` | `Sources/portavoz-app/MouseButtonPTT.swift` | Extract: the recorder view, which hands the button back instead of saving it |
 | `Sources/DictationSession/Settings/DictationShortcutSettings.swift` | `Sources/portavoz-app/DictationShortcutSettings.swift` | Seam: no helper text, and saving goes through the caller |
 | `Sources/DictationSession/Settings/DictationDictionaryEditor.swift` | `Sources/portavoz-app/DictationDictionaryEditor.swift` | Seam: its text comes through a binding, and imports `DictationKit` |

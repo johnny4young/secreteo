@@ -33,6 +33,24 @@ final class DictationShortcutTests: XCTestCase {
         XCTAssertEqual(releases, 1)
     }
 
+    func testPausingFreesTheCombinationAndTheNextSyncTakesItBack() async {
+        let defaults = preferences()
+        let shortcut = DictationShortcut()
+        let host = RegistrationHost()
+        var presses = 0
+        shortcut.sync(defaults: defaults, registrar: host.register, onPress: { presses += 1 }, onRelease: {})
+
+        shortcut.pause()
+
+        host.callbacks[0].0()
+        XCTAssertEqual(presses, 0, "A press during recording must not start a dictation")
+        XCTAssertEqual(shortcut.availability, .registered, "Listening is not a conflict")
+
+        shortcut.sync(defaults: defaults, registrar: host.register, onPress: { presses += 1 }, onRelease: {})
+        host.callbacks[1].0()
+        XCTAssertEqual(presses, 1)
+    }
+
     func testRebindAndDisableReleaseExactHandlesAndRejectOldCallbacks() async {
         let defaults = preferences()
         let shortcut = DictationShortcut()

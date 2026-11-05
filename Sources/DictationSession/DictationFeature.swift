@@ -37,6 +37,7 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored private var readinessPoll: Task<Void, Never>?
     /// Bumped on every write, because `UserDefaults` is not observable.
     var preferenceRevision = 0
+    @ObservationIgnored private var preferencesObserver: (any NSObjectProtocol)?
     let controller: DictationController
 
     public private(set) var modelState = ModelState.missing
@@ -88,6 +89,12 @@ public final class DictationFeature: AppServices {
             return try await ParakeetEngine.load(fromVerifiedDirectory: installed.directory)
         })
         controller = DictationController()
+        // A learned correction writes here directly, and an open Settings window must show it.
+        preferencesObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification, object: defaults, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.preferenceRevision += 1 }
+        }
         // A disposable launch owns its own scratch folder, because no user is there to take it.
         if usesTemporaryStore { ownership.claimScratchOwnership() }
     }

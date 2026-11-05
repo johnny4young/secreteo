@@ -1,5 +1,6 @@
 import DictationKit
 import Foundation
+import Observation
 import XCTest
 
 @testable import DictationSession
@@ -74,6 +75,21 @@ final class DictationPreferenceStoreTests: XCTestCase {
         feature.recordMouseButton(1)
 
         XCTAssertEqual(feature.mouseButton, MouseButtonSetting.off)
+    }
+
+    func testAWriteFromElsewhereRedrawsSettings() async throws {
+        let (defaults, _) = try makeDefaults()
+        let feature = try makeFeature(defaults)
+        let redrawn = expectation(description: "The value's readers are told")
+        withObservationTracking {
+            _ = feature.preference("key", default: "").wrappedValue
+        } onChange: {
+            redrawn.fulfill()
+        }
+
+        defaults.set("learned", forKey: "key")
+
+        await fulfillment(of: [redrawn], timeout: 5)
     }
 
     func testChoosingCleanIsWhatADictationReads() throws {

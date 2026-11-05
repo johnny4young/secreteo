@@ -68,6 +68,12 @@ final class DictationShortcut {
         availability = registration == nil ? .unavailable : .registered
     }
 
+    func pause() {
+        generation = nil
+        registration?.unregister()
+        registration = nil
+    }
+
     func useDefault(in defaults: UserDefaults = .standard) {
         HotkeySetting.default.save(to: defaults)
     }

@@ -71,7 +71,7 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Search | Store | `DictationSearchStoreTests` | | Pending, P7 |
 | Statistics | `DictationStatsModel`, store | `DictationStatsStoreTests`, `DictationStatsTests` | | Pending, P7 |
 | Read-only MCP | `DictationToolbox` | `DictationToolboxTests`, `DictationAgentAccessStoreTests` | | Pending, P8 |
-| Settings: vocabulary, microphone, memory and Polish panels | `DictationSection`, `DictationTextSettingsSection`, `DictationDictionaryEditor` | `SettingsUITests` | `DictationSettingsUITests`, `DictationPreferenceStoreTests` | Triggers, language, microphone, vocabulary and text mode ported. Memory, Polish and recipes are pending |
+| Settings: vocabulary, microphone, memory and Polish panels | `DictationSection`, `DictationTextSettingsSection`, `DictationDictionaryEditor` | `SettingsUITests` | `DictationSettingsUITests`, `DictationPreferenceStoreTests` | Triggers, language, microphone, replacements, vocabulary and text mode ported, without vocabulary suggestions from meetings. Memory, Polish and recipes are pending |
 | Onboarding | `OnboardingDictationStep`, `OnboardingModelPreparation` | `OnboardingUITests`, `OnboardingModelPreparationTests` | | Pending, P5 |
 | Preference import | `PortableSettings` | `PortableSettingsTests` | | Pending, P5 |
 | English and Spanish | `Localizable.xcstrings` | `LocalizationTests` | | Pending, P5 |

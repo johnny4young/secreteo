@@ -15,6 +15,7 @@ public struct DictationSettingsSection: View {
                 shortcut: dictation.controller.shortcut,
                 isUnavailable: dictation.shortcutIsUnavailable,
                 record: { dictation.recordShortcut($0) },
+                recordingChanged: { dictation.shortcutRecording($0) },
                 retry: { dictation.triggersChanged() })
             modelRow
             if !dictation.microphoneIsAuthorized {

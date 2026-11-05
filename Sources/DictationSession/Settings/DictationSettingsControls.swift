@@ -1,3 +1,4 @@
+import AppKit
 import DictationKit
 import Foundation
 import MicCapture
@@ -57,6 +58,7 @@ struct DictationSettingsControls: View {
             DictationDictionaryEditor(stored: dictation.preference(DictationController.replacementsKey, default: ""))
                 .disabled(mode == .literal)
         }
+        DictationVocabularyEditor(stored: dictation.preference("customVocabulary", default: ""))
     }
 
     @ViewBuilder private var modifierKeyControls: some View {
@@ -90,8 +92,14 @@ struct DictationSettingsControls: View {
         Toggle("Stop After a Pause", isOn: autoStops)
             .accessibilityIdentifier("settings-dictation-auto-stop")
         if autoStops.wrappedValue {
-            Picker("Pause Length", selection: dictation.preference(
-                DictationAutoStop.pauseKey, default: DictationAutoStop.defaultPause)) {
+            let pause = dictation.preference(DictationAutoStop.pauseKey, default: DictationAutoStop.defaultPause)
+            // An unknown value stops at the default, so the picker says so.
+            Picker("Pause Length", selection: Binding(
+                get: {
+                    DictationAutoStop.pauses.contains(pause.wrappedValue)
+                        ? pause.wrappedValue : DictationAutoStop.defaultPause
+                },
+                set: { pause.wrappedValue = $0 })) {
                 ForEach(DictationAutoStop.pauses, id: \.self) { seconds in
                     Text(L10n.format("%.1f seconds", seconds)).tag(seconds)
                 }
@@ -114,10 +122,16 @@ struct DictationSettingsControls: View {
             }
         }
         .accessibilityIdentifier("settings-dictation-microphone-device")
-        .task {
-            microphones = await Task.detached(priority: .utility) {
-                (try? AudioDeviceCatalog.inputDevices()) ?? []
-            }.value
+        .task { await refreshMicrophones() }
+        // The window is kept when closed, so a microphone plugged in since needs another look.
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+            Task { await refreshMicrophones() }
         }
+    }
+
+    private func refreshMicrophones() async {
+        microphones = await Task.detached(priority: .utility) {
+            (try? AudioDeviceCatalog.inputDevices()) ?? []
+        }.value
     }
 }

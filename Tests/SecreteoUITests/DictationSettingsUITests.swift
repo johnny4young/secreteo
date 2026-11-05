@@ -61,7 +61,8 @@ final class DictationSettingsUITests: SecreteoUITestCase {
             "settings-dictation-compact", "settings-dictation-speech-gate", "settings-dictation-auto-stop",
             "settings-dictation-corrections", "settings-dictation-caret-case", "settings-dictation-language",
             "settings-dictation-microphone-device", "settings-dictation-text-mode", "settings-dictation-filler",
-            "settings-dictation-dict-trigger", "settings-dictation-dict-replacement", "settings-dictation-dict-add"
+            "settings-dictation-dict-trigger", "settings-dictation-dict-replacement", "settings-dictation-dict-add",
+            "settings-dictation-vocabulary-field", "settings-dictation-vocabulary-add"
         ] {
             XCTAssertTrue(app.control(withIdentifier: identifier).waitForExistence(timeout: 5), identifier)
         }
@@ -126,6 +127,17 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         let remove = app.control(withIdentifier: "settings-dictation-dict-remove")
         XCTAssertTrue(remove.waitForExistence(timeout: 5))
         XCTAssertTrue(app.control(withIdentifier: "settings-dictation-dict-add-heard").exists)
+
+        remove.click()
+
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) { !remove.exists })
+    }
+
+    func testAVocabularyTermCanBeRemoved() throws {
+        let app = try launchEnabled(defaults: #""customVocabulary":"Secreteo""#)
+        defer { finishUITestApplication(app) }
+        let remove = app.control(withIdentifier: "settings-dictation-vocabulary-remove")
+        XCTAssertTrue(remove.waitForExistence(timeout: 5))
 
         remove.click()
 

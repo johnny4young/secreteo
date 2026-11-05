@@ -50,6 +50,22 @@
         }
       }
     },
+    "Add" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agregar"
+          }
+        }
+      }
+    },
     "Add Replacement" : {
       "localizations" : {
         "en" : {
@@ -62,6 +78,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Agregar reemplazo"
+          }
+        }
+      }
+    },
+    "Add Term" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Term"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agregar término"
           }
         }
       }
@@ -2702,6 +2734,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Versión"
+          }
+        }
+      }
+    },
+    "Vocabulary" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vocabulary"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vocabulario"
           }
         }
       }

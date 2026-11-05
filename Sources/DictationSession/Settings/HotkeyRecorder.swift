@@ -9,6 +9,7 @@ struct HotkeyRecorder: View {
     @State private var monitor: Any?
     let setting: HotkeySetting
     let onRecord: (HotkeySetting) -> Void
+    let onRecordingChange: (Bool) -> Void
 
     var body: some View {
         HStack {
@@ -28,6 +29,7 @@ struct HotkeyRecorder: View {
 
     private func startRecording() {
         recording = true
+        onRecordingChange(true)
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             defer { stopRecording() }
             guard event.keyCode != UInt16(kVK_Escape) else { return nil }
@@ -41,6 +43,7 @@ struct HotkeyRecorder: View {
     }
 
     private func stopRecording() {
+        if recording { onRecordingChange(false) }
         recording = false
         if let monitor {
             NSEvent.removeMonitor(monitor)

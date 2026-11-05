@@ -6,10 +6,11 @@ struct DictationShortcutSettings: View {
     let shortcut: DictationShortcut
     let isUnavailable: Bool
     let record: (HotkeySetting) -> Void
+    let recordingChanged: (Bool) -> Void
     let retry: () -> Void
 
     var body: some View {
-        HotkeyRecorder(setting: shortcut.setting, onRecord: record)
+        HotkeyRecorder(setting: shortcut.setting, onRecord: record, onRecordingChange: recordingChanged)
         if shortcut.usedFallback {
             Text(L10n.format(
                 "The saved shortcut is invalid. Using %@ instead.",
