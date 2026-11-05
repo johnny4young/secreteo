@@ -195,6 +195,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationSession/Settings/DictationPracticeView.swift` | `Sources/portavoz-app/DictationPracticeView.swift` | Seam: reads the feature, no helper text or prefix, no model preparation, which Settings already offers, and the window rather than the row holds the field |
 | `Tests/DictationSessionTests/Session/DictationPracticeFieldTests.swift` | `Tests/PortavozAppTests/DictationPracticeFieldTests.swift` | Seam: builds the feature instead of the app's services |
 | `Tests/SecreteoUITests/DictationPracticeUITests.swift` | `Tests/PortavozUITests/DictationPracticeUITests.swift` | Seam: the Settings journey only, and closing the window forgets the words |
+| `Sources/DictationSession/Triggers/PasteLastShortcut.swift` | `Sources/portavoz-app/AppServices+PasteLastDictation.swift` | Extract: the key and its default, as a `HotkeySetting`. The registration is in `DictationFeature.swift`, frees the key while a shortcut is being recorded, and is injectable |
 | `Sources/DictationSession/Settings/DictationDictionaryEditor.swift` | `Sources/portavoz-app/DictationDictionaryEditor.swift` | Seam: its text comes through a binding, and imports `DictationKit` |
 | `Sources/DictationSession/Panel/DictationPanelSupport.swift` | `Sources/portavoz-app/PVDesign.swift` | Extract: the accent, one symbol, and the locale modifier from `AppLanguage` |
 | `Sources/DictationSession/Fixtures/UITestDefaults.swift` | `Sources/portavoz-app/UITestDefaults.swift` | Renames |

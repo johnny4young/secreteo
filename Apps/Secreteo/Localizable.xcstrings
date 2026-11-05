@@ -226,6 +226,22 @@
         }
       }
     },
+    "Another shortcut already uses ⌃⌥⌘V." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another shortcut already uses ⌃⌥⌘V."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otro atajo ya usa ⌃⌥⌘V."
+          }
+        }
+      }
+    },
     "Apple Speech could not start. Try Parakeet in Dictation settings." : {
       "localizations" : {
         "en" : {
@@ -1534,6 +1550,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pegar sin pulir"
+          }
+        }
+      }
+    },
+    "Paste the Last Dictation with ⌃⌥⌘V" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste the Last Dictation with ⌃⌥⌘V"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pegar el último dictado con ⌃⌥⌘V"
           }
         }
       }
