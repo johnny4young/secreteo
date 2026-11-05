@@ -1,3 +1,4 @@
+import AppKit
 import ApplicationServices
 import DictationKit
 import DictationOwnership
@@ -42,8 +43,11 @@ public final class DictationFeature: AppServices {
     var preferenceRevision = 0
     @ObservationIgnored private var preferencesObserver: (any NSObjectProtocol)?
     let controller: DictationController
+    @ObservationIgnored let practice = DictationPracticeField()
+    @ObservationIgnored private let settingsWindowHolder = UUID()
 
     public private(set) var modelState = ModelState.missing
+    private var speechModelIsInstalled = false
     public private(set) var isEnabled: Bool
     public private(set) var microphoneIsAuthorized: Bool
     public private(set) var accessibilityIsGranted: Bool
@@ -93,6 +97,7 @@ public final class DictationFeature: AppServices {
             return try await ParakeetEngine.load(fromVerifiedDirectory: installed.directory)
         })
         controller = DictationController()
+        practice.onForget = { [controller] in controller.practiceLastText.clear() }
         pasteLastRegistrar = usesTemporaryStore ? nil : DictationShortcut.liveRegistrar
         // A learned correction writes here directly, and an open Settings window must show it.
         preferencesObserver = NotificationCenter.default.addObserver(
@@ -129,6 +134,7 @@ public final class DictationFeature: AppServices {
     public func setEnabled(_ enabled: Bool) {
         store([DictationController.defaultsKey: enabled])
         isEnabled = enabled
+        if !enabled { practice.clear() }
         syncDictationTriggers(promptIfNeeded: enabled)
         Task {
             let outcome = await ownership.preferenceChanged(
@@ -186,6 +192,18 @@ public final class DictationFeature: AppServices {
     }
 
     public var isActive: Bool { controller.isActive }
+    /// A disposable launch has its own fixtures, so it needs no model.
+    var canPractice: Bool { environment.models == nil || speechModelIsInstalled }
+    var practiceIsShown: Bool { isEnabled && canPractice }
+
+    /// The window holds the practice field, because the form's rows come and go as it scrolls.
+    public func settingsWindowChanged(isKey: Bool) {
+        practice.show(settingsWindowHolder, isKey: isKey)
+    }
+
+    public func settingsWindowClosed() {
+        practice.hide(settingsWindowHolder)
+    }
     /// Off, or owned by another app, a start would be refused with nothing to show for it.
     public var canDictate: Bool { ownership.state == .owned || controller.isActive }
     /// What the user can do when the protocol refuses this app. Readiness has its own controls.
@@ -224,6 +242,10 @@ public final class DictationFeature: AppServices {
     }
 
     func makeDictationSessionDependencies() -> DictationSessionDependencies {
+        practice.route(unroutedDependencies(), appIsActive: NSApplication.shared.isActive && practiceIsShown)
+    }
+
+    private func unroutedDependencies() -> DictationSessionDependencies {
         guard usesTemporaryMeetingStore else {
             return .live(services: self, beginCapture: { {} })
         }
@@ -233,6 +255,9 @@ public final class DictationFeature: AppServices {
         dependencies.storesPreferencesTemporarily = true
         dependencies.polishDictation = DictationUITestFixture.polishing(fixture)
         dependencies.translateDictation = DictationUITestFixture.translating(fixture)
+        if let fixture, fixture.correctsByVoice {
+            dependencies.captureDestination = { DictationUITestFixture.correctionDestination(fixture) }
+        }
         return dependencies
     }
 
@@ -339,6 +364,7 @@ public final class DictationFeature: AppServices {
         } else if modelState == .ready {
             modelState = .missing
         }
+        speechModelIsInstalled = speechIsInstalled
         readiness.modelIsInstalled.withLock { $0 = speechIsInstalled }
         ownership.reevaluate()
         syncEventTaps()
