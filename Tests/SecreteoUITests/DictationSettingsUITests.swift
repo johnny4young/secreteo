@@ -75,6 +75,21 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         attachScreenshot(named: "pr-settings-dictation-controls")
     }
 
+    func testThePasteLastShortcutTurnsOnWithoutAConflict() throws {
+        let app = try launchEnabled()
+        defer { finishUITestApplication(app) }
+        let toggle = app.control(withIdentifier: "settings-dictation-paste-last-hotkey")
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        XCTAssertFalse(toggle.value as? Int == 1 || toggle.value as? String == "1", "Off until chosen")
+
+        toggle.click()
+
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) {
+            toggle.value as? Int == 1 || toggle.value as? String == "1"
+        })
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-paste-last-taken").exists)
+    }
+
     func testChoosingAShortcutShowsItAndOffersTheDefaultBack() throws {
         let app = try launchEnabled()
         defer { finishUITestApplication(app) }

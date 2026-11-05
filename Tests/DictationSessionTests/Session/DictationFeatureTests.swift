@@ -245,17 +245,36 @@ final class DictationFeatureTests: XCTestCase {
         XCTAssertEqual(registrations.active, 1)
     }
 
+    func testNothingRearmsTheKeysWhileAShortcutIsBeingRecorded() throws {
+        let (feature, registrations) = try pasteLastFeature()
+        feature.start()
+        feature.pasteLastShortcutBinding.wrappedValue = true
+        feature.shortcutRecording(true)
+
+        feature.pasteLastShortcutBinding.wrappedValue = false
+        feature.pasteLastShortcutBinding.wrappedValue = true
+        feature.triggersChanged()
+
+        XCTAssertEqual(registrations.active, 0)
+        XCTAssertFalse(feature.pasteLastShortcutIsUnavailable, "Freed on purpose, so not a conflict")
+
+        feature.shortcutRecording(false)
+        XCTAssertEqual(registrations.active, 1)
+    }
+
     func testPressingThePasteLastShortcutDeliversTheLastDictation() async throws {
         let (feature, registrations) = try pasteLastFeature(
             arguments: ["-seed-dictation", "-seed-dictation-delivery", "-seed-dictation-verified"])
         feature.start()
         feature.pasteLastShortcutBinding.wrappedValue = true
-        feature.controller.lastText.remember("Send the report.")
+        let text = "Send the report."
+        feature.controller.lastText.remember(text)
 
         registrations.press()
 
-        await waitUntil { feature.controller.phase == .verified(3) }
-        XCTAssertEqual(feature.controller.phase, .verified(3))
+        let verified = DictationController.Phase.verified(text.split(separator: " ").count)
+        await waitUntil { feature.controller.phase == verified }
+        XCTAssertEqual(feature.controller.phase, verified)
         feature.controller.cancel()
     }
 

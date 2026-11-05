@@ -37,6 +37,7 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored private var readinessPoll: Task<Void, Never>?
     @ObservationIgnored var pasteLastRegistrar: DictationShortcut.Registrar?
     @ObservationIgnored private var pasteLastRegistration: (any GlobalHotkeyRegistration)?
+    @ObservationIgnored private var isRecordingShortcut = false
     /// Bumped on every write, because `UserDefaults` is not observable.
     var preferenceRevision = 0
     @ObservationIgnored private var preferencesObserver: (any NSObjectProtocol)?
@@ -274,26 +275,30 @@ public final class DictationFeature: AppServices {
     }
 
     private func syncDictationTriggers(promptIfNeeded: Bool = false) {
-        controller.syncHotkey(services: self)
+        if !isRecordingShortcut { controller.syncHotkey(services: self) }
         syncPasteLastShortcut()
         syncEventTaps(promptIfNeeded: promptIfNeeded)
     }
 
     func syncPasteLastShortcut() {
-        pausePasteLastShortcut()
-        let wanted = dictationTriggersMayArm && defaults.bool(forKey: DictationController.defaultsKey)
+        pasteLastRegistration?.unregister()
+        pasteLastRegistration = nil
+        let wanted = !isRecordingShortcut && dictationTriggersMayArm && defaults.bool(forKey: DictationController.defaultsKey)
             && defaults.bool(forKey: PasteLastShortcut.defaultsKey)
         guard wanted, let pasteLastRegistrar else {
             pasteLastShortcutIsUnavailable = false
             return
         }
-        pasteLastRegistration = pasteLastRegistrar(PasteLastShortcut.setting, { [weak self] in self?.pasteLast() }, {})
+        pasteLastRegistration = pasteLastRegistrar(
+            PasteLastShortcut.setting, { [weak self] in self?.pasteLast() }, {})
         pasteLastShortcutIsUnavailable = pasteLastRegistration == nil
     }
 
-    func pausePasteLastShortcut() {
-        pasteLastRegistration?.unregister()
-        pasteLastRegistration = nil
+    /// Freed while the recorder listens for a combination, or pressing a current one would act on it.
+    func shortcutRecording(_ isRecording: Bool) {
+        isRecordingShortcut = isRecording
+        if isRecording { controller.shortcut.pause() }
+        triggersChanged()
     }
 
     /// Safe on any hint: unlike the hotkey, a tap already in place is left alone, so a held key keeps its release.
