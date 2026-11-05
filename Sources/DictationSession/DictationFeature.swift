@@ -36,7 +36,7 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored private let warmEngine: WarmModel<ParakeetEngine>
     @ObservationIgnored private var readinessPoll: Task<Void, Never>?
     @ObservationIgnored private var memoryPressure: (any DispatchSourceMemoryPressure)?
-    @ObservationIgnored private(set) var isUnderMemoryPressure = false
+    @ObservationIgnored let pressure = DictationMemoryPressure()
     @ObservationIgnored var pasteLastRegistrar: DictationShortcut.Registrar?
     @ObservationIgnored private var pasteLastRegistration: (any GlobalHotkeyRegistration)?
     @ObservationIgnored private var isRecordingShortcut = false
@@ -89,7 +89,9 @@ public final class DictationFeature: AppServices {
         self.ownership = ownership
         // Two apps must not each keep a model warm.
         warmEngine = WarmModel(
-            idleLimit: { DictationModelMemory.current(in: defaults).idleLimit },
+            idleLimit: { [pressure] in
+                DictationModelMemory.current(in: defaults).idleLimit(underPressure: pressure.isActive)
+            },
             mayKeep: { ownership.state == .owned },
             load: {
                 guard let installed = await modelStore.verifiedInstallation(ModelCatalog.parakeetTdtV3) else {
@@ -285,7 +287,7 @@ public final class DictationFeature: AppServices {
             prewarmEnabled: defaults.bool(forKey: DictationPrewarmPolicy.defaultsKey),
             profile: DictationModelMemory.current(in: defaults),
             engine: LiveSpeechPurpose.dictation.selectedEngine(in: defaults),
-            underPressure: isUnderMemoryPressure,
+            underPressure: pressure.isActive,
             lowPowerMode: ProcessInfo.processInfo.isLowPowerModeEnabled,
             temporaryStore: usesTemporaryMeetingStore)
     }
@@ -305,7 +307,7 @@ public final class DictationFeature: AppServices {
     }
 
     func memoryPressureChanged(isUnderPressure: Bool) {
-        isUnderMemoryPressure = isUnderPressure
+        pressure.isActive = isUnderPressure
         if isUnderPressure { warmEngine.release() }
     }
 

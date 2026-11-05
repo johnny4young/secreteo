@@ -92,16 +92,18 @@ final class DictationSettingsUITests: SecreteoUITestCase {
     }
 
     func testFreeingTheModelSoonRulesOutLoadingItAtLaunch() throws {
-        let app = try launchEnabled()
+        let app = try launchEnabled(defaults: #""dictationPrewarm":true"#)
         defer { finishUITestApplication(app) }
         let lightweight = app.control(withIdentifier: "settings-model-memory-lightweight")
         let prewarm = app.control(withIdentifier: "settings-dictation-prewarm")
         XCTAssertTrue(lightweight.waitForStableFrame(timeout: 5))
         XCTAssertTrue(prewarm.isEnabled)
+        XCTAssertTrue(prewarm.value as? Int == 1 || prewarm.value as? String == "1")
 
         lightweight.click()
 
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { !prewarm.isEnabled })
+        XCTAssertTrue(prewarm.value as? Int == 0 || prewarm.value as? String == "0", "Off, not greyed out on")
     }
 
     func testChoosingAShortcutShowsItAndOffersTheDefaultBack() throws {

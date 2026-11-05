@@ -61,7 +61,9 @@ extension DictationFeature {
         Binding(
             get: {
                 _ = self.preferenceRevision
+                // It does nothing with the lightweight profile, so it must not read as on.
                 return self.defaults.bool(forKey: DictationPrewarmPolicy.defaultsKey)
+                    && DictationModelMemory.current(in: self.defaults) == .balanced
             },
             set: {
                 self.store([DictationPrewarmPolicy.defaultsKey: $0])

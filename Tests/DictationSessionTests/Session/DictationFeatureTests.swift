@@ -333,6 +333,26 @@ final class DictationFeatureTests: XCTestCase {
         XCTAssertFalse(feature.prewarmConditions.underPressure)
     }
 
+    func testAModelGetsNoGraceUnderMemoryPressure() {
+        for profile in [DictationModelMemory.balanced, .lightweight] {
+            XCTAssertEqual(profile.idleLimit(underPressure: true), .zero)
+            XCTAssertGreaterThan(profile.idleLimit(underPressure: false), .zero)
+        }
+    }
+
+    func testThePrewarmChoiceReadsAsOffWithTheLightweightProfileAndComesBack() throws {
+        let feature = try makeFeature()
+        let defaults = feature.defaults
+        defaults.set(true, forKey: DictationPrewarmPolicy.defaultsKey)
+        XCTAssertTrue(feature.prewarmBinding.wrappedValue)
+
+        defaults.set(DictationModelMemory.lightweight.rawValue, forKey: DictationModelMemory.key)
+        XCTAssertFalse(feature.prewarmBinding.wrappedValue)
+
+        defaults.set(DictationModelMemory.balanced.rawValue, forKey: DictationModelMemory.key)
+        XCTAssertTrue(feature.prewarmBinding.wrappedValue)
+    }
+
     func testAnUnknownMemoryProfileIsBalanced() throws {
         let defaults = makeDefaults()
         XCTAssertEqual(DictationModelMemory.current(in: defaults), .balanced)
@@ -340,7 +360,9 @@ final class DictationFeatureTests: XCTestCase {
         defaults.set("not a profile", forKey: DictationModelMemory.key)
 
         XCTAssertEqual(DictationModelMemory.current(in: defaults), .balanced)
-        XCTAssertLessThan(DictationModelMemory.lightweight.idleLimit, DictationModelMemory.balanced.idleLimit)
+        XCTAssertLessThan(
+            DictationModelMemory.lightweight.idleLimit(underPressure: false),
+            DictationModelMemory.balanced.idleLimit(underPressure: false))
     }
 
     func testAFailedDetectorDownloadIsShownAndCanBeRetried() async throws {

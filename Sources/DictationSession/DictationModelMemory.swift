@@ -8,16 +8,24 @@ enum DictationModelMemory: String {
     static let key = "modelMemoryProfile"
 
     /// Lightweight keeps a short grace so dictations in a row reuse a loaded model.
-    var idleLimit: Duration {
+    /// A Mac short of memory gets no grace at all.
+    func idleLimit(underPressure: Bool) -> Duration {
+        if underPressure { return .zero }
         switch self {
-        case .balanced: .seconds(600)
-        case .lightweight: .seconds(60)
+        case .balanced: return .seconds(600)
+        case .lightweight: return .seconds(60)
         }
     }
 
     static func current(in defaults: UserDefaults) -> Self {
         defaults.string(forKey: key).flatMap(Self.init(rawValue:)) ?? .balanced
     }
+}
+
+/// The system's last word on memory, which `WarmModel` reads before the feature exists.
+@MainActor
+final class DictationMemoryPressure {
+    var isActive = false
 }
 
 /// Opt-in warm load for dictation. It never pins the model: the hold ends at
