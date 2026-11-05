@@ -112,6 +112,8 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         defer { finishUITestApplication(app) }
         let lightweight = app.control(withIdentifier: "settings-model-memory-lightweight")
         let prewarm = app.control(withIdentifier: "settings-dictation-prewarm")
+        // The form leaves rows below the fold out of the accessibility tree.
+        app.control(withIdentifier: "settings-root").scroll(byDeltaX: 0, deltaY: -600)
         XCTAssertTrue(lightweight.waitForStableFrame(timeout: 5))
         XCTAssertTrue(prewarm.isEnabled)
         XCTAssertTrue(prewarm.value as? Int == 1 || prewarm.value as? String == "1")
