@@ -192,7 +192,16 @@ final class DictationFeatureTests: XCTestCase {
         let feature = try makeFeature(defaults: defaults, arguments: arguments)
         let registrations = Registrations()
         feature.pasteLastRegistrar = registrations.registrar
+        // A disposable launch stores choices in the process-wide volatile domain.
+        addTeardownBlock { Self.forgetPasteLastChoice() }
         return (feature, registrations)
+    }
+
+    private nonisolated static func forgetPasteLastChoice() {
+        let defaults = UserDefaults.standard
+        var domain = defaults.volatileDomain(forName: UserDefaults.argumentDomain)
+        domain.removeValue(forKey: PasteLastShortcut.defaultsKey)
+        defaults.setVolatileDomain(domain, forName: UserDefaults.argumentDomain)
     }
 
     func testThePasteLastShortcutIsOffUntilChosen() throws {

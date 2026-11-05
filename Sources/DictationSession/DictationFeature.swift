@@ -283,7 +283,8 @@ public final class DictationFeature: AppServices {
     func syncPasteLastShortcut() {
         pasteLastRegistration?.unregister()
         pasteLastRegistration = nil
-        let wanted = !isRecordingShortcut && dictationTriggersMayArm && defaults.bool(forKey: DictationController.defaultsKey)
+        let wanted = !isRecordingShortcut && dictationTriggersMayArm
+            && defaults.bool(forKey: DictationController.defaultsKey)
             && defaults.bool(forKey: PasteLastShortcut.defaultsKey)
         guard wanted, let pasteLastRegistrar else {
             pasteLastShortcutIsUnavailable = false
