@@ -41,6 +41,7 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored private var preferencesObserver: (any NSObjectProtocol)?
     let controller: DictationController
     @ObservationIgnored let practice = DictationPracticeField()
+    @ObservationIgnored private let settingsWindowHolder = UUID()
 
     public private(set) var modelState = ModelState.missing
     private var speechModelIsInstalled = false
@@ -128,6 +129,7 @@ public final class DictationFeature: AppServices {
     public func setEnabled(_ enabled: Bool) {
         store([DictationController.defaultsKey: enabled])
         isEnabled = enabled
+        if !enabled { practice.clear() }
         syncDictationTriggers(promptIfNeeded: enabled)
         Task {
             let outcome = await ownership.preferenceChanged(
@@ -187,6 +189,16 @@ public final class DictationFeature: AppServices {
     public var isActive: Bool { controller.isActive }
     /// A disposable launch has its own fixtures, so it needs no model.
     var canPractice: Bool { environment.models == nil || speechModelIsInstalled }
+    var practiceIsShown: Bool { isEnabled && canPractice }
+
+    /// The window holds the practice field, because the form's rows come and go as it scrolls.
+    public func settingsWindowChanged(isKey: Bool) {
+        practice.show(settingsWindowHolder, isKey: isKey)
+    }
+
+    public func settingsWindowClosed() {
+        practice.hide(settingsWindowHolder)
+    }
     /// Off, or owned by another app, a start would be refused with nothing to show for it.
     public var canDictate: Bool { ownership.state == .owned || controller.isActive }
     /// What the user can do when the protocol refuses this app. Readiness has its own controls.
@@ -225,7 +237,7 @@ public final class DictationFeature: AppServices {
     }
 
     func makeDictationSessionDependencies() -> DictationSessionDependencies {
-        practice.route(unroutedDependencies(), appIsActive: NSApplication.shared.isActive)
+        practice.route(unroutedDependencies(), appIsActive: NSApplication.shared.isActive && practiceIsShown)
     }
 
     private func unroutedDependencies() -> DictationSessionDependencies {
@@ -238,6 +250,9 @@ public final class DictationFeature: AppServices {
         dependencies.storesPreferencesTemporarily = true
         dependencies.polishDictation = DictationUITestFixture.polishing(fixture)
         dependencies.translateDictation = DictationUITestFixture.translating(fixture)
+        if let fixture, fixture.correctsByVoice {
+            dependencies.captureDestination = { DictationUITestFixture.correctionDestination(fixture) }
+        }
         return dependencies
     }
 

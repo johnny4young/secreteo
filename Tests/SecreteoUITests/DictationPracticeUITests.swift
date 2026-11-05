@@ -46,6 +46,7 @@ final class DictationPracticeUITests: SecreteoUITestCase {
         let root = app.control(withIdentifier: "settings-root")
         root.scroll(byDeltaX: 0, deltaY: -1_800)
         root.scroll(byDeltaX: 0, deltaY: 1_800)
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
         XCTAssertEqual(field.value as? String, expected, "Scrolling is not leaving the field")
 
         let settings = app.windows.containing(.any, identifier: "settings-root").firstMatch

@@ -80,6 +80,15 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         attachScreenshot(named: "pr-settings-dictation-controls-bottom")
     }
 
+    func testOpeningSettingsWithEditableReplacementsStaysAtTheTop() throws {
+        let app = try launchEnabled(defaults: #""dictationTextMode":"clean""#)
+        defer { finishUITestApplication(app) }
+
+        let enabled = app.control(withIdentifier: "settings-dictation-enabled")
+
+        XCTAssertTrue(enabled.waitForStableFrame(timeout: 5), "No text field takes focus and scrolls the form")
+    }
+
     func testChoosingAShortcutShowsItAndOffersTheDefaultBack() throws {
         let app = try launchEnabled()
         defer { finishUITestApplication(app) }

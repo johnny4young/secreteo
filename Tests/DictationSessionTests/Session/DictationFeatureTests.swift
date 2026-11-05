@@ -202,6 +202,40 @@ final class DictationFeatureTests: XCTestCase {
         XCTAssertFalse(feature.canPractice, "A damaged model takes the field back")
     }
 
+    func testTheSettingsWindowArmsThePracticeFieldWhileItIsKey() throws {
+        let feature = try makeFeature()
+
+        feature.settingsWindowChanged(isKey: true)
+        XCTAssertTrue(feature.practice.isArmed)
+
+        feature.settingsWindowChanged(isKey: false)
+        XCTAssertFalse(feature.practice.isArmed)
+    }
+
+    func testClosingTheSettingsWindowForgetsThePracticeWords() throws {
+        let feature = try makeFeature()
+        feature.settingsWindowChanged(isKey: true)
+        XCTAssertEqual(feature.practice.receive("Hola"), .verified)
+
+        feature.settingsWindowClosed()
+
+        XCTAssertEqual(feature.practice.text, "")
+        XCTAssertFalse(feature.practice.isArmed)
+    }
+
+    func testTurningDictationOffHidesThePracticeFieldAndForgetsItsWords() throws {
+        let defaults = makeDefaults()
+        defaults.set(true, forKey: DictationController.defaultsKey)
+        let feature = try makeFeature(defaults: defaults)
+        feature.settingsWindowChanged(isKey: true)
+        XCTAssertEqual(feature.practice.receive("Hola"), .verified)
+
+        feature.setEnabled(false)
+
+        XCTAssertFalse(feature.practiceIsShown)
+        XCTAssertEqual(feature.practice.text, "")
+    }
+
     func testADisposableLaunchPracticesWithNoModel() throws {
         let feature = try DictationFeature(usesTemporaryStore: true, arguments: [], defaults: makeDefaults())
 

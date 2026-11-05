@@ -3,8 +3,6 @@ import SwiftUI
 /// Dictation with the real microphone and model, delivered to an in-app field
 /// instead of another app, so a user can try it before granting Accessibility.
 struct DictationPracticeView: View {
-    @Environment(\.controlActiveState) private var activeState
-    @State private var holder = UUID()
     let dictation: DictationFeature
 
     private var practice: DictationPracticeField { dictation.practice }
@@ -15,9 +13,6 @@ struct DictationPracticeView: View {
             field
             controls
         }
-        .onAppear { practice.show(holder, isKey: activeState == .key) }
-        .onChange(of: activeState) { practice.show(holder, isKey: activeState == .key) }
-        .onDisappear { practice.hide(holder) }
     }
 
     private var field: some View {
