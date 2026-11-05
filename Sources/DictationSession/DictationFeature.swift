@@ -35,6 +35,9 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored let readiness: ReadinessGap
     @ObservationIgnored private let warmEngine: WarmModel<ParakeetEngine>
     @ObservationIgnored private var readinessPoll: Task<Void, Never>?
+    /// Bumped on every write, because `UserDefaults` is not observable.
+    var preferenceRevision = 0
+    @ObservationIgnored private var preferencesObserver: (any NSObjectProtocol)?
     let controller: DictationController
 
     public private(set) var modelState = ModelState.missing
@@ -86,6 +89,12 @@ public final class DictationFeature: AppServices {
             return try await ParakeetEngine.load(fromVerifiedDirectory: installed.directory)
         })
         controller = DictationController()
+        // A learned correction writes here directly, and an open Settings window must show it.
+        preferencesObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification, object: defaults, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.preferenceRevision += 1 }
+        }
         // A disposable launch owns its own scratch folder, because no user is there to take it.
         if usesTemporaryStore { ownership.claimScratchOwnership() }
     }
@@ -113,7 +122,7 @@ public final class DictationFeature: AppServices {
     }
 
     public func setEnabled(_ enabled: Bool) {
-        storePreference(enabled)
+        store([DictationController.defaultsKey: enabled])
         isEnabled = enabled
         syncDictationTriggers(promptIfNeeded: enabled)
         Task {
@@ -191,7 +200,6 @@ public final class DictationFeature: AppServices {
     private var canPasteAlternate: Bool { controller.hasAlternateText && mayPaste }
     /// A paste takes the same admission as a dictation, so it is refused without ownership.
     private var mayPaste: Bool { ownership.state == .owned && !controller.isActive }
-    public var shortcutLabel: String { controller.shortcut.setting.label }
     /// A failed handoff disarms the shortcut again, so its conflict outlives the registration.
     public var shortcutIsUnavailable: Bool {
         controller.shortcut.availability == .unavailable || handoffProblem == .shortcutTaken
@@ -235,17 +243,6 @@ public final class DictationFeature: AppServices {
 
     // MARK: Private
 
-    /// A disposable launch runs under the real bundle identifier, so it writes only to its volatile domain.
-    private func storePreference(_ enabled: Bool) {
-        guard usesTemporaryMeetingStore else {
-            defaults.set(enabled, forKey: DictationController.defaultsKey)
-            return
-        }
-        var domain = defaults.volatileDomain(forName: UserDefaults.argumentDomain)
-        domain[DictationController.defaultsKey] = enabled
-        defaults.setVolatileDomain(domain, forName: UserDefaults.argumentDomain)
-    }
-
     private var armForHandoff: @MainActor () -> Bool {
         { [weak self] in
             guard let self else { return false }
@@ -266,6 +263,10 @@ public final class DictationFeature: AppServices {
     private func ownershipChanged(from previous: ParticipantState) {
         syncDictationTriggers()
         if previous == .owned, ownership.state != .owned { warmEngine.release() }
+    }
+
+    func triggersChanged(promptIfNeeded: Bool = false) {
+        syncDictationTriggers(promptIfNeeded: promptIfNeeded)
     }
 
     private func syncDictationTriggers(promptIfNeeded: Bool = false) {

@@ -24,7 +24,7 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Silero voice detection | `SileroVoiceActivityDetector` | `SileroVoiceActivityDetectorTests` | The same tests, and [paired evidence](spikes/fluidaudio-upstream.md) with the real model | Ported |
 | Microphone capture | `MicrophoneSource`, `AudioDeviceCatalog`, `CaptureDeliveryBuffer` | `AudioCaptureTests`, `CaptureDeliveryBufferTests`, `MicrophoneTapTransitionTests`, `LinearResamplerTests`, `CapturePCMGeometryTests` | The same tests | Logic ported. Engine start and route changes on a real device still have to be checked |
 | Microphone permission | `MicrophonePermissionClient` | `MicrophonePermissionClientTests` | `MicrophonePermissionClientTests` | Ported |
-| Choice of microphone | `MicrophoneInputSelection` | `DictationReadinessTests` | The same tests, without the composition's | Logic ported. Settings arrives in P5 |
+| Choice of microphone | `MicrophoneInputSelection` | `DictationReadinessTests` | The same tests, without the composition's | Ported, with its picker in Settings |
 | Model download and storage | `ModelStore`, then `LocalModelStore` | `ModelStoreDownloadFailureTests` | In `local-model-store`, and `ModelCatalogTests` for the pins | Ported. A stopped download resumes at the next file, and unused models are collected at launch. The seed from Portavoz's models and the warm-up wait for P5 |
 | Choice of live engine | `LiveSpeechSelection` | `LiveSpeechSelectionTests`, which has to be rewritten | `LiveSpeechSelectionTests`, for the preference | Preference ported with no meeting lane. Routing arrives with the composition |
 
@@ -33,8 +33,8 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Capability or case | Portavoz source | Portavoz test | Secreteo test | State |
 |---|---|---|---|---|
 | Global shortcut | `GlobalHotkey`, `DictationController+Hotkey` | `GlobalHotkeyRoutingTests`, `DictationShortcutTests`, `HotkeySettingTests` | The same tests, without the UI fixture's | Armed in Debug and `make install`. A real shortcut still has to be checked |
-| Push to talk, Fn and modifiers | `ModifierKeyPTT`, `DictationController+ModifierKey` | `ModifierKeyGestureTests`, `DictationModifierOwnershipTests` | `ModifierKeyGestureTests` | Armed in Debug and `make install` when configured. Settings has no control for it yet |
-| Push to talk, mouse | `MouseButtonPTT`, `MousePTTGesture` | `MousePTTGestureTests` | The same tests | Armed in Debug and `make install` when configured. Settings has no control for it yet |
+| Push to talk, Fn and modifiers | `ModifierKeyPTT`, `DictationController+ModifierKey` | `ModifierKeyGestureTests`, `DictationModifierOwnershipTests` | `ModifierKeyGestureTests` | Armed in Debug and `make install` when configured, with its control in Settings |
+| Push to talk, mouse | `MouseButtonPTT`, `MousePTTGesture` | `MousePTTGestureTests` | The same tests | Armed in Debug and `make install` when configured, with its control in Settings |
 | Menu | `MenuBarView`, `MenuBarModel` | `MenuBarModelTests`, `DictationUITests` | `DictationUITests` | Dictate and Paste last in the menu |
 | App Intents | `AppServices+DictationIntents` | `DictationIntentTests` | | Pending, P8 |
 | Paste last | `DictationController+PasteLast`, `AppServices+PasteLastDictation` | `DictationPasteLastTests` | The same tests | In the menu. Its shortcut is still to come |
@@ -71,7 +71,7 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Search | Store | `DictationSearchStoreTests` | | Pending, P7 |
 | Statistics | `DictationStatsModel`, store | `DictationStatsStoreTests`, `DictationStatsTests` | | Pending, P7 |
 | Read-only MCP | `DictationToolbox` | `DictationToolboxTests`, `DictationAgentAccessStoreTests` | | Pending, P8 |
-| Settings: vocabulary, microphone, memory and Polish panels | `DictationSection`, `DictationTextSettingsSection`, `DictationDictionaryEditor` | `SettingsUITests` | | Pending, P5 |
+| Settings: vocabulary, microphone, memory and Polish panels | `DictationSection`, `DictationTextSettingsSection`, `DictationDictionaryEditor` | `SettingsUITests` | `DictationSettingsUITests`, `DictationPreferenceStoreTests` | Triggers, language, microphone, replacements, vocabulary and text mode ported, without vocabulary suggestions from meetings. Memory, Polish and recipes are pending |
 | Onboarding | `OnboardingDictationStep`, `OnboardingModelPreparation` | `OnboardingUITests`, `OnboardingModelPreparationTests` | | Pending, P5 |
 | Preference import | `PortableSettings` | `PortableSettingsTests` | | Pending, P5 |
 | English and Spanish | `Localizable.xcstrings` | `LocalizationTests` | | Pending, P5 |

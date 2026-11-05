@@ -1,3 +1,4 @@
+import DictationSession
 import SwiftUI
 
 public struct SettingsView: View {
@@ -40,8 +41,7 @@ public struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 420)
-        .fixedSize(horizontal: false, vertical: true)
+        .frame(width: 460, height: 640)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("settings-root")
     }
