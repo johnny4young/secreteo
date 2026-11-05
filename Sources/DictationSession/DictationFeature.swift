@@ -35,6 +35,8 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored let readiness: ReadinessGap
     @ObservationIgnored private let warmEngine: WarmModel<ParakeetEngine>
     @ObservationIgnored private var readinessPoll: Task<Void, Never>?
+    @ObservationIgnored var pasteLastRegistrar: DictationShortcut.Registrar?
+    @ObservationIgnored private var pasteLastRegistration: (any GlobalHotkeyRegistration)?
     /// Bumped on every write, because `UserDefaults` is not observable.
     var preferenceRevision = 0
     @ObservationIgnored private var preferencesObserver: (any NSObjectProtocol)?
@@ -46,6 +48,7 @@ public final class DictationFeature: AppServices {
     public private(set) var accessibilityIsGranted: Bool
     private(set) var handoffProblem: HandoffProblem?
     public private(set) var lastResetFailed = false
+    private(set) var pasteLastShortcutIsUnavailable = false
 
     public convenience init(usesTemporaryStore: Bool, arguments: [String] = ProcessInfo.processInfo.arguments) throws {
         try self.init(usesTemporaryStore: usesTemporaryStore, arguments: arguments, defaults: .standard)
@@ -89,6 +92,7 @@ public final class DictationFeature: AppServices {
             return try await ParakeetEngine.load(fromVerifiedDirectory: installed.directory)
         })
         controller = DictationController()
+        pasteLastRegistrar = usesTemporaryStore ? nil : DictationShortcut.liveRegistrar
         // A learned correction writes here directly, and an open Settings window must show it.
         preferencesObserver = NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification, object: defaults, queue: .main
@@ -271,7 +275,25 @@ public final class DictationFeature: AppServices {
 
     private func syncDictationTriggers(promptIfNeeded: Bool = false) {
         controller.syncHotkey(services: self)
+        syncPasteLastShortcut()
         syncEventTaps(promptIfNeeded: promptIfNeeded)
+    }
+
+    func syncPasteLastShortcut() {
+        pausePasteLastShortcut()
+        let wanted = dictationTriggersMayArm && defaults.bool(forKey: DictationController.defaultsKey)
+            && defaults.bool(forKey: PasteLastShortcut.defaultsKey)
+        guard wanted, let pasteLastRegistrar else {
+            pasteLastShortcutIsUnavailable = false
+            return
+        }
+        pasteLastRegistration = pasteLastRegistrar(PasteLastShortcut.setting, { [weak self] in self?.pasteLast() }, {})
+        pasteLastShortcutIsUnavailable = pasteLastRegistration == nil
+    }
+
+    func pausePasteLastShortcut() {
+        pasteLastRegistration?.unregister()
+        pasteLastRegistration = nil
     }
 
     /// Safe on any hint: unlike the hotkey, a tap already in place is left alone, so a held key keeps its release.

@@ -15,6 +15,13 @@ struct DictationSettingsControls: View {
                 button: dictation.mouseButton,
                 onRecord: { dictation.recordMouseButton($0) })
             modifierKeyControls
+            Toggle("Paste the Last Dictation with ⌃⌥⌘V", isOn: dictation.pasteLastShortcutBinding)
+                .accessibilityIdentifier("settings-dictation-paste-last-hotkey")
+            if dictation.pasteLastShortcutIsUnavailable {
+                Text("Another shortcut already uses ⌃⌥⌘V.")
+                    .foregroundStyle(.red)
+                    .accessibilityIdentifier("settings-dictation-paste-last-taken")
+            }
         }
         Section("While Dictating") {
             Toggle("Play Start and Stop Sounds", isOn: dictation.preference(

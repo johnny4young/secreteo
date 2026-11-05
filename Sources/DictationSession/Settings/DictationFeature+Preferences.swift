@@ -32,9 +32,26 @@ extension DictationFeature {
             set: { self.store([key: $0]) })
     }
 
-    /// Freed while the recorder listens for a combination, or pressing the current one would start a dictation.
+    /// Freed while the recorder listens for a combination, or pressing a current one would act on it.
     func shortcutRecording(_ isRecording: Bool) {
-        if isRecording { controller.shortcut.pause() } else { triggersChanged() }
+        if isRecording {
+            controller.shortcut.pause()
+            pausePasteLastShortcut()
+        } else {
+            triggersChanged()
+        }
+    }
+
+    var pasteLastShortcutBinding: Binding<Bool> {
+        Binding(
+            get: {
+                _ = self.preferenceRevision
+                return self.defaults.bool(forKey: PasteLastShortcut.defaultsKey)
+            },
+            set: {
+                self.store([PasteLastShortcut.defaultsKey: $0])
+                self.syncPasteLastShortcut()
+            })
     }
 
     var textMode: DictationTextMode {

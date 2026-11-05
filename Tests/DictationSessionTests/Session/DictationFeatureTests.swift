@@ -162,6 +162,103 @@ final class DictationFeatureTests: XCTestCase {
         XCTAssertFalse(feature.shortcutIsUnavailable, "Turning dictation off clears it")
     }
 
+    @MainActor
+    private final class Registrations {
+        private final class Registration: GlobalHotkeyRegistration {
+            let onUnregister: @MainActor () -> Void
+            init(onUnregister: @escaping @MainActor () -> Void) { self.onUnregister = onUnregister }
+            func unregister() { onUnregister() }
+        }
+
+        var settings: [HotkeySetting] = []
+        var active = 0
+        var isTaken = false
+        var press: () -> Void = {}
+
+        var registrar: DictationShortcut.Registrar {
+            { @MainActor [self] setting, press, _ in
+                guard !isTaken else { return nil }
+                settings.append(setting)
+                active += 1
+                self.press = press
+                return Registration { [self] in active -= 1 }
+            }
+        }
+    }
+
+    private func pasteLastFeature(arguments: [String] = []) throws -> (DictationFeature, Registrations) {
+        let defaults = makeDefaults()
+        defaults.set(true, forKey: DictationController.defaultsKey)
+        let feature = try makeFeature(defaults: defaults, arguments: arguments)
+        let registrations = Registrations()
+        feature.pasteLastRegistrar = registrations.registrar
+        return (feature, registrations)
+    }
+
+    func testThePasteLastShortcutIsOffUntilChosen() throws {
+        let (feature, registrations) = try pasteLastFeature()
+        feature.start()
+        XCTAssertEqual(registrations.active, 0)
+
+        feature.pasteLastShortcutBinding.wrappedValue = true
+
+        XCTAssertEqual(registrations.settings, [PasteLastShortcut.setting])
+        XCTAssertEqual(registrations.active, 1)
+
+        feature.pasteLastShortcutBinding.wrappedValue = false
+
+        XCTAssertEqual(registrations.active, 0)
+    }
+
+    func testThePasteLastShortcutNeedsDictationToBeOn() throws {
+        let (feature, registrations) = try pasteLastFeature()
+        feature.start()
+        feature.pasteLastShortcutBinding.wrappedValue = true
+
+        feature.defaults.set(false, forKey: DictationController.defaultsKey)
+        feature.triggersChanged()
+
+        XCTAssertEqual(registrations.active, 0)
+    }
+
+    func testATakenPasteLastShortcutIsShownUntilItIsTurnedOff() throws {
+        let (feature, registrations) = try pasteLastFeature()
+        feature.start()
+        registrations.isTaken = true
+
+        feature.pasteLastShortcutBinding.wrappedValue = true
+        XCTAssertTrue(feature.pasteLastShortcutIsUnavailable)
+
+        feature.pasteLastShortcutBinding.wrappedValue = false
+        XCTAssertFalse(feature.pasteLastShortcutIsUnavailable)
+    }
+
+    func testRecordingAShortcutFreesPasteLastAndThenRestoresIt() throws {
+        let (feature, registrations) = try pasteLastFeature()
+        feature.start()
+        feature.pasteLastShortcutBinding.wrappedValue = true
+
+        feature.shortcutRecording(true)
+        XCTAssertEqual(registrations.active, 0)
+
+        feature.shortcutRecording(false)
+        XCTAssertEqual(registrations.active, 1)
+    }
+
+    func testPressingThePasteLastShortcutDeliversTheLastDictation() async throws {
+        let (feature, registrations) = try pasteLastFeature(
+            arguments: ["-seed-dictation", "-seed-dictation-delivery", "-seed-dictation-verified"])
+        feature.start()
+        feature.pasteLastShortcutBinding.wrappedValue = true
+        feature.controller.lastText.remember("Send the report.")
+
+        registrations.press()
+
+        await waitUntil { feature.controller.phase == .verified(3) }
+        XCTAssertEqual(feature.controller.phase, .verified(3))
+        feature.controller.cancel()
+    }
+
     func testPasteRowsAreOfferedOnlyToTheOwner() throws {
         let defaults = makeDefaults()
         defaults.set(true, forKey: DictationController.defaultsKey)
