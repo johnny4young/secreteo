@@ -63,6 +63,22 @@ struct DictationAdmissionTests {
     }
 
     @Test
+    func practiceWordsNeverReplaceTheLastDictation() async throws {
+        let harness = DictationControllerHarness(text: "Hola")
+        defer { harness.controller.cancel() }
+        let realWords = "Real words"
+        harness.controller.lastText.remember(realWords)
+        let practice = DictationPracticeField()
+        practice.show(UUID(), isKey: true)
+
+        try await dictate(harness, practice.route(harness.dependencies, appIsActive: true))
+        try await eventually { practice.text == harness.text && !harness.controller.isActive }
+
+        #expect(harness.controller.lastText.current == realWords)
+        #expect(harness.controller.practiceLastText.current == harness.text)
+    }
+
+    @Test
     func pasteLastIntoThePracticeFieldRunsWithTheGlobalPreferenceOff() async throws {
         let harness = DictationControllerHarness(text: "Hola")
         defer { harness.controller.cancel() }

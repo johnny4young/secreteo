@@ -72,6 +72,21 @@ final class DictationPracticeFieldTests: XCTestCase {
         controller.cancel()
     }
 
+    func testClearingOrHidingTheFieldForgetsItsWordsEverywhere() throws {
+        let feature = try feature(arguments: [])
+        let words = feature.controller.practiceLastText
+        let holder = UUID()
+        feature.practice.show(holder, isKey: true)
+
+        words.remember("Hola")
+        feature.practice.clear()
+        XCTAssertNil(words.current)
+
+        words.remember("Hola")
+        feature.practice.hide(holder)
+        XCTAssertNil(words.current)
+    }
+
     func testStripNeverCoversTheButtonUnderThePointer() async {
         let visible = NSRect(x: 0, y: 0, width: 1_000, height: 700)
         let size = NSSize(width: 520, height: 96)

@@ -11,6 +11,8 @@ final class DictationPracticeField {
     private(set) var text = ""
     /// Each visible field and whether its window is key.
     @ObservationIgnored private var holders: [UUID: Bool] = [:]
+    /// Runs when the words go, so they leave wherever else they are held.
+    @ObservationIgnored var onForget: (() -> Void)?
 
     var isArmed: Bool { holders.values.contains(true) }
 
@@ -21,11 +23,12 @@ final class DictationPracticeField {
     /// Practice text is never kept once no view shows the field.
     func hide(_ holder: UUID) {
         holders[holder] = nil
-        if holders.isEmpty { text = "" }
+        if holders.isEmpty { clear() }
     }
 
     func clear() {
         text = ""
+        onForget?()
     }
 
     func receive(_ dictated: String) -> DictationDeliveryOutcome {

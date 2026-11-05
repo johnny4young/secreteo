@@ -92,6 +92,7 @@ public final class DictationFeature: AppServices {
             return try await ParakeetEngine.load(fromVerifiedDirectory: installed.directory)
         })
         controller = DictationController()
+        practice.onForget = { [controller] in controller.practiceLastText.clear() }
         // A learned correction writes here directly, and an open Settings window must show it.
         preferencesObserver = NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification, object: defaults, queue: .main

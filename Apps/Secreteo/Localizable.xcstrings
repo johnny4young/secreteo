@@ -754,6 +754,22 @@
         }
       }
     },
+    "Dictated Text" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictated Text"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Texto dictado"
+          }
+        }
+      }
+    },
     "Dictating" : {
       "localizations" : {
         "en" : {
@@ -2862,22 +2878,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tu micrófono preferido no está disponible. Se usará el predeterminado del sistema para este dictado."
-          }
-        }
-      }
-    },
-    "Your words appear here." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your words appear here."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tus palabras aparecen aquí."
           }
         }
       }

@@ -119,11 +119,14 @@ final class DictationController {
     @ObservationIgnored private var analysis = DictationSessionAnalysis()
 
     let lastText: DictationLastText
+    /// Practice words are not the user's last dictation, so they must not replace it.
+    let practiceLastText: DictationLastText
 
     init(presentsPanel: Bool = true, lastText: DictationLastText? = nil) {
         self.presentsPanel = presentsPanel
         // A headless controller never watches system sleep or lock.
         self.lastText = lastText ?? DictationLastText(observesSystem: presentsPanel)
+        practiceLastText = DictationLastText(observesSystem: presentsPanel)
         self.lastText.onClear = { [weak self] in self?.forgetDictatedText() }
     }
 
@@ -540,7 +543,7 @@ private extension DictationController {
             dependencies = nil
             return
         }
-        lastText.remember(heard)
+        sessionLastText.remember(heard)
         recoveryText = heard
         copyStatus = .idle
     }
@@ -743,7 +746,8 @@ extension DictationController {
         guard !isActive, retryDeliveryTask == nil,
               case .success(let lease) = dependencies.admission.acquire(dependencies.admissionKind)
         else { return }
-        guard let text = alternate ? lastText.takeCurrentAlternate() : pastableText(), dependencies.canInsert() else {
+        let store = dependencies.admissionKind == .practice ? practiceLastText : lastText
+        guard let text = alternate ? store.takeCurrentAlternate() : store.takeCurrent(), dependencies.canInsert() else {
             lease.release()
             return
         }
@@ -780,7 +784,8 @@ extension DictationController {
         lastInsertion = result == .verified ? destination?.lastInsertion() : nil
         cancelFeedbackDismissal()
         copyStatus = .idle
-        lastText.remember(text, alternate: alternate?.alternate, isOriginal: alternate?.alternateIsOriginal == true)
+        sessionLastText.remember(
+            text, alternate: alternate?.alternate, isOriginal: alternate?.alternateIsOriginal == true)
         recordHistory(result, id: id)
         if case .refused(let failure) = result {
             recoveryText = text
@@ -1179,7 +1184,7 @@ private extension DictationController {
         cancelFeedbackDismissal()
         copyStatus = .idle
         recoveryText = text
-        lastText.remember(text)
+        sessionLastText.remember(text)
         phase = .noSpeech
         showPanel()
     }
@@ -1305,6 +1310,7 @@ extension DictationController {
 // The session's side of the ownership protocol.
 extension DictationController {
     var sessionIsPractice: Bool { dependencies?.admissionKind == .practice }
+    private var sessionLastText: DictationLastText { sessionIsPractice ? practiceLastText : lastText }
     var sessionHandoffGrace: Duration? { dependencies?.handoffGrace }
     /// Stays listening until transcription ends, so the phase alone cannot say the microphone is open.
     var microphoneIsOpen: Bool {

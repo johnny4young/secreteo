@@ -6,7 +6,6 @@ struct DictationPracticeView: View {
     @Environment(\.controlActiveState) private var activeState
     @State private var holder = UUID()
     let dictation: DictationFeature
-    let identifierPrefix: String
 
     private var practice: DictationPracticeField { dictation.practice }
     private var controller: DictationController { dictation.controller }
@@ -22,13 +21,15 @@ struct DictationPracticeView: View {
     }
 
     private var field: some View {
-        Text(practice.text.isEmpty ? L10n.text("Your words appear here.") : practice.text)
-            .foregroundStyle(practice.text.isEmpty ? .secondary : .primary)
+        Text(practice.text)
             .frame(maxWidth: .infinity, minHeight: 44, alignment: .topLeading)
             .padding(8)
             .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 8))
             .textSelection(.enabled)
-            .accessibilityIdentifier(identifier("practice-field"))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(L10n.text("Dictated Text"))
+            .accessibilityValue(practice.text)
+            .accessibilityIdentifier("settings-dictation-practice-field")
     }
 
     private var controls: some View {
@@ -41,15 +42,11 @@ struct DictationPracticeView: View {
                     systemImage: controller.isActive ? "stop.fill" : "mic.fill")
             }
             .disabled(controller.phase == .delivering)
-            .accessibilityIdentifier(identifier("practice-start"))
+            .accessibilityIdentifier("settings-dictation-practice-start")
             if !practice.text.isEmpty {
                 Button("Clear") { practice.clear() }
-                    .accessibilityIdentifier(identifier("practice-clear"))
+                    .accessibilityIdentifier("settings-dictation-practice-clear")
             }
         }
-    }
-
-    private func identifier(_ suffix: String) -> String {
-        "\(identifierPrefix)-\(suffix)"
     }
 }
