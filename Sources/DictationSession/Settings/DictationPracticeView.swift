@@ -22,6 +22,8 @@ struct DictationPracticeView: View {
             .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 8))
             .textSelection(.enabled)
             .accessibilityElement(children: .ignore)
+            // Without a role that has a value, accessibility clients read none.
+            .accessibilityAddTraits(.isStaticText)
             .accessibilityLabel(L10n.text("Dictated Text"))
             .accessibilityValue(practice.text)
             .accessibilityIdentifier("settings-dictation-practice-field")
