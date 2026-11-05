@@ -709,12 +709,18 @@ struct ObserverTests {
         let scratch = try Scratch()
         defer { scratch.cleanUp() }
         try scratch.seedOwner()
-        let (watch, recorder) = observer(for: scratch.live(ownerID))
+        let sleeps = ManualSleeps()
+        let recorder = Recorder()
+        let watch = OwnershipObserver(ownership: scratch.live(ownerID), sleep: sleeps.sleep) { recorder.add($0) }
         await watch.start()
+        #expect(sleeps.requested.isEmpty)
         await watch.setHoldingLease(true)
+        try await waitUntil { !sleeps.requested.isEmpty }
+        #expect(sleeps.requested == [.seconds(1)])
         let intent = OwnershipIntent(from: ownerID, to: otherID, now: Date())
         try scratch.seed(OwnershipState(owner: ownerID, generation: 1, previous: nil, intent: intent))
-        try await waitUntil(seconds: 1.8) { recorder.latest?.intent?.id == intent.id }
+        sleeps.releaseAll()
+        try await waitUntil { recorder.latest?.intent?.id == intent.id }
         await watch.stop()
     }
 
@@ -750,7 +756,8 @@ struct ObserverTests {
         let (watch, recorder) = observer(for: scratch.live(ownerID))
         await watch.start()
         let slow = OwnershipTimings(changeDeadline: .seconds(1), capturePoll: .milliseconds(2), armRetry: .milliseconds(5))
-        let outcome = await scratch.live(otherID, timings: slow).takeOwnership(userConfirmed: true, triggers: FakeTriggers(refusals: .max))
+        let target = RefusingTriggers { recorder.history.contains { $0.state == .transferring } }
+        let outcome = await scratch.live(otherID, timings: slow).takeOwnership(userConfirmed: true, triggers: target)
         #expect(outcome == .triggerConflict)
         try await waitUntil(seconds: 3) { recorder.latest?.state == .owned && recorder.latest?.intent == nil }
         #expect(recorder.history.contains { $0.state == .transferring }, "It has to have seen the intent to prove recovery")
@@ -1082,7 +1089,7 @@ struct SessionFlowTests {
         let prior = await app(ownerID, in: scratch)
         #expect(prior.triggers.armed)
         let slow = OwnershipTimings(changeDeadline: .seconds(1), capturePoll: .milliseconds(2), armRetry: .milliseconds(5))
-        let target = FakeTriggers(refusals: .max)
+        let target = RefusingTriggers { !prior.triggers.armed }
         let result = await scratch.live(otherID, timings: slow).takeOwnership(userConfirmed: true, triggers: target)
         #expect(result == .triggerConflict)
         // The history, because the disarmed moment can pass between two polls on a loaded machine.
@@ -1136,6 +1143,47 @@ final class GatedTriggers: OwnershipTriggers {
 
     func disarm() async {
         state.withLock { $0.armed = false }
+    }
+}
+
+/// Never arms, and holds its first refusal until the other side has seen the intent, so the
+/// rollback cannot come before a late observer wakes.
+final class RefusingTriggers: OwnershipTriggers {
+    private let seen: @Sendable () -> Bool
+
+    init(until seen: @escaping @Sendable () -> Bool) {
+        self.seen = seen
+    }
+
+    func arm() async -> Bool {
+        let hangGuard = ContinuousClock.now.advanced(by: .seconds(30))
+        while !seen(), ContinuousClock.now < hangGuard {
+            try? await Task.sleep(for: .milliseconds(2))
+        }
+        return false
+    }
+
+    func disarm() async {}
+}
+
+/// Hands each observer timer to the test, which releases it instead of waiting on the clock.
+final class ManualSleeps: Sendable {
+    private let state = Mutex((requested: [Duration](), released: 0))
+
+    var requested: [Duration] { state.withLock { $0.requested } }
+
+    func releaseAll() {
+        state.withLock { $0.released = $0.requested.count }
+    }
+
+    @Sendable func sleep(_ duration: Duration) async throws {
+        let index = state.withLock { value in
+            value.requested.append(duration)
+            return value.requested.count - 1
+        }
+        while state.withLock({ $0.released <= index }) {
+            try await Task.sleep(for: .milliseconds(2))
+        }
     }
 }
 
