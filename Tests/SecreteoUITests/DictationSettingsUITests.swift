@@ -57,7 +57,8 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-model-failed").exists)
 
         for identifier in [
-            "settings-dictation-mouse-recorder", "settings-dictation-modifier-key", "settings-dictation-sounds",
+            "settings-dictation-mouse-recorder", "settings-dictation-modifier-key",
+            "settings-dictation-paste-last-hotkey", "settings-dictation-sounds",
             "settings-dictation-compact", "settings-dictation-speech-gate", "settings-dictation-auto-stop",
             "settings-dictation-corrections", "settings-dictation-caret-case", "settings-dictation-language",
             "settings-dictation-microphone-device", "settings-dictation-text-mode", "settings-dictation-filler",
@@ -67,10 +68,26 @@ final class DictationSettingsUITests: SecreteoUITestCase {
             XCTAssertTrue(app.control(withIdentifier: identifier).waitForExistence(timeout: 5), identifier)
         }
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-mouse-clear").exists, "No button is set")
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-paste-last-taken").exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-auto-stop-pause").exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-modifier-unavailable").exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-modifier-fn-note").exists)
         attachScreenshot(named: "pr-settings-dictation-controls")
+    }
+
+    func testThePasteLastShortcutTurnsOnWithoutAConflict() throws {
+        let app = try launchEnabled()
+        defer { finishUITestApplication(app) }
+        let toggle = app.control(withIdentifier: "settings-dictation-paste-last-hotkey")
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        XCTAssertFalse(toggle.value as? Int == 1 || toggle.value as? String == "1", "Off until chosen")
+
+        toggle.click()
+
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) {
+            toggle.value as? Int == 1 || toggle.value as? String == "1"
+        })
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-paste-last-taken").exists)
     }
 
     func testChoosingAShortcutShowsItAndOffersTheDefaultBack() throws {
