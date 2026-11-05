@@ -50,6 +50,11 @@ public struct DictationSettingsSection: View {
             }
         }
         if dictation.isEnabled {
+            if dictation.canPractice {
+                Section("Try It Here") {
+                    DictationPracticeView(dictation: dictation, identifierPrefix: "settings-dictation")
+                }
+            }
             DictationSettingsControls(dictation: dictation)
         }
     }

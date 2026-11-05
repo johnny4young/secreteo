@@ -421,6 +421,45 @@ struct DictationOwnershipCoordinatorTests {
     }
 
     @Test
+    func anIntentCancelsAPracticeSessionAtOnce() async throws {
+        let harness = DictationControllerHarness(text: "Hola")
+        let practice = DictationPracticeField()
+        practice.show(UUID(), isKey: true)
+        harness.controller.toggle(using: practice.route(harness.dependencies, appIsActive: true))
+        _ = await TestPolling.until { harness.controller.partialText == "Hola" }
+
+        harness.controller.ownershipIntentSeen()
+
+        #expect(harness.controller.phase == .idle)
+        #expect(practice.text.isEmpty)
+    }
+
+    @Test
+    func anIntentCancelsAPracticeSessionEvenWhileItDelivers() async throws {
+        let harness = DictationControllerHarness(text: "Hola")
+        let practice = DictationPracticeField()
+        practice.show(UUID(), isKey: true)
+        var dependencies = practice.route(harness.dependencies, appIsActive: true)
+        let delivery = PreparationGate()
+        dependencies.captureDestination = {
+            CapturedDictationDestination(name: "Practice", canRetry: false) { _ in
+                await delivery.wait()
+                return .verified
+            }
+        }
+        harness.controller.toggle(using: dependencies)
+        try await eventually { harness.controller.partialText == "Hola" }
+        harness.now = harness.now.addingTimeInterval(1)
+        harness.controller.toggle(using: dependencies)
+        try await eventually { harness.controller.phase == .delivering && delivery.started }
+
+        harness.controller.ownershipIntentSeen()
+
+        #expect(harness.controller.phase == .idle)
+        delivery.release()
+    }
+
+    @Test
     func aListeningSessionKeepsItsWordsWhenTheGraceEnds() async throws {
         let harness = DictationControllerHarness(text: "So we ship it tomorrow.")
         defer { harness.controller.cancel() }

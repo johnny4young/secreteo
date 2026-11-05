@@ -434,6 +434,22 @@
         }
       }
     },
+    "Clear" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Borrar"
+          }
+        }
+      }
+    },
     "Click a mouse button…" : {
       "localizations" : {
         "en" : {
@@ -722,6 +738,22 @@
         }
       }
     },
+    "Dictate Here" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictate Here"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictar aquí"
+          }
+        }
+      }
+    },
     "Dictating" : {
       "localizations" : {
         "en" : {
@@ -942,6 +974,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Quitar muletillas"
+          }
+        }
+      }
+    },
+    "Finish" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminar"
           }
         }
       }
@@ -2594,6 +2642,22 @@
         }
       }
     },
+    "Try It Here" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try It Here"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pruébalo aquí"
+          }
+        }
+      }
+    },
     "Type Instead" : {
       "localizations" : {
         "en" : {
@@ -2802,6 +2866,22 @@
         }
       }
     },
+    "Your words appear here." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your words appear here."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tus palabras aparecen aquí."
+          }
+        }
+      }
+    },
     "Your words are being polished. Esc pastes them without polish." : {
       "localizations" : {
         "en" : {
@@ -2830,6 +2910,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tus palabras se están traduciendo en este Mac. Esc las pega sin traducir."
+          }
+        }
+      }
+    },
+    "the practice field" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the practice field"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "el campo de práctica"
           }
         }
       }

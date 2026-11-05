@@ -57,6 +57,7 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-model-failed").exists)
 
         for identifier in [
+            "settings-dictation-practice-field", "settings-dictation-practice-start",
             "settings-dictation-mouse-recorder", "settings-dictation-modifier-key", "settings-dictation-sounds",
             "settings-dictation-compact", "settings-dictation-speech-gate", "settings-dictation-auto-stop",
             "settings-dictation-corrections", "settings-dictation-caret-case", "settings-dictation-language",
@@ -71,6 +72,12 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-modifier-unavailable").exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-modifier-fn-note").exists)
         attachScreenshot(named: "pr-settings-dictation-controls")
+
+        try requireForeground(app)
+        app.control(withIdentifier: "settings-root").scroll(byDeltaX: 0, deltaY: -600)
+        attachScreenshot(named: "pr-settings-dictation-controls-middle")
+        app.control(withIdentifier: "settings-root").scroll(byDeltaX: 0, deltaY: -1_200)
+        attachScreenshot(named: "pr-settings-dictation-controls-bottom")
     }
 
     func testChoosingAShortcutShowsItAndOffersTheDefaultBack() throws {

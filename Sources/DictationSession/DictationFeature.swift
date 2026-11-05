@@ -1,3 +1,4 @@
+import AppKit
 import ApplicationServices
 import DictationKit
 import DictationOwnership
@@ -39,8 +40,10 @@ public final class DictationFeature: AppServices {
     var preferenceRevision = 0
     @ObservationIgnored private var preferencesObserver: (any NSObjectProtocol)?
     let controller: DictationController
+    @ObservationIgnored let practice = DictationPracticeField()
 
     public private(set) var modelState = ModelState.missing
+    private var speechModelIsInstalled = false
     public private(set) var isEnabled: Bool
     public private(set) var microphoneIsAuthorized: Bool
     public private(set) var accessibilityIsGranted: Bool
@@ -181,6 +184,8 @@ public final class DictationFeature: AppServices {
     }
 
     public var isActive: Bool { controller.isActive }
+    /// A disposable launch has its own fixtures, so it needs no model.
+    var canPractice: Bool { environment.models == nil || speechModelIsInstalled }
     /// Off, or owned by another app, a start would be refused with nothing to show for it.
     public var canDictate: Bool { ownership.state == .owned || controller.isActive }
     /// What the user can do when the protocol refuses this app. Readiness has its own controls.
@@ -219,6 +224,10 @@ public final class DictationFeature: AppServices {
     }
 
     func makeDictationSessionDependencies() -> DictationSessionDependencies {
+        practice.route(unroutedDependencies(), appIsActive: NSApplication.shared.isActive)
+    }
+
+    private func unroutedDependencies() -> DictationSessionDependencies {
         guard usesTemporaryMeetingStore else {
             return .live(services: self, beginCapture: { {} })
         }
@@ -311,6 +320,7 @@ public final class DictationFeature: AppServices {
         } else if modelState == .ready {
             modelState = .missing
         }
+        speechModelIsInstalled = speechIsInstalled
         readiness.modelIsInstalled.withLock { $0 = speechIsInstalled }
         ownership.reevaluate()
         syncEventTaps()

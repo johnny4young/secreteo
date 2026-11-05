@@ -184,6 +184,30 @@ final class DictationFeatureTests: XCTestCase {
         XCTAssertTrue(feature.readiness.modelIsInstalled.withLock { $0 })
     }
 
+    func testPracticeWaitsForTheSpeechModelButNotTheDetector() async throws {
+        let system = System()
+        system.verified.withLock { $0 = [] }
+        let feature = try makeFeature(system)
+
+        await feature.refreshReadiness()
+        XCTAssertFalse(feature.canPractice)
+
+        system.verified.withLock { $0 = [.speech] }
+        await feature.refreshReadiness()
+        XCTAssertTrue(feature.canPractice)
+        XCTAssertEqual(feature.modelState, .missing)
+
+        system.verified.withLock { $0 = [] }
+        await feature.refreshReadiness()
+        XCTAssertFalse(feature.canPractice, "A damaged model takes the field back")
+    }
+
+    func testADisposableLaunchPracticesWithNoModel() throws {
+        let feature = try DictationFeature(usesTemporaryStore: true, arguments: [], defaults: makeDefaults())
+
+        XCTAssertTrue(feature.canPractice)
+    }
+
     func testAFailedDetectorDownloadIsShownAndCanBeRetried() async throws {
         let system = System()
         system.verified.withLock { $0 = [] }
