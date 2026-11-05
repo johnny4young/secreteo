@@ -9,7 +9,7 @@ UI_TESTS = REPO / "Tests/SecreteoUITests"
 CATALOG = REPO / "Apps/Secreteo/Localizable.xcstrings"
 
 LITERAL = re.compile(
-    r'(?:\bText|\bButton|\bToggle|\bLabel|\bLabeledContent|\bSection|\bProgressView)\(\s*"([^"\\]+)"'
+    r'(?:\bText|\bButton|\bToggle|\bLabel|\bLabeledContent|\bSection|\bPicker|\bProgressView)\(\s*"([^"\\]+)"'
     r'|String\(localized:\s*"([^"\\]+)"'
     r'|MenuRow\(title:\s*"([^"\\]+)"'
     r'|L10n\.(?:text|format)\(\s*(?://[^\n]*\n\s*)*"([^"\\]+)"'

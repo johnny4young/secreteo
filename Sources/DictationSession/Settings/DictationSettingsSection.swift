@@ -1,20 +1,21 @@
-import DictationSession
 import SwiftUI
 
-struct DictationSettingsSection: View {
+public struct DictationSettingsSection: View {
     let dictation: DictationFeature
 
-    var body: some View {
+    public init(dictation: DictationFeature) {
+        self.dictation = dictation
+    }
+
+    public var body: some View {
         Section("Dictation") {
             Toggle("Dictate Anywhere", isOn: Binding(get: { dictation.isEnabled }, set: { dictation.setEnabled($0) }))
                 .accessibilityIdentifier("settings-dictation-enabled")
-            LabeledContent("Shortcut", value: dictation.shortcutLabel)
-                .accessibilityIdentifier("settings-dictation-shortcut")
-            if dictation.shortcutIsUnavailable {
-                Text("Another app is using this shortcut.")
-                    .foregroundStyle(.red)
-                    .accessibilityIdentifier("settings-dictation-shortcut-unavailable")
-            }
+            DictationShortcutSettings(
+                shortcut: dictation.controller.shortcut,
+                isUnavailable: dictation.shortcutIsUnavailable,
+                record: { dictation.recordShortcut($0) },
+                retry: { dictation.triggersChanged() })
             modelRow
             if !dictation.microphoneIsAuthorized {
                 Button("Allow Microphone") { dictation.requestMicrophone() }
@@ -46,6 +47,9 @@ struct DictationSettingsSection: View {
                     .foregroundStyle(.red)
                     .accessibilityIdentifier("settings-dictation-handoff-failed")
             }
+        }
+        if dictation.isEnabled {
+            DictationSettingsControls(dictation: dictation)
         }
     }
 
