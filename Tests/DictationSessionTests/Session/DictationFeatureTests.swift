@@ -1,3 +1,4 @@
+import CryptoKit
 import Darwin
 import DictationOwnership
 import Foundation
@@ -820,18 +821,43 @@ final class VerifiedModelRecordTests: XCTestCase {
         try FileManager.default.createDirectory(
             at: seeded.deletingLastPathComponent(), withIntermediateDirectories: true)
         try Data("not the model".utf8).write(to: seeded)
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.protocolClasses = [OfflineURLProtocol.self]
-        let store = try LocalModelStore(
-            location: .directory(try makeScratch()),
-            consumer: StoreConsumer(bundleID: "com.example.test", displayName: "Test"),
-            session: URLSession(configuration: configuration))
-        let models = DictationModels.live(store: store, defaults: try scratchDefaults(), seedRoot: seedRoot)
+        let models = DictationModels.live(store: try offlineStore(), defaults: try scratchDefaults(), seedRoot: seedRoot)
 
         let installed: Void? = try? await models.install(.speechDetector)
 
         XCTAssertNil(installed, "A seed that does not hash right is not the model")
         XCTAssertEqual(try Data(contentsOf: seeded), Data("not the model".utf8))
+    }
+
+    func testInstallingOfflineTakesTheFilesFromTheSeed() async throws {
+        let seedRoot = try makeScratch()
+        let bytes = Data("model".utf8)
+        let digest = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
+        let pinned = ModelManifest(
+            id: "seeded", displayName: "Seeded", resolveBase: URL(string: "https://example.invalid")!, revision: "a",
+            artifacts: [ModelArtifact(path: "nested/model.bin", sha256: digest, sizeBytes: bytes.count)],
+            minimumRAMGB: 1, license: "MIT")
+        let seeded = DictationModels.Part.speechDetector.seed(in: seedRoot).appendingPathComponent("nested/model.bin")
+        try FileManager.default.createDirectory(
+            at: seeded.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try bytes.write(to: seeded)
+        let models = DictationModels.live(
+            store: try offlineStore(), defaults: try scratchDefaults(), seedRoot: seedRoot, manifests: { _ in pinned })
+
+        try await models.install(.speechDetector)
+
+        let isVerified = await models.isVerified(.speechDetector)
+        XCTAssertTrue(isVerified, "Installed with no network, so from the seed")
+        XCTAssertEqual(try Data(contentsOf: seeded), bytes)
+    }
+
+    private func offlineStore() throws -> LocalModelStore {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [OfflineURLProtocol.self]
+        return try LocalModelStore(
+            location: .directory(try makeScratch()),
+            consumer: StoreConsumer(bundleID: "com.example.test", displayName: "Test"),
+            session: URLSession(configuration: configuration))
     }
 }
 
