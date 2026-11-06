@@ -73,7 +73,7 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Read-only MCP | `DictationToolbox` | `DictationToolboxTests`, `DictationAgentAccessStoreTests` | | Pending, P8 |
 | Settings: vocabulary, microphone, memory and Polish panels | `DictationSection`, `DictationTextSettingsSection`, `DictationDictionaryEditor` | `SettingsUITests` | `DictationSettingsUITests`, `DictationPreferenceStoreTests` | Triggers, language, microphone, replacements, vocabulary and text mode ported, without vocabulary suggestions from meetings. Memory is ported without its hardware suggestion. Polish and recipes are pending |
 | Onboarding | `OnboardingDictationStep`, `OnboardingModelPreparation` | `OnboardingUITests`, `OnboardingModelPreparationTests` | `OnboardingUITests`, `OnboardingModelPreparationTests`, `FirstRunOnboardingPolicyTests` | Three steps on first launch: dictation and permissions, the speech model, which is loaded once even when installed, and practice. No meeting steps or voice enrollment |
-| Preference import | `PortableSettings` | `PortableSettingsTests` | | Pending, P5 |
+| Preference import | `PortableSettings` | `PortableSettingsTests` | `PortavozPreferenceImportTests`, `DictationSettingsUITests` | Reads Portavoz's saved settings instead of an exported file. Imports only what Secreteo's Settings shows, after a preview ([G14](GAPS.md#g14-portavoz-settings-left-out-of-the-import)) |
 | English and Spanish | `Localizable.xcstrings` | `LocalizationTests` | | Pending, P5 |
 
 ## Approved losses

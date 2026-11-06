@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct DictationSettingsSection: View {
     let dictation: DictationFeature
+    @State private var showsPortavozImport = false
 
     public init(dictation: DictationFeature) {
         self.dictation = dictation
@@ -47,6 +48,16 @@ public struct DictationSettingsSection: View {
                 Text("Could not take over dictation. Try again.")
                     .foregroundStyle(.red)
                     .accessibilityIdentifier("settings-dictation-handoff-failed")
+            }
+        }
+        .onAppear { dictation.refreshPortavozImport() }
+        if let found = dictation.portavozImport {
+            Section {
+                Button("Import Settings from Portavoz…") { showsPortavozImport = true }
+                    .accessibilityIdentifier("settings-portavoz-import")
+            }
+            .sheet(isPresented: $showsPortavozImport) {
+                PortavozImportSheet(changes: found.changes) { dictation.importPortavozPreferences() }
             }
         }
         if dictation.practiceIsShown {
