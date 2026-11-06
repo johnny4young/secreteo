@@ -37,12 +37,20 @@ struct PortavozPreferenceImport {
         var values: [String: Any] = [:]
         for entry in Self.entries {
             guard let value = source[entry.key], entry.accepts(value) else { continue }
-            let current = entry.key == DictationTextPreferences.modeKey
-                ? DictationTextPreferences.globalMode(in: defaults).rawValue
-                : defaults.object(forKey: entry.key) ?? entry.fallback
-            guard !(value as AnyObject).isEqual(current) else { continue }
+            guard !(value as AnyObject).isEqual(defaults.object(forKey: entry.key) ?? entry.fallback) else { continue }
             changes.append(Change(key: entry.key, name: entry.name))
             values[entry.key] = value
+        }
+        // Secreteo derives its mode from the same older keys, so compare with the mode after the import.
+        let modes = [DictationTextMode.literal.rawValue, DictationTextMode.clean.rawValue]
+        if let mode = source[DictationTextPreferences.modeKey] as? String, modes.contains(mode) {
+            let saved = defaults.string(forKey: DictationTextPreferences.modeKey).flatMap(DictationTextMode.init)
+            let hasLegacy = legacyKeys.contains { defaults.object(forKey: $0) != nil || values[$0] != nil }
+            let derived: DictationTextMode = hasLegacy ? .clean : .literal
+            if (saved ?? derived).rawValue != mode {
+                changes.append(Change(key: DictationTextPreferences.modeKey, name: L10n.text("Text Mode")))
+                values[DictationTextPreferences.modeKey] = mode
+            }
         }
         self.changes = changes
         self.values = values
@@ -61,8 +69,6 @@ struct PortavozPreferenceImport {
         }
         return [
             choice(DictationController.languageKey, L10n.text("Language"), ["auto", "es", "en"], "auto"),
-            choice(DictationTextPreferences.modeKey, L10n.text("Text Mode"),
-                   [DictationTextMode.literal.rawValue, DictationTextMode.clean.rawValue], ""),
             flag(DictationController.fillerFilterKey, L10n.text("Filter Out Filler Words"), true),
             text(DictationController.replacementsKey, L10n.text("Text Replacements")),
             text("customVocabulary", L10n.text("Vocabulary")),

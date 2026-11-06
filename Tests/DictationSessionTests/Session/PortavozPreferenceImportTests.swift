@@ -29,12 +29,9 @@ final class PortavozPreferenceImportTests: XCTestCase {
 
         let found = PortavozPreferenceImport(portavoz: portavoz, current: try scratchDefaults())
 
-        XCTAssertEqual(
-            Set(found.values.keys),
-            [DictationController.languageKey, DictationTextPreferences.modeKey, DictationSoundCue.defaultsKey])
-        XCTAssertEqual(found.changes.map(\.key), [
-            DictationController.languageKey, DictationTextPreferences.modeKey, DictationSoundCue.defaultsKey,
-        ])
+        // Clean needs no write: the imported language makes Secreteo derive it, as Portavoz did.
+        XCTAssertEqual(Set(found.values.keys), [DictationController.languageKey, DictationSoundCue.defaultsKey])
+        XCTAssertEqual(Set(found.changes.map(\.key)), Set(found.values.keys))
     }
 
     func testAValueSecreteoAlreadyUsesIsNotAChange() throws {
@@ -65,6 +62,20 @@ final class PortavozPreferenceImportTests: XCTestCase {
         XCTAssertEqual(found.values[DictationTextPreferences.modeKey] as? String, DictationTextMode.clean.rawValue)
     }
 
+    func testALiteralModeStaysLiteralWhenOlderKeysArrive() throws {
+        let defaults = try scratchDefaults()
+        let portavoz: [String: Any] = [
+            DictationTextPreferences.modeKey: DictationTextMode.literal.rawValue,
+            DictationController.languageKey: "es",
+        ]
+        let found = PortavozPreferenceImport(portavoz: portavoz, current: defaults)
+
+        for (key, value) in found.values { defaults.set(value, forKey: key) }
+
+        XCTAssertEqual(DictationTextPreferences.globalMode(in: defaults), .literal)
+        XCTAssertEqual(PortavozPreferenceImport(portavoz: portavoz, current: defaults).changes, [])
+    }
+
     func testImportingTwiceChangesNothingTheSecondTime() throws {
         let defaults = try scratchDefaults()
         // A disposable launch writes to the process-wide argument domain.
@@ -81,7 +92,7 @@ final class PortavozPreferenceImportTests: XCTestCase {
 
         feature.importPortavozPreferences()
 
-        XCTAssertEqual(offered, 4)
+        XCTAssertEqual(offered, 3)
         XCTAssertNil(feature.portavozImport)
         XCTAssertEqual(defaults.string(forKey: DictationController.languageKey), "es")
         XCTAssertTrue(defaults.bool(forKey: DictationSoundCue.defaultsKey))
