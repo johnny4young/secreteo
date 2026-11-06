@@ -438,7 +438,20 @@ final class DictationFeatureTests: XCTestCase {
         system.failsToInstall.withLock { $0 = [] }
         feature.downloadModel()
         await waitUntil { feature.modelState == .ready }
-        XCTAssertEqual(system.installed.withLock { $0 }, [.speech, .speech, .speechDetector])
+        XCTAssertEqual(system.installed.withLock { $0 }, [.speech, .speechDetector], "A verified part is not fetched again")
+    }
+
+    func testSettingsAndOnboardingShareOneInstall() async throws {
+        let system = System()
+        system.verified.withLock { $0 = [] }
+        let feature = try makeFeature(system)
+
+        feature.downloadModel()
+        // The double has no real model to load, so only the install is under test.
+        _ = try? await feature.prepareSpeechModel(attempt: 1)
+        await waitUntil { feature.modelState == .ready }
+
+        XCTAssertEqual(system.installed.withLock { $0 }, [.speech, .speechDetector])
     }
 
     func testAFailedSpeechDownloadLeavesDictationNotReady() async throws {

@@ -37,6 +37,7 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored let readiness: ReadinessGap
     @ObservationIgnored let warmEngine: WarmModel<ParakeetEngine>
     @ObservationIgnored private var readinessPoll: Task<Void, Never>?
+    @ObservationIgnored private var modelInstall: Task<Void, any Error>?
     @ObservationIgnored private var memoryPressure: (any DispatchSourceMemoryPressure)?
     @ObservationIgnored let pressure = DictationMemoryPressure()
     @ObservationIgnored var pasteLastRegistrar: DictationShortcut.Registrar?
@@ -173,11 +174,28 @@ public final class DictationFeature: AppServices {
     }
 
     public func downloadModel() {
-        guard let models = environment.models, modelState != .downloading else { return }
+        guard environment.models != nil, modelState != .downloading else { return }
         modelState = .downloading
         Task {
-            modelState = await models.installAll() ? .ready : .failed
+            try? await installModels()
             await refreshReadiness()
+        }
+    }
+
+    /// Settings and onboarding share one install, so neither reports the other's result as its own.
+    func installModels() async throws {
+        guard let models = environment.models else { return }
+        if let modelInstall { return try await modelInstall.value }
+        if modelState != .ready { modelState = .downloading }
+        let install = Task { try await models.installMissing() }
+        modelInstall = install
+        defer { modelInstall = nil }
+        do {
+            try await install.value
+            modelState = .ready
+        } catch {
+            modelState = .failed
+            throw error
         }
     }
 
