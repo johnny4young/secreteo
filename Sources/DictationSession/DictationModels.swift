@@ -29,6 +29,14 @@ struct DictationModels: Sendable {
         }
     }
 
+    /// Throws the first failure, so the caller can say what went wrong.
+    func installMissing() async throws {
+        for part in Part.allCases {
+            guard await !isVerified(part) else { continue }
+            try await install(part)
+        }
+    }
+
     static func live(store: LocalModelStore, defaults: UserDefaults) -> Self {
         // UserDefaults is thread-safe.
         nonisolated(unsafe) let defaults = defaults

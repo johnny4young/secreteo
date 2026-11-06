@@ -39,7 +39,7 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | App Intents | `AppServices+DictationIntents` | `DictationIntentTests` | | Pending, P8 |
 | Paste last | `DictationController+PasteLast`, `AppServices+PasteLastDictation` | `DictationPasteLastTests` | The same tests | In the menu, and with an optional shortcut |
 | Selection Rewrite | `SelectionRewriteController`, `SelectionCapture` | `SelectionRewriteTests`, `SelectionRewriteUITests` | | Pending, P6 |
-| Practice | `DictationPracticeField`, `DictationPracticeView` | `DictationPracticeFieldTests`, `DictationPracticeUITests` | The same tests, without the onboarding journeys | In Settings. Onboarding is still to come |
+| Practice | `DictationPracticeField`, `DictationPracticeView` | `DictationPracticeFieldTests`, `DictationPracticeUITests` | The same tests, with the onboarding journey in `OnboardingUITests` | In Settings and in onboarding, each window holding the field |
 | One owner per Mac | `DictationOwnershipCoordinator`, `DictationAdmission` | `DictationOwnershipCoordinatorTests`, `DictationAdmissionTests` | The same tests, without the composition's, plus `KnownDictationPeersTests` and the reference tests | Coordinator ported. The app does not run it yet, and it has not run against a real Portavoz |
 
 ## Sessions and delivery
@@ -72,7 +72,7 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Statistics | `DictationStatsModel`, store | `DictationStatsStoreTests`, `DictationStatsTests` | | Pending, P7 |
 | Read-only MCP | `DictationToolbox` | `DictationToolboxTests`, `DictationAgentAccessStoreTests` | | Pending, P8 |
 | Settings: vocabulary, microphone, memory and Polish panels | `DictationSection`, `DictationTextSettingsSection`, `DictationDictionaryEditor` | `SettingsUITests` | `DictationSettingsUITests`, `DictationPreferenceStoreTests` | Triggers, language, microphone, replacements, vocabulary and text mode ported, without vocabulary suggestions from meetings. Memory is ported without its hardware suggestion. Polish and recipes are pending |
-| Onboarding | `OnboardingDictationStep`, `OnboardingModelPreparation` | `OnboardingUITests`, `OnboardingModelPreparationTests` | | Pending, P5 |
+| Onboarding | `OnboardingDictationStep`, `OnboardingModelPreparation` | `OnboardingUITests`, `OnboardingModelPreparationTests` | `OnboardingUITests`, `OnboardingModelPreparationTests`, `FirstRunOnboardingPolicyTests` | Three steps on first launch: dictation and permissions, the speech model, which is loaded once even when installed, and practice. No meeting steps or voice enrollment |
 | Preference import | `PortableSettings` | `PortableSettingsTests` | | Pending, P5 |
 | English and Spanish | `Localizable.xcstrings` | `LocalizationTests` | | Pending, P5 |
 

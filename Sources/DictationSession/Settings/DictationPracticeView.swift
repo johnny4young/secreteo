@@ -4,6 +4,7 @@ import SwiftUI
 /// instead of another app, so a user can try it before granting Accessibility.
 struct DictationPracticeView: View {
     let dictation: DictationFeature
+    var identifierPrefix = "settings-dictation"
 
     private var practice: DictationPracticeField { dictation.practice }
     private var controller: DictationController { dictation.controller }
@@ -26,7 +27,7 @@ struct DictationPracticeView: View {
             .accessibilityAddTraits(.isStaticText)
             .accessibilityLabel(L10n.text("Dictated Text"))
             .accessibilityValue(practice.text)
-            .accessibilityIdentifier("settings-dictation-practice-field")
+            .accessibilityIdentifier(identifier("practice-field"))
     }
 
     private var controls: some View {
@@ -39,11 +40,15 @@ struct DictationPracticeView: View {
                     systemImage: controller.isActive ? "stop.fill" : "mic.fill")
             }
             .disabled(controller.phase == .delivering)
-            .accessibilityIdentifier("settings-dictation-practice-start")
+            .accessibilityIdentifier(identifier("practice-start"))
             if !practice.text.isEmpty {
                 Button("Clear") { practice.clear() }
-                    .accessibilityIdentifier("settings-dictation-practice-clear")
+                    .accessibilityIdentifier(identifier("practice-clear"))
             }
         }
+    }
+
+    private func identifier(_ suffix: String) -> String {
+        "\(identifierPrefix)-\(suffix)"
     }
 }

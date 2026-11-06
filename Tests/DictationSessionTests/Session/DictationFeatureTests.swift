@@ -538,6 +538,105 @@ final class DictationFeatureTests: XCTestCase {
         await waitUntil { system.collections.withLock { $0 } > 0 }
     }
 
+    func testOnboardingLoadsAnInstalledModelInsteadOfCallingItReady() async throws {
+        let system = System()
+        let feature = try makeFeature(system)
+
+        do {
+            try await feature.prepareSpeechModel(attempt: 1)
+            XCTFail("The scratch store holds no model, so only a tried load can fail here")
+        } catch {
+            XCTAssertTrue(error is DictationFeatureError)
+            XCTAssertEqual(OnboardingModelPreparation.Failure.classify(error), .unavailable)
+        }
+        XCTAssertEqual(system.installed.withLock { $0 }, [], "Installed files are not fetched again")
+        XCTAssertFalse(feature.warmEngine.isHoldingModel)
+    }
+
+    func testOnboardingInstallsOnlyWhatIsMissing() async throws {
+        let system = System()
+        system.verified.withLock { $0 = [.speech] }
+        let feature = try makeFeature(system)
+
+        _ = try? await feature.prepareSpeechModel(attempt: 1)
+
+        XCTAssertEqual(system.installed.withLock { $0 }, [.speechDetector])
+        XCTAssertEqual(feature.modelState, .ready)
+    }
+
+    func testAFailedOnboardingInstallIsShownAsFailed() async throws {
+        let system = System()
+        system.verified.withLock { $0 = [] }
+        system.failsToInstall.withLock { $0 = [.speech] }
+        let feature = try makeFeature(system)
+
+        do {
+            try await feature.prepareSpeechModel(attempt: 1)
+            XCTFail("The install fails")
+        } catch {
+            XCTAssertFalse(error is DictationFeatureError, "No load is tried without the files")
+        }
+        XCTAssertEqual(feature.modelState, .failed)
+        XCTAssertEqual(system.installed.withLock { $0 }, [])
+    }
+
+    func testADisposableLaunchPreparesAtOnceOrRecoversOnTheSecondAttempt() async throws {
+        let plain = try DictationFeature(
+            usesTemporaryStore: true, arguments: ["-use-temp-store"], defaults: makeDefaults())
+        try await plain.prepareSpeechModel(attempt: 1)
+
+        let feature = try DictationFeature(
+            usesTemporaryStore: true, arguments: ["-use-temp-store", "-simulate-onboarding-model-recovery"],
+            defaults: makeDefaults())
+        let preparation = OnboardingModelPreparation()
+        await preparation.prepare { try await feature.prepareSpeechModel(attempt: preparation.attempt) }
+        XCTAssertEqual(preparation.phase, .failed(.network))
+        await preparation.prepare { try await feature.prepareSpeechModel(attempt: preparation.attempt) }
+        XCTAssertEqual(preparation.phase, .ready)
+        XCTAssertEqual(feature.modelState, .missing, "The fixture never touches a model")
+    }
+
+    func testTheRecoveryFixtureNeverStandsInForRealModels() async throws {
+        let system = System()
+        let feature = try makeFeature(system, arguments: ["-use-temp-store", "-simulate-onboarding-model-recovery"])
+
+        do {
+            try await feature.prepareSpeechModel(attempt: 1)
+            XCTFail("The real path tries a load")
+        } catch {
+            XCTAssertTrue(error is DictationFeatureError)
+        }
+    }
+
+    func testAPermissionRowNoticesAccessibilityGrantedInSystemSettings() async throws {
+        let system = System()
+        let feature = try makeFeature(system)
+        XCTAssertFalse(feature.accessibilityIsGranted)
+
+        system.accessibility.withLock { $0 = true }
+        await feature.refreshPermissionsIfChanged()
+
+        XCTAssertTrue(feature.accessibilityIsGranted)
+    }
+
+    func testTheOnboardingWindowHoldsThePracticeFieldLikeSettings() throws {
+        let feature = try makeFeature()
+        let onboarding = UUID()
+
+        feature.practiceWindowChanged(onboarding, isKey: true)
+        XCTAssertTrue(feature.practice.isArmed)
+        feature.practiceWindowChanged(onboarding, isKey: false)
+        XCTAssertFalse(feature.practice.isArmed)
+        XCTAssertEqual(feature.practice.receive("Hola"), .verified)
+
+        feature.settingsWindowChanged(isKey: true)
+        feature.practiceWindowClosed(onboarding)
+        XCTAssertEqual(feature.practice.text, "Hola", "Settings still shows the words")
+        feature.settingsWindowClosed()
+        XCTAssertEqual(feature.practice.text, "")
+        XCTAssertFalse(feature.practice.isArmed)
+    }
+
     private func waitUntil(_ condition: () -> Bool) async {
         for _ in 0..<200 where !condition() {
             try? await Task.sleep(for: .milliseconds(10))
