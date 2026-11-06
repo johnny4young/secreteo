@@ -28,15 +28,25 @@ struct DictationModels: Sendable {
         }
     }
 
-    static func live(store: LocalModelStore, defaults: UserDefaults) -> Self {
+    /// Portavoz before the shared store keeps the same pinned files here. The store only clones
+    /// from it, and only files that hash right.
+    static var portavozModels: URL {
+        URL.applicationSupportDirectory.appendingPathComponent("Portavoz/Models", isDirectory: true)
+    }
+
+    /// `manifests` lets a test pin files it can write; the app keeps the catalog's.
+    static func live(
+        store: LocalModelStore, defaults: UserDefaults, seedRoot: URL,
+        manifests: @escaping @Sendable (Part) -> ModelManifest = \.manifest
+    ) -> Self {
         // UserDefaults is thread-safe.
         nonisolated(unsafe) let defaults = defaults
         @Sendable func fingerprint(_ part: Part) async -> String? {
-            guard let directory = try? await store.directory(for: part.manifest) else { return nil }
-            return VerifiedModelRecord.fingerprint(of: part.manifest, in: directory)
+            guard let directory = try? await store.directory(for: manifests(part)) else { return nil }
+            return VerifiedModelRecord.fingerprint(of: manifests(part), in: directory)
         }
         return Self(
-            isVerified: { await store.verifiedInstallation($0.manifest) != nil },
+            isVerified: { await store.verifiedInstallation(manifests($0)) != nil },
             wasVerified: { part in
                 guard let known = defaults.string(forKey: part.recordKey) else { return false }
                 return await fingerprint(part) == known
@@ -44,16 +54,27 @@ struct DictationModels: Sendable {
             remember: { part, isVerified in
                 defaults.set(isVerified ? await fingerprint(part) : nil, forKey: part.recordKey)
             },
-            install: { _ = try await store.ensureAvailable($0.manifest, seeds: [], progress: nil) },
+            install: { part in
+                _ = try await store.ensureAvailable(manifests(part), seeds: [part.seed(in: seedRoot)], progress: nil)
+            },
             // Never worth failing a launch over, and the next launch tries again.
             collectUnused: {
-                try? await store.reconcileClaims(keeping: Part.allCases.map(\.manifest))
+                try? await store.reconcileClaims(keeping: Part.allCases.map(manifests))
                 _ = try? await store.collectGarbage()
             })
     }
 }
 
-private extension DictationModels.Part {
+extension DictationModels.Part {
+    /// The folder Portavoz installs this part in, under `seedRoot`.
+    func seed(in seedRoot: URL) -> URL {
+        let folder = switch self {
+        case .speech: "parakeet-tdt-0.6b-v3"
+        case .speechDetector: "silero-vad-coreml"
+        }
+        return seedRoot.appendingPathComponent(folder, isDirectory: true)
+    }
+
     var manifest: ModelManifest {
         switch self {
         case .speech: ModelCatalog.parakeetTdtV3

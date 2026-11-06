@@ -82,7 +82,8 @@ public final class DictationFeature: AppServices {
         launchArguments = arguments
         let environment = environment ?? (usesTemporaryStore
             ? .disposable(permissionsAreMissing: arguments.contains("-seed-dictation-permissions-missing"))
-            : .live(microphone: microphonePermissions, models: .live(store: modelStore, defaults: defaults)))
+            : .live(microphone: microphonePermissions, models: .live(
+                store: modelStore, defaults: defaults, seedRoot: DictationModels.portavozModels)))
         self.environment = environment
         microphoneIsAuthorized = environment.microphoneState() == .authorized
         accessibilityIsGranted = environment.accessibilityIsGranted()
