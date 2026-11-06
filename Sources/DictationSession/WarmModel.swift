@@ -3,17 +3,19 @@ import Foundation
 /// Keeps one loaded model ready for the next dictation, only while this app may hold it.
 @MainActor
 final class WarmModel<Model: Sendable> {
-    private let idleLimit: Duration
+    private let idleLimit: @MainActor () -> Duration
     private let mayKeep: @MainActor () -> Bool
     private let load: @Sendable () async throws -> Model
     private var model: Model?
     private var loading: Task<Model, Error>?
     private var idleRelease: Task<Void, Never>?
+    /// Each `acquire` not yet matched by `releaseWhenIdle`. A model in use has no idle clock.
+    private var users = 0
 
     var isHoldingModel: Bool { model != nil }
 
     init(
-        idleLimit: Duration = .seconds(600), mayKeep: @escaping @MainActor () -> Bool,
+        idleLimit: @escaping @MainActor () -> Duration = { .seconds(600) }, mayKeep: @escaping @MainActor () -> Bool,
         load: @escaping @Sendable () async throws -> Model
     ) {
         self.idleLimit = idleLimit
@@ -23,6 +25,18 @@ final class WarmModel<Model: Sendable> {
 
     func acquire() async throws -> Model {
         idleRelease?.cancel()
+        idleRelease = nil
+        users += 1
+        do {
+            return try await loadedModel()
+        } catch {
+            users -= 1
+            scheduleIdleRelease()
+            throw error
+        }
+    }
+
+    private func loadedModel() async throws -> Model {
         if let model { return model }
         if let loading { return try await loading.value }
         let task = Task { [load] in try await load() }
@@ -35,9 +49,22 @@ final class WarmModel<Model: Sendable> {
     }
 
     func releaseWhenIdle() {
+        users = max(0, users - 1)
+        scheduleIdleRelease()
+    }
+
+    /// A changed limit applies to a model already waiting, not only to the next one.
+    func idleLimitChanged() {
+        if idleRelease != nil { scheduleIdleRelease() }
+    }
+
+    private func scheduleIdleRelease() {
         idleRelease?.cancel()
-        idleRelease = Task { [weak self, idleLimit] in
-            try? await Task.sleep(for: idleLimit)
+        idleRelease = nil
+        guard users == 0, model != nil else { return }
+        let limit = idleLimit()
+        idleRelease = Task { [weak self] in
+            try? await Task.sleep(for: limit)
             guard !Task.isCancelled else { return }
             self?.model = nil
         }
@@ -45,6 +72,7 @@ final class WarmModel<Model: Sendable> {
 
     func release() {
         idleRelease?.cancel()
+        idleRelease = nil
         model = nil
     }
 }

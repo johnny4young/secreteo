@@ -61,7 +61,8 @@ final class DictationSettingsUITests: SecreteoUITestCase {
             "settings-dictation-mouse-recorder", "settings-dictation-modifier-key",
             "settings-dictation-paste-last-hotkey", "settings-dictation-sounds",
             "settings-dictation-compact", "settings-dictation-speech-gate", "settings-dictation-auto-stop",
-            "settings-dictation-corrections", "settings-dictation-caret-case", "settings-dictation-language",
+            "settings-dictation-corrections", "settings-dictation-caret-case",
+            "settings-model-memory-lightweight", "settings-dictation-prewarm", "settings-dictation-language",
             "settings-dictation-microphone-device", "settings-dictation-text-mode", "settings-dictation-filler",
             "settings-dictation-dict-trigger", "settings-dictation-dict-replacement", "settings-dictation-dict-add",
             "settings-dictation-vocabulary-field", "settings-dictation-vocabulary-add"
@@ -104,6 +105,23 @@ final class DictationSettingsUITests: SecreteoUITestCase {
             toggle.value as? Int == 1 || toggle.value as? String == "1"
         })
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-paste-last-taken").exists)
+    }
+
+    func testFreeingTheModelSoonRulesOutLoadingItAtLaunch() throws {
+        let app = try launchEnabled(defaults: #""dictationPrewarm":true"#)
+        defer { finishUITestApplication(app) }
+        let lightweight = app.control(withIdentifier: "settings-model-memory-lightweight")
+        let prewarm = app.control(withIdentifier: "settings-dictation-prewarm")
+        // The form leaves rows below the fold out of the accessibility tree.
+        app.control(withIdentifier: "settings-root").scroll(byDeltaX: 0, deltaY: -600)
+        XCTAssertTrue(lightweight.waitForStableFrame(timeout: 5))
+        XCTAssertTrue(prewarm.isEnabled)
+        XCTAssertTrue(prewarm.value as? Int == 1 || prewarm.value as? String == "1")
+
+        lightweight.click()
+
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) { !prewarm.isEnabled })
+        XCTAssertTrue(prewarm.value as? Int == 0 || prewarm.value as? String == "0", "Off, not greyed out on")
     }
 
     func testChoosingAShortcutShowsItAndOffersTheDefaultBack() throws {

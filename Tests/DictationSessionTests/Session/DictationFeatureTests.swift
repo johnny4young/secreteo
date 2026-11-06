@@ -309,6 +309,62 @@ final class DictationFeatureTests: XCTestCase {
         XCTAssertTrue(feature.readiness.modelIsInstalled.withLock { $0 })
     }
 
+    func testPrewarmReadsItsChoicesFromPreferences() throws {
+        let defaults = makeDefaults()
+        let feature = try makeFeature(defaults: defaults)
+        XCTAssertFalse(feature.prewarmConditions.prewarmEnabled)
+        XCTAssertEqual(feature.prewarmConditions.profile, .balanced)
+        XCTAssertTrue(feature.prewarmConditions.temporaryStore)
+
+        defaults.set(true, forKey: DictationPrewarmPolicy.defaultsKey)
+        defaults.set(DictationModelMemory.lightweight.rawValue, forKey: DictationModelMemory.key)
+
+        XCTAssertTrue(feature.prewarmConditions.prewarmEnabled)
+        XCTAssertEqual(feature.prewarmConditions.profile, .lightweight)
+    }
+
+    func testMemoryPressureHoldsOffPrewarmUntilItEnds() throws {
+        let feature = try makeFeature()
+
+        feature.memoryPressureChanged(isUnderPressure: true)
+        XCTAssertTrue(feature.prewarmConditions.underPressure)
+
+        feature.memoryPressureChanged(isUnderPressure: false)
+        XCTAssertFalse(feature.prewarmConditions.underPressure)
+    }
+
+    func testAModelGetsNoGraceUnderMemoryPressure() {
+        for profile in [DictationModelMemory.balanced, .lightweight] {
+            XCTAssertEqual(profile.idleLimit(underPressure: true), .zero)
+            XCTAssertGreaterThan(profile.idleLimit(underPressure: false), .zero)
+        }
+    }
+
+    func testThePrewarmChoiceReadsAsOffWithTheLightweightProfileAndComesBack() throws {
+        let feature = try makeFeature()
+        let defaults = feature.defaults
+        defaults.set(true, forKey: DictationPrewarmPolicy.defaultsKey)
+        XCTAssertTrue(feature.prewarmBinding.wrappedValue)
+
+        defaults.set(DictationModelMemory.lightweight.rawValue, forKey: DictationModelMemory.key)
+        XCTAssertFalse(feature.prewarmBinding.wrappedValue)
+
+        defaults.set(DictationModelMemory.balanced.rawValue, forKey: DictationModelMemory.key)
+        XCTAssertTrue(feature.prewarmBinding.wrappedValue)
+    }
+
+    func testAnUnknownMemoryProfileIsBalanced() throws {
+        let defaults = makeDefaults()
+        XCTAssertEqual(DictationModelMemory.current(in: defaults), .balanced)
+
+        defaults.set("not a profile", forKey: DictationModelMemory.key)
+
+        XCTAssertEqual(DictationModelMemory.current(in: defaults), .balanced)
+        XCTAssertLessThan(
+            DictationModelMemory.lightweight.idleLimit(underPressure: false),
+            DictationModelMemory.balanced.idleLimit(underPressure: false))
+    }
+
     func testPracticeWaitsForTheSpeechModelButNotTheDetector() async throws {
         let system = System()
         system.verified.withLock { $0 = [] }
@@ -654,7 +710,7 @@ final class WarmModelTests: XCTestCase {
 
     func testAModelIsReusedAndGivenBackWhenIdle() async throws {
         let loads = Mutex(0)
-        let warm = WarmModel<Model>(idleLimit: .milliseconds(10), mayKeep: { true }, load: {
+        let warm = WarmModel<Model>(idleLimit: { .milliseconds(10) }, mayKeep: { true }, load: {
             loads.withLock { $0 += 1 }
             return Model()
         })
@@ -664,9 +720,50 @@ final class WarmModelTests: XCTestCase {
         XCTAssertTrue(warm.isHoldingModel)
 
         warm.releaseWhenIdle()
+        try await Task.sleep(for: .milliseconds(50))
+        XCTAssertTrue(warm.isHoldingModel, "The other user still has it")
+
+        warm.releaseWhenIdle()
+        await waitForRelease(of: warm)
+        XCTAssertFalse(warm.isHoldingModel)
+    }
+
+    func testAShorterLimitAppliesToAModelAlreadyWaiting() async throws {
+        let limit = Mutex(Duration.seconds(3_600))
+        let warm = WarmModel<Model>(idleLimit: { limit.withLock { $0 } }, mayKeep: { true }, load: { Model() })
+        _ = try await warm.acquire()
+        warm.releaseWhenIdle()
+
+        limit.withLock { $0 = .milliseconds(10) }
+        warm.idleLimitChanged()
+
+        await waitForRelease(of: warm)
+        XCTAssertFalse(warm.isHoldingModel)
+    }
+
+    func testAFailedLoadLeavesAModelFreeToBeGivenBack() async throws {
+        let fails = Mutex(false)
+        let warm = WarmModel<Model>(idleLimit: { .milliseconds(10) }, mayKeep: { true }, load: {
+            if fails.withLock({ $0 }) { throw CancellationError() }
+            return Model()
+        })
+        _ = try await warm.acquire()
+        warm.release()
+        fails.withLock { $0 = true }
+
+        _ = try? await warm.acquire()
+        fails.withLock { $0 = false }
+        warm.releaseWhenIdle()
+        _ = try await warm.acquire()
+        warm.releaseWhenIdle()
+
+        await waitForRelease(of: warm)
+        XCTAssertFalse(warm.isHoldingModel)
+    }
+
+    private func waitForRelease(of warm: WarmModel<Model>) async {
         for _ in 0..<200 where warm.isHoldingModel {
             try? await Task.sleep(for: .milliseconds(10))
         }
-        XCTAssertFalse(warm.isHoldingModel)
     }
 }

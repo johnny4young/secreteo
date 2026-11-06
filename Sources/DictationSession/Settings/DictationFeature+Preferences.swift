@@ -44,6 +44,33 @@ extension DictationFeature {
             })
     }
 
+    var usesLightweightMemory: Binding<Bool> {
+        Binding(
+            get: {
+                _ = self.preferenceRevision
+                return DictationModelMemory.current(in: self.defaults) == .lightweight
+            },
+            set: {
+                let profile: DictationModelMemory = $0 ? .lightweight : .balanced
+                self.store([DictationModelMemory.key: profile.rawValue])
+                self.modelMemoryChanged()
+            })
+    }
+
+    var prewarmBinding: Binding<Bool> {
+        Binding(
+            get: {
+                _ = self.preferenceRevision
+                // It does nothing with the lightweight profile, so it must not read as on.
+                return self.defaults.bool(forKey: DictationPrewarmPolicy.defaultsKey)
+                    && DictationModelMemory.current(in: self.defaults) == .balanced
+            },
+            set: {
+                self.store([DictationPrewarmPolicy.defaultsKey: $0])
+                self.prewarmIfConfigured()
+            })
+    }
+
     var textMode: DictationTextMode {
         _ = preferenceRevision
         return DictationTextPreferences.globalMode(in: defaults)
