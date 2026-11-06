@@ -62,3 +62,7 @@ Dictate and the paste rows give focus back to the app that was frontmost when th
 - A crash after a model is published and before its claim is written leaves it unclaimed. Secreteo shows it as ready, and the next launch's collection deletes it, which costs one more download.
 - Settings shows no download progress, so a resumed download looks like one starting over.
 - A loaded model holds no store lease, so another app's removal can delete the files under it. The engine keeps running from memory, and the next load reports the model as missing.
+
+## G13. An icon loss no event announces
+
+The watchdog's events cover both halves of its check: `isVisible` through key-value observing, and the button's window through a hidden subview. Neither the per-app Menu Bar setting on macOS 26 nor a display change has been tried on a real Mac, so a loss there may only show on the 5 s timer, about 7 s after it happens. The check sees whether the item has a window, not whether it was painted.

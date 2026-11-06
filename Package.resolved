@@ -1,5 +1,5 @@
 {
-  "originHash" : "321dcdfbe016353ca47f43cffaa8b4add257f195aae3aa361cc65a2ebb6686ca",
+  "originHash" : "c8e9d7ad61018af4f57d3663755e5b0ae5361bcce75004d9a57aeca26c77723a",
   "pins" : [
     {
       "identity" : "fluidaudio",
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/johnny4young/local-model-store.git",
       "state" : {
-        "revision" : "c7be14c0153cc95fa7b63d6562e7c610e73b809b",
-        "version" : "0.1.1"
+        "revision" : "509e19ac066a88d94e6f69637a7e19eab3c4033b",
+        "version" : "0.1.3"
       }
     }
   ],

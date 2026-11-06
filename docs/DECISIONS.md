@@ -56,7 +56,7 @@ No GPL code. Mechanisms from GPL projects may inform the design, but no code is 
 
 ## D12. Menu bar through `NSStatusItem`, never without an icon
 
-`NSStatusItem` with `.terminationOnRemoval`, no autosave, and a watchdog, because a `MenuBarExtra` scene can stay registered without painting on macOS 26. An agent with microphone and Accessibility access never runs without a visible icon. An external helper is added only if the hidden-icon test reproduces the problem.
+`NSStatusItem` with `.terminationOnRemoval`, no autosave, and a watchdog, because a `MenuBarExtra` scene can stay registered without painting on macOS 26. An agent with microphone and Accessibility access never runs without a visible icon. The watchdog reacts to the events that can remove the icon, so an announced loss quits within 2.25 s and one no event announces within about 7 s. An external helper is added only if the hidden-icon test reproduces the problem.
 
 ## D13. FluidAudio from upstream with no traits
 

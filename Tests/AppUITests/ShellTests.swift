@@ -1,3 +1,4 @@
+import AppKit
 @testable import AppUI
 import Foundation
 import Testing
@@ -90,6 +91,87 @@ struct AffordanceWatchdogTests {
             watchdog.tick()
         }
         #expect(flag.lost == 0)
+    }
+
+    @Test func anEventPutsItOnTheFastScheduleForAFewChecks() {
+        let flag = Flag()
+        let watchdog = AffordanceWatchdog(hasAffordance: { flag.value }, onLost: {}, idleInterval: 10, checkInterval: 1)
+        #expect(watchdog.nextInterval == 10)
+        watchdog.checkSoon()
+        for _ in 0..<3 {
+            #expect(watchdog.nextInterval == 1)
+            watchdog.tick()
+        }
+        #expect(watchdog.nextInterval == 10)
+    }
+
+    @Test func aMissStaysOnTheFastScheduleUntilTheIconReturns() {
+        let flag = Flag()
+        let watchdog = AffordanceWatchdog(hasAffordance: { flag.value }, onLost: {}, idleInterval: 10, checkInterval: 1)
+        flag.value = false
+        watchdog.tick()
+        watchdog.tick()
+        #expect(watchdog.nextInterval == 1)
+        flag.value = true
+        watchdog.tick()
+        #expect(watchdog.nextInterval == 10)
+    }
+
+    @Test func aSilentLossIsReportedWithinOneIdleWaitAndTwoChecks() {
+        let flag = Flag()
+        let watchdog = AffordanceWatchdog(
+            hasAffordance: { flag.value }, onLost: { flag.lost += 1 }, idleInterval: 10, checkInterval: 1)
+        flag.value = false
+        #expect(waitUntilReported(watchdog, flag) == 12)
+        #expect(watchdog.nextInterval == nil)
+    }
+
+    @Test func anAnnouncedLossIsReportedOnTheSameScheduleAsAlwaysPolling() {
+        let flag = Flag()
+        let watchdog = AffordanceWatchdog(hasAffordance: { flag.value }, onLost: { flag.lost += 1 })
+        flag.value = false
+        watchdog.checkSoon()
+        #expect(waitUntilReported(watchdog, flag) == 2.25)
+    }
+
+    @Test func aBurstOfEventsNeverBringsTheNextCheckCloser() throws {
+        let flag = Flag()
+        let watchdog = AffordanceWatchdog(hasAffordance: { flag.value }, onLost: {}, idleInterval: 1000, checkInterval: 500)
+        watchdog.start()
+        defer { watchdog.stop() }
+        for _ in 0..<3 { watchdog.tick() }
+        let idle = try #require(watchdog.nextCheck)
+        #expect(idle.timeIntervalSinceNow > 900)
+        watchdog.checkSoon()
+        let fast = try #require(watchdog.nextCheck)
+        #expect(fast.timeIntervalSinceNow < 600)
+        for _ in 0..<5 { watchdog.checkSoon() }
+        #expect(watchdog.nextCheck == fast)
+    }
+
+    @Test func theSentinelHearsTheButtonLeaveItsWindow() {
+        let flag = Flag()
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 40, height: 20), styleMask: .borderless,
+                              backing: .buffered, defer: true)
+        window.isReleasedWhenClosed = false
+        let button = NSButton(frame: .zero)
+        let sentinel = WindowSentinel { flag.lost += 1 }
+        button.addSubview(sentinel)
+        window.contentView?.addSubview(button)
+        #expect(flag.lost == 1)
+        button.removeFromSuperview()
+        #expect(flag.lost == 2)
+        #expect(sentinel.isHidden && !sentinel.isAccessibilityElement())
+    }
+
+    /// The scheduled waits from a loss to its report, which a real timer would sleep through.
+    private func waitUntilReported(_ watchdog: AffordanceWatchdog, _ flag: Flag) -> TimeInterval {
+        var waited: TimeInterval = 0
+        while flag.lost == 0, let wait = watchdog.nextInterval {
+            waited += wait
+            watchdog.tick()
+        }
+        return waited
     }
 }
 

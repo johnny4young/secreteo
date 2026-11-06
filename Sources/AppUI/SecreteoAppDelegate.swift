@@ -160,6 +160,7 @@ public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
             let watchdog = AffordanceWatchdog(
                 hasAffordance: { [weak statusItem] in statusItem?.hasVisibleAffordance == true },
                 onLost: { NSApp.terminate(nil) })
+            statusItem.onAffordanceChange = { [weak watchdog] in watchdog?.checkSoon() }
             watchdog.start()
             self.watchdog = watchdog
         }
