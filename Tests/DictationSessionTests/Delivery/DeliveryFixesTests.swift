@@ -120,10 +120,11 @@ final class DeliveryFixesTests: XCTestCase {
         }
         _ = await TestPolling.until { started }
 
-        clipboard.restore(loan, on: board)
         var posted = false
+        // One main actor turn from the restore to the post, so the waiter cannot run between them.
         let copy = Task {
-            await clipboard.copySelection(on: board, timeout: .milliseconds(20), lateWindow: .milliseconds(200)) {
+            clipboard.restore(loan, on: board)
+            return await clipboard.copySelection(on: board, timeout: .milliseconds(20), lateWindow: .milliseconds(200)) {
                 posted = true
                 return true
             }

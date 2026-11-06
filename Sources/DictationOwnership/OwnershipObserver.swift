@@ -14,14 +14,27 @@ public actor OwnershipObserver {
 
     private let ownership: DictationOwnership
     private let onChange: @Sendable (Snapshot) -> Void
+    private let sleep: @Sendable (Duration) async throws -> Void
     private var isRunning = false
     private var isHoldingLease = false
     private var last: Snapshot?
     private var timer: Task<Void, Never>?
     private var token: Int32?
 
+    // The continuous clock counts sleep, so a timer that came due asleep fires on wake.
     public init(ownership: DictationOwnership, onChange: @escaping @Sendable (Snapshot) -> Void) {
+        self.init(ownership: ownership, sleep: { try await Task.sleep(for: $0, clock: .continuous) },
+                  onChange: onChange)
+    }
+
+    /// Tests release the timer themselves, so a loaded host cannot stretch what they measure.
+    init(
+        ownership: DictationOwnership,
+        sleep: @escaping @Sendable (Duration) async throws -> Void,
+        onChange: @escaping @Sendable (Snapshot) -> Void
+    ) {
         self.ownership = ownership
+        self.sleep = sleep
         self.onChange = onChange
     }
 
@@ -76,14 +89,14 @@ public actor OwnershipObserver {
         return [untilExpiry, holder].compactMap { $0 }.min()
     }
 
-    // The continuous clock counts sleep, so a timer that came due asleep fires on wake.
     private func schedule(after interval: TimeInterval?) {
         timer?.cancel()
         timer = nil
         guard let interval else { return }
+        let sleep = sleep
         timer = Task { [weak self] in
             do {
-                try await Task.sleep(for: .seconds(max(interval, 0.01)), clock: .continuous)
+                try await sleep(.seconds(max(interval, 0.01)))
             } catch {
                 return
             }
