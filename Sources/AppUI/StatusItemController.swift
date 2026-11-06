@@ -8,6 +8,7 @@ import SwiftUI
 public final class StatusItemController: NSObject {
     private let model: AppModel
     private var statusItem: NSStatusItem?
+    private var visibility: NSKeyValueObservation?
     private let popover = NSPopover()
     private let focusReturn = MenuFocusReturn()
 
@@ -21,6 +22,9 @@ public final class StatusItemController: NSObject {
         }
         popover.contentViewController = NSHostingController(rootView: content)
     }
+
+    /// Runs when either half of `hasVisibleAffordance` may have changed.
+    public var onAffordanceChange: (() -> Void)?
 
     /// False once macOS or the user removes the icon.
     public var hasVisibleAffordance: Bool {
@@ -38,6 +42,10 @@ public final class StatusItemController: NSObject {
         item.button?.target = self
         item.button?.action = #selector(togglePopover)
         item.isVisible = true
+        visibility = item.observe(\.isVisible) { [weak self] _, _ in
+            Task { @MainActor in self?.onAffordanceChange?() }
+        }
+        item.button?.addSubview(WindowSentinel { [weak self] in self?.onAffordanceChange?() })
         statusItem = item
     }
 
@@ -54,5 +62,27 @@ public final class StatusItemController: NSObject {
             NSApp.activate()
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         }
+    }
+}
+
+/// AppKit posts nothing when the status button leaves its window, but every subview hears it.
+final class WindowSentinel: NSView {
+    private let onMove: () -> Void
+
+    init(onMove: @escaping () -> Void) {
+        self.onMove = onMove
+        super.init(frame: .zero)
+        isHidden = true
+        setAccessibilityElement(false)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        onMove()
     }
 }
