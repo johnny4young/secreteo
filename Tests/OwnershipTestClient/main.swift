@@ -17,12 +17,18 @@ func log(_ line: String) {
     close(descriptor)
 }
 
+/// The signal can land after this thread has run on, so it never returns to the protocol.
+func die() -> Never {
+    kill(getpid(), SIGKILL)
+    while true { pause() }
+}
+
 /// Ends this process at the moment a test wants a crash.
 struct DyingTriggers: OwnershipTriggers {
     let dieWhenArming: Bool
 
     func arm() async -> Bool {
-        if dieWhenArming { kill(getpid(), SIGKILL) }
+        if dieWhenArming { die() }
         return true
     }
 
@@ -73,7 +79,7 @@ case "hold":
 case "handoff-then-die":
     let triggers = DyingTriggers(dieWhenArming: argument("die-at") == "arm")
     _ = await ownership.takeOwnership(userConfirmed: true, triggers: triggers)
-    kill(getpid(), SIGKILL)
+    die()
 
 case "print-root":
     print(DictationOwnership.defaultRoot.path)
