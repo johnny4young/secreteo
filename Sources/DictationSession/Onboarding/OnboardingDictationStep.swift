@@ -25,6 +25,7 @@ struct OnboardingDictationStep: View {
                     DictationPermissionRows(dictation: dictation)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
