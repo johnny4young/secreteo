@@ -725,7 +725,7 @@ final class VerifiedModelRecordTests: XCTestCase {
         {"consumer":"\(consumer.bundleID)","displayName":"Test",\
         "firstClaimedAt":"2026-11-02T12:00:00Z","lastUsedAt":"2026-11-02T12:00:00Z"}
         """.utf8).write(to: claim)
-        let models = DictationModels.live(store: store, defaults: try scratchDefaults())
+        let models = DictationModels.live(store: store, defaults: try scratchDefaults(), seedRoot: try makeScratch())
 
         await models.collectUnused()
 
@@ -741,7 +741,7 @@ final class VerifiedModelRecordTests: XCTestCase {
             consumer: StoreConsumer(bundleID: "com.example.test", displayName: "Test"))
         let model = scratch.appendingPathComponent("v1.noindex/models/old@rev-digest/payload")
         try FileManager.default.createDirectory(at: model, withIntermediateDirectories: true)
-        let models = DictationModels.live(store: store, defaults: try scratchDefaults())
+        let models = DictationModels.live(store: store, defaults: try scratchDefaults(), seedRoot: try makeScratch())
 
         await models.collectUnused()
 
@@ -753,7 +753,7 @@ final class VerifiedModelRecordTests: XCTestCase {
         let store = try LocalModelStore(
             location: .directory(scratch),
             consumer: StoreConsumer(bundleID: "com.example.test", displayName: "Test"))
-        let models = DictationModels.live(store: store, defaults: try scratchDefaults())
+        let models = DictationModels.live(store: store, defaults: try scratchDefaults(), seedRoot: try makeScratch())
 
         await models.collectUnused()
 
@@ -767,7 +767,7 @@ final class VerifiedModelRecordTests: XCTestCase {
         let store = try LocalModelStore(
             location: .directory(try makeScratch()),
             consumer: StoreConsumer(bundleID: "com.example.test", displayName: "Test"))
-        let models = DictationModels.live(store: store, defaults: defaults)
+        let models = DictationModels.live(store: store, defaults: defaults, seedRoot: try makeScratch())
         let directory = try await store.directory(for: ModelCatalog.sileroVAD)
         for artifact in ModelCatalog.sileroVAD.artifacts {
             let file = directory.appendingPathComponent(artifact.path)
@@ -784,7 +784,7 @@ final class VerifiedModelRecordTests: XCTestCase {
         let isVerified = await models.isVerified(.speechDetector)
         XCTAssertFalse(isVerified, "The record says nothing to a real hash")
 
-        let otherLaunch = DictationModels.live(store: store, defaults: defaults)
+        let otherLaunch = DictationModels.live(store: store, defaults: defaults, seedRoot: try makeScratch())
         let otherLaunchRemembers = await otherLaunch.wasVerified(.speechDetector)
         XCTAssertTrue(otherLaunchRemembers)
 
@@ -798,6 +798,49 @@ final class VerifiedModelRecordTests: XCTestCase {
         let wasVerifiedAfterEdit = await models.wasVerified(.speechDetector)
         XCTAssertFalse(wasVerifiedAfterEdit)
     }
+
+    func testEachPartSeedsFromItsPortavozFolder() throws {
+        let root = try makeScratch()
+
+        XCTAssertEqual(
+            DictationModels.Part.speech.seed(in: root).standardizedFileURL.path,
+            root.appendingPathComponent("parakeet-tdt-0.6b-v3").standardizedFileURL.path)
+        XCTAssertEqual(
+            DictationModels.Part.speechDetector.seed(in: root).standardizedFileURL.path,
+            root.appendingPathComponent("silero-vad-coreml").standardizedFileURL.path)
+        XCTAssertEqual(
+            DictationModels.portavozModels.standardizedFileURL.path,
+            URL.applicationSupportDirectory.appendingPathComponent("Portavoz/Models").standardizedFileURL.path)
+    }
+
+    func testInstallingLeavesTheSeedAsItWas() async throws {
+        let seedRoot = try makeScratch()
+        let artifact = try XCTUnwrap(ModelCatalog.sileroVAD.artifacts.first)
+        let seeded = DictationModels.Part.speechDetector.seed(in: seedRoot).appendingPathComponent(artifact.path)
+        try FileManager.default.createDirectory(
+            at: seeded.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data("not the model".utf8).write(to: seeded)
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [OfflineURLProtocol.self]
+        let store = try LocalModelStore(
+            location: .directory(try makeScratch()),
+            consumer: StoreConsumer(bundleID: "com.example.test", displayName: "Test"),
+            session: URLSession(configuration: configuration))
+        let models = DictationModels.live(store: store, defaults: try scratchDefaults(), seedRoot: seedRoot)
+
+        let installed: Void? = try? await models.install(.speechDetector)
+
+        XCTAssertNil(installed, "A seed that does not hash right is not the model")
+        XCTAssertEqual(try Data(contentsOf: seeded), Data("not the model".utf8))
+    }
+}
+
+/// Fails every request, so a test can never download a model.
+private final class OfflineURLProtocol: URLProtocol {
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() { client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet)) }
+    override func stopLoading() {}
 }
 
 @MainActor

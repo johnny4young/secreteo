@@ -28,7 +28,13 @@ struct DictationModels: Sendable {
         }
     }
 
-    static func live(store: LocalModelStore, defaults: UserDefaults) -> Self {
+    /// Portavoz before the shared store keeps the same pinned files here. The store only clones
+    /// from it, and only files that hash right.
+    static var portavozModels: URL {
+        URL.applicationSupportDirectory.appendingPathComponent("Portavoz/Models", isDirectory: true)
+    }
+
+    static func live(store: LocalModelStore, defaults: UserDefaults, seedRoot: URL) -> Self {
         // UserDefaults is thread-safe.
         nonisolated(unsafe) let defaults = defaults
         @Sendable func fingerprint(_ part: Part) async -> String? {
@@ -44,12 +50,24 @@ struct DictationModels: Sendable {
             remember: { part, isVerified in
                 defaults.set(isVerified ? await fingerprint(part) : nil, forKey: part.recordKey)
             },
-            install: { _ = try await store.ensureAvailable($0.manifest, seeds: [], progress: nil) },
+            install: { part in
+                _ = try await store.ensureAvailable(part.manifest, seeds: [part.seed(in: seedRoot)], progress: nil)
+            },
             // Never worth failing a launch over, and the next launch tries again.
             collectUnused: {
                 try? await store.reconcileClaims(keeping: Part.allCases.map(\.manifest))
                 _ = try? await store.collectGarbage()
             })
+    }
+}
+
+extension DictationModels.Part {
+    /// The folder Portavoz installs this part in, under `seedRoot`.
+    func seed(in seedRoot: URL) -> URL {
+        switch self {
+        case .speech: seedRoot.appendingPathComponent("parakeet-tdt-0.6b-v3", isDirectory: true)
+        case .speechDetector: seedRoot.appendingPathComponent("silero-vad-coreml", isDirectory: true)
+        }
     }
 }
 
