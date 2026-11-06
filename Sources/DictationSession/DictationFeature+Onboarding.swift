@@ -16,9 +16,9 @@ extension DictationFeature {
             throw error
         }
         modelState = .ready
+        await refreshReadiness()
         _ = try await warmEngine.acquire()
         warmEngine.releaseWhenIdle()
-        await refreshReadiness()
     }
 
     /// macOS posts no change notification for Accessibility, so a visible permission row asks again.

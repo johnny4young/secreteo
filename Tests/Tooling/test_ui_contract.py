@@ -14,8 +14,8 @@ LITERAL = re.compile(
     r'|MenuRow\(title:\s*"([^"\\]+)"'
     r'|L10n\.(?:text|format)\(\s*(?://[^\n]*\n\s*)*"([^"\\]+)"'
 )
-# A locale also takes `identifier:`, and it names no control.
-IDENTIFIER = re.compile(r'accessibilityIdentifier\("([^"]+)"\)|(?<!Locale\()identifier:\s*"([a-z][a-z-]+)"')
+# A locale also takes `identifier:`, and it names no control. A label may end in `Identifier:`.
+IDENTIFIER = re.compile(r'accessibilityIdentifier\("([^"]+)"\)|(?<!Locale\()(?:\bidentifier|[a-z]Identifier):\s*"([a-z][a-z-]+)"')
 
 
 def swift_files(root: Path):
@@ -27,6 +27,7 @@ class UIContractTests(unittest.TestCase):
         self.assertIsNone(IDENTIFIER.search('Locale(identifier: "en")'))
         self.assertEqual(IDENTIFIER.search('MenuRow(identifier: "menu-quit")').group(2), "menu-quit")
         self.assertEqual(IDENTIFIER.search('.accessibilityIdentifier("x")').group(1), "x")
+        self.assertEqual(IDENTIFIER.search('Ids(fieldIdentifier: "practice-field")').group(2), "practice-field")
 
     def test_every_identifier_has_an_assertion(self):
         tests = "\n".join(path.read_text() for path in swift_files(UI_TESTS))

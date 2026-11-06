@@ -56,7 +56,7 @@ public struct OnboardingView: View {
             Text("Try It Here")
                 .font(.largeTitle.bold())
                 .accessibilityIdentifier("onboarding-practice")
-            DictationPracticeView(dictation: dictation, identifierPrefix: "onboarding-dictation")
+            DictationPracticeView(dictation: dictation, identifiers: .onboarding)
                 .disabled(!dictation.practiceIsShown)
         }
         .onAppear { practiceShown(true) }
