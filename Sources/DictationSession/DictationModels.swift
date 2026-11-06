@@ -20,12 +20,11 @@ struct DictationModels: Sendable {
     /// `Part` is that list, so every model this app installs must be a case of it.
     var collectUnused: @Sendable () async -> Void
 
-    func installAll() async -> Bool {
-        do {
-            for part in Part.allCases { try await install(part) }
-            return true
-        } catch {
-            return false
+    /// Throws the first failure, so the caller can say what went wrong.
+    func installMissing() async throws {
+        for part in Part.allCases {
+            guard await !isVerified(part) else { continue }
+            try await install(part)
         }
     }
 

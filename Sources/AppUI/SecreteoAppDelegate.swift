@@ -10,6 +10,8 @@ struct RuntimeOptions {
     let showsMenuContentWindow: Bool
     let failsLaunchAtLogin: Bool
     let reportsAvailableUpdate: Bool
+    /// A disposable launch hides first-run setup unless a test asks for it.
+    let forcesOnboarding: Bool
     /// The status item cannot be automated, so a test names the app a menu row gives focus to.
     let menuFocusTarget: String?
 
@@ -18,6 +20,7 @@ struct RuntimeOptions {
         showsMenuContentWindow = usesTemporaryStore && arguments.contains("-show-menu-content")
         failsLaunchAtLogin = usesTemporaryStore && arguments.contains("-fail-launch-at-login")
         reportsAvailableUpdate = usesTemporaryStore && arguments.contains("-report-available-update")
+        forcesOnboarding = usesTemporaryStore && arguments.contains("-show-onboarding")
         let focusFlag = showsMenuContentWindow ? arguments.firstIndex(of: "-return-menu-focus-to") : nil
         menuFocusTarget = focusFlag.flatMap { arguments.indices.contains($0 + 1) ? arguments[$0 + 1] : nil }
     }
@@ -46,6 +49,7 @@ public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
     private var model: AppModel?
     private var statusItem: StatusItemController?
     private var settings: SettingsWindowController?
+    private var onboarding: OnboardingWindowController?
     private var watchdog: AffordanceWatchdog?
     private var menuContentWindow: NSWindow?
 
@@ -151,15 +155,30 @@ public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
 
         if options.showsMenuContentWindow {
             showMenuContentWindow(model: model)
-            return
+        } else {
+            statusItem.attach()
+            let watchdog = AffordanceWatchdog(
+                hasAffordance: { [weak statusItem] in statusItem?.hasVisibleAffordance == true },
+                onLost: { NSApp.terminate(nil) })
+            statusItem.onAffordanceChange = { [weak watchdog] in watchdog?.checkSoon() }
+            watchdog.start()
+            self.watchdog = watchdog
         }
-        statusItem.attach()
-        let watchdog = AffordanceWatchdog(
-            hasAffordance: { [weak statusItem] in statusItem?.hasVisibleAffordance == true },
-            onLost: { NSApp.terminate(nil) })
-        statusItem.onAffordanceChange = { [weak watchdog] in watchdog?.checkSoon() }
-        watchdog.start()
-        self.watchdog = watchdog
+        showOnboardingIfNeeded(model: model)
+    }
+
+    /// A build without dictation has nothing to set up yet.
+    private func showOnboardingIfNeeded(model: AppModel) {
+        guard let dictation = model.dictation else { return }
+        let record = FirstRunOnboardingRecord(defaults: .standard, isDisposable: options.usesTemporaryStore)
+        let context = FirstRunOnboardingContext(
+            forceRequested: options.forcesOnboarding,
+            automationSuppressed: options.usesTemporaryStore,
+            hasCompleted: record.hasCompleted)
+        guard FirstRunOnboardingPolicy.decide(context) == .show else { return }
+        let onboarding = OnboardingWindowController(dictation: dictation) { record.markCompleted() }
+        onboarding.show()
+        self.onboarding = onboarding
     }
 
     private func showMenuContentWindow(model: AppModel) {

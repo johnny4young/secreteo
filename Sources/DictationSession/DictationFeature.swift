@@ -31,11 +31,13 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored let modelStore: LocalModelStore
     @ObservationIgnored let dictationPolisher: any DictationTextPolishing = UnavailablePolisher()
     @ObservationIgnored private let fixture: DictationUITestFixture?
-    @ObservationIgnored private let environment: DictationFeatureEnvironment
+    @ObservationIgnored let launchArguments: [String]
+    @ObservationIgnored let environment: DictationFeatureEnvironment
     @ObservationIgnored private let ownership: DictationOwnershipCoordinator
     @ObservationIgnored let readiness: ReadinessGap
-    @ObservationIgnored private let warmEngine: WarmModel<ParakeetEngine>
+    @ObservationIgnored let warmEngine: WarmModel<ParakeetEngine>
     @ObservationIgnored private var readinessPoll: Task<Void, Never>?
+    @ObservationIgnored private var modelInstall: Task<Void, any Error>?
     @ObservationIgnored private var memoryPressure: (any DispatchSourceMemoryPressure)?
     @ObservationIgnored let pressure = DictationMemoryPressure()
     @ObservationIgnored var pasteLastRegistrar: DictationShortcut.Registrar?
@@ -48,7 +50,7 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored let practice = DictationPracticeField()
     @ObservationIgnored private let settingsWindowHolder = UUID()
 
-    public private(set) var modelState = ModelState.missing
+    public internal(set) var modelState = ModelState.missing
     private var speechModelIsInstalled = false
     public private(set) var isEnabled: Bool
     public private(set) var microphoneIsAuthorized: Bool
@@ -77,6 +79,7 @@ public final class DictationFeature: AppServices {
             consumer: StoreConsumer(bundleID: identifier, displayName: "Secreteo"))
         self.modelStore = modelStore
         fixture = DictationUITestFixture(arguments: arguments, usesTemporaryStore: usesTemporaryStore)
+        launchArguments = arguments
         let environment = environment ?? (usesTemporaryStore
             ? .disposable(permissionsAreMissing: arguments.contains("-seed-dictation-permissions-missing"))
             : .live(microphone: microphonePermissions, models: .live(store: modelStore, defaults: defaults)))
@@ -171,11 +174,28 @@ public final class DictationFeature: AppServices {
     }
 
     public func downloadModel() {
-        guard let models = environment.models, modelState != .downloading else { return }
+        guard environment.models != nil, modelState != .downloading else { return }
         modelState = .downloading
         Task {
-            modelState = await models.installAll() ? .ready : .failed
+            try? await installModels()
             await refreshReadiness()
+        }
+    }
+
+    /// Settings and onboarding share one install, so neither reports the other's result as its own.
+    func installModels() async throws {
+        guard let models = environment.models else { return }
+        if let modelInstall { return try await modelInstall.value }
+        if modelState != .ready { modelState = .downloading }
+        let install = Task { try await models.installMissing() }
+        modelInstall = install
+        defer { modelInstall = nil }
+        do {
+            try await install.value
+            modelState = .ready
+        } catch {
+            modelState = .failed
+            throw error
         }
     }
 
@@ -207,12 +227,20 @@ public final class DictationFeature: AppServices {
     var practiceIsShown: Bool { isEnabled && canPractice }
 
     /// The window holds the practice field, because the form's rows come and go as it scrolls.
+    public func practiceWindowChanged(_ holder: UUID, isKey: Bool) {
+        practice.show(holder, isKey: isKey)
+    }
+
+    public func practiceWindowClosed(_ holder: UUID) {
+        practice.hide(holder)
+    }
+
     public func settingsWindowChanged(isKey: Bool) {
-        practice.show(settingsWindowHolder, isKey: isKey)
+        practiceWindowChanged(settingsWindowHolder, isKey: isKey)
     }
 
     public func settingsWindowClosed() {
-        practice.hide(settingsWindowHolder)
+        practiceWindowClosed(settingsWindowHolder)
     }
     /// Off, or owned by another app, a start would be refused with nothing to show for it.
     public var canDictate: Bool { ownership.state == .owned || controller.isActive }
