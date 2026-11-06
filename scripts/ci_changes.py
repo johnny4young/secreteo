@@ -11,7 +11,7 @@ DOCS_ONLY = ("docs/*", "*.md", "LICENSE", "site/*", ".github/ISSUE_TEMPLATE/*")
 DELIVERY = ("Sources/DictationSession/Delivery/*", "Sources/DictationSession/Triggers/*",
             "Tests/DictationSessionTests/Delivery/*", "Tests/DictationSessionTests/Triggers/*",
             "spikes/tcc-adhoc/*", "scripts/run-signed-handoff.sh",
-            ".github/workflows/ci.yml", "scripts/ci_changes.py", "scripts/ci_gate.py")
+            ".github/workflows/ci.yml", "scripts/ci_changes.py", "scripts/ci_gate.py", "scripts/ci_reuse_gate.py")
 RELEASE = ("scripts/package-release.sh", "scripts/sign-app.sh", "scripts/release-dryrun.sh",
            "scripts/generate-appcast.sh", "scripts/verify_release.py", "scripts/verify_appcast.py",
            "scripts/verify-ed-signature.swift", "scripts/smoke-launch.sh", "scripts/enable-gatekeeper.sh",
@@ -19,7 +19,7 @@ RELEASE = ("scripts/package-release.sh", "scripts/sign-app.sh", "scripts/release
            "scripts/throwaway-sparkle-key.swift",
            "project.yml", "Apps/Secreteo/Info.plist", "Apps/Secreteo/Secreteo.entitlements",
            "Apps/Secreteo/SecreteoMain.swift", "Apps/Secreteo/SparkleUpdater.swift",
-           ".github/workflows/ci.yml", "scripts/ci_changes.py", "scripts/ci_gate.py")
+           ".github/workflows/ci.yml", "scripts/ci_changes.py", "scripts/ci_gate.py", "scripts/ci_reuse_gate.py")
 
 
 def matches(path: str, patterns: tuple[str, ...]) -> bool:
