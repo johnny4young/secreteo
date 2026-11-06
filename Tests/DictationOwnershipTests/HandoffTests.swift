@@ -240,17 +240,34 @@ struct HandoffTests {
         let scratch = try Scratch()
         defer { scratch.cleanUp() }
         try scratch.seedOwner("com.example.first")
-        let targets = (0..<8).map { "com.example.target\($0)" }
-        let outcomes = await withTaskGroup(of: HandoffOutcome.self) { group in
-            for target in targets {
-                group.addTask { await scratch.live(target).takeOwnership(userConfirmed: true, triggers: FakeTriggers()) }
+        var contenders = (0..<8).map { "com.example.target\($0)" }
+        var owner = "com.example.first"
+        var generation = 1
+        while !contenders.isEmpty {
+            // The winner arms only once every other contender has answered, so each of them meets its intent.
+            let answered = Counter()
+            let others = contenders.count - 1
+            let triggers = WaitingTriggers { answered.value == others }
+            let outcomes = await withTaskGroup(of: (String, HandoffOutcome).self) { [contenders] group in
+                for target in contenders {
+                    group.addTask {
+                        let outcome = await scratch.live(target).takeOwnership(userConfirmed: true, triggers: triggers)
+                        answered.increment()
+                        return (target, outcome)
+                    }
+                }
+                return await group.reduce(into: []) { $0.append($1) }
             }
-            return await group.reduce(into: []) { $0.append($1) }
+            let winners = outcomes.filter { $0.1 == .completed(generation: generation + 1) }.map(\.0)
+            #expect(winners.count == 1, "\(outcomes)")
+            #expect(outcomes.filter { $0.1 == .busy }.count == others, "\(outcomes)")
+            guard let winner = winners.first, winners.count == 1 else { return }
+            generation += 1
+            #expect(scratch.state == OwnershipState(owner: winner, generation: generation, previous: owner, intent: nil))
+            owner = winner
+            contenders.removeAll { $0 == winner }
         }
-        let completed = outcomes.filter { if case .completed = $0 { true } else { false } }
-        #expect(!completed.isEmpty)
-        #expect(outcomes.allSatisfy { if case .completed = $0 { true } else { $0 == .busy || $0 == .superseded } })
-        #expect(scratch.state?.generation == 1 + completed.count)
+        #expect(scratch.state?.generation == 9)
     }
 
     @Test func backToThePreviousOwnerIsANormalHandoff() async throws {
@@ -920,17 +937,19 @@ final class SyntheticApp: Sendable {
         let token: SessionAttempts.Token
         var phase: SessionPhase
         let text: String
-        var intentSeen: Date?
+        var intentSeen: TimeInterval?
     }
 
     let ownership: DictationOwnership
     let triggers = FakeTriggers()
+    let clock = SessionClock()
     private let attempts: SessionAttempts
     private let session = Mutex<Session?>(nil)
     private let pastedTexts = Mutex<[String]>([])
     private let keptTexts = Mutex<[String]>([])
     private let observer = Mutex<OwnershipObserver?>(nil)
     private let recorder = Recorder()
+    private let intentHandled = Mutex(false)
 
     init(ownership: DictationOwnership) {
         self.ownership = ownership
@@ -941,6 +960,8 @@ final class SyntheticApp: Sendable {
     var pasted: [String] { pastedTexts.withLock { $0 } }
     var kept: [String] { keptTexts.withLock { $0 } }
     var isInSession: Bool { session.withLock { $0 != nil } }
+    /// True once `handle` has finished with an intent, so any cancellation it caused has happened.
+    var hasHandledIntent: Bool { intentHandled.withLock { $0 } }
 
     func run() async {
         let created = OwnershipObserver(ownership: ownership) { [weak self] snapshot in self?.handle(snapshot) }
@@ -976,19 +997,18 @@ final class SyntheticApp: Sendable {
         triggers.setArmed(snapshot.state.armsTriggers)
         guard snapshot.intent != nil else { return }
         session.withLock { current in
-            if current?.intentSeen == nil { current?.intentSeen = Date() }
+            if current?.intentSeen == nil { current?.intentSeen = clock.now }
         }
         cancelIfDue()
         if session.withLock({ $0?.phase }) == .listening {
-            DispatchQueue.global().asyncAfter(deadline: .now() + SessionPhase.listeningGrace) { [weak self] in
-                self?.cancelIfDue()
-            }
+            clock.after(SessionPhase.listeningGrace) { [weak self] in self?.cancelIfDue() }
         }
+        intentHandled.withLock { $0 = true }
     }
 
     private func cancelIfDue() {
         guard let current = session.withLock({ $0 }), let seen = current.intentSeen,
-              current.phase.shouldCancel(secondsSinceIntentSeen: Date().timeIntervalSince(seen)) else { return }
+              current.phase.shouldCancel(secondsSinceIntentSeen: clock.now - seen) else { return }
         keptTexts.withLock { $0.append(current.text) }
         Task { await end(current.token) }
     }
@@ -1009,6 +1029,19 @@ struct SessionFlowTests {
 
     private func handoff(_ scratch: Scratch) async -> HandoffOutcome {
         await scratch.live(otherID).takeOwnership(userConfirmed: true, triggers: FakeTriggers())
+    }
+
+    /// Waits for the prior owner only while the handoff still waits for it, so the handoff's own
+    /// deadline is the limit and a loaded host makes the test slower instead of failing it.
+    private func waitWhile(
+        _ pending: PendingHandoff,
+        sourceLocation: SourceLocation = #_sourceLocation,
+        until condition: @Sendable () -> Bool
+    ) async throws {
+        while !condition(), !pending.hasEnded {
+            try await Task.sleep(for: .milliseconds(2))
+        }
+        #expect(condition(), "The handoff ended first", sourceLocation: sourceLocation)
     }
 
     @Test func aPreparingSessionIsCancelledAndTheHandoffCompletes() async throws {
@@ -1032,12 +1065,13 @@ struct SessionFlowTests {
         try scratch.seedOwner()
         let prior = await app(ownerID, in: scratch)
         #expect(await prior.begin(.listening, text: "synthetic words"))
-        let started = ContinuousClock.now
-        #expect(await handoff(scratch) == .completed(generation: 2))
-        let elapsed = started.duration(to: .now)
-        #expect(elapsed >= .seconds(SessionPhase.listeningGrace - 1), "It was not cut off at once")
-        #expect(elapsed < .seconds(SessionPhase.listeningGrace + 3))
-        #expect(prior.kept == ["synthetic words"])
+        let pending = PendingHandoff { await handoff(scratch) }
+        try await waitWhile(pending) { prior.hasHandledIntent }
+        prior.clock.advance(by: SessionPhase.listeningGrace / 2)
+        #expect(prior.isInSession && prior.kept.isEmpty, "It was not cut off at once")
+        prior.clock.advance(by: SessionPhase.listeningGrace / 2)
+        #expect(prior.kept == ["synthetic words"], "It is cancelled when its grace runs out")
+        #expect(await pending.outcome == .completed(generation: 2))
         #expect(prior.pasted.isEmpty)
         await prior.shutDown()
     }
@@ -1048,13 +1082,12 @@ struct SessionFlowTests {
         try scratch.seedOwner()
         let prior = await app(ownerID, in: scratch)
         #expect(await prior.begin(.microphoneClosed, text: "synthetic words"))
-        let pending = Task { await handoff(scratch) }
-        try await waitUntil { prior.latest?.intent != nil }
-        try await Task.sleep(for: .milliseconds(100))
-        #expect(prior.isInSession, "It is not cancelled")
+        let pending = PendingHandoff { await handoff(scratch) }
+        try await waitWhile(pending) { prior.hasHandledIntent }
+        #expect(prior.isInSession && prior.kept.isEmpty, "It is not cancelled")
         await prior.deliver()
         #expect(prior.pasted == ["synthetic words"], "A Stop after the handoff began still ends its own session")
-        #expect(await pending.value == .completed(generation: 2))
+        #expect(await pending.outcome == .completed(generation: 2))
         await prior.shutDown()
     }
 
@@ -1156,14 +1189,89 @@ final class RefusingTriggers: OwnershipTriggers {
     }
 
     func arm() async -> Bool {
-        let hangGuard = ContinuousClock.now.advanced(by: .seconds(30))
-        while !seen(), ContinuousClock.now < hangGuard {
-            try? await Task.sleep(for: .milliseconds(2))
-        }
+        await hold(until: seen)
         return false
     }
 
     func disarm() async {}
+}
+
+/// Arms once `ready` holds, so the intent stays live until the test lets the handoff go on.
+final class WaitingTriggers: OwnershipTriggers {
+    private let ready: @Sendable () -> Bool
+
+    init(until ready: @escaping @Sendable () -> Bool) {
+        self.ready = ready
+    }
+
+    func arm() async -> Bool {
+        await hold(until: ready)
+        return true
+    }
+
+    func disarm() async {}
+}
+
+/// The guard only stops a broken test from hanging. It is not a budget anything is measured against.
+private func hold(until condition: @Sendable () -> Bool) async {
+    let hangGuard = ContinuousClock.now.advanced(by: .seconds(30))
+    while !condition(), ContinuousClock.now < hangGuard {
+        try? await Task.sleep(for: .milliseconds(2))
+    }
+}
+
+final class Counter: Sendable {
+    private let count = Mutex(0)
+
+    var value: Int { count.withLock { $0 } }
+
+    func increment() {
+        count.withLock { $0 += 1 }
+    }
+}
+
+/// A handoff running in the background, which says when it has ended.
+final class PendingHandoff: Sendable {
+    private let result = Mutex<HandoffOutcome?>(nil)
+
+    init(_ run: @escaping @Sendable () async -> HandoffOutcome) {
+        Task { [self] in
+            let outcome = await run()
+            result.withLock { $0 = outcome }
+        }
+    }
+
+    var hasEnded: Bool { result.withLock { $0 != nil } }
+
+    var outcome: HandoffOutcome {
+        get async {
+            while true {
+                if let outcome = result.withLock({ $0 }) { return outcome }
+                try? await Task.sleep(for: .milliseconds(2))
+            }
+        }
+    }
+}
+
+/// The time a synthetic session counts its grace in, moved by the test instead of the wall clock.
+final class SessionClock: Sendable {
+    private let state = Mutex((now: TimeInterval(0), timers: [(due: TimeInterval, fire: @Sendable () -> Void)]()))
+
+    var now: TimeInterval { state.withLock { $0.now } }
+
+    func after(_ delay: TimeInterval, _ fire: @escaping @Sendable () -> Void) {
+        state.withLock { $0.timers.append((due: $0.now + delay, fire: fire)) }
+    }
+
+    func advance(by interval: TimeInterval) {
+        let due = state.withLock { value in
+            value.now += interval
+            let now = value.now
+            defer { value.timers.removeAll { $0.due <= now } }
+            return value.timers.filter { $0.due <= now }.map(\.fire)
+        }
+        for fire in due { fire() }
+    }
 }
 
 /// Hands each observer timer to the test, which releases it instead of waiting on the clock.
