@@ -78,6 +78,7 @@ public struct DictationSettingsSection: View {
         if dictation.isEnabled {
             DictationSettingsControls(dictation: dictation)
         }
+        DictationHistorySettingsSection(dictation: dictation)
     }
 
     @ViewBuilder private var modelRow: some View {
