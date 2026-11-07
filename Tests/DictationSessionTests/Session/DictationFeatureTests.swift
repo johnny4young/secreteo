@@ -466,6 +466,28 @@ final class DictationFeatureTests: XCTestCase {
         XCTAssertNil(feature.modelDownloadFraction, "A finished download leaves no bar behind")
     }
 
+    func testAReportFromAnEarlierInstallIsDropped() async throws {
+        let system = System()
+        system.verified.withLock { $0 = [] }
+        let (gate, release) = AsyncStream<Void>.makeStream()
+        system.installGate.withLock { $0 = gate }
+        system.failsToInstall.withLock { $0 = [.speech] }
+        let feature = try makeFeature(system)
+        feature.downloadModel()
+        await waitUntil { feature.modelDownloadFraction == 0.25 }
+        let earlier = feature.modelInstallGeneration
+        release.yield()
+        await waitUntil { feature.modelState == .failed }
+        feature.downloadModel()
+        await waitUntil { feature.modelInstallGeneration == earlier + 1 }
+
+        feature.modelDownloaded(0.9, generation: earlier)
+
+        XCTAssertNotEqual(feature.modelDownloadFraction, 0.9)
+        system.installGate.withLock { $0 = nil }
+        release.yield()
+    }
+
     func testSettingsAndOnboardingShareOneInstall() async throws {
         let system = System()
         system.verified.withLock { $0 = [] }

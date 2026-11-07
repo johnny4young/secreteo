@@ -38,6 +38,7 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored let warmEngine: WarmModel<ParakeetEngine>
     @ObservationIgnored private var readinessPoll: Task<Void, Never>?
     @ObservationIgnored private var modelInstall: Task<Void, any Error>?
+    @ObservationIgnored private(set) var modelInstallGeneration = 0
     @ObservationIgnored private var memoryPressure: (any DispatchSourceMemoryPressure)?
     @ObservationIgnored let pressure = DictationMemoryPressure()
     @ObservationIgnored var pasteLastRegistrar: DictationShortcut.Registrar?
@@ -195,9 +196,11 @@ public final class DictationFeature: AppServices {
         if let modelInstall { return try await modelInstall.value }
         if modelState != .ready { modelState = .downloading }
         modelDownloadFraction = nil
+        modelInstallGeneration += 1
+        let generation = modelInstallGeneration
         let install = Task { [weak self] in
             try await models.installMissing { fraction in
-                Task { @MainActor in self?.modelDownloaded(fraction) }
+                Task { @MainActor in self?.modelDownloaded(fraction, generation: generation) }
             }
         }
         modelInstall = install
@@ -214,9 +217,9 @@ public final class DictationFeature: AppServices {
         }
     }
 
-    /// Reports arrive on separate tasks, so a late one must not move the bar back or outlive the install.
-    private func modelDownloaded(_ fraction: Double) {
-        guard modelInstall != nil else { return }
+    /// Reports arrive on separate tasks, so a late one must not move the bar back or reach another install.
+    func modelDownloaded(_ fraction: Double, generation: Int) {
+        guard modelInstall != nil, generation == modelInstallGeneration else { return }
         modelDownloadFraction = max(modelDownloadFraction ?? 0, fraction)
     }
 

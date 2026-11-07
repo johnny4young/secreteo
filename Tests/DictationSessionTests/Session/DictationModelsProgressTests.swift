@@ -26,6 +26,15 @@ final class DictationModelsProgressTests: XCTestCase {
         XCTAssertEqual(seen.withLock { $0 }, [0, 100.0 / 400, 300.0 / 400, 400.0 / 400])
     }
 
+    func testReportsWithinOnePercentAreDropped() async throws {
+        let seen = Mutex<[Double]>([])
+        let models = models(verified: [.speechDetector], sizes: [.speech: 1_000], reports: [1, 5, 9, 10, 11, 1_000])
+
+        try await models.installMissing { fraction in seen.withLock { $0.append(fraction) } }
+
+        XCTAssertEqual(seen.withLock { $0 }, [0.001, 0.01, 1])
+    }
+
     func testAVerifiedPartIsLeftOutOfTheTotal() async throws {
         let seen = Mutex<[Double]>([])
         let models = models(verified: [.speech], sizes: [.speech: 300, .speechDetector: 100], reports: [50])

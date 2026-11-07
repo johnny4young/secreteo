@@ -1,9 +1,10 @@
 import Darwin
 import Foundation
+import Synchronization
 import LiveSpeech
 import LocalModelStore
 
-/// The models a dictation uses, which a disposable launch does not have.
+/// The models a dictation uses. A disposable launch has none, except a UI test fixture.
 struct DictationModels: Sendable {
     enum Part: CaseIterable, Sendable {
         case speech
@@ -24,7 +25,8 @@ struct DictationModels: Sendable {
     var collectUnused: @Sendable () async -> Void
 
     /// Throws the first failure, so the caller can say what went wrong.
-    /// `progress` gets the share of the missing bytes in place, from 0 to 1.
+    /// `progress` gets the share of the missing bytes in place, from 0 to 1, once per whole percent:
+    /// the store reports every chunk, and the bar shows no finer steps.
     func installMissing(progress: @escaping @Sendable (Double) -> Void = { _ in }) async throws {
         var missing: [Part] = []
         for part in Part.allCases where await !isVerified(part) {
@@ -32,11 +34,18 @@ struct DictationModels: Sendable {
         }
         let total = missing.reduce(0) { $0 + size($1) }
         var done = 0
+        let lastPercent = Mutex(-1)
         for part in missing {
             let before = done
             try await install(part) { placed in
                 guard total > 0 else { return }
-                progress(min(Double(before + placed) / Double(total), 1))
+                let fraction = min(Double(before + placed) / Double(total), 1)
+                let percent = Int(fraction * 100)
+                guard lastPercent.withLock({ last in
+                    defer { last = max(last, percent) }
+                    return percent > last
+                }) else { return }
+                progress(fraction)
             }
             done += size(part)
         }
