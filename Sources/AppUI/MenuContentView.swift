@@ -45,6 +45,7 @@ public struct MenuContentView: View {
                         inTargetApp { dictation.pasteLast(alternate: true) }
                     }
                 }
+                MenuRow(title: "Dictation History…", identifier: "menu-bar-history") { model.openHistory() }
                 Divider()
             }
             if model.updateIsAvailable {

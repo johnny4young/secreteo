@@ -27,12 +27,12 @@ let package = Package(
         .target(
             name: "DictationSession",
             dependencies: [
-                "DictationKit", "DictationOwnership", "LiveSpeech", "MicCapture", "SpeechCore",
+                "DictationKit", "DictationOwnership", "DictationStore", "LiveSpeech", "MicCapture", "SpeechCore",
                 .product(name: "LocalModelStore", package: "local-model-store")
             ]),
         .target(
             name: "DictationStore",
-            dependencies: ["DictationKit", .product(name: "GRDB", package: "GRDB.swift")]),
+            dependencies: ["DictationKit", "SpeechCore", .product(name: "GRDB", package: "GRDB.swift")]),
         .target(
             name: "LiveSpeech",
             dependencies: [
@@ -47,11 +47,11 @@ let package = Package(
         .testTarget(name: "DictationKitTests", dependencies: ["DictationKit", "SpeechCore"]),
         .testTarget(
             name: "DictationStoreTests",
-            dependencies: ["DictationStore", "DictationKit", .product(name: "GRDB", package: "GRDB.swift")]),
+            dependencies: ["DictationStore", "DictationKit", "SpeechCore", .product(name: "GRDB", package: "GRDB.swift")]),
         .testTarget(
             name: "DictationSessionTests",
             dependencies: [
-                "DictationSession", "DictationKit", "LiveSpeech", "SpeechCore",
+                "DictationSession", "DictationKit", "DictationStore", "LiveSpeech", "SpeechCore",
                 .product(name: "LocalModelStore", package: "local-model-store")
             ]),
         .testTarget(
