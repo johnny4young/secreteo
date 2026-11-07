@@ -37,7 +37,7 @@ Run in series.
 - Actions pinned to full commit SHAs.
 - No left accent bars in web styles.
 - Test files stay under 2,400 lines.
-- Logs carry no dictated text: no value is logged as public, and only the MCP command writes to stdout.
+- Logs carry no dictated text: no value is logged as public, no crash message interpolates a value, and only the MCP command writes to stdout.
 - `.nvmrc` and `engines.node` agree.
 
 ## Ported code
