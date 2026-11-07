@@ -722,6 +722,22 @@
         }
       }
     },
+    "Clear Search" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Search"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Borrar la búsqueda"
+          }
+        }
+      }
+    },
     "Click a mouse button…" : {
       "localizations" : {
         "en" : {
@@ -3086,6 +3102,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Guardando en tu historial de dictado…"
+          }
+        }
+      }
+    },
+    "Search Dictations" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search Dictations"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar en los dictados"
           }
         }
       }

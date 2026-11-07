@@ -6,6 +6,7 @@ import SwiftUI
 public struct DictationHistoryView: View {
     private let model: DictationHistoryModel
     @State private var confirmingDeleteAll = false
+    @State private var query = ""
 
     public init(dictation: DictationFeature) {
         model = dictation.history
@@ -29,10 +30,24 @@ public struct DictationHistoryView: View {
         .frame(minWidth: 520, minHeight: 420)
         .accessibilityIdentifier("dictation-history")
         .task { await model.load() }
+        // A search set from outside, such as a Shortcut, fills the field.
+        .onChange(of: model.filter.query, initial: true) { _, words in
+            if query != words { query = words }
+        }
+        .task(id: query) {
+            // Typing settles before the query runs; each keystroke cancels the last wait.
+            try? await Task.sleep(for: .milliseconds(250))
+            guard !Task.isCancelled else { return }
+            var filter = model.filter
+            if filter.query != query { filter.recordID = nil }
+            filter.query = query
+            await model.apply(filter)
+        }
         .confirmationDialog(
             Text("Delete every saved dictation?"), isPresented: $confirmingDeleteAll, titleVisibility: .visible
         ) {
             Button("Delete All", role: .destructive) {
+                query = ""
                 Task { await model.deleteAll() }
             }
                 .accessibilityIdentifier("dictation-history-delete-all-confirm")
@@ -97,6 +112,21 @@ public struct DictationHistoryView: View {
 
     private var filters: some View {
         HStack(spacing: 12) {
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass").foregroundStyle(.secondary).accessibilityHidden(true)
+                TextField("Search Dictations", text: $query)
+                    .textFieldStyle(.plain)
+                    .accessibilityIdentifier("dictation-history-search")
+                if !query.isEmpty {
+                    Button { query = "" } label: { Image(systemName: "xmark.circle.fill") }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel(L10n.text("Clear Search"))
+                        .accessibilityIdentifier("dictation-history-search-clear")
+                }
+            }
+            .padding(8)
+            .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 8))
             Picker("App", selection: filterBinding(\.applicationName)) {
                 Text("All Apps").tag(String?.none)
                 ForEach(model.applications, id: \.self) { Text($0).tag(Optional($0)) }

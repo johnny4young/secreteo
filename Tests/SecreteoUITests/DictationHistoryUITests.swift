@@ -62,6 +62,37 @@ final class DictationHistoryUITests: SecreteoUITestCase {
         XCTAssertFalse(app.buttons["dictation-history-delete-all"].exists)
     }
 
+    func testSearchAndFiltersNarrowTheHistory() throws {
+        let app = try launchHistory("-seed-dictation-history", "-seed-dictation-history-records")
+        defer { finishUITestApplication(app) }
+
+        let first = app.control(withIdentifier: text(0))
+        let second = app.control(withIdentifier: text(1))
+        XCTAssertTrue(second.waitForExistence(timeout: 5))
+
+        let search = app.control(withIdentifier: "dictation-history-search")
+        search.click()
+        search.typeText("repor")
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) {
+            renderedText(of: first) == "Send the report on Friday." && !second.exists
+        })
+        search.typeText("tzz")
+        XCTAssertTrue(app.control(withIdentifier: "dictation-history-no-results").waitForExistence(timeout: 5))
+        attachScreenshot(named: "pr-dictation-history-search")
+        app.buttons["dictation-history-search-clear"].click()
+        XCTAssertTrue(second.waitForExistence(timeout: 5))
+
+        app.control(withIdentifier: "dictation-history-app-filter").click()
+        let notes = app.menuItems["Notes"]
+        XCTAssertTrue(notes.waitForExistence(timeout: 5))
+        notes.click()
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) {
+            renderedText(of: first) == "No borres estas notas." && !second.exists
+        })
+        app.control(withIdentifier: "dictation-history-undelivered-filter").click()
+        XCTAssertTrue(app.control(withIdentifier: "dictation-history-no-results").waitForExistence(timeout: 5))
+    }
+
     func testADictationSavedToHistorySaysSoInsteadOfNothingWasSaved() throws {
         let app = try XCUIApplication.secreteo(showMenuBarContent: true)
         app.launchArguments += [
