@@ -13,6 +13,8 @@ struct DictationFeatureEnvironment {
     var openMicrophoneSettings: @MainActor () -> Void
     /// Nil when no real model is involved.
     var models: DictationModels?
+    /// Portavoz's saved settings, read only when Settings asks.
+    var portavozPreferences: @MainActor () -> [String: Any] = { [:] }
 
     static func live(microphone: MicrophonePermissionClient, models: DictationModels) -> Self {
         Self(
@@ -24,17 +26,22 @@ struct DictationFeatureEnvironment {
                 let pane = "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
                 if let url = URL(string: pane) { NSWorkspace.shared.open(url) }
             },
-            models: models)
+            models: models,
+            portavozPreferences: {
+                UserDefaults.standard.persistentDomain(forName: PortavozPreferenceImport.domain) ?? [:]
+            })
     }
 
-    static func disposable(permissionsAreMissing: Bool) -> Self {
+    /// A disposable launch never reads a real Portavoz install, only the fixture.
+    static func disposable(permissionsAreMissing: Bool, seedsPortavozPreferences: Bool = false) -> Self {
         Self(
             microphoneState: { permissionsAreMissing ? .notDetermined : .authorized },
             accessibilityIsGranted: { !permissionsAreMissing },
             askForMicrophone: {},
             askForAccessibility: {},
             openMicrophoneSettings: {},
-            models: nil)
+            models: nil,
+            portavozPreferences: { seedsPortavozPreferences ? PortavozPreferenceImport.fixture : [:] })
     }
 }
 

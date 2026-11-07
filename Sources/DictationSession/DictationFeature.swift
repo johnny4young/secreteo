@@ -45,6 +45,7 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored private var isRecordingShortcut = false
     /// Bumped on every write, because `UserDefaults` is not observable.
     var preferenceRevision = 0
+    var portavozImport: PortavozPreferenceImport?
     @ObservationIgnored private var preferencesObserver: (any NSObjectProtocol)?
     let controller: DictationController
     @ObservationIgnored let practice = DictationPracticeField()
@@ -81,7 +82,9 @@ public final class DictationFeature: AppServices {
         fixture = DictationUITestFixture(arguments: arguments, usesTemporaryStore: usesTemporaryStore)
         launchArguments = arguments
         let environment = environment ?? (usesTemporaryStore
-            ? .disposable(permissionsAreMissing: arguments.contains("-seed-dictation-permissions-missing"))
+            ? .disposable(
+                permissionsAreMissing: arguments.contains("-seed-dictation-permissions-missing"),
+                seedsPortavozPreferences: arguments.contains("-seed-portavoz-preferences"))
             : .live(microphone: microphonePermissions, models: .live(
                 store: modelStore, defaults: defaults, seedRoot: DictationModels.portavozModels)))
         self.environment = environment

@@ -1,7 +1,9 @@
+import AppKit
 import SwiftUI
 
 public struct DictationSettingsSection: View {
     let dictation: DictationFeature
+    @State private var showsPortavozImport = false
 
     public init(dictation: DictationFeature) {
         self.dictation = dictation
@@ -47,6 +49,25 @@ public struct DictationSettingsSection: View {
                 Text("Could not take over dictation. Try again.")
                     .foregroundStyle(.red)
                     .accessibilityIdentifier("settings-dictation-handoff-failed")
+            }
+        }
+        // On the section that always shows, so the sheet outlives the row an import removes.
+        .sheet(isPresented: $showsPortavozImport) {
+            PortavozImportSheet(changes: dictation.portavozImport?.changes ?? []) {
+                showsPortavozImport = false
+                dictation.importPortavozPreferences()
+            }
+        }
+        // The Settings window is reused, and either app may have changed a value since.
+        .onAppear { dictation.refreshPortavozImport() }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+            dictation.refreshPortavozImport()
+        }
+        .onChange(of: dictation.preferenceRevision) { dictation.refreshPortavozImport() }
+        if dictation.portavozImport != nil {
+            Section {
+                Button("Import Settings from Portavoz…") { showsPortavozImport = true }
+                    .accessibilityIdentifier("settings-portavoz-import")
             }
         }
         if dictation.practiceIsShown {

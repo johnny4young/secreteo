@@ -12,8 +12,9 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         return app
     }
 
-    private func launchEnabled(defaults: String = "") throws -> XCUIApplication {
+    private func launchEnabled(defaults: String = "", arguments: [String] = []) throws -> XCUIApplication {
         let app = try XCUIApplication.secreteo(showMenuBarContent: true)
+        app.launchArguments += arguments
         let extra = defaults.isEmpty ? "" : ",\(defaults)"
         app.launchEnvironment["SECRETEO_UI_TEST_DEFAULTS"] = "{\"globalDictationEnabled\":true\(extra)}"
         app.launchSecreteo()
@@ -105,6 +106,33 @@ final class DictationSettingsUITests: SecreteoUITestCase {
             toggle.value as? Int == 1 || toggle.value as? String == "1"
         })
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-paste-last-taken").exists)
+    }
+
+    func testPortavozSettingsArePreviewedAndImportedOnce() throws {
+        let app = try launchEnabled(arguments: ["-seed-portavoz-preferences"])
+        defer { finishUITestApplication(app) }
+        let importRow = app.control(withIdentifier: "settings-portavoz-import")
+        let confirm = app.control(withIdentifier: "settings-portavoz-import-confirm")
+        XCTAssertTrue(importRow.waitForStableFrame(timeout: 5))
+
+        importRow.click()
+
+        XCTAssertTrue(confirm.waitForStableFrame(timeout: 5))
+        // Language, sounds and the small indicator. Clean already shows, and shortcuts never import.
+        XCTAssertEqual(app.staticTexts.matching(identifier: "settings-portavoz-import-item").count, 3)
+        attachScreenshot(named: "pr-settings-portavoz-import")
+        app.control(withIdentifier: "settings-portavoz-import-cancel").click()
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) { !confirm.exists })
+        XCTAssertTrue(importRow.exists, "Cancel imports nothing")
+
+        importRow.click()
+        XCTAssertTrue(confirm.waitForStableFrame(timeout: 5))
+        confirm.click()
+
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) { !importRow.exists }, "Nothing is left to import")
+        let sounds = app.control(withIdentifier: "settings-dictation-sounds")
+        XCTAssertTrue(sounds.waitForExistence(timeout: 5))
+        XCTAssertTrue(sounds.value as? Int == 1 || sounds.value as? String == "1")
     }
 
     func testFreeingTheModelSoonRulesOutLoadingItAtLaunch() throws {
