@@ -29,7 +29,6 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored let usesTemporaryMeetingStore: Bool
     @ObservationIgnored let microphonePermissions = MicrophonePermissionClient()
     @ObservationIgnored let modelStore: LocalModelStore
-    @ObservationIgnored let dictationPolisher: any DictationTextPolishing = UnavailablePolisher()
     @ObservationIgnored private let fixture: DictationUITestFixture?
     @ObservationIgnored let launchArguments: [String]
     @ObservationIgnored let environment: DictationFeatureEnvironment
@@ -38,21 +37,32 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored let warmEngine: WarmModel<ParakeetEngine>
     @ObservationIgnored private var readinessPoll: Task<Void, Never>?
     @ObservationIgnored private var modelInstall: Task<Void, any Error>?
+    @ObservationIgnored private(set) var modelInstallGeneration = 0
     @ObservationIgnored private var memoryPressure: (any DispatchSourceMemoryPressure)?
     @ObservationIgnored let pressure = DictationMemoryPressure()
-    @ObservationIgnored var pasteLastRegistrar: DictationShortcut.Registrar?
+    /// Registers the fixed shortcuts, Paste Last and Rewrite; tests inject one.
+    @ObservationIgnored var fixedShortcutRegistrar: DictationShortcut.Registrar?
     @ObservationIgnored private var pasteLastRegistration: (any GlobalHotkeyRegistration)?
-    @ObservationIgnored private var isRecordingShortcut = false
+    @ObservationIgnored private(set) var isRecordingShortcut = false
+    @ObservationIgnored var rewriteSelectionRegistration: (any GlobalHotkeyRegistration)?
+    @ObservationIgnored let selectionRewrite = SelectionRewriteController()
     /// Bumped on every write, because `UserDefaults` is not observable.
     var preferenceRevision = 0
     var portavozImport: PortavozPreferenceImport?
     @ObservationIgnored private var preferencesObserver: (any NSObjectProtocol)?
     let controller: DictationController
     @ObservationIgnored let practice = DictationPracticeField()
+    @ObservationIgnored let dictationStore: any DictationHistoryStore & DictationStatsStore
     @ObservationIgnored let history: DictationHistoryModel
+    @ObservationIgnored let stats: DictationStatsModel
     @ObservationIgnored private let settingsWindowHolder = UUID()
 
+    /// Created on first use, because creating it writes the initial text mode.
+    @ObservationIgnored var textSettingsIfCreated: DictationTextSettingsModel?
+
     public internal(set) var modelState = ModelState.missing
+    /// Nil until the store reports bytes, so the bar starts indeterminate.
+    private(set) var modelDownloadFraction: Double?
     private var speechModelIsInstalled = false
     public private(set) var isEnabled: Bool
     public private(set) var microphoneIsAuthorized: Bool
@@ -60,6 +70,7 @@ public final class DictationFeature: AppServices {
     private(set) var handoffProblem: HandoffProblem?
     public private(set) var lastResetFailed = false
     private(set) var pasteLastShortcutIsUnavailable = false
+    var rewriteSelectionShortcutIsUnavailable = false
 
     public convenience init(usesTemporaryStore: Bool, arguments: [String] = ProcessInfo.processInfo.arguments) throws {
         try self.init(usesTemporaryStore: usesTemporaryStore, arguments: arguments, defaults: .standard)
@@ -80,14 +91,18 @@ public final class DictationFeature: AppServices {
                 : .userLibrary,
             consumer: StoreConsumer(bundleID: identifier, displayName: "Secreteo"))
         self.modelStore = modelStore
-        history = DictationHistoryModel(
-            store: Self.openHistoryStore(usesTemporaryStore: usesTemporaryStore, bundleIdentifier: identifier))
+        let dictationStore = Self.openDictationStore(
+            usesTemporaryStore: usesTemporaryStore, bundleIdentifier: identifier)
+        self.dictationStore = dictationStore
+        history = DictationHistoryModel(store: dictationStore)
+        stats = DictationStatsModel(store: dictationStore)
         fixture = DictationUITestFixture(arguments: arguments, usesTemporaryStore: usesTemporaryStore)
         launchArguments = arguments
         let environment = environment ?? (usesTemporaryStore
             ? .disposable(
                 permissionsAreMissing: arguments.contains("-seed-dictation-permissions-missing"),
-                seedsPortavozPreferences: arguments.contains("-seed-portavoz-preferences"))
+                seedsPortavozPreferences: arguments.contains("-seed-portavoz-preferences"),
+                models: arguments.contains("-seed-model-download-held") ? .heldDownload : nil)
             : .live(microphone: microphonePermissions, models: .live(
                 store: modelStore, defaults: defaults, seedRoot: DictationModels.portavozModels)))
         self.environment = environment
@@ -115,7 +130,7 @@ public final class DictationFeature: AppServices {
             })
         controller = DictationController()
         practice.onForget = { [controller] in controller.practiceLastText.clear() }
-        pasteLastRegistrar = usesTemporaryStore ? nil : DictationShortcut.liveRegistrar
+        fixedShortcutRegistrar = usesTemporaryStore ? nil : DictationShortcut.liveRegistrar
         // A learned correction writes here directly, and an open Settings window must show it.
         preferencesObserver = NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification, object: defaults, queue: .main
@@ -128,6 +143,8 @@ public final class DictationFeature: AppServices {
 
     public func start() {
         DictationTextPreferences.initialize(in: defaults, temporary: usesTemporaryMeetingStore)
+        // Created here so a Settings body never creates it and writes defaults mid-update.
+        _ = textSettings
         ownership.onStateChange = { [weak self] previous in self?.ownershipChanged(from: previous) }
         ownership.onIntentChange = { [weak self] isLive in
             if isLive { self?.controller.ownershipIntentSeen() } else { self?.controller.ownershipIntentCleared() }
@@ -139,7 +156,10 @@ public final class DictationFeature: AppServices {
             await showRememberedModels()
             await refreshReadiness()
         }
-        Task { await loadDictationHistory() }
+        Task {
+            await loadDictationHistory()
+            await loadDictationStats()
+        }
         if let models = environment.models {
             Task.detached(priority: .utility) { await models.collectUnused() }
         }
@@ -178,8 +198,10 @@ public final class DictationFeature: AppServices {
         controller.toggle(using: makeDictationSessionDependencies())
     }
 
+    /// A replay is never a rewrite instruction.
     public func pasteLast(alternate: Bool = false) {
-        controller.pasteLastDictation(using: makeDictationSessionDependencies(), alternate: alternate)
+        controller.pasteLastDictation(
+            using: makeDictationSessionDependencies(capturesInstruction: false), alternate: alternate)
     }
 
     public func downloadModel() {
@@ -188,23 +210,6 @@ public final class DictationFeature: AppServices {
         Task {
             try? await installModels()
             await refreshReadiness()
-        }
-    }
-
-    /// Settings and onboarding share one install, so neither reports the other's result as its own.
-    func installModels() async throws {
-        guard let models = environment.models else { return }
-        if let modelInstall { return try await modelInstall.value }
-        if modelState != .ready { modelState = .downloading }
-        let install = Task { try await models.installMissing() }
-        modelInstall = install
-        defer { modelInstall = nil }
-        do {
-            try await install.value
-            modelState = .ready
-        } catch {
-            modelState = .failed
-            throw error
         }
     }
 
@@ -265,6 +270,8 @@ public final class DictationFeature: AppServices {
         }
     }
     public var canPasteLast: Bool { controller.hasPastableText && mayPaste }
+    /// A rewrite reads and replaces through the same admission as a paste.
+    public var canRewriteSelection: Bool { mayPaste }
     public var canPasteUnpolished: Bool { canPasteAlternate && !controller.lastText.alternateIsOriginal }
     public var canPasteOriginal: Bool { canPasteAlternate && controller.lastText.alternateIsOriginal }
     private var canPasteAlternate: Bool { controller.hasAlternateText && mayPaste }
@@ -289,13 +296,14 @@ public final class DictationFeature: AppServices {
     }
 
     func makeDictationSessionDependencies() -> DictationSessionDependencies {
-        practice.route(unroutedDependencies(), appIsActive: NSApplication.shared.isActive && practiceIsShown)
+        makeDictationSessionDependencies(capturesInstruction: true)
     }
 
-    private func unroutedDependencies() -> DictationSessionDependencies {
+    func unroutedDependencies() -> DictationSessionDependencies {
         var dependencies = usesTemporaryMeetingStore
             ? fixtureDependencies() : .live(services: self, beginCapture: { {} })
         dependencies.beginHistory = { [weak self] in self?.history.admit() }
+        dependencies.recordStats = { [weak self] sample in self?.stats.record(sample) }
         return dependencies
     }
 
@@ -343,6 +351,8 @@ public final class DictationFeature: AppServices {
 
     private func ownershipChanged(from previous: ParticipantState) {
         syncDictationTriggers()
+        if previous.armsTriggers, !ownership.state.armsTriggers { selectionRewrite.releaseGlobalKeys() }
+        if ownership.state == .unavailable(.corruptState) { selectionRewrite.revokeReplace() }
         if previous == .owned, ownership.state != .owned { warmEngine.release() }
         if previous != .owned, ownership.state == .owned { prewarmIfConfigured() }
     }
@@ -395,6 +405,7 @@ public final class DictationFeature: AppServices {
     private func syncDictationTriggers(promptIfNeeded: Bool = false) {
         if !isRecordingShortcut { controller.syncHotkey(services: self) }
         syncPasteLastShortcut()
+        syncRewriteSelectionShortcut()
         syncEventTaps(promptIfNeeded: promptIfNeeded)
     }
 
@@ -404,11 +415,11 @@ public final class DictationFeature: AppServices {
         let wanted = !isRecordingShortcut && dictationTriggersMayArm
             && defaults.bool(forKey: DictationController.defaultsKey)
             && defaults.bool(forKey: PasteLastShortcut.defaultsKey)
-        guard wanted, let pasteLastRegistrar else {
+        guard wanted, let fixedShortcutRegistrar else {
             pasteLastShortcutIsUnavailable = false
             return
         }
-        pasteLastRegistration = pasteLastRegistrar(
+        pasteLastRegistration = fixedShortcutRegistrar(
             PasteLastShortcut.setting, { [weak self] in self?.pasteLast() }, {})
         pasteLastShortcutIsUnavailable = pasteLastRegistration == nil
     }
@@ -513,9 +524,37 @@ enum DictationFeatureError: LocalizedError {
     }
 }
 
-/// Polish arrives with its providers, so until then a dictation keeps its clean text.
-private struct UnavailablePolisher: DictationTextPolishing {
-    func polish(_ text: String, recipe: String?) async throws -> String {
-        throw DictationPolishUnavailable(reason: L10n.text("No Polish engine is available."))
+extension DictationFeature {
+    /// Settings and onboarding share one install, so neither reports the other's result as its own.
+    func installModels() async throws {
+        guard let models = environment.models else { return }
+        if let modelInstall { return try await modelInstall.value }
+        if modelState != .ready { modelState = .downloading }
+        modelDownloadFraction = nil
+        modelInstallGeneration += 1
+        let generation = modelInstallGeneration
+        let install = Task { [weak self] in
+            try await models.installMissing { fraction in
+                Task { @MainActor in self?.modelDownloaded(fraction, generation: generation) }
+            }
+        }
+        modelInstall = install
+        defer {
+            modelInstall = nil
+            modelDownloadFraction = nil
+        }
+        do {
+            try await install.value
+            modelState = .ready
+        } catch {
+            modelState = .failed
+            throw error
+        }
+    }
+
+    /// Reports arrive on separate tasks, so a late one must not move the bar back or reach another install.
+    func modelDownloaded(_ fraction: Double, generation: Int) {
+        guard modelInstall != nil, generation == modelInstallGeneration else { return }
+        modelDownloadFraction = max(modelDownloadFraction ?? 0, fraction)
     }
 }

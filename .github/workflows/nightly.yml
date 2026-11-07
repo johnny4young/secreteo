@@ -8,8 +8,10 @@ on:
 permissions:
   contents: read
 
+# One group per ref: a queued run replaces the older queued run in its group, so a shared
+# group lets parallel branch dispatches cancel each other.
 concurrency:
-  group: nightly
+  group: nightly-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:

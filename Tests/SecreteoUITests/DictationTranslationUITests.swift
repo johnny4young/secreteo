@@ -59,6 +59,29 @@ final class DictationTranslationUITests: SecreteoUITestCase {
     }
 
     @MainActor
+    func testTranslationIsChosenInSettings() throws {
+        let app = try XCUIApplication.launchSettings(#""dictationTextMode":"clean","dictationTranslationTarget":"off""#)
+        defer { finishUITestApplication(app) }
+        let picker = app.control(withIdentifier: "settings-dictation-translate")
+        XCTAssertTrue(app.revealInSettings(picker))
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-translate-download").exists, "Off needs nothing")
+        picker.click()
+        let english = app.menuItems["settings-dictation-translate-en"]
+        XCTAssertTrue(english.waitForExistenceFast(timeout: 5))
+        XCTAssertTrue(app.menuItems["settings-dictation-translate-es"].exists)
+        XCTAssertTrue(app.menuItems["settings-dictation-translate-off"].exists)
+        XCTAssertFalse(app.menuItems["settings-dictation-translate-default"].exists)
+        english.click()
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) { renderedText(of: picker).contains("EN") })
+        // Whether this Mac has the languages is not up to the test, but the two rows always agree.
+        let status = app.control(withIdentifier: "settings-dictation-translate-status")
+        let download = app.control(withIdentifier: "settings-dictation-translate-download")
+        _ = waitForUITestCondition(timeout: 3) { status.exists }
+        XCTAssertEqual(status.exists, download.exists)
+        attachScreenshot(named: "pr-settings-translation")
+    }
+
+    @MainActor
     private func launchTranslating(_ arguments: String...) throws -> XCUIApplication {
         let app = try XCUIApplication.secreteo(showMenuBarContent: true)
         app.launchArguments += ["-seed-dictation", "-seed-dictation-delivery", "-seed-dictation-verified"]

@@ -18,6 +18,38 @@
         }
       }
     },
+    "%@ (Not Installed)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (Not Installed)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (no instalado)"
+          }
+        }
+      }
+    },
+    "%@: %d words" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: %d words"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$d palabras"
+          }
+        }
+      }
+    },
     "%d days" : {
       "localizations" : {
         "en" : {
@@ -30,6 +62,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%d días"
+          }
+        }
+      }
+    },
+    "%d min" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d min"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d min"
+          }
+        }
+      }
+    },
+    "%d of %d characters" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d of %d characters"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d de %d caracteres"
           }
         }
       }
@@ -66,6 +130,38 @@
         }
       }
     },
+    "30 days" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 days"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 días"
+          }
+        }
+      }
+    },
+    "7 days" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 days"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 días"
+          }
+        }
+      }
+    },
     "Accessibility" : {
       "localizations" : {
         "en" : {
@@ -94,6 +190,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Agregar"
+          }
+        }
+      }
+    },
+    "Add Application Profile…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Application Profile…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agregar perfil de app…"
           }
         }
       }
@@ -338,6 +450,22 @@
         }
       }
     },
+    "Another shortcut already uses ⌃⌥⌘R." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another shortcut already uses ⌃⌥⌘R."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otro atajo ya usa ⌃⌥⌘R."
+          }
+        }
+      }
+    },
     "Another shortcut already uses ⌃⌥⌘V." : {
       "localizations" : {
         "en" : {
@@ -366,6 +494,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "App"
+          }
+        }
+      }
+    },
+    "Apple Intelligence" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence"
+          }
+        }
+      }
+    },
+    "Apple Intelligence is turned off (System Settings → Apple Intelligence & Siri)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence is turned off (System Settings → Apple Intelligence & Siri)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence está desactivado (Ajustes del Sistema → Apple Intelligence y Siri)"
+          }
+        }
+      }
+    },
+    "Apple Intelligence is unavailable: %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence is unavailable: %@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence no está disponible: %@."
           }
         }
       }
@@ -414,6 +590,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apple Speech no está disponible. Elige Parakeet en los ajustes de Dictado."
+          }
+        }
+      }
+    },
+    "Application Profiles" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Application Profiles"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perfiles por app"
+          }
+        }
+      }
+    },
+    "Application profiles could not be read. Dictation uses the default mode until you reset them." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Application profiles could not be read. Dictation uses the default mode until you reset them."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudieron leer los perfiles por app. El dictado usa el modo predeterminado hasta que los restablezcas."
           }
         }
       }
@@ -482,6 +690,22 @@
         }
       }
     },
+    "Bullet list" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bullet list"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lista de viñetas"
+          }
+        }
+      }
+    },
     "Button %d" : {
       "localizations" : {
         "en" : {
@@ -530,6 +754,22 @@
         }
       }
     },
+    "Cancel rewrite" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel rewrite"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelar reescritura"
+          }
+        }
+      }
+    },
     "Changed “%@” to “%@”." : {
       "localizations" : {
         "en" : {
@@ -542,6 +782,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cambiado “%@” por “%@”."
+          }
+        }
+      }
+    },
+    "Check Again" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check Again"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volver a comprobar"
           }
         }
       }
@@ -594,6 +850,54 @@
         }
       }
     },
+    "Choose an Ollama model in Settings to polish dictations." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose an Ollama model in Settings to polish dictations."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige un modelo de Ollama en Ajustes para pulir los dictados."
+          }
+        }
+      }
+    },
+    "Choose an application with a valid bundle identifier. Profiles are limited to 64." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose an application with a valid bundle identifier. Profiles are limited to 64."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige una app con un identificador de paquete válido. Hay un máximo de 64 perfiles."
+          }
+        }
+      }
+    },
+    "Choose another" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose another"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegir otra"
+          }
+        }
+      }
+    },
     "Clean" : {
       "localizations" : {
         "en" : {
@@ -626,6 +930,22 @@
         }
       }
     },
+    "Clear Search" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Search"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Borrar la búsqueda"
+          }
+        }
+      }
+    },
     "Click a mouse button…" : {
       "localizations" : {
         "en" : {
@@ -654,6 +974,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cerrar"
+          }
+        }
+      }
+    },
+    "Collapsed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collapsed"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contraído"
+          }
+        }
+      }
+    },
+    "Concise" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Concise"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conciso"
           }
         }
       }
@@ -877,7 +1229,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Borrar"
+            "value" : "Eliminar"
           }
         }
       }
@@ -898,6 +1250,22 @@
         }
       }
     },
+    "Delete Statistics" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Statistics"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Borrar estadísticas"
+          }
+        }
+      }
+    },
     "Delete every saved dictation?" : {
       "localizations" : {
         "en" : {
@@ -910,6 +1278,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "¿Borrar todos los dictados guardados?"
+          }
+        }
+      }
+    },
+    "Delete your dictation statistics?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete your dictation statistics?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Borrar tus estadísticas de dictado?"
           }
         }
       }
@@ -1122,6 +1506,22 @@
         }
       }
     },
+    "Dictation Statistics" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictation Statistics"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estadísticas de dictado"
+          }
+        }
+      }
+    },
     "Dictation could not start." : {
       "localizations" : {
         "en" : {
@@ -1250,6 +1650,22 @@
         }
       }
     },
+    "Dictation statistics could not be loaded." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictation statistics could not be loaded."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudieron cargar las estadísticas de dictado."
+          }
+        }
+      }
+    },
     "Dictations" : {
       "localizations" : {
         "en" : {
@@ -1298,6 +1714,22 @@
         }
       }
     },
+    "Download English and Spanish" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download English and Spanish"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descargar inglés y español"
+          }
+        }
+      }
+    },
     "Download Speech Model" : {
       "localizations" : {
         "en" : {
@@ -1330,6 +1762,22 @@
         }
       }
     },
+    "Duplicate" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duplicate"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duplicar"
+          }
+        }
+      }
+    },
     "Edit" : {
       "localizations" : {
         "en" : {
@@ -1358,6 +1806,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "English"
+          }
+        }
+      }
+    },
+    "English and Spanish are not downloaded yet, so dictation is pasted untranslated." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "English and Spanish are not downloaded yet, so dictation is pasted untranslated."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El inglés y el español aún no están descargados, así que el dictado se pega sin traducir."
+          }
+        }
+      }
+    },
+    "Expanded" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expanded"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expandido"
           }
         }
       }
@@ -1426,6 +1906,22 @@
         }
       }
     },
+    "Formal" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formal"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formal"
+          }
+        }
+      }
+    },
     "Free the Model Soon After Dictating" : {
       "localizations" : {
         "en" : {
@@ -1438,6 +1934,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Liberar el modelo poco después de dictar"
+          }
+        }
+      }
+    },
+    "Friendly" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Friendly"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cercano"
           }
         }
       }
@@ -1618,6 +2130,22 @@
         }
       }
     },
+    "Instruction" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instruction"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instrucción"
+          }
+        }
+      }
+    },
     "It could not write to its folder in Application Support." : {
       "localizations" : {
         "en" : {
@@ -1630,6 +2158,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No pudo escribir en su carpeta de Application Support."
+          }
+        }
+      }
+    },
+    "Keep Dictation Statistics" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep Dictation Statistics"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardar estadísticas de dictado"
           }
         }
       }
@@ -1986,18 +2530,50 @@
         }
       }
     },
-    "No Polish engine is available." : {
+    "Name" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No Polish engine is available."
+            "value" : "Name"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No hay un motor para pulir disponible."
+            "value" : "Nombre"
+          }
+        }
+      }
+    },
+    "New Recipe…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Recipe…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nueva receta…"
+          }
+        }
+      }
+    },
+    "No dictations counted in this period yet." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No dictations counted in this period yet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aún no hay dictados contados en este periodo."
           }
         }
       }
@@ -2066,6 +2642,22 @@
         }
       }
     },
+    "None" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ninguno"
+          }
+        }
+      }
+    },
     "Not Now" : {
       "localizations" : {
         "en" : {
@@ -2114,6 +2706,38 @@
         }
       }
     },
+    "Nothing was heard. Say how again, or choose a recipe." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing was heard. Say how again, or choose a recipe."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se oyó nada. Vuelve a decir cómo o elige una receta."
+          }
+        }
+      }
+    },
+    "Nothing was replaced. Copy the rewrite instead." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing was replaced. Copy the rewrite instead."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se reemplazó nada. Copia la reescritura."
+          }
+        }
+      }
+    },
     "Nothing was saved in Secreteo." : {
       "localizations" : {
         "en" : {
@@ -2142,6 +2766,86 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apagado"
+          }
+        }
+      }
+    },
+    "Ollama" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama"
+          }
+        }
+      }
+    },
+    "Ollama Model" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama Model"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modelo de Ollama"
+          }
+        }
+      }
+    },
+    "Ollama has no models yet. Pull one with “ollama pull”." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama has no models yet. Pull one with “ollama pull”."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama aún no tiene modelos. Descarga uno con “ollama pull”."
+          }
+        }
+      }
+    },
+    "Ollama is not responding on localhost:11434. Install it and run “ollama serve”." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama is not responding on localhost:11434. Install it and run “ollama serve”."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama no responde en localhost:11434. Instálalo y ejecuta “ollama serve”."
+          }
+        }
+      }
+    },
+    "Ollama is not running on this Mac." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama is not running on this Mac."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama no se está ejecutando en este Mac."
           }
         }
       }
@@ -2222,6 +2926,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abre tus dictados guardados en Secreteo y, si quieres, busca palabras."
+          }
+        }
+      }
+    },
+    "Or hold your dictation shortcut and say how to rewrite it." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Or hold your dictation shortcut and say how to rewrite it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O mantén tu atajo de dictado y di cómo reescribirlo."
+          }
+        }
+      }
+    },
+    "Password fields cannot be rewritten." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password fields cannot be rewritten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los campos de contraseña no se pueden reescribir."
           }
         }
       }
@@ -2546,6 +3282,22 @@
         }
       }
     },
+    "Period" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Period"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Periodo"
+          }
+        }
+      }
+    },
     "Play Start and Stop Sounds" : {
       "localizations" : {
         "en" : {
@@ -2574,6 +3326,86 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pulir"
+          }
+        }
+      }
+    },
+    "Polish Recipe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polish Recipe"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Receta de Pulir"
+          }
+        }
+      }
+    },
+    "Polish Recipes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polish Recipes"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recetas de Pulir"
+          }
+        }
+      }
+    },
+    "Polish With" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polish With"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulir con"
+          }
+        }
+      }
+    },
+    "Polish is unavailable right now." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polish is unavailable right now."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulir no está disponible en este momento."
+          }
+        }
+      }
+    },
+    "Polish only uses Ollama on this Mac." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polish only uses Ollama on this Mac."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulir solo usa Ollama en este Mac."
           }
         }
       }
@@ -2706,6 +3538,22 @@
         }
       }
     },
+    "Preview" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vista previa"
+          }
+        }
+      }
+    },
     "Push-to-Talk Mouse Button" : {
       "localizations" : {
         "en" : {
@@ -2738,6 +3586,22 @@
         }
       }
     },
+    "Reading the selection…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reading the selection…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leyendo la selección…"
+          }
+        }
+      }
+    },
     "Ready" : {
       "localizations" : {
         "en" : {
@@ -2750,6 +3614,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Listo"
+          }
+        }
+      }
+    },
+    "Recipe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recipe"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Receta"
           }
         }
       }
@@ -2786,6 +3666,38 @@
         }
       }
     },
+    "Remove" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quitar"
+          }
+        }
+      }
+    },
+    "Remove Application Profile" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove Application Profile"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quitar perfil de app"
+          }
+        }
+      }
+    },
     "Remove the Push-to-Talk Mouse Button" : {
       "localizations" : {
         "en" : {
@@ -2818,6 +3730,86 @@
         }
       }
     },
+    "Replace" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reemplazar"
+          }
+        }
+      }
+    },
+    "Replaced in %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replaced in %@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reemplazado en %@."
+          }
+        }
+      }
+    },
+    "Replaced." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replaced."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reemplazado."
+          }
+        }
+      }
+    },
+    "Replacing…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replacing…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reemplazando…"
+          }
+        }
+      }
+    },
+    "Reset Application Profiles" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Application Profiles"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restablecer perfiles por app"
+          }
+        }
+      }
+    },
     "Reset Dictation State" : {
       "localizations" : {
         "en" : {
@@ -2830,6 +3822,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Restablecer el estado del dictado"
+          }
+        }
+      }
+    },
+    "Reset Recipes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Recipes"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restablecer recetas"
           }
         }
       }
@@ -2866,6 +3874,118 @@
         }
       }
     },
+    "Rewrite Selection…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rewrite Selection…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reescribir la selección…"
+          }
+        }
+      }
+    },
+    "Rewrite instruction" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rewrite instruction"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instrucción de reescritura"
+          }
+        }
+      }
+    },
+    "Rewrite the Selection with ⌃⌥⌘R" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rewrite the Selection with ⌃⌥⌘R"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reescribir la selección con ⌃⌥⌘R"
+          }
+        }
+      }
+    },
+    "Rewrite your selection" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rewrite your selection"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reescribir tu selección"
+          }
+        }
+      }
+    },
+    "Rewrite your selection in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rewrite your selection in %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reescribir tu selección en %@"
+          }
+        }
+      }
+    },
+    "Rewriting needs the Accessibility permission. Grant it in System Settings and try again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rewriting needs the Accessibility permission. Grant it in System Settings and try again."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reescribir necesita el permiso de Accesibilidad. Concédelo en Ajustes del Sistema y vuelve a intentarlo."
+          }
+        }
+      }
+    },
+    "Rewriting…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rewriting…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reescribiendo…"
+          }
+        }
+      }
+    },
     "Right Command" : {
       "localizations" : {
         "en" : {
@@ -2894,6 +4014,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Option derecha"
+          }
+        }
+      }
+    },
+    "Save" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardar"
           }
         }
       }
@@ -2946,6 +4082,22 @@
         }
       }
     },
+    "Say how" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Say how"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decir cómo"
+          }
+        }
+      }
+    },
     "Search" : {
       "localizations" : {
         "en" : {
@@ -2973,7 +4125,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Buscar dictados"
+            "value" : "Buscar en los dictados"
           }
         }
       }
@@ -3054,6 +4206,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Seleccionar todo"
+          }
+        }
+      }
+    },
+    "Select at least three words to rewrite." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select at least three words to rewrite."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecciona al menos tres palabras para reescribir."
+          }
+        }
+      }
+    },
+    "Select at most 2,000 characters to rewrite." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select at most 2,000 characters to rewrite."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecciona como máximo 2.000 caracteres para reescribir."
+          }
+        }
+      }
+    },
+    "Select some text first, then try again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select some text first, then try again."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Primero selecciona un texto y vuelve a intentarlo."
           }
         }
       }
@@ -3250,6 +4450,22 @@
         }
       }
     },
+    "Speaking" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speaking"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hablando"
+          }
+        }
+      }
+    },
     "Speech Model" : {
       "localizations" : {
         "en" : {
@@ -3294,6 +4510,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Empieza a dictar en la app que está al frente, o termina el dictado en curso, sin traer Secreteo al frente."
+          }
+        }
+      }
+    },
+    "Status update" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status update"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualización de estado"
           }
         }
       }
@@ -3426,6 +4658,22 @@
         }
       }
     },
+    "The application chooser needs a Settings window. Open Settings and try again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The application chooser needs a Settings window. Open Settings and try again."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El selector de apps necesita una ventana de Ajustes. Abre Ajustes y vuelve a intentarlo."
+          }
+        }
+      }
+    },
     "The destination changed. Copy your text to keep it." : {
       "localizations" : {
         "en" : {
@@ -3522,6 +4770,22 @@
         }
       }
     },
+    "The languages were not downloaded. Try again when you are online." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The languages were not downloaded. Try again when you are online."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se descargaron los idiomas. Inténtalo de nuevo cuando tengas conexión."
+          }
+        }
+      }
+    },
     "The microphone sent unusable audio. Check the input device and try again." : {
       "localizations" : {
         "en" : {
@@ -3534,6 +4798,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "El micrófono envió audio no válido. Revisa el dispositivo de entrada e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "The model could not rewrite it. Try again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The model could not rewrite it. Try again."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El modelo no pudo reescribirlo. Inténtalo de nuevo."
           }
         }
       }
@@ -3554,6 +4834,38 @@
         }
       }
     },
+    "The rewrite changed a fact, name or number, so it is not offered. Try another recipe." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The rewrite changed a fact, name or number, so it is not offered. Try another recipe."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La reescritura cambiaba un dato, un nombre o un número, así que no se ofrece. Prueba otra receta."
+          }
+        }
+      }
+    },
+    "The rewrite took too long. Try again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The rewrite took too long. Try again."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La reescritura tardó demasiado. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
     "The saved shortcut is invalid. Using %@ instead." : {
       "localizations" : {
         "en" : {
@@ -3566,6 +4878,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "El atajo guardado no es válido. Se usa %@ en su lugar."
+          }
+        }
+      }
+    },
+    "The selection changed, so nothing was replaced. Copy the rewrite instead." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The selection changed, so nothing was replaced. Copy the rewrite instead."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La selección cambió, así que no se reemplazó nada. Copia la reescritura."
           }
         }
       }
@@ -3602,6 +4930,38 @@
         }
       }
     },
+    "The statistics could not be deleted." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The statistics could not be deleted."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudieron borrar las estadísticas."
+          }
+        }
+      }
+    },
+    "The statistics setting could not be saved." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The statistics setting could not be saved."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo guardar el ajuste de estadísticas."
+          }
+        }
+      }
+    },
     "There's no recent dictation to paste." : {
       "localizations" : {
         "en" : {
@@ -3634,6 +4994,22 @@
         }
       }
     },
+    "This app does not let Secreteo read its selection." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This app does not let Secreteo read its selection."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta app no deja que Secreteo lea su selección."
+          }
+        }
+      }
+    },
     "This field did not accept the correction. Nothing changed." : {
       "localizations" : {
         "en" : {
@@ -3646,6 +5022,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Este campo no aceptó la corrección. No cambió nada."
+          }
+        }
+      }
+    },
+    "This recipe could not be saved." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This recipe could not be saved."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo guardar esta receta."
+          }
+        }
+      }
+    },
+    "Time saved" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time saved"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tiempo ahorrado"
+          }
+        }
+      }
+    },
+    "Translate Dictation Into" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translate Dictation Into"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traducir el dictado a"
+          }
+        }
+      }
+    },
+    "Translate Into" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translate Into"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traducir a"
           }
         }
       }
@@ -3938,6 +5378,22 @@
         }
       }
     },
+    "Where You Dictate Most" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where You Dictate Most"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Donde más dictas"
+          }
+        }
+      }
+    },
     "While Dictating" : {
       "localizations" : {
         "en" : {
@@ -3986,6 +5442,22 @@
         }
       }
     },
+    "Your Dictation" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your Dictation"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu dictado"
+          }
+        }
+      }
+    },
     "Your dictations will appear here." : {
       "localizations" : {
         "en" : {
@@ -4014,6 +5486,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tu micrófono preferido no está disponible. Se usará el predeterminado del sistema para este dictado."
+          }
+        }
+      }
+    },
+    "Your recipes could not be read. Polish uses the built-in ones until you reset them." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your recipes could not be read. Polish uses the built-in ones until you reset them."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudieron leer tus recetas. Pulir usa las incluidas hasta que las restablezcas."
           }
         }
       }
@@ -4050,6 +5538,22 @@
         }
       }
     },
+    "the on-device model is still downloading; try again in a few minutes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the on-device model is still downloading; try again in a few minutes"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "el modelo del dispositivo aún se está descargando; inténtalo de nuevo en unos minutos"
+          }
+        }
+      }
+    },
     "the practice field" : {
       "localizations" : {
         "en" : {
@@ -4062,6 +5566,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "el campo de práctica"
+          }
+        }
+      }
+    },
+    "this device does not support Apple Intelligence" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "this device does not support Apple Intelligence"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "este Mac no es compatible con Apple Intelligence"
           }
         }
       }

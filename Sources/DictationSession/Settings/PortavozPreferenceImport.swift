@@ -2,7 +2,7 @@ import DictationKit
 import Foundation
 
 /// Portavoz's dictation settings that Secreteo's Settings can show and change. Activation,
-/// shortcuts, the microphone, the engine, Polish, translation and per-app profiles stay out.
+/// shortcuts, the microphone and the engines stay out.
 @MainActor
 struct PortavozPreferenceImport {
     static let domain = KnownDictationPeers.release
@@ -35,14 +35,24 @@ struct PortavozPreferenceImport {
         }
         var changes: [Change] = []
         var values: [String: Any] = [:]
-        for entry in Self.entries {
+        // Recipes and profiles replace a list, so they arrive only where Secreteo has none of its own to lose.
+        var ownLists: Set<String> = []
+        if !((try? DictationTextPreferences.decodeRecipes(
+            defaults.string(forKey: DictationTextPreferences.recipesKey) ?? "[]")) ?? []).isEmpty {
+            ownLists.insert(DictationTextPreferences.recipesKey)
+        }
+        if !((try? DictationTextPreferences.decodeProfiles(
+            defaults.string(forKey: DictationTextPreferences.profilesKey) ?? "[]")) ?? []).isEmpty {
+            ownLists.insert(DictationTextPreferences.profilesKey)
+        }
+        for entry in Self.entries where !ownLists.contains(entry.key) {
             guard let value = source[entry.key], entry.accepts(value) else { continue }
             guard !(value as AnyObject).isEqual(defaults.object(forKey: entry.key) ?? entry.fallback) else { continue }
             changes.append(Change(key: entry.key, name: entry.name))
             values[entry.key] = value
         }
         // Secreteo derives its mode from the same older keys, so compare with the mode after the import.
-        let modes = [DictationTextMode.literal.rawValue, DictationTextMode.clean.rawValue]
+        let modes = DictationTextMode.allCases.map(\.rawValue)
         if let mode = source[DictationTextPreferences.modeKey] as? String, modes.contains(mode) {
             let saved = defaults.string(forKey: DictationTextPreferences.modeKey).flatMap(DictationTextMode.init)
             let hasLegacy = legacyKeys.contains { defaults.object(forKey: $0) != nil || values[$0] != nil }
@@ -84,7 +94,17 @@ struct PortavozPreferenceImport {
             choice(DictationModelMemory.key, L10n.text("Free the Model Soon After Dictating"),
                    [DictationModelMemory.balanced.rawValue, DictationModelMemory.lightweight.rawValue],
                    DictationModelMemory.balanced.rawValue),
-            flag(DictationPrewarmPolicy.defaultsKey, L10n.text("Load the Speech Model at Launch"))
+            flag(DictationPrewarmPolicy.defaultsKey, L10n.text("Load the Speech Model at Launch")),
+            // A recipe that no longer exists falls back to the conservative edit, so any name is safe.
+            text(DictationTextPreferences.polishRecipeKey, L10n.text("Polish Recipe")),
+            Entry(key: DictationTextPreferences.recipesKey, name: L10n.text("Polish Recipes"), fallback: "[]") {
+                ($0 as? String).map { (try? DictationTextPreferences.decodeRecipes($0)) != nil } ?? false
+            },
+            Entry(key: DictationTextPreferences.profilesKey, name: L10n.text("Application Profiles"), fallback: "[]") {
+                ($0 as? String).map { (try? DictationTextPreferences.decodeProfiles($0)) != nil } ?? false
+            },
+            choice(DictationTextPreferences.translationKey, L10n.text("Translate Dictation Into"),
+                   DictationTranslationTarget.allCases.map(\.rawValue), DictationTranslationTarget.off.rawValue)
         ]
     }
 }

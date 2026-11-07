@@ -7,7 +7,9 @@ import SpeechCore
 extension DictationFeature {
     /// Secreteo's own database, or a scratch one for a disposable launch. A database it
     /// cannot open leaves history unavailable and dictation working.
-    static func openHistoryStore(usesTemporaryStore: Bool, bundleIdentifier: String) -> any DictationHistoryStore {
+    static func openDictationStore(
+        usesTemporaryStore: Bool, bundleIdentifier: String
+    ) -> any DictationHistoryStore & DictationStatsStore {
         let url = usesTemporaryStore
             ? FileManager.default.temporaryDirectory
                 .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -43,8 +45,27 @@ extension DictationFeature {
     }
 }
 
+extension DictationFeature {
+    /// Disposable launches can start with statistics on and a week of sample days.
+    func loadDictationStats() async {
+        if usesTemporaryMeetingStore, launchArguments.contains("-seed-dictation-stats") {
+            try? await dictationStore.setDictationStatsEnabled(true)
+            let calendar = Calendar.current
+            let samples = [(0, "Slack", 42), (0, "Mail", 120), (1, "Slack", 18), (3, "Notes", 64)]
+            for (offset, sample) in samples.enumerated() {
+                let date = calendar.date(byAdding: .day, value: -sample.0, to: Date()) ?? Date()
+                _ = try? await dictationStore.recordDictationStats(DictationStatsSample(
+                    id: DictationRecordID(), day: DictationStatsCalendar.day(of: date, calendar: calendar),
+                    words: sample.2, spokenDuration: Double(sample.2) / 2.5, applicationName: sample.1,
+                    delivered: offset != 3), at: Date(), calendar: calendar)
+            }
+        }
+        await stats.load()
+    }
+}
+
 /// Stands in when the database cannot be opened, such as one a newer Secreteo wrote.
-struct UnavailableDictationStore: DictationHistoryStore {
+struct UnavailableDictationStore: DictationHistoryStore, DictationStatsStore {
     let error: any Error
 
     func dictationHistoryPolicy() async throws -> DictationHistoryPolicy { throw error }
@@ -61,6 +82,13 @@ struct UnavailableDictationStore: DictationHistoryStore {
     func deleteDictationRecord(_ id: DictationRecordID) async throws -> Bool { throw error }
     func deleteAllDictationRecords() async throws -> Int { throw error }
     func purgeExpiredDictationRecords(at now: Date) async throws -> Int { throw error }
+    func dictationStatsEnabled() async throws -> Bool { throw error }
+    func setDictationStatsEnabled(_ isEnabled: Bool) async throws { throw error }
+    func recordDictationStats(_ sample: DictationStatsSample, at now: Date, calendar: Calendar) async throws -> Bool {
+        throw error
+    }
+    func dictationStatsSummary(days: [String]) async throws -> DictationStatsSummary { throw error }
+    func deleteDictationStats() async throws { throw error }
     func dictationRecordsForAgents(
         matching filter: DictationRecordFilter, offset: Int, limit: Int
     ) async throws -> DictationAgentRead<DictationRecordPage> { throw error }

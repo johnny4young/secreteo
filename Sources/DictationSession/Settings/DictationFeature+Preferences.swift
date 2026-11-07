@@ -1,5 +1,6 @@
 import DictationKit
 import Foundation
+import Polish
 import SwiftUI
 
 extension DictationFeature {
@@ -16,6 +17,13 @@ extension DictationFeature {
             }
         }
         defaults.setVolatileDomain(domain, forName: UserDefaults.argumentDomain)
+    }
+
+    var textSettings: DictationTextSettingsModel {
+        if let textSettingsIfCreated { return textSettingsIfCreated }
+        let model = DictationTextSettingsModel(defaults: defaults, temporary: usesTemporaryMeetingStore)
+        textSettingsIfCreated = model
+        return model
     }
 
     func store(_ values: [String: Any]) {
@@ -71,15 +79,39 @@ extension DictationFeature {
             })
     }
 
-    var textMode: DictationTextMode {
-        _ = preferenceRevision
-        return DictationTextPreferences.globalMode(in: defaults)
+    var foundationModelsCapability: FoundationModelsCapability {
+        .current(arguments: launchArguments)
     }
 
-    var textModeBinding: Binding<DictationTextMode> {
+    func polishEngine(capability: FoundationModelsCapability) -> DictationPolishEngine {
+        _ = preferenceRevision
+        return DictationPolishEngine.current(in: defaults, capability: capability)
+    }
+
+    func polishEngineBinding(capability: FoundationModelsCapability) -> Binding<DictationPolishEngine> {
         Binding(
-            get: { self.textMode },
-            set: { self.store([DictationTextPreferences.modeKey: $0.rawValue]) })
+            get: { self.polishEngine(capability: capability) },
+            set: { self.store([DictationPolishEngine.defaultsKey: $0.rawValue]) })
+    }
+
+    var polishOllamaModelBinding: Binding<String> {
+        Binding(
+            get: {
+                _ = self.preferenceRevision
+                return DictationPolishEngine.ollamaModel(in: self.defaults) ?? ""
+            },
+            set: { self.store([DictationPolishEngine.ollamaModelKey: $0]) })
+    }
+
+    /// A disposable launch never asks a real Ollama, so its tests see the same Mac everywhere.
+    func ollamaModels() async -> [OllamaService.Model]? {
+        guard usesTemporaryMeetingStore else { return await OllamaService.models() }
+        if launchArguments.contains("-seed-ollama-empty") { return [] }
+        guard launchArguments.contains("-seed-ollama-models") else { return nil }
+        return [
+            OllamaService.Model(name: "llama3.2:3b", parameterSize: "3.2B", bytes: 2_019_393_189),
+            OllamaService.Model(name: "qwen3:8b", parameterSize: "8.2B", bytes: 5_225_376_047)
+        ]
     }
 
     var mouseButton: Int {

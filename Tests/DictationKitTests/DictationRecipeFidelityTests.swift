@@ -19,3 +19,23 @@ struct DictationRecipeFidelityTests {
             original: original, candidate: lostNegation, allowsRestructuring: true) == .negation)
     }
 }
+
+struct PolishDictationRecipeTests {
+    private struct Echo: DictationTextPolishing {
+        let reply: @Sendable (String, String?) -> String
+        func polish(_ text: String, recipe: String?) async throws -> String { reply(text, recipe) }
+    }
+
+    @Test
+    func theRecipeReachesTheEngineAndUnlocksStructure() async {
+        let polish = PolishDictation(polisher: Echo { _, recipe in
+            recipe == "bullets" ? "- Ship the fix.\n- Then write the release notes for everyone." : "unused"
+        })
+        #expect(await polish("ship the fix then notes", recipe: "bullets")
+            == .polished("- Ship the fix.\n- Then write the release notes for everyone."))
+        let conservative = PolishDictation(polisher: Echo { _, _ in
+            "- Ship the fix.\n- Then write the release notes for everyone."
+        })
+        #expect(await conservative("ship the fix then notes") == .kept(.changedMeaning(.length)))
+    }
+}

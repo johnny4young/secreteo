@@ -8,6 +8,8 @@ enum SecreteoDesign {
 
 enum SecreteoSymbol {
     static let success = "checkmark.circle.fill"
+    static let dictation = "text.bubble"
+    static let generate = "wand.and.stars"
 }
 
 enum UITestWindowPlacement {

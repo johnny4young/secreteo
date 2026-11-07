@@ -60,7 +60,7 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         for identifier in [
             "settings-dictation-practice-field", "settings-dictation-practice-start",
             "settings-dictation-mouse-recorder", "settings-dictation-modifier-key",
-            "settings-dictation-paste-last-hotkey", "settings-dictation-sounds",
+            "settings-dictation-paste-last-hotkey", "settings-dictation-rewrite-hotkey", "settings-dictation-sounds",
             "settings-dictation-compact", "settings-dictation-speech-gate", "settings-dictation-auto-stop",
             "settings-dictation-corrections", "settings-dictation-caret-case",
             "settings-model-memory-lightweight", "settings-dictation-prewarm", "settings-dictation-language",
@@ -72,6 +72,7 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         }
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-mouse-clear").exists, "No button is set")
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-paste-last-taken").exists)
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-rewrite-taken").exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-auto-stop-pause").exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-modifier-unavailable").exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-modifier-fn-note").exists)
@@ -91,6 +92,21 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         let enabled = app.control(withIdentifier: "settings-dictation-enabled")
 
         XCTAssertTrue(enabled.waitForStableFrame(timeout: 5), "No text field takes focus and scrolls the form")
+    }
+
+    func testTheRewriteShortcutTurnsOnWithoutAConflict() throws {
+        let app = try launchEnabled()
+        defer { finishUITestApplication(app) }
+        let toggle = app.control(withIdentifier: "settings-dictation-rewrite-hotkey")
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        XCTAssertFalse(toggle.value as? Int == 1 || toggle.value as? String == "1", "Off until chosen")
+
+        toggle.click()
+
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) {
+            toggle.value as? Int == 1 || toggle.value as? String == "1"
+        })
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-rewrite-taken").exists)
     }
 
     func testThePasteLastShortcutTurnsOnWithoutAConflict() throws {
@@ -133,6 +149,23 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         let sounds = app.control(withIdentifier: "settings-dictation-sounds")
         XCTAssertTrue(sounds.waitForExistence(timeout: 5))
         XCTAssertTrue(sounds.value as? Int == 1 || sounds.value as? String == "1")
+    }
+
+    func testADownloadShowsHowFarItGot() throws {
+        let app = try launch("-seed-model-download-held")
+        defer { finishUITestApplication(app) }
+        let download = app.control(withIdentifier: "settings-dictation-model-download")
+        let progress = app.control(withIdentifier: "settings-dictation-model-progress")
+        XCTAssertTrue(download.waitForStableFrame(timeout: 5))
+
+        download.click()
+
+        XCTAssertTrue(progress.waitForExistence(timeout: 5))
+        // The fixture stops at 40%, and macOS reports it as a fraction or a percentage.
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) {
+            (progress.value as? Double).map { abs($0 - 0.4) < 0.01 } == true || "\(progress.value ?? "")".contains("40")
+        }, "\(progress.value ?? "nil")")
+        attachScreenshot(named: "pr-settings-model-progress")
     }
 
     func testFreeingTheModelSoonRulesOutLoadingItAtLaunch() throws {

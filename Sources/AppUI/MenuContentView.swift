@@ -35,6 +35,11 @@ public struct MenuContentView: View {
                         inTargetApp { dictation.pasteLast() }
                     }
                 }
+                if dictation.canRewriteSelection {
+                    MenuRow(title: "Rewrite Selection…", identifier: "menu-bar-rewrite-selection") {
+                        inTargetApp { dictation.rewriteSelection() }
+                    }
+                }
                 if dictation.canPasteUnpolished {
                     MenuRow(title: "Paste Without Polish", identifier: "menu-bar-paste-unpolished") {
                         inTargetApp { dictation.pasteLast(alternate: true) }

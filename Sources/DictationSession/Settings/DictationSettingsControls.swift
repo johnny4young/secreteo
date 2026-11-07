@@ -22,6 +22,13 @@ struct DictationSettingsControls: View {
                     .foregroundStyle(.red)
                     .accessibilityIdentifier("settings-dictation-paste-last-taken")
             }
+            Toggle("Rewrite the Selection with ⌃⌥⌘R", isOn: dictation.rewriteSelectionShortcutBinding)
+                .accessibilityIdentifier("settings-dictation-rewrite-hotkey")
+            if dictation.rewriteSelectionShortcutIsUnavailable {
+                Text("Another shortcut already uses ⌃⌥⌘R.")
+                    .foregroundStyle(.red)
+                    .accessibilityIdentifier("settings-dictation-rewrite-taken")
+            }
         }
         Section("While Dictating") {
             Toggle("Play Start and Stop Sounds", isOn: dictation.preference(
@@ -59,20 +66,23 @@ struct DictationSettingsControls: View {
             microphonePicker
         }
         Section("Text") {
-            let mode = dictation.textMode
-            Picker("Text Mode", selection: dictation.textModeBinding) {
-                Text("Literal").tag(DictationTextMode.literal)
-                Text("Clean").tag(DictationTextMode.clean)
-            }
-            .accessibilityIdentifier("settings-dictation-text-mode")
+            let text = dictation.textSettings
+            DictationTextModePicker(
+                identifier: "settings-dictation-text-mode", label: Text("Text Mode"),
+                selection: Binding(get: { text.globalChoice }, set: { text.setGlobalChoice($0) }),
+                recipes: text.recipes)
             Toggle("Filter Out Filler Words", isOn: dictation.preference(
                 DictationController.fillerFilterKey, default: true))
-                .disabled(mode == .literal)
+                .disabled(!text.cleanModeInUse)
                 .accessibilityIdentifier("settings-dictation-filler")
             DictationDictionaryEditor(stored: dictation.preference(DictationController.replacementsKey, default: ""))
-                .disabled(mode == .literal)
+                .disabled(!text.cleanModeInUse)
+            DictationProfileSettings(model: text) { await dictation.selectDictationProfileApplication() }
+            DictationRecipeSettings(model: text)
+            DictationTranslationSettings(model: text)
         }
         DictationVocabularyEditor(stored: dictation.preference("customVocabulary", default: ""))
+        DictationPolishSettings(dictation: dictation)
     }
 
     @ViewBuilder private var modifierKeyControls: some View {

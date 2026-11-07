@@ -1,9 +1,10 @@
 import Darwin
 import Foundation
+import Synchronization
 import LiveSpeech
 import LocalModelStore
 
-/// The models a dictation uses, which a disposable launch does not have.
+/// The models a dictation uses. A disposable launch has none, except a UI test fixture.
 struct DictationModels: Sendable {
     enum Part: CaseIterable, Sendable {
         case speech
@@ -15,16 +16,38 @@ struct DictationModels: Sendable {
     /// Whether the files look as they did after a hash on an earlier launch. Reads no contents.
     var wasVerified: @Sendable (Part) async -> Bool
     var remember: @Sendable (Part, _ isVerified: Bool) async -> Void
-    var install: @Sendable (Part) async throws -> Void
+    /// Reports how many of the part's bytes are in place, which a resumed download starts above zero.
+    var install: @Sendable (Part, _ placedBytes: @escaping @Sendable (Int) -> Void) async throws -> Void
+    /// The pinned size, so a small part counts for little in the overall progress.
+    var size: @Sendable (Part) -> Int
     /// Retires this app's claims on models it no longer pins and clears what nobody needs.
     /// `Part` is that list, so every model this app installs must be a case of it.
     var collectUnused: @Sendable () async -> Void
 
     /// Throws the first failure, so the caller can say what went wrong.
-    func installMissing() async throws {
-        for part in Part.allCases {
-            guard await !isVerified(part) else { continue }
-            try await install(part)
+    /// `progress` gets the share of the missing bytes in place, from 0 to 1, once per whole percent:
+    /// the store reports every chunk, and the bar shows no finer steps.
+    func installMissing(progress: @escaping @Sendable (Double) -> Void = { _ in }) async throws {
+        var missing: [Part] = []
+        for part in Part.allCases where await !isVerified(part) {
+            missing.append(part)
+        }
+        let total = missing.reduce(0) { $0 + size($1) }
+        var done = 0
+        let lastPercent = Mutex(-1)
+        for part in missing {
+            let before = done
+            try await install(part) { placed in
+                guard total > 0 else { return }
+                let fraction = min(Double(before + placed) / Double(total), 1)
+                let percent = Int(fraction * 100)
+                guard lastPercent.withLock({ last in
+                    defer { last = max(last, percent) }
+                    return percent > last
+                }) else { return }
+                progress(fraction)
+            }
+            done += size(part)
         }
     }
 
@@ -54,9 +77,16 @@ struct DictationModels: Sendable {
             remember: { part, isVerified in
                 defaults.set(isVerified ? await fingerprint(part) : nil, forKey: part.recordKey)
             },
-            install: { part in
-                _ = try await store.ensureAvailable(manifests(part), seeds: [part.seed(in: seedRoot)], progress: nil)
+            install: { part, placedBytes in
+                _ = try await store.ensureAvailable(manifests(part), seeds: [part.seed(in: seedRoot)]) { event in
+                    switch event {
+                    case .downloading(let state): placedBytes(state.completedBytes)
+                    case .waitingForOtherProcess(let completed, _): placedBytes(completed)
+                    case .verifying: break
+                    }
+                }
             },
+            size: { manifests($0).totalSizeBytes },
             // Never worth failing a launch over, and the next launch tries again.
             collectUnused: {
                 try? await store.reconcileClaims(keeping: Part.allCases.map(manifests))
