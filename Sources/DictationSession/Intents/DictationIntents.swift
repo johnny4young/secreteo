@@ -69,6 +69,7 @@ struct OpenDictationsIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
+        if SecreteoAppIntentBridge.historyIsUnavailable { throw SecreteoDictationIntentError.unavailable }
         let words = (search ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         SecreteoAppIntentBridge.requestNavigation(.dictations(String(words.prefix(200))))
         return .result()
@@ -82,8 +83,10 @@ protocol SecreteoDictationReader: Sendable {
 }
 
 struct UnavailableSecreteoDictationReader: SecreteoDictationReader {
+    var error = SecreteoDictationIntentError.notReady
+
     func dictationTexts(matching _: String, limit _: Int) async throws -> [String]? {
-        throw SecreteoDictationIntentError.notReady
+        throw error
     }
 }
 
@@ -173,6 +176,8 @@ enum SecreteoAppIntentBridge {
     }
 
     static var dictationReader: any SecreteoDictationReader = UnavailableSecreteoDictationReader()
+    /// Set when this launch has no dictation, so no history window will ever open.
+    static var historyIsUnavailable = false
 
     /// The latest destination wins while the app is still opening, and is shown once it can.
     private static var pendingNavigationRequest: NavigationRequest?

@@ -33,13 +33,36 @@ final class DictationIntentTests: XCTestCase {
 
     @MainActor
     func testWithoutDictationTheActionsSayItIsUnavailable() async {
-        let previous = SecreteoAppIntentBridge.dictationHandler
-        defer { SecreteoAppIntentBridge.dictationHandler = previous }
+        let previous = (
+            SecreteoAppIntentBridge.dictationHandler, SecreteoAppIntentBridge.dictationReader,
+            SecreteoAppIntentBridge.historyIsUnavailable)
+        defer {
+            SecreteoAppIntentBridge.dictationHandler = previous.0
+            SecreteoAppIntentBridge.dictationReader = previous.1
+            SecreteoAppIntentBridge.historyIsUnavailable = previous.2
+        }
         DictationFeature.answerIntentsWithoutDictation()
         XCTAssertEqual(SecreteoAppIntentBridge.requestDictation(.toggle), .unavailable)
+        let actions: [(String, @MainActor () async throws -> Void)] = [
+            ("Dictate", { _ = try await DictateIntent().perform() }),
+            ("Search", { _ = try await SearchDictationsIntent().perform() }),
+            ("Open", { _ = try await OpenDictationsIntent().perform() })
+        ]
+        for (name, perform) in actions {
+            do {
+                try await perform()
+                XCTFail("\(name) must say a build without dictation cannot run it")
+            } catch {
+                XCTAssertEqual(error as? SecreteoDictationIntentError, .unavailable, name)
+            }
+        }
+    }
+
+    func testSearchSaysUnavailableWhenTheHistoryCannotBeRead() async {
+        let reader = AppDictationIntentReader(store: UnavailableDictationStore(error: DictationStoreError.newerSchema))
         do {
-            _ = try await DictateIntent().perform()
-            XCTFail("a build without dictation must say so")
+            _ = try await SecreteoDictationSearchAction.search("report", limit: 10, reader: reader)
+            XCTFail("an unreadable history must say so")
         } catch {
             XCTAssertEqual(error as? SecreteoDictationIntentError, .unavailable)
         }

@@ -7,8 +7,16 @@ struct AppDictationIntentReader: SecreteoDictationReader {
     let store: any DictationHistoryStore
 
     func dictationTexts(matching words: String, limit: Int) async throws -> [String]? {
-        let read = try await store.dictationRecordsForAgents(
-            matching: DictationRecordFilter(query: words), offset: 0, limit: limit)
+        let read: DictationAgentRead<DictationRecordPage>
+        do {
+            read = try await store.dictationRecordsForAgents(
+                matching: DictationRecordFilter(query: words), offset: 0, limit: limit)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            // A database this build cannot read; the error names no dictated text either way.
+            throw SecreteoDictationIntentError.unavailable
+        }
         switch read {
         case .notAllowed: return nil
         case .allowed(let page): return page.records.map(\.text)
@@ -79,12 +87,7 @@ extension DictationFeature {
             guard let self, case .dictations(let words)? = SecreteoAppIntentBridge.consumeNavigationRequest() else {
                 return
             }
-            // A window already showing rows reloads now; a closed one searches when it loads.
-            if history.isLoaded {
-                Task { await self.history.apply(DictationRecordFilter(query: words)) }
-            } else {
-                history.show(search: words)
-            }
+            history.show(search: words)
             openHistory()
         }
     }
@@ -98,5 +101,7 @@ extension DictationFeature {
     /// A build or launch with no dictation still lists the actions, so they say why they do nothing.
     public static func answerIntentsWithoutDictation() {
         SecreteoAppIntentBridge.dictationHandler = { _ in .unavailable }
+        SecreteoAppIntentBridge.dictationReader = UnavailableSecreteoDictationReader(error: .unavailable)
+        SecreteoAppIntentBridge.historyIsUnavailable = true
     }
 }

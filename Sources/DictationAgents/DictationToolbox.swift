@@ -138,7 +138,7 @@ enum DictationToolbox {
         }
         return [
             record.id.rawValue.uuidString,
-            ISO8601DateFormatter().string(from: record.createdAt),
+            record.createdAt.formatted(.iso8601),
             record.applicationName ?? "unknown app",
             delivery,
             record.mode.rawValue

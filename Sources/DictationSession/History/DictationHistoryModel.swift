@@ -53,10 +53,15 @@ final class DictationHistoryModel {
         }
     }
 
-    /// Searches for these words the next time the history loads, as when a
-    /// Shortcut opens Dictations; other filters are cleared.
+    /// Searches for these words, as when a Shortcut opens Dictations; other filters
+    /// are cleared. Loaded rows reload now, and a history not loaded yet searches when it loads.
     func show(search words: String) {
-        filter = DictationRecordFilter(query: words)
+        let filter = DictationRecordFilter(query: words)
+        guard isLoaded else {
+            self.filter = filter
+            return
+        }
+        Task { await apply(filter) }
     }
 
     func loadMore() async {
