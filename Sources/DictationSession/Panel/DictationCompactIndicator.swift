@@ -51,7 +51,8 @@ struct DictationCompactStripView: View {
                 icon
                     .accessibilityIdentifier("dictation-panel-compact")
                 DictationWaveform(
-                    level: controller.micLevel, isActive: controller.phase == .listening, dimmed: isLoadingModel)
+                    level: controller.micLevel, isActive: DictationWaveform.animates(for: controller),
+                    dimmed: isLoadingModel)
                     .frame(width: 64, height: 22)
                     .accessibilityIdentifier("dictation-panel-meter")
                 TimelineView(.periodic(from: .now, by: 1)) { context in
