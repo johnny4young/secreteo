@@ -11,7 +11,7 @@ struct DictationHistoryErasureTests {
     private let now = Date(timeIntervalSince1970: 1_800_000_000)
 
     enum Erase: CaseIterable {
-        case one, all, retention
+        case one, all, retention, retentionOnSave
     }
 
     @Test(arguments: Erase.allCases)
@@ -25,7 +25,8 @@ struct DictationHistoryErasureTests {
             isEnabled: true, keepsOriginal: true, retentionDays: 7, at: now)
         let token = "zebracornio\(UUID().uuidString.prefix(8).lowercased())"
         let old = now.addingTimeInterval(-10 * 86_400)
-        let secret = record("Recuerda \(token) mañana.", original: "eh \(token)", at: erase == .retention ? old : now)
+        let expires = erase == .retention || erase == .retentionOnSave
+        let secret = record("Recuerda \(token) mañana.", original: "eh \(token)", at: expires ? old : now)
         _ = try await store.recordDictation(record("Esta nota se queda.", at: now), admittedGeneration: 0, at: old)
         _ = try await store.recordDictation(secret, admittedGeneration: 0, at: old)
         #expect(await store.checkpoint())
@@ -35,6 +36,7 @@ struct DictationHistoryErasureTests {
         case .one: _ = try await store.deleteDictationRecord(secret.id)
         case .all: try await store.deleteAllDictationRecords()
         case .retention: try await store.purgeExpiredDictationRecords(at: now)
+        case .retentionOnSave: _ = try await store.recordDictation(record("Otra nota.", at: now), admittedGeneration: 0, at: now)
         }
 
         #expect(!(try bytes(near: url).contains(Data(token.utf8))))

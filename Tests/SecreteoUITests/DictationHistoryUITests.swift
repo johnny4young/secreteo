@@ -71,8 +71,14 @@ final class DictationHistoryUITests: SecreteoUITestCase {
         app.launchSecreteo()
         defer { finishUITestApplication(app) }
 
+        // History turns on in the background at launch; the window shows when it has.
+        let history = app.buttons["menu-bar-history"]
+        XCTAssertTrue(history.waitForStableFrame(timeout: 30))
+        history.click()
+        let status = app.control(withIdentifier: "dictation-history-status")
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) { renderedText(of: status) == "Kept on this Mac for 30 days." })
         let dictate = app.buttons["menu-bar-dictate"]
-        XCTAssertTrue(dictate.waitForStableFrame(timeout: 30))
+        XCTAssertTrue(dictate.waitForStableFrame(timeout: 5))
         dictate.click()
         XCTAssertTrue(app.staticTexts["dictation-panel-transcript"].waitForExistence(timeout: 5))
         dictate.click()

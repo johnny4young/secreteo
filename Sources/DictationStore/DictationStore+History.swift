@@ -43,9 +43,9 @@ extension DictationStore {
         _ record: DictationRecord, admittedGeneration: Int, at now: Date = Date()
     ) async throws -> DictationRecordOutcome {
         guard record.isValid else { throw DictationStoreError.invalidDictationRecord("invalid input") }
-        return try await database.write { database in
+        let (outcome, purged) = try await database.write { database -> (DictationRecordOutcome, Int) in
             let policy = try Self.dictationHistoryPolicy(in: database)
-            guard policy.isEnabled, policy.generation == admittedGeneration else { return .refused }
+            guard policy.isEnabled, policy.generation == admittedGeneration else { return (.refused, 0) }
             try database.execute(
                 sql: """
                     INSERT INTO dictationRecord (
@@ -67,9 +67,11 @@ extension DictationStore {
                     record.applicationBundleID,
                     record.delivery.rawValue
                 ])
-            try Self.purgeExpiredDictations(in: database, retentionDays: policy.retentionDays, now: now)
-            return .saved
+            let purged = try Self.purgeExpiredDictations(in: database, retentionDays: policy.retentionDays, now: now)
+            return (.saved, purged)
         }
+        if purged > 0 { await checkpoint() }
+        return outcome
     }
 
     /// Newest first, with every filter applied before the limit. `before`

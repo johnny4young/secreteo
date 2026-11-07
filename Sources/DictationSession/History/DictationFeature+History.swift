@@ -1,6 +1,7 @@
 import DictationKit
 import DictationStore
 import Foundation
+import OSLog
 import SpeechCore
 
 extension DictationFeature {
@@ -15,6 +16,9 @@ extension DictationFeature {
         do {
             return try DictationStore(databaseURL: url)
         } catch {
+            // The error names the cause, never any dictated text.
+            Logger(subsystem: "com.johnny4young.secreteo", category: "dictation-history")
+                .error("History store unavailable: \(String(describing: error), privacy: .public)")
             return UnavailableDictationStore(error: error)
         }
     }
