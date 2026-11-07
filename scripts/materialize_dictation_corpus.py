@@ -41,6 +41,11 @@ def publish_json(path, document, *, replace=False):
             os.fsync(stream.fileno())
         if replace:
             os.replace(temporary, path)
+            directory = os.open(path.parent, os.O_RDONLY)
+            try:
+                os.fsync(directory)
+            finally:
+                os.close(directory)
         else:
             os.link(temporary, path)
     finally:

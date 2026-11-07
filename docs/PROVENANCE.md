@@ -283,14 +283,14 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `scripts/dictation_audio.py` | `scripts/dictation_audio.py` | Renames |
 | `scripts/dictation_corpus.py` | `scripts/dictation_corpus.py` | Renames |
 | `scripts/dictation_benchmark.py` | `scripts/dictation_benchmark.py` | Seam: finds its siblings after the standard library, so it runs under `python3 -I` |
-| `scripts/dictation_field_corpus.py` | `scripts/dictation_field_corpus.py` | Seam: finds its siblings after the standard library, so it runs under `python3 -I`; `build` replaces the manifest after a redo and reports file errors without paths |
-| `scripts/materialize_dictation_corpus.py` | `scripts/materialize_dictation_corpus.py` | Seam: finds its siblings after the standard library, so it runs under `python3 -I`; `publish_json` can replace on request |
+| `scripts/dictation_field_corpus.py` | `scripts/dictation_field_corpus.py` | Seam: finds its siblings after the standard library, so it runs under `python3 -I`; `build` replaces the manifest after a redo, refuses to change its microphone, and reports file errors without paths |
+| `scripts/materialize_dictation_corpus.py` | `scripts/materialize_dictation_corpus.py` | Seam: finds its siblings after the standard library, so it runs under `python3 -I`; `publish_json` can replace on request, then syncs the directory |
 | `scripts/dictation_model_receipt.py` | `scripts/dictation_model_receipt.py` | Extract: `number` and `validate_score`, which the benchmark uses. The observation validators wait for the model lanes ([G16](GAPS.md#g16-model-and-controller-lanes)) |
 | `scripts/dictation_search_quality.py` | `scripts/dictation_search_quality.py` | Seam: no meeting expansion lane |
 | `scripts/record-dictation-field-corpus.swift` | `scripts/record-dictation-field-corpus.swift` | Renames |
 | `Tests/Tooling/test_dictation_benchmark.py` | `Tests/Tooling/test_dictation_benchmark.py` | Seam: runs the CLI with `-I`, and imports `scripts` after the standard library |
 | `Tests/Tooling/test_dictation_corpus.py` | `Tests/Tooling/test_dictation_corpus.py` | Seam: runs the CLI with `-I`, uses a Secreteo scratch prefix, and imports `scripts` after the standard library |
-| `Tests/Tooling/test_dictation_field_corpus.py` | `Tests/Tooling/test_dictation_field_corpus.py` | Extract: admission and recorder tests, without the Ultra comparison, running the CLI with `-I`, and imports `scripts` after the standard library, plus a rebuild-after-redo test |
+| `Tests/Tooling/test_dictation_field_corpus.py` | `Tests/Tooling/test_dictation_field_corpus.py` | Extract: admission and recorder tests, without the Ultra comparison, running the CLI with `-I`, and imports `scripts` after the standard library, plus rebuild, microphone and path-free error tests |
 | `Tests/Tooling/test_dictation_materialization.py` | `Tests/Tooling/test_dictation_materialization.py` | Seam: renames, and imports `scripts` after the standard library |
 | `Tests/Tooling/test_dictation_model_receipt.py` | `Tests/Tooling/test_dictation_model_runner.py` | Extract: the two tests that call `validate_score` directly, plus a refusal test for each consistency check, and imports `scripts` after the standard library |
 | `Tests/Tooling/test_dictation_search_quality.py` | `Tests/Tooling/test_dictation_search_quality.py` | Seam: no meeting expansion lane, and an absent expansion is still reported and never passes |

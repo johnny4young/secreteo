@@ -88,6 +88,26 @@ class FieldCorpusTests(unittest.TestCase):
         self.assertEqual(os.stat(self.root / 'manifest.json').st_mode & 0o777, 0o600)
         self.assertEqual([path.name for path in self.root.glob('.receipt-*')], [])
 
+    def test_a_rebuild_keeps_the_published_microphone(self):
+        script = ROOT / 'scripts' / 'dictation_field_corpus.py'
+        command = [sys.executable, '-I', str(script), 'build', '--audio-root', str(self.root)]
+        self.assertEqual(subprocess.run([*command, '--microphone', 'external'],
+                                        capture_output=True, check=False).returncode, 0)
+        before = (self.root / 'manifest.json').read_bytes()
+        rebuilt = subprocess.run(command, capture_output=True, text=True, check=False)
+        self.assertEqual(rebuilt.returncode, 2)
+        self.assertIn('microphone', rebuilt.stderr)
+        self.assertEqual((self.root / 'manifest.json').read_bytes(), before)
+
+    def test_file_errors_never_name_a_path(self):
+        script = ROOT / 'scripts' / 'dictation_field_corpus.py'
+        missing = self.root / 'absent-root'
+        failed = subprocess.run([sys.executable, '-I', str(script), 'build', '--audio-root', str(missing)],
+                                capture_output=True, text=True, check=False)
+        self.assertEqual(failed.returncode, 2)
+        self.assertNotIn(str(self.root), failed.stderr)
+        self.assertIn('unavailable', failed.stderr)
+
     @unittest.skipUnless(shutil.which('xcrun'), 'needs the Swift toolchain')
     def test_recorder_writes_the_admitted_profile_and_format(self):
         recorder = ROOT / 'scripts' / 'record-dictation-field-corpus.swift'
