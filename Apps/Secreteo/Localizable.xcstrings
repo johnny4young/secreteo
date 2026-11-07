@@ -1906,6 +1906,22 @@
         }
       }
     },
+    "Finds your saved dictations that contain these words, newest first. Works only while Secreteo lets agents and Shortcuts read the history." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finds your saved dictations that contain these words, newest first. Works only while Secreteo lets agents and Shortcuts read the history."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encuentra tus dictados guardados que contienen estas palabras, del más reciente al más antiguo. Solo funciona mientras Secreteo permita que los agentes y Atajos lean el historial."
+          }
+        }
+      }
+    },
     "Finish" : {
       "localizations" : {
         "en" : {
@@ -2302,6 +2318,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Idioma y micrófono"
+          }
+        }
+      }
+    },
+    "Let Agents and Shortcuts Read History" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let Agents and Shortcuts Read History"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitir que los agentes y Atajos lean el historial"
+          }
+        }
+      }
+    },
+    "Limit" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limit"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Límite"
           }
         }
       }
@@ -2866,6 +2914,22 @@
         }
       }
     },
+    "Open Dictations" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Dictations"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir dictados"
+          }
+        }
+      }
+    },
     "Open at Login" : {
       "localizations" : {
         "en" : {
@@ -2894,6 +2958,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abrir al iniciar sesión y los permisos lo necesitan ahí."
+          }
+        }
+      }
+    },
+    "Opens your saved dictations in Secreteo, optionally searching for words." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens your saved dictations in Secreteo, optionally searching for words."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre tus dictados guardados en Secreteo y, si quieres, busca palabras."
           }
         }
       }
@@ -4098,6 +4178,22 @@
         }
       }
     },
+    "Search" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar"
+          }
+        }
+      }
+    },
     "Search Dictations" : {
       "localizations" : {
         "en" : {
@@ -5198,6 +5294,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Activar el historial"
+          }
+        }
+      }
+    },
+    "Turn on “Let Agents and Shortcuts Read History” in Secreteo Settings." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn on “Let Agents and Shortcuts Read History” in Secreteo Settings."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activa “Permitir que los agentes y Atajos lean el historial” en los Ajustes de Secreteo."
           }
         }
       }

@@ -7,6 +7,8 @@ let package = Package(
     products: [
         .library(name: "LiveSpeech", targets: ["LiveSpeech"]),
         .library(name: "AppUI", targets: ["AppUI"]),
+        .library(name: "DictationAgents", targets: ["DictationAgents"]),
+        .executable(name: "secreteo-mcp", targets: ["secreteo-mcp"]),
         .library(name: "DictationKit", targets: ["DictationKit"]),
         .library(name: "DictationOwnership", targets: ["DictationOwnership"]),
         .library(name: "DictationSession", targets: ["DictationSession"]),
@@ -23,6 +25,8 @@ let package = Package(
     ],
     targets: [
         .target(name: "AppUI", dependencies: ["DictationSession"]),
+        .target(name: "DictationAgents", dependencies: ["DictationKit", "DictationStore", "SpeechCore"]),
+        .executableTarget(name: "secreteo-mcp", dependencies: ["DictationAgents"]),
         .target(name: "DictationKit", dependencies: ["SpeechCore"]),
         .target(name: "DictationOwnership"),
         .target(
@@ -47,6 +51,7 @@ let package = Package(
         .target(name: "SpeechCore"),
         .executableTarget(name: "ownership-test-client", dependencies: ["DictationOwnership"], path: "Tests/OwnershipTestClient"),
         .testTarget(name: "AppUITests", dependencies: ["AppUI"]),
+        .testTarget(name: "DictationAgentsTests", dependencies: ["DictationAgents", "DictationKit", "DictationStore", "SpeechCore"]),
         .testTarget(name: "DictationKitTests", dependencies: ["DictationKit", "SpeechCore"]),
         .testTarget(
             name: "DictationStoreTests",

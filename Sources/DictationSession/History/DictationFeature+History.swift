@@ -89,4 +89,7 @@ struct UnavailableDictationStore: DictationHistoryStore, DictationStatsStore {
     }
     func dictationStatsSummary(days: [String]) async throws -> DictationStatsSummary { throw error }
     func deleteDictationStats() async throws { throw error }
+    func dictationRecordsForAgents(
+        matching filter: DictationRecordFilter, offset: Int, limit: Int
+    ) async throws -> DictationAgentRead<DictationRecordPage> { throw error }
 }

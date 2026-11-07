@@ -22,6 +22,10 @@ struct DictationHistorySettingsSection: View {
                     "Also Keep the Words Before Clean Mode",
                     isOn: binding(\.keepsOriginal) { await model.update(keepsOriginal: $0) })
                     .accessibilityIdentifier("settings-dictation-history-original")
+                Toggle(
+                    "Let Agents and Shortcuts Read History",
+                    isOn: binding(\.exposesToAgents) { await model.update(exposesToAgents: $0) })
+                    .accessibilityIdentifier("settings-dictation-history-agents")
             }
             if let failure = model.failure {
                 Text(failure)

@@ -1,4 +1,28 @@
+import DictationKit
 import Foundation
+
+/// Saved dictation texts for the Search Dictations Shortcut, behind the same
+/// agent consent the MCP tools check.
+struct AppDictationIntentReader: SecreteoDictationReader {
+    let store: any DictationHistoryStore
+
+    func dictationTexts(matching words: String, limit: Int) async throws -> [String]? {
+        let read: DictationAgentRead<DictationRecordPage>
+        do {
+            read = try await store.dictationRecordsForAgents(
+                matching: DictationRecordFilter(query: words), offset: 0, limit: limit)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            // A database this build cannot read; the error names no dictated text either way.
+            throw SecreteoDictationIntentError.unavailable
+        }
+        switch read {
+        case .notAllowed: return nil
+        case .allowed(let page): return page.records.map(\.text)
+        }
+    }
+}
 
 extension DictationController {
     /// Answers an intent through the same dependencies and admission as the shortcut,
@@ -54,6 +78,18 @@ extension DictationFeature {
         SecreteoAppIntentBridge.dictationHandler = { [weak self] request in
             self?.performDictationIntent(request) ?? .unavailable
         }
+        SecreteoAppIntentBridge.dictationReader = AppDictationIntentReader(store: history.store)
+    }
+
+    /// Opens the history window for Open Dictations, including one asked for while launching.
+    public func installDictationNavigation(openHistory: @escaping @MainActor () -> Void) {
+        SecreteoAppIntentBridge.navigationHandler = { [weak self] in
+            guard let self, case .dictations(let words)? = SecreteoAppIntentBridge.consumeNavigationRequest() else {
+                return
+            }
+            history.show(search: words)
+            openHistory()
+        }
     }
 
     func performDictationIntent(
@@ -65,5 +101,7 @@ extension DictationFeature {
     /// A build or launch with no dictation still lists the actions, so they say why they do nothing.
     public static func answerIntentsWithoutDictation() {
         SecreteoAppIntentBridge.dictationHandler = { _ in .unavailable }
+        SecreteoAppIntentBridge.dictationReader = UnavailableSecreteoDictationReader(error: .unavailable)
+        SecreteoAppIntentBridge.historyIsUnavailable = true
     }
 }

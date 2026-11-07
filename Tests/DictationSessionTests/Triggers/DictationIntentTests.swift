@@ -1,4 +1,7 @@
+import DictationKit
+import DictationStore
 import Foundation
+import SpeechCore
 import XCTest
 
 @testable import DictationSession
@@ -30,13 +33,36 @@ final class DictationIntentTests: XCTestCase {
 
     @MainActor
     func testWithoutDictationTheActionsSayItIsUnavailable() async {
-        let previous = SecreteoAppIntentBridge.dictationHandler
-        defer { SecreteoAppIntentBridge.dictationHandler = previous }
+        let previous = (
+            SecreteoAppIntentBridge.dictationHandler, SecreteoAppIntentBridge.dictationReader,
+            SecreteoAppIntentBridge.historyIsUnavailable)
+        defer {
+            SecreteoAppIntentBridge.dictationHandler = previous.0
+            SecreteoAppIntentBridge.dictationReader = previous.1
+            SecreteoAppIntentBridge.historyIsUnavailable = previous.2
+        }
         DictationFeature.answerIntentsWithoutDictation()
         XCTAssertEqual(SecreteoAppIntentBridge.requestDictation(.toggle), .unavailable)
+        let actions: [(String, @MainActor () async throws -> Void)] = [
+            ("Dictate", { _ = try await DictateIntent().perform() }),
+            ("Search", { _ = try await SearchDictationsIntent().perform() }),
+            ("Open", { _ = try await OpenDictationsIntent().perform() })
+        ]
+        for (name, perform) in actions {
+            do {
+                try await perform()
+                XCTFail("\(name) must say a build without dictation cannot run it")
+            } catch {
+                XCTAssertEqual(error as? SecreteoDictationIntentError, .unavailable, name)
+            }
+        }
+    }
+
+    func testSearchSaysUnavailableWhenTheHistoryCannotBeRead() async {
+        let reader = AppDictationIntentReader(store: UnavailableDictationStore(error: DictationStoreError.newerSchema))
         do {
-            _ = try await DictateIntent().perform()
-            XCTFail("a build without dictation must say so")
+            _ = try await SecreteoDictationSearchAction.search("report", limit: 10, reader: reader)
+            XCTFail("an unreadable history must say so")
         } catch {
             XCTAssertEqual(error as? SecreteoDictationIntentError, .unavailable)
         }
@@ -152,5 +178,90 @@ final class DictationIntentTests: XCTestCase {
         XCTAssertEqual(feature.performDictationIntent(.toggle), .notOwner)
         XCTAssertEqual(feature.performDictationIntent(.pasteLast), .notOwner)
         XCTAssertEqual(feature.controller.phase, .idle)
+    }
+
+    @MainActor
+    func testOpenDictationsRoutesWithItsSearchEvenBeforeTheAppCanShowIt() async throws {
+        let previous = SecreteoAppIntentBridge.navigationHandler
+        defer { SecreteoAppIntentBridge.navigationHandler = previous }
+        SecreteoAppIntentBridge.navigationHandler = nil
+        _ = SecreteoAppIntentBridge.consumeNavigationRequest()
+
+        let intent = OpenDictationsIntent()
+        intent.search = "  informe  "
+        _ = try await intent.perform()
+
+        var shown: [SecreteoAppIntentBridge.NavigationRequest] = []
+        SecreteoAppIntentBridge.navigationHandler = {
+            SecreteoAppIntentBridge.consumeNavigationRequest().map { shown.append($0) }
+        }
+        XCTAssertEqual(shown, [.dictations("informe")], "a request made while opening is shown once the app can")
+        XCTAssertNil(SecreteoAppIntentBridge.consumeNavigationRequest())
+    }
+
+    func testSearchReadsOnlyWhileTheHistoryIsSharedWithAgentsAndShortcuts() async throws {
+        let store = try DictationStore.inMemory()
+        let now = Date()
+        let policy = try await store.setDictationHistoryPolicy(
+            isEnabled: true, keepsOriginal: false, retentionDays: 30, exposesToAgents: false, at: now)
+        for (offset, text) in ["Send the report on Friday.", "No borres estas notas."].enumerated() {
+            _ = try await store.recordDictation(
+                DictationRecord(
+                    id: DictationRecordID(), createdAt: now.addingTimeInterval(Double(offset)), duration: 1,
+                    text: text, originalText: nil, mode: .literal, language: nil, engine: "parakeet",
+                    applicationName: "Slack", applicationBundleID: nil, delivery: .verified),
+                admittedGeneration: policy.generation, at: now)
+        }
+        let reader = AppDictationIntentReader(store: store)
+
+        do {
+            _ = try await SecreteoDictationSearchAction.search("report", limit: 10, reader: reader)
+            XCTFail("an unshared history returns nothing")
+        } catch {
+            XCTAssertEqual(error as? SecreteoDictationIntentError, .notShared)
+        }
+
+        _ = try await store.setDictationHistoryPolicy(
+            isEnabled: true, keepsOriginal: false, retentionDays: 30, exposesToAgents: true, at: now)
+        let found = try await SecreteoDictationSearchAction.search("  report ", limit: 10, reader: reader)
+        let newest = try await SecreteoDictationSearchAction.search("", limit: 1, reader: reader)
+        XCTAssertEqual(found, ["Send the report on Friday."])
+        XCTAssertEqual(newest, ["No borres estas notas."])
+    }
+
+    @MainActor
+    func testASearchFromAShortcutReplacesOtherHistoryFilters() async throws {
+        let model = DictationHistoryModel(store: try DictationStore.inMemory())
+        await model.apply(DictationRecordFilter(applicationName: "Slack"))
+        model.show(search: "report")
+        XCTAssertEqual(model.filter, DictationRecordFilter(query: "report"))
+    }
+
+    @MainActor
+    func testOpenDictationsSearchesAClosedOrAnAlreadyLoadedHistory() async throws {
+        let previous = SecreteoAppIntentBridge.navigationHandler
+        defer { SecreteoAppIntentBridge.navigationHandler = previous }
+        let name = "DictationIntentTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        let feature = try DictationFeature(
+            usesTemporaryStore: true, arguments: ["-seed-dictation-history", "-seed-dictation-history-records"],
+            defaults: defaults)
+        var opened = 0
+        feature.installDictationNavigation { opened += 1 }
+
+        SecreteoAppIntentBridge.requestNavigation(.dictations("informe"))
+        XCTAssertEqual(feature.history.filter, DictationRecordFilter(query: "informe"), "searched when it loads")
+        XCTAssertEqual(opened, 1)
+
+        feature.history.show(search: "")
+        await feature.loadDictationHistory()
+        XCTAssertEqual(feature.history.records.count, 2)
+        SecreteoAppIntentBridge.requestNavigation(.dictations("report"))
+        let reloaded = await TestPolling.until {
+            feature.history.records.map(\.text) == ["Send the report on Friday."]
+        }
+        XCTAssertTrue(reloaded, "an open window reloads with the new search")
+        XCTAssertEqual(opened, 2)
     }
 }
