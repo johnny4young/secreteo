@@ -197,33 +197,6 @@ public final class DictationFeature: AppServices {
         }
     }
 
-    /// Settings and onboarding share one install, so neither reports the other's result as its own.
-    func installModels() async throws {
-        guard let models = environment.models else { return }
-        if let modelInstall { return try await modelInstall.value }
-        if modelState != .ready { modelState = .downloading }
-        modelDownloadFraction = nil
-        modelInstallGeneration += 1
-        let generation = modelInstallGeneration
-        let install = Task { [weak self] in
-            try await models.installMissing { fraction in
-                Task { @MainActor in self?.modelDownloaded(fraction, generation: generation) }
-            }
-        }
-        modelInstall = install
-        defer {
-            modelInstall = nil
-            modelDownloadFraction = nil
-        }
-        do {
-            try await install.value
-            modelState = .ready
-        } catch {
-            modelState = .failed
-            throw error
-        }
-    }
-
     /// The way out of a corrupt ownership file, which nothing else may overwrite.
     public func resetOwnership() {
         Task { recordReset(await ownership.resetCorruptState()) }
@@ -530,6 +503,33 @@ enum DictationFeatureError: LocalizedError {
 }
 
 extension DictationFeature {
+    /// Settings and onboarding share one install, so neither reports the other's result as its own.
+    func installModels() async throws {
+        guard let models = environment.models else { return }
+        if let modelInstall { return try await modelInstall.value }
+        if modelState != .ready { modelState = .downloading }
+        modelDownloadFraction = nil
+        modelInstallGeneration += 1
+        let generation = modelInstallGeneration
+        let install = Task { [weak self] in
+            try await models.installMissing { fraction in
+                Task { @MainActor in self?.modelDownloaded(fraction, generation: generation) }
+            }
+        }
+        modelInstall = install
+        defer {
+            modelInstall = nil
+            modelDownloadFraction = nil
+        }
+        do {
+            try await install.value
+            modelState = .ready
+        } catch {
+            modelState = .failed
+            throw error
+        }
+    }
+
     /// Reports arrive on separate tasks, so a late one must not move the bar back or reach another install.
     func modelDownloaded(_ fraction: Double, generation: Int) {
         guard modelInstall != nil, generation == modelInstallGeneration else { return }
