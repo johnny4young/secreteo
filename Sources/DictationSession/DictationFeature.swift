@@ -29,7 +29,6 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored let usesTemporaryMeetingStore: Bool
     @ObservationIgnored let microphonePermissions = MicrophonePermissionClient()
     @ObservationIgnored let modelStore: LocalModelStore
-    @ObservationIgnored let dictationPolisher: any DictationTextPolishing = UnavailablePolisher()
     @ObservationIgnored private let fixture: DictationUITestFixture?
     @ObservationIgnored let launchArguments: [String]
     @ObservationIgnored let environment: DictationFeatureEnvironment
@@ -50,6 +49,9 @@ public final class DictationFeature: AppServices {
     let controller: DictationController
     @ObservationIgnored let practice = DictationPracticeField()
     @ObservationIgnored private let settingsWindowHolder = UUID()
+
+    /// Reads the engine chosen in Settings on every call.
+    var dictationPolisher: any DictationTextPolishing { DictationPolishRouter.live(defaults: defaults) }
 
     public internal(set) var modelState = ModelState.missing
     private var speechModelIsInstalled = false
@@ -501,12 +503,5 @@ enum DictationFeatureError: LocalizedError {
 
     var errorDescription: String? {
         L10n.text("The speech model is not installed. Download it in Settings.")
-    }
-}
-
-/// Polish arrives with its providers, so until then a dictation keeps its clean text.
-private struct UnavailablePolisher: DictationTextPolishing {
-    func polish(_ text: String, recipe: String?) async throws -> String {
-        throw DictationPolishUnavailable(reason: L10n.text("No Polish engine is available."))
     }
 }

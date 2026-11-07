@@ -18,6 +18,22 @@
         }
       }
     },
+    "%@ (Not Installed)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (Not Installed)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (no instalado)"
+          }
+        }
+      }
+    },
     "%d words inserted into %@." : {
       "localizations" : {
         "en" : {
@@ -290,6 +306,54 @@
         }
       }
     },
+    "Apple Intelligence" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence"
+          }
+        }
+      }
+    },
+    "Apple Intelligence is turned off (System Settings → Apple Intelligence & Siri)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence is turned off (System Settings → Apple Intelligence & Siri)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence está desactivado (Ajustes del Sistema → Apple Intelligence y Siri)"
+          }
+        }
+      }
+    },
+    "Apple Intelligence is unavailable: %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence is unavailable: %@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence no está disponible: %@."
+          }
+        }
+      }
+    },
     "Apple Speech could not start. Try Parakeet in Dictation settings." : {
       "localizations" : {
         "en" : {
@@ -466,6 +530,22 @@
         }
       }
     },
+    "Check Again" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check Again"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volver a comprobar"
+          }
+        }
+      }
+    },
     "Check for Updates…" : {
       "localizations" : {
         "en" : {
@@ -510,6 +590,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Elige inglés o español para Apple Speech en los ajustes de Dictado."
+          }
+        }
+      }
+    },
+    "Choose an Ollama model in Settings to polish dictations." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose an Ollama model in Settings to polish dictations."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige un modelo de Ollama en Ajustes para pulir los dictados."
           }
         }
       }
@@ -1634,22 +1730,6 @@
         }
       }
     },
-    "No Polish engine is available." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No Polish engine is available."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No hay un motor para pulir disponible."
-          }
-        }
-      }
-    },
     "No microphone audio arrived. Check the microphone in Audio settings and try again." : {
       "localizations" : {
         "en" : {
@@ -1694,6 +1774,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No se detectó voz: no se insertó nada"
+          }
+        }
+      }
+    },
+    "None" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ninguno"
           }
         }
       }
@@ -1758,6 +1854,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apagado"
+          }
+        }
+      }
+    },
+    "Ollama" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama"
+          }
+        }
+      }
+    },
+    "Ollama Model" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama Model"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modelo de Ollama"
+          }
+        }
+      }
+    },
+    "Ollama is not responding on localhost:11434. Install it and run “ollama serve”." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama is not responding on localhost:11434. Install it and run “ollama serve”."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama no responde en localhost:11434. Instálalo y ejecuta “ollama serve”."
+          }
+        }
+      }
+    },
+    "Ollama is not running on this Mac." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama is not running on this Mac."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama no se está ejecutando en este Mac."
           }
         }
       }
@@ -2126,6 +2286,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pulir"
+          }
+        }
+      }
+    },
+    "Polish With" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polish With"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulir con"
+          }
+        }
+      }
+    },
+    "Polish is unavailable right now." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polish is unavailable right now."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulir no está disponible en este momento."
+          }
+        }
+      }
+    },
+    "Polish only uses Ollama on this Mac." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polish only uses Ollama on this Mac."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulir solo usa Ollama en este Mac."
           }
         }
       }
@@ -3362,6 +3570,22 @@
         }
       }
     },
+    "the on-device model is still downloading; try again in a few minutes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the on-device model is still downloading; try again in a few minutes"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "el modelo del dispositivo aún se está descargando; inténtalo de nuevo en unos minutos"
+          }
+        }
+      }
+    },
     "the practice field" : {
       "localizations" : {
         "en" : {
@@ -3374,6 +3598,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "el campo de práctica"
+          }
+        }
+      }
+    },
+    "this device does not support Apple Intelligence" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "this device does not support Apple Intelligence"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "este Mac no es compatible con Apple Intelligence"
           }
         }
       }

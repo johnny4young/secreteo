@@ -63,6 +63,7 @@ struct DictationSettingsControls: View {
             Picker("Text Mode", selection: dictation.textModeBinding) {
                 Text("Literal").tag(DictationTextMode.literal)
                 Text("Clean").tag(DictationTextMode.clean)
+                Text("Polish").tag(DictationTextMode.polish)
             }
             .accessibilityIdentifier("settings-dictation-text-mode")
             Toggle("Filter Out Filler Words", isOn: dictation.preference(
@@ -73,6 +74,7 @@ struct DictationSettingsControls: View {
                 .disabled(mode == .literal)
         }
         DictationVocabularyEditor(stored: dictation.preference("customVocabulary", default: ""))
+        DictationPolishSettings(dictation: dictation)
     }
 
     @ViewBuilder private var modifierKeyControls: some View {

@@ -1,5 +1,6 @@
 import DictationKit
 import Foundation
+import Polish
 import SwiftUI
 
 extension DictationFeature {
@@ -80,6 +81,40 @@ extension DictationFeature {
         Binding(
             get: { self.textMode },
             set: { self.store([DictationTextPreferences.modeKey: $0.rawValue]) })
+    }
+
+    var foundationModelsCapability: FoundationModelsCapability {
+        .current(arguments: launchArguments)
+    }
+
+    var polishEngine: DictationPolishEngine {
+        _ = preferenceRevision
+        return DictationPolishEngine.current(in: defaults, capability: foundationModelsCapability)
+    }
+
+    var polishEngineBinding: Binding<DictationPolishEngine> {
+        Binding(
+            get: { self.polishEngine },
+            set: { self.store([DictationPolishEngine.defaultsKey: $0.rawValue]) })
+    }
+
+    var polishOllamaModelBinding: Binding<String> {
+        Binding(
+            get: {
+                _ = self.preferenceRevision
+                return DictationPolishEngine.ollamaModel(in: self.defaults) ?? ""
+            },
+            set: { self.store([DictationPolishEngine.ollamaModelKey: $0]) })
+    }
+
+    /// A disposable launch never asks a real Ollama, so its tests see the same Mac everywhere.
+    func ollamaModels() async -> [OllamaService.Model]? {
+        guard usesTemporaryMeetingStore else { return await OllamaService.models() }
+        guard launchArguments.contains("-seed-ollama-models") else { return nil }
+        return [
+            OllamaService.Model(name: "llama3.2:3b", parameterSize: "3.2B", bytes: 2_019_393_189),
+            OllamaService.Model(name: "qwen3:8b", parameterSize: "8.2B", bytes: 5_225_376_047)
+        ]
     }
 
     var mouseButton: Int {

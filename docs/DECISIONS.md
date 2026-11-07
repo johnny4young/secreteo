@@ -97,3 +97,7 @@ Secreteo keeps, between launches, what a model's files looked like after their l
 ## D22. The voice detector is part of the model download
 
 Settings offers the download until Parakeet and Silero are both verified, and a failure of either shows and can be retried. Only Parakeet holds dictation back: without Silero the speech gate fails open, so dictation keeps working and can paste silence until the download succeeds.
+
+## D23. Polish runs only on this Mac and keeps no journal
+
+Polish and Rewrite use Apple Foundation Models or Ollama at a loopback address, so dictated text never leaves the Mac. The gateway refuses any other destination, a redirect and a forged provider before the request exists. The user's consent is choosing Polish, its engine and, for Ollama, a model. Portavoz writes a content-free receipt to a journal for every request because its other operations can reach the internet. Secreteo has no such operation, so it keeps no journal, and its database has no egress table.
