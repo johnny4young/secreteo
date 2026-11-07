@@ -12,6 +12,7 @@ let package = Package(
         .library(name: "DictationSession", targets: ["DictationSession"]),
         .library(name: "DictationStore", targets: ["DictationStore"]),
         .library(name: "MicCapture", targets: ["MicCapture"]),
+        .library(name: "Polish", targets: ["Polish"]),
         .library(name: "SpeechCore", targets: ["SpeechCore"])
     ],
     dependencies: [
@@ -27,7 +28,8 @@ let package = Package(
         .target(
             name: "DictationSession",
             dependencies: [
-                "DictationKit", "DictationOwnership", "DictationStore", "LiveSpeech", "MicCapture", "SpeechCore",
+                "DictationKit", "DictationOwnership", "DictationStore", "LiveSpeech", "MicCapture", "Polish",
+                "SpeechCore",
                 .product(name: "LocalModelStore", package: "local-model-store")
             ]),
         .target(
@@ -41,6 +43,7 @@ let package = Package(
                 .product(name: "LocalModelStore", package: "local-model-store")
             ]),
         .target(name: "MicCapture", dependencies: ["SpeechCore"]),
+        .target(name: "Polish", dependencies: ["DictationKit"]),
         .target(name: "SpeechCore"),
         .executableTarget(name: "ownership-test-client", dependencies: ["DictationOwnership"], path: "Tests/OwnershipTestClient"),
         .testTarget(name: "AppUITests", dependencies: ["AppUI"]),
@@ -51,7 +54,7 @@ let package = Package(
         .testTarget(
             name: "DictationSessionTests",
             dependencies: [
-                "DictationSession", "DictationKit", "DictationStore", "LiveSpeech", "SpeechCore",
+                "DictationSession", "DictationKit", "DictationStore", "LiveSpeech", "Polish", "SpeechCore",
                 .product(name: "LocalModelStore", package: "local-model-store")
             ]),
         .testTarget(
@@ -62,6 +65,7 @@ let package = Package(
                 .product(name: "LocalModelStore", package: "local-model-store")
             ]),
         .testTarget(name: "MicCaptureTests", dependencies: ["MicCapture", "SpeechCore"]),
+        .testTarget(name: "PolishTests", dependencies: ["Polish", "DictationKit"]),
         .testTarget(name: "DictationOwnershipTests", dependencies: ["DictationOwnership", "ownership-test-client"])
     ]
 )

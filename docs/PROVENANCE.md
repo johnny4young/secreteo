@@ -151,6 +151,23 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationKit/DictationTextPolishing.swift` | `Sources/IntelligenceKit/DictationTextPolishing.swift` | Renames |
 | `Sources/DictationKit/PolishDictation.swift` | `Sources/ApplicationKit/PolishDictation.swift` | Seam: imports the split targets |
 | `Sources/DictationKit/TranslateDictation.swift` | `Sources/ApplicationKit/TranslateDictation.swift` | Renames |
+| `Sources/Polish/DictationPolishPrompt.swift` | `Sources/IntelligenceKit/DictationPolishPrompt.swift` | Renames |
+| `Sources/Polish/ReasoningEnvelope.swift` | `Sources/IntelligenceKit/ReasoningEnvelope.swift` | Renames |
+| `Sources/Polish/GenerationOptions+Greedy.swift` | `Sources/IntelligenceKit/GenerationOptions+Greedy.swift` | Seam: a comment no longer names the source app |
+| `Sources/Polish/OpenAICompatibleChatCodec.swift` | `Sources/IntelligenceKit/BYOK.swift` | Extract: the chat codec, with an error of its own and no answer-only parse |
+| `Sources/Polish/OllamaService.swift` | `Sources/IntelligenceKit/OllamaService.swift` | Extract: the endpoint, the model list, which tells a silent Ollama from one with no models, and the Polish client |
+| `Sources/Polish/DictationTextPolishers.swift` | `Sources/IntelligenceKit/DictationTextPolishers.swift` | Seam: imports `DictationKit`, no MLX, no scheduler, and metadata with no meeting, operation or consent fields |
+| `Sources/Polish/FoundationModelsAvailability.swift` | `Sources/IntelligenceKit/FoundationModelSummaryProvider.swift` | Extract: the availability check and its reasons |
+| `Sources/Polish/DataEgress.swift` | `Sources/PortavozCore/DataEgress.swift` | Extract: destination scope, provider disclosure, request, response, error and port, for Polish only |
+| `Sources/Polish/URLSessionDataEgressGateway.swift` | `Sources/IntegrationsKit/URLSessionDataEgressGateway.swift` | Extract: the Polish validation and transport, with no receipt journal ([D24](DECISIONS.md#d24-polish-runs-only-on-this-mac-and-keeps-no-journal)) |
+| `Sources/DictationSession/FoundationModelsCapability.swift` | `Sources/portavoz-app/FoundationModelsCapability.swift` | Seam: the fallback engine is Ollama instead of MLX |
+| `Sources/DictationSession/DictationPolishRouter.swift` | `Sources/portavoz-app/AppServices+DictationPolish.swift` | Seam: two engines with Polish's own preference keys, messages point at Settings, and no MLX or resource governor |
+| `Tests/PolishTests/DictationPolishPromptTests.swift` | `Tests/PortavozKitTests/DictationPolishPromptTests.swift` | Renames |
+| `Tests/PolishTests/OllamaChatTests.swift` | `Tests/PortavozKitTests/IntelligenceTests.swift` | Extract: the chat codec, Ollama model list and reasoning tests, on a loopback endpoint |
+| `Tests/PolishTests/DataEgressGatewayTestDoubles.swift` | `Tests/PortavozTestSupport/DataEgressGatewayTestDoubles.swift` | Extract: the capturing gateway |
+| `Tests/PolishTests/DictationTextPolisherTests.swift` | `Tests/PortavozKitTests/DictationTextPolisherTests.swift` | Extract: without the MLX tests |
+| `Tests/PolishTests/DictationPolishEgressTests.swift` | `Tests/PortavozKitTests/DictationPolishEgressTests.swift` | Extract: the gateway tests, rewritten for one operation with no store or journal |
+| `Tests/DictationSessionTests/Session/DictationPolishRouterTests.swift` | `Tests/PortavozAppTests/DictationPolishRouterTests.swift` | Extract: without the MLX tests, plus the default engine |
 | `Sources/DictationSession/Fixtures/DictationUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationUITestFixture.swift` | Extract: without the composition extension |
 | `Sources/DictationSession/Fixtures/DictationNativeUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationNativeUITestFixture.swift` | Seam: a line wrapped for the longer identifier |
 | `Sources/DictationSession/Fixtures/DictationNativeControllerUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationNativeControllerUITestFixture.swift` | Renames |
@@ -213,7 +230,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationSession/Fixtures/UITestDefaults.swift` | `Sources/portavoz-app/UITestDefaults.swift` | Renames |
 | `Tests/SecreteoUITests/DictationUITests.swift` | `Tests/PortavozUITests/DictationUITests.swift` | Extract: without the native delivery tests, whose receiver arrives with the signed lane |
 | `Tests/SecreteoUITests/DictationCorrectionUITests.swift` | `Tests/PortavozUITests/DictationCorrectionUITests.swift` | Extract: without the dictionary test, which arrives with Settings |
-| `Tests/SecreteoUITests/DictationPolishUITests.swift` | `Tests/PortavozUITests/DictationPolishUITests.swift` | Extract: without the Settings tests |
+| `Tests/SecreteoUITests/DictationPolishUITests.swift` | `Tests/PortavozUITests/DictationPolishUITests.swift` | Extract: without the Settings tests, which are rewritten for the Polish section |
 | `Tests/SecreteoUITests/DictationTranslationUITests.swift` | `Tests/PortavozUITests/DictationTranslationUITests.swift` | Extract: without the Settings test |
 | `Tests/SecreteoUITests/DictationTextModeUITests.swift` | `Tests/PortavozUITests/DictationTextModeUITests.swift` | Extract: without the Settings tests |
 | `Sources/DictationStore/DictationStore+History.swift` | `Sources/StorageKit/MeetingStore+DictationHistory.swift` | Seam: imports `DictationKit` and `SpeechCore`, and deleting, retention, a save that expires rows and a policy change end with a truncating checkpoint |
