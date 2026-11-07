@@ -136,6 +136,8 @@ public final class DictationFeature: AppServices {
 
     public func start() {
         DictationTextPreferences.initialize(in: defaults, temporary: usesTemporaryMeetingStore)
+        // Created here so a Settings body never creates it and writes defaults mid-update.
+        _ = textSettings
         ownership.onStateChange = { [weak self] previous in self?.ownershipChanged(from: previous) }
         ownership.onIntentChange = { [weak self] isLive in
             if isLive { self?.controller.ownershipIntentSeen() } else { self?.controller.ownershipIntentCleared() }
