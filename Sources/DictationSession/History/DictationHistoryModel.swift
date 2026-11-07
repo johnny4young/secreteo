@@ -91,6 +91,7 @@ final class DictationHistoryModel {
             exposesToAgents: exposesToAgents ?? policy.exposesToAgents)
         do {
             policy = try await UpdateDictationHistoryPolicy(store: store).execute(request)
+            failure = nil
             if retentionDays != nil { await load() }
         } catch {
             failure = L10n.text("The history setting could not be saved.")
@@ -102,6 +103,7 @@ final class DictationHistoryModel {
             if try await DeleteDictation(store: store).execute(id) {
                 records.removeAll { $0.id == id }
             }
+            failure = nil
         } catch {
             failure = L10n.text("The dictation could not be deleted.")
         }
@@ -115,6 +117,7 @@ final class DictationHistoryModel {
             applications = []
             filter = .all
             policy = try await LoadDictationHistoryPolicy(store: store).execute(())
+            failure = nil
         } catch {
             failure = L10n.text("The dictations could not be deleted.")
         }

@@ -34,6 +34,7 @@ final class DictationStatsModel {
         do {
             self.isEnabled = try await UpdateDictationStatsConsent(store: store).execute(isEnabled)
             try await refresh()
+            failure = nil
         } catch {
             failure = L10n.text("The statistics setting could not be saved.")
         }
@@ -49,12 +50,15 @@ final class DictationStatsModel {
         do {
             try await DeleteDictationStats(store: store).execute(())
             try await refresh()
+            failure = nil
         } catch {
             failure = L10n.text("The statistics could not be deleted.")
         }
     }
 
     func record(_ sample: DictationStatsSample) {
+        // The store still checks consent; this only spares the database while statistics are off.
+        guard isEnabled else { return }
         let store = store
         let now = now
         Task { [weak self] in
