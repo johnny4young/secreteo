@@ -63,7 +63,7 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 
 | Capability or case | Portavoz source | Portavoz test | Secreteo test | State |
 |---|---|---|---|---|
-| Modes, recipes and per-app profiles | `DictationTextPreferences`, `DictationTextSettingsModel` | `DictationRecipeTests`, `DictationTextModeDeliveryTests` | `DictationRecipeFidelityTests`, `DictationRecipePreferenceTests`, `DictationRecipePromptTests`, `DictationTextModeDeliveryTests`, `DictationPolishUITests` | Modes and recipes ported, with recipes in Settings. Per-app profiles are delivered but have no Settings yet |
+| Modes, recipes and per-app profiles | `DictationTextPreferences`, `DictationTextSettingsModel` | `DictationRecipeTests`, `DictationTextModeDeliveryTests` | `DictationRecipeFidelityTests`, `DictationRecipePreferenceTests`, `DictationRecipePromptTests`, `DictationTextModeDeliveryTests`, `DictationPolishUITests` | Ported, with recipes and per-app profiles in Settings |
 | Polish with Apple Foundation Models and Ollama | `PolishDictation`, `DictationTextPolishers` | `PolishDictationTests`, `DictationPolishRouterTests`, `DictationPolishDeliveryTests` | `PolishDictationTests`, `DictationPolishDeliveryTests`, `DictationPolishRouterTests`, `DictationTextPolisherTests`, `DictationPolishUITests` | Ported without MLX, with its engine and Ollama model in Settings |
 | Polish egress consent | `AppServices+DictationPolish`, `Schema+DictationPolish` | `DictationPolishEgressTests`, which has to be rewritten | `DictationPolishEgressTests`, rewritten | Ported. Only loopback, with no journal ([D24](DECISIONS.md#d24-polish-runs-only-on-this-mac-and-keeps-no-journal)) |
 | Translate while pasting | `TranslateDictation`, `AppleDictationTranslator` | `TranslateDictationTests`, `DictationTranslationDeliveryTests` | The same tests, and `DictationTranslationUITests` | Ported, with the target and the language download in Settings |
@@ -92,7 +92,7 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | In `DictationAdmissionTests`: `compositionReadsOwnershipForPrewarmAndAdmission` | The composition |
 | `DictationSpeechGateCorpusTests` | The benchmark tooling |
 | In `DictationReadinessTests`: `testFixtureRecoverySurvivesFreshDependenciesForEachMenuInvocation`, `testAppSettingsWriteRejectsPreparationAndAllowsApplyAfterCancel`, `testLiveCompositionReadsTheInjectedAudioPreference` | The composition |
-| In `DictationTextModeDeliveryTests`: `firstEnableAfterAppCompositionStillDeliversLiteral`, `chooserWithoutAnOwnedWindowReportsFailureAndRetiresSelection`, `failedDatabaseAdmissionDoesNotInitializeTextPreferences`, `chooserFixtureRequiresAllIsolationConditions` | The composition and the application chooser |
+| In `DictationTextModeDeliveryTests`: `firstEnableAfterAppCompositionStillDeliversLiteral`, `failedDatabaseAdmissionDoesNotInitializeTextPreferences` | The composition |
 | In `DictationSpeechGateTests`: `testTurningOnDictationPreparesTheDetectorOnlyWhenTheGateIsOn`, `testDisposableCompositionNeverDownloadsTheDetector` | The composition |
 | In `LiveSpeechSelectionTests`: `testTheDefaultUltraNeitherDownloadsNorBlocksDictation`, `testSelectedAppleWithAutomaticLanguageNeverStartsAModelLoad` | The composition |
 | In `DictationShortcutTests`: the fixture half of `testNoRegistrarKeepsTemporaryCompositionInert` | The shortcut fixture |

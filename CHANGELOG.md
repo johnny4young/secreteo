@@ -4,6 +4,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- 🗂️ **Text mode per app**: give an app its own text mode, recipe and translation in Settings. Importing from Portavoz brings them too.
 - ✍️ **Rewrite the selection**: select text in any app, choose Polish, a recipe or say how, check the preview and press Return to replace it. From the menu, or with ⌃⌥⌘R once you turn it on.
 - 📊 **Dictation statistics**: if you turn them on, see dictations, words, speaking time and time saved for the last 7 or 30 days, and where you dictate most. They count, never keep what you said.
 - 📶 **Download progress**: Settings shows how much of the speech model has downloaded.

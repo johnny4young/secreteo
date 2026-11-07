@@ -2,7 +2,7 @@ import DictationKit
 import Foundation
 
 /// Portavoz's dictation settings that Secreteo's Settings can show and change. Activation,
-/// shortcuts, the microphone, the engines and per-app profiles stay out.
+/// shortcuts, the microphone and the engines stay out.
 @MainActor
 struct PortavozPreferenceImport {
     static let domain = KnownDictationPeers.release
@@ -35,10 +35,17 @@ struct PortavozPreferenceImport {
         }
         var changes: [Change] = []
         var values: [String: Any] = [:]
-        // Recipes replace a list, so they arrive only where Secreteo has none of its own to lose.
-        let hasOwnRecipes = !((try? DictationTextPreferences.decodeRecipes(
-            defaults.string(forKey: DictationTextPreferences.recipesKey) ?? "[]")) ?? []).isEmpty
-        for entry in Self.entries where !(entry.key == DictationTextPreferences.recipesKey && hasOwnRecipes) {
+        // Recipes and profiles replace a list, so they arrive only where Secreteo has none of its own to lose.
+        var ownLists: Set<String> = []
+        if !((try? DictationTextPreferences.decodeRecipes(
+            defaults.string(forKey: DictationTextPreferences.recipesKey) ?? "[]")) ?? []).isEmpty {
+            ownLists.insert(DictationTextPreferences.recipesKey)
+        }
+        if !((try? DictationTextPreferences.decodeProfiles(
+            defaults.string(forKey: DictationTextPreferences.profilesKey) ?? "[]")) ?? []).isEmpty {
+            ownLists.insert(DictationTextPreferences.profilesKey)
+        }
+        for entry in Self.entries where !ownLists.contains(entry.key) {
             guard let value = source[entry.key], entry.accepts(value) else { continue }
             guard !(value as AnyObject).isEqual(defaults.object(forKey: entry.key) ?? entry.fallback) else { continue }
             changes.append(Change(key: entry.key, name: entry.name))
@@ -92,6 +99,9 @@ struct PortavozPreferenceImport {
             text(DictationTextPreferences.polishRecipeKey, L10n.text("Polish Recipe")),
             Entry(key: DictationTextPreferences.recipesKey, name: L10n.text("Polish Recipes"), fallback: "[]") {
                 ($0 as? String).map { (try? DictationTextPreferences.decodeRecipes($0)) != nil } ?? false
+            },
+            Entry(key: DictationTextPreferences.profilesKey, name: L10n.text("Application Profiles"), fallback: "[]") {
+                ($0 as? String).map { (try? DictationTextPreferences.decodeProfiles($0)) != nil } ?? false
             },
             choice(DictationTextPreferences.translationKey, L10n.text("Translate Dictation Into"),
                    DictationTranslationTarget.allCases.map(\.rawValue), DictationTranslationTarget.off.rawValue)

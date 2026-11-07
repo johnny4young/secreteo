@@ -194,6 +194,22 @@
         }
       }
     },
+    "Add Application Profile…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Application Profile…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agregar perfil de app…"
+          }
+        }
+      }
+    },
     "Add Replacement" : {
       "localizations" : {
         "en" : {
@@ -578,6 +594,38 @@
         }
       }
     },
+    "Application Profiles" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Application Profiles"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perfiles por app"
+          }
+        }
+      }
+    },
+    "Application profiles could not be read. Dictation uses the default mode until you reset them." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Application profiles could not be read. Dictation uses the default mode until you reset them."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudieron leer los perfiles por app. El dictado usa el modo predeterminado hasta que los restablezcas."
+          }
+        }
+      }
+    },
     "Audio capture was interrupted. Nothing was inserted. Try dictating again." : {
       "localizations" : {
         "en" : {
@@ -814,6 +862,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Elige un modelo de Ollama en Ajustes para pulir los dictados."
+          }
+        }
+      }
+    },
+    "Choose an application with a valid bundle identifier. Profiles are limited to 64." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose an application with a valid bundle identifier. Profiles are limited to 64."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige una app con un identificador de paquete válido. Hay un máximo de 64 perfiles."
           }
         }
       }
@@ -3522,6 +3586,38 @@
         }
       }
     },
+    "Remove" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quitar"
+          }
+        }
+      }
+    },
+    "Remove Application Profile" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove Application Profile"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quitar perfil de app"
+          }
+        }
+      }
+    },
     "Remove the Push-to-Talk Mouse Button" : {
       "localizations" : {
         "en" : {
@@ -3614,6 +3710,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reemplazando…"
+          }
+        }
+      }
+    },
+    "Reset Application Profiles" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Application Profiles"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restablecer perfiles por app"
           }
         }
       }
@@ -4450,6 +4562,22 @@
         }
       }
     },
+    "The application chooser needs a Settings window. Open Settings and try again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The application chooser needs a Settings window. Open Settings and try again."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El selector de apps necesita una ventana de Ajustes. Abre Ajustes y vuelve a intentarlo."
+          }
+        }
+      }
+    },
     "The destination changed. Copy your text to keep it." : {
       "localizations" : {
         "en" : {
@@ -4846,6 +4974,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Traducir el dictado a"
+          }
+        }
+      }
+    },
+    "Translate Into" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translate Into"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traducir a"
           }
         }
       }

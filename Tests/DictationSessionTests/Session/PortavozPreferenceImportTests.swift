@@ -103,6 +103,20 @@ final class PortavozPreferenceImportTests: XCTestCase {
         XCTAssertEqual(unreadable.changes, [])
     }
 
+    func testApplicationProfilesAreImportedOnlyWhenSecreteoCanReadThem() throws {
+        let readable = try DictationTextPreferences.encodeProfiles(
+            [DictationApplicationTextProfile(bundleIdentifier: "com.example.notes", mode: .polish)])
+        let defaults = try scratchDefaults()
+
+        let found = PortavozPreferenceImport(portavoz: [DictationTextPreferences.profilesKey: readable], current: defaults)
+        let unreadable = PortavozPreferenceImport(
+            portavoz: [DictationTextPreferences.profilesKey: #"[{"bundleIdentifier":"a b","mode":"clean"}]"#],
+            current: defaults)
+
+        XCTAssertEqual(found.values[DictationTextPreferences.profilesKey] as? String, readable)
+        XCTAssertEqual(unreadable.changes, [])
+    }
+
     func testRecipesNeverReplaceOnesWrittenInSecreteo() throws {
         let own = DictationRecipe(id: "own-1", name: "Mine", instruction: "Keep it short.")
         let theirs = DictationRecipe(id: "custom-1", name: "Standup", instruction: "Write it as a standup note.")
@@ -111,6 +125,19 @@ final class PortavozPreferenceImportTests: XCTestCase {
 
         let found = PortavozPreferenceImport(
             portavoz: [DictationTextPreferences.recipesKey: try DictationTextPreferences.encodeRecipes([theirs])],
+            current: defaults)
+
+        XCTAssertEqual(found.changes, [])
+    }
+
+    func testProfilesNeverReplaceOnesSavedInSecreteo() throws {
+        let own = DictationApplicationTextProfile(bundleIdentifier: "com.example.mail", mode: .clean)
+        let theirs = DictationApplicationTextProfile(bundleIdentifier: "com.example.notes", mode: .polish)
+        let defaults = try scratchDefaults()
+        defaults.set(try DictationTextPreferences.encodeProfiles([own]), forKey: DictationTextPreferences.profilesKey)
+
+        let found = PortavozPreferenceImport(
+            portavoz: [DictationTextPreferences.profilesKey: try DictationTextPreferences.encodeProfiles([theirs])],
             current: defaults)
 
         XCTAssertEqual(found.changes, [])

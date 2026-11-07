@@ -353,6 +353,25 @@ extension DictationTextModeDeliveryTests {
         #expect(harness.defaults.string(forKey: DictationTextPreferences.profilesKey) == original)
     }
 
+    @Test
+    func chooserFixtureRequiresAllIsolationConditions() {
+        let flags = ["-use-temp-store", "-seed-dictation-profile-picker"]
+        let root = ["TMPDIR": "/private/tmp/owned-fixture"]
+        #expect(DictationProfilePickerUITestFixture.directory(
+            arguments: flags, environment: root, usesTemporaryStore: true)?.path
+            == "/private/tmp/owned-fixture/dictation-profile-applications")
+        #expect(DictationProfilePickerUITestFixture.directory(
+            arguments: flags, environment: root, usesTemporaryStore: false) == nil)
+        for arguments in [[], [flags[0]], [flags[1]]] {
+            #expect(DictationProfilePickerUITestFixture.directory(
+                arguments: arguments, environment: root, usesTemporaryStore: true) == nil)
+        }
+        for environment in [[:], ["TMPDIR": "relative"], ["TMPDIR": ""]] {
+            #expect(DictationProfilePickerUITestFixture.directory(
+                arguments: flags, environment: environment, usesTemporaryStore: true) == nil)
+        }
+    }
+
 }
 
 extension DictationTextModeDeliveryTests {
@@ -381,6 +400,21 @@ extension DictationTextModeDeliveryTests {
         harness.controller.retryUndeliveredText()
         #expect(harness.insertions.isEmpty, "A profile never grants delivery or retry authority")
         #expect(harness.controller.phase == .recovery(failure))
+    }
+
+    @Test
+    func chooserWithoutAnOwnedWindowReportsFailureAndRetiresSelection() async throws {
+        _ = NSApplication.shared
+        try #require(NSApp.keyWindow == nil, "The isolated unit host must not own a visible chooser window")
+        let harness = DictationControllerHarness(text: "unused")
+        let feature = try DictationFeature(
+            usesTemporaryStore: true, arguments: ["-use-temp-store"], defaults: harness.defaults,
+            environment: .disposable(permissionsAreMissing: false))
+        await feature.selectDictationProfileApplication()
+        #expect(feature.textSettings.selectionError == .unavailableWindow)
+        #expect(feature.textSettings.isSelectingApplication == false)
+        #expect(feature.textSettings.profiles.isEmpty)
+        #expect(harness.defaults.string(forKey: DictationTextPreferences.profilesKey) == nil)
     }
 
 
