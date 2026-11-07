@@ -137,6 +137,7 @@ public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
                 model.dictationFailedToStart = true
             }
         }
+        if model.dictation == nil { DictationFeature.answerIntentsWithoutDictation() }
         let settings = SettingsWindowController(model: model)
         let statusItem = StatusItemController(model: model)
         model.openSettings = { [weak settings, weak statusItem] in
