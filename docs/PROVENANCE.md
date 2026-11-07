@@ -8,6 +8,8 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 
 **Frozen commit:** `a957253b0a54eb385a400bed0e80d853a8e8b41a`.
 
+`Sources/DictationStore/DictationSchema.swift` is written anew as one v1 ([D3](DECISIONS.md#d3-history-stats-and-search-are-included)). Its tables follow `Sources/StorageKit/Schema+DictationHistory.swift`, `Schema+DictationSearch.swift`, `Schema+DictationAgentAccess.swift` and `Schema+DictationStats.swift`, with no meeting-note link, and add secure delete.
+
 `scripts/port_diff.py <export>` compares each row with an unpacked export of that commit. `Renames` must match after the renames in that script, and any other row prints its differences for review.
 
 | Secreteo path | Portavoz path | Change |
@@ -157,7 +159,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/Polish/DictationTextPolishers.swift` | `Sources/IntelligenceKit/DictationTextPolishers.swift` | Seam: imports `DictationKit`, no MLX, no scheduler, and metadata with no meeting, operation or consent fields |
 | `Sources/Polish/FoundationModelsAvailability.swift` | `Sources/IntelligenceKit/FoundationModelSummaryProvider.swift` | Extract: the availability check and its reasons |
 | `Sources/Polish/DataEgress.swift` | `Sources/PortavozCore/DataEgress.swift` | Extract: destination scope, provider disclosure, request, response, error and port, for Polish only |
-| `Sources/Polish/URLSessionDataEgressGateway.swift` | `Sources/IntegrationsKit/URLSessionDataEgressGateway.swift` | Extract: the Polish validation and transport, with no receipt journal ([D23](DECISIONS.md#d23-polish-runs-only-on-this-mac-and-keeps-no-journal)) |
+| `Sources/Polish/URLSessionDataEgressGateway.swift` | `Sources/IntegrationsKit/URLSessionDataEgressGateway.swift` | Extract: the Polish validation and transport, with no receipt journal ([D24](DECISIONS.md#d24-polish-runs-only-on-this-mac-and-keeps-no-journal)) |
 | `Sources/DictationSession/FoundationModelsCapability.swift` | `Sources/portavoz-app/FoundationModelsCapability.swift` | Seam: the fallback engine is Ollama instead of MLX |
 | `Sources/DictationSession/DictationPolishRouter.swift` | `Sources/portavoz-app/AppServices+DictationPolish.swift` | Seam: two engines with Polish's own preference keys, messages point at Settings, and no MLX or resource governor |
 | `Tests/PolishTests/DictationPolishPromptTests.swift` | `Tests/PortavozKitTests/DictationPolishPromptTests.swift` | Renames |

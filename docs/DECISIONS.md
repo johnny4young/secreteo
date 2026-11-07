@@ -98,6 +98,10 @@ Secreteo keeps, between launches, what a model's files looked like after their l
 
 Settings offers the download until Parakeet and Silero are both verified, and a failure of either shows and can be retried. Only Parakeet holds dictation back: without Silero the speech gate fails open, so dictation keeps working and can paste silence until the download succeeds.
 
-## D23. Polish runs only on this Mac and keeps no journal
+## D23. The dictation database moves forward only, and an older build leaves a newer one alone
+
+`DictationStore` keeps history, search and statistics in `Dictations.sqlite`, in the app's own Application Support folder, which the cask's `zap` removes ([D3](#d3-history-stats-and-search-are-included)). Migrations are forward-only and each runs in its own transaction, so a failed upgrade leaves the previous version whole. A build that finds migrations it does not know refuses the file without migrating or writing it: going back to an older Secreteo keeps the data for when the newer one returns, and history reads as unavailable in the meantime. Other processes, such as the MCP server, open it read-only and never migrate. The file is owner-only, deleted rows are overwritten, and deleted words leave the search index at once.
+
+## D24. Polish runs only on this Mac and keeps no journal
 
 Polish and Rewrite use Apple Foundation Models or Ollama at a loopback address, so dictated text never leaves the Mac. The gateway refuses any other destination, a redirect and a forged provider before the request exists. The user's consent is choosing Polish, its engine and, for Ollama, a model. Portavoz writes a content-free receipt to a journal for every request because its other operations can reach the internet. Secreteo has no such operation, so it keeps no journal, and its database has no egress table.
