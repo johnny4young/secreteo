@@ -51,11 +51,13 @@ Synthetic data only, from seed fixtures. Each image is opened and checked before
 
 No 1.0 without all of these, even if smoke is green:
 
-- Strict unit tests in full.
-- Full UI plan in English, Spanish catalogs complete.
-- Physical delivery and TCC.
-- Total memory within budget.
-- No audio or dictated text in logs.
-- Database upgrade and rollback in scratch.
-- A real Sparkle update.
-- Signature, notarization and permissions.
+| Requirement | Where it is checked |
+|---|---|
+| Strict unit tests in full | `unit` on every PR |
+| Full UI plan in English, Spanish catalogs complete | The nightly's two UI halves, and the catalog checks in hygiene |
+| Physical delivery and TCC | The `signed-handoff` lane, then the manual gates on the release Mac ([RELEASING](RELEASING.md#manual-gates-on-the-release-mac)) |
+| Total memory within budget | Manual, until the model lanes in [G16](GAPS.md#g16-model-and-controller-lanes) arrive |
+| No audio or dictated text in logs | `Tests/Tooling/test_log_privacy.py` in hygiene |
+| Database upgrade and rollback in scratch | `DictationStoreSchemaTests`: an upgrade keeps rows, a failed one leaves the previous version whole, and an older build refuses a newer database |
+| A real Sparkle update | `release-dryrun` with a throwaway key, then a real update from the previous version on the release Mac |
+| Signature, notarization and permissions | `release.yml` with the owner's secrets, then a clean account |
