@@ -76,6 +76,30 @@ final class DictationReadinessTests: XCTestCase {
         XCTAssertEqual(harness.controller.phase, .idle)
     }
 
+    func testFixtureRecoverySurvivesFreshDependenciesForEachMenuInvocation() async throws {
+        for scenario in ["-seed-dictation-microphone-denied", "-seed-dictation-microphone-no-audio"] {
+            let feature = try DictationFeature(
+                usesTemporaryStore: true, arguments: ["-use-temp-store", "-seed-dictation", scenario],
+                defaults: scratchDefaults())
+            let controller = feature.controller
+            var first = admittedDependencies(feature)
+            first.waitForFirstBufferDeadline = {}
+            controller.toggle(using: first)
+            let failed = await eventually {
+                if case .failed = controller.phase { return true }
+                return false
+            }
+            XCTAssertTrue(failed)
+            controller.cancel()
+            // The feature builds new dependencies on every menu or shortcut call.
+            // Recovery state belongs to its one fixture, not that short-lived value.
+            controller.toggle(using: admittedDependencies(feature))
+            let recovered = await eventually { controller.partialText == "No borres estas notas." }
+            XCTAssertTrue(recovered, scenario)
+            XCTAssertEqual(controller.phase, .listening)
+            controller.cancel()
+        }
+    }
 
     func testMicrophoneDenialDoesNotConstructSourceOrLoadRuntime() async {
         let harness = ReadinessHarness(text: "No permission, no capture")
@@ -268,6 +292,7 @@ final class DictationReadinessTests: XCTestCase {
 
     func testLiveMicrophoneAdapterUsesSelectedUIDOrVisibleNonDestructiveFallback() async {
         let defaults = UserDefaults(suiteName: "microphone-selection-\(UUID().uuidString)")!
+        addTeardownBlock { Self.forgetInputPreference() }
         for (stored, expected, fallback) in [
             (nil, nil, false), ("", nil, false), ("default", nil, false),
             ("USB-Café", "USB-Café", false), ("missing", nil, true)
@@ -288,6 +313,8 @@ final class DictationReadinessTests: XCTestCase {
 
     func testCorruptInputDefaultsDoNotBecomeDeviceIdentifiers() async {
         let defaults = UserDefaults(suiteName: "microphone-malformed-\(UUID().uuidString)")!
+        // The argument domain is process-wide, so a later composition would read the corrupt value.
+        addTeardownBlock { Self.forgetInputPreference() }
         for malformed: Any in [true, -1, 1.5, ["USB-Café"], ["uid": "USB-Café"]] {
             defaults.setVolatileDomain(["preferredInputUID": malformed], forName: UserDefaults.argumentDomain)
             var lookups = 0
@@ -305,6 +332,33 @@ final class DictationReadinessTests: XCTestCase {
         }
     }
 
+    func testLiveCompositionReadsTheInjectedAudioPreference() async throws {
+        let defaults = scratchDefaults()
+        defaults.set("secreteo-missing-input-\(UUID().uuidString)", forKey: MicrophoneInputSelection.preferenceKey)
+        let feature = try DictationFeature(usesTemporaryStore: true, arguments: ["-use-temp-store"], defaults: defaults)
+        let input = DictationSessionDependencies.live(services: feature, beginCapture: { {} }).makeMicrophone()
+        XCTAssertTrue(input.usesSystemFallback, "dictation must resolve the composition's own Audio preference")
+    }
+
+    private func scratchDefaults() -> UserDefaults {
+        let name = "dictation-readiness-composition-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        addTeardownBlock { UserDefaults(suiteName: name)?.removePersistentDomain(forName: name) }
+        return defaults
+    }
+
+    private func admittedDependencies(_ feature: DictationFeature) -> DictationSessionDependencies {
+        var dependencies = feature.makeDictationSessionDependencies()
+        dependencies.admission = .open
+        return dependencies
+    }
+
+    private nonisolated static func forgetInputPreference() {
+        let defaults = UserDefaults.standard
+        var domain = defaults.volatileDomain(forName: UserDefaults.argumentDomain)
+        domain.removeValue(forKey: MicrophoneInputSelection.preferenceKey)
+        defaults.setVolatileDomain(domain, forName: UserDefaults.argumentDomain)
+    }
 
     private func eventually(_ condition: @MainActor () -> Bool) async -> Bool {
         return await TestPolling.until(condition)
