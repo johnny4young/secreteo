@@ -5,17 +5,20 @@ import SwiftUI
 /// user turns history on; rows can be copied or deleted one by one or all.
 public struct DictationHistoryView: View {
     private let model: DictationHistoryModel
+    private let stats: DictationStatsModel
     @State private var confirmingDeleteAll = false
     @State private var query = ""
 
     public init(dictation: DictationFeature) {
         model = dictation.history
+        stats = dictation.stats
     }
 
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 header
+                if stats.isEnabled { DictationStatsPanel(model: stats) }
                 if showsFilters { filters }
                 if let failure = model.failure {
                     Label(failure, systemImage: "exclamationmark.triangle.fill")
@@ -29,7 +32,10 @@ public struct DictationHistoryView: View {
         }
         .frame(minWidth: 520, minHeight: 420)
         .accessibilityIdentifier("dictation-history")
-        .task { await model.load() }
+        .task {
+            await model.load()
+            await stats.load()
+        }
         // A search set from outside, such as a Shortcut, fills the field.
         .onChange(of: model.filter.query, initial: true) { _, words in
             if query != words { query = words }

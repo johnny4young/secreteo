@@ -79,6 +79,7 @@ public struct DictationSettingsSection: View {
             DictationSettingsControls(dictation: dictation)
         }
         DictationHistorySettingsSection(dictation: dictation)
+        DictationStatsSettingsSection(dictation: dictation)
     }
 
     @ViewBuilder private var modelRow: some View {

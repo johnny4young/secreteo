@@ -4,6 +4,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- 📊 **Dictation statistics**: if you turn them on, see dictations, words, speaking time and time saved for the last 7 or 30 days, and where you dictate most. They count, never keep what you said.
 - 🔎 **Search your dictations**: find a saved dictation by its words, with or without accents, while you type.
 - 🗂️ **Dictation history**: save your dictations on this Mac if you turn it on, keep them 7, 30 or 90 days, filter them, and copy or delete them from Dictation History in the menu.
 - 📥 **Settings from Portavoz**: import your dictation settings from Portavoz in Settings, after seeing what will change.
