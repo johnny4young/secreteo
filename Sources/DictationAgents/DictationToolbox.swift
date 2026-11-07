@@ -1,5 +1,6 @@
 import DictationKit
 import Foundation
+import SpeechCore
 
 /// The agent-facing reads of the dictation history. The store checks consent
 /// in the same read as the rows, on every call.
@@ -26,6 +27,14 @@ enum DictationToolbox {
     static let searchMaximum = 50
     /// List and search show this much of each text; `get_dictation` returns all of it.
     static let previewLength = 280
+    /// Sent to clients in the `initialize` response (MCP `instructions`).
+    static let serverInstructions = """
+        Secreteo is a read-only window into the user's saved dictations on this Mac. \
+        Nothing here can create, change or delete them, and nothing leaves the machine. \
+        `list_dictations`, `search_dictations`, and `get_dictation` read them only while \
+        the user allows it in Secreteo; their responses open with a content-free \
+        `secreteo-dictations/1` header.
+        """
     static let notAllowed = """
         Dictation history is not shared with agents. The user can turn on \
         "Let Agents and Shortcuts Read History" in Secreteo Settings.

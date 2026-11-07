@@ -1,6 +1,7 @@
 import DictationKit
 import DictationStore
 import Foundation
+import SpeechCore
 
 /// Reads for local agents such as the MCP server. Consent is checked by the
 /// store in the same read as the rows, on every call.

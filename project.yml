@@ -47,6 +47,13 @@ targets:
     dependencies:
       - package: Secreteo
         product: AppUI
+      # The read-only MCP server, which MCP clients launch from inside the app.
+      - target: secreteo-mcp
+        embed: true
+        codeSign: true
+        copy:
+          destination: wrapper
+          subpath: Contents/Helpers
       # From scripts/fetch-sparkle.sh, with the tools at the same version.
       - framework: Vendor/Sparkle.framework
         embed: true
@@ -79,6 +86,19 @@ targets:
         SUPublicEDKey: $(SPARKLE_PUBLIC_ED_KEY)
         SUEnableAutomaticChecks: true
         NSHumanReadableCopyright: "© 2026 Johnny Young"
+
+  secreteo-mcp:
+    type: tool
+    platform: macOS
+    sources:
+      - path: Sources/secreteo-mcp
+    dependencies:
+      - package: Secreteo
+        product: DictationAgents
+    settings:
+      base:
+        PRODUCT_NAME: secreteo-mcp
+        SKIP_INSTALL: YES
 
   SecreteoUITests:
     type: bundle.ui-testing

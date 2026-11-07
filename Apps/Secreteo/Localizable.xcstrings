@@ -1666,6 +1666,22 @@
         }
       }
     },
+    "Let Agents and Shortcuts Read History" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let Agents and Shortcuts Read History"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitir que los agentes y Atajos lean el historial"
+          }
+        }
+      }
+    },
     "Listening…" : {
       "localizations" : {
         "en" : {
