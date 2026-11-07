@@ -130,13 +130,13 @@ struct DictationStoreSchemaTests {
             let token = "zebracornio\(UUID().uuidString.prefix(8).lowercased())"
             try await insertRecord("Esta nota se queda.", into: store)
             try await insertRecord("Recuerda \(token) mañana.", into: store)
-            #expect(store.checkpoint())
+            #expect(await store.checkpoint())
             #expect(try bytes(near: url).contains(Data(token.utf8)), "the probe must reach the file first")
 
             try await store.database.write {
                 try $0.execute(sql: "DELETE FROM dictationRecord WHERE text LIKE ?", arguments: ["%\(token)%"])
             }
-            #expect(store.checkpoint())
+            #expect(await store.checkpoint())
 
             #expect(!(try bytes(near: url).contains(Data(token.utf8))))
             #expect(try permissions(of: url) == 0o600)

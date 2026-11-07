@@ -108,3 +108,8 @@ extension DictationPolishRouter {
             })
     }
 }
+
+extension DictationFeature {
+    /// Reads the engine chosen in Settings on every call.
+    var dictationPolisher: any DictationTextPolishing { DictationPolishRouter.live(defaults: defaults) }
+}

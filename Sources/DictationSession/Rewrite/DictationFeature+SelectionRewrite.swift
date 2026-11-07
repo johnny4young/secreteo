@@ -16,6 +16,14 @@ extension DictationFeature {
         selectionRewrite.start(using: makeSelectionRewriteDependencies())
     }
 
+    func makeDictationSessionDependencies(capturesInstruction: Bool) -> DictationSessionDependencies {
+        let routed = practice.route(
+            unroutedDependencies(), appIsActive: NSApplication.shared.isActive && practiceIsShown)
+        // A rewrite waiting for "Say how" takes the next session's words as its instruction.
+        return capturesInstruction && selectionRewrite.capturesInstruction
+            ? selectionRewrite.instructionDependencies(routed) : routed
+    }
+
     func syncRewriteSelectionShortcut() {
         rewriteSelectionRegistration?.unregister()
         rewriteSelectionRegistration = nil
