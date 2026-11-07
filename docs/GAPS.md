@@ -71,6 +71,10 @@ The watchdog's events cover both halves of its check: `isVisible` through key-va
 
 The import copies only settings Secreteo's Settings can show and change. Activation and every trigger stay out, because the two apps must not answer the same keys. The microphone needs its own confirmation, since another input can change a Bluetooth profile. Polish's engine stays out because Portavoz's is its summary engine, which may be MLX. Portavoz Dev's settings are not read.
 
+## G15. Apple Speech still waits for Parakeet
+
+Readiness and the Download row track only the Parakeet parts, so choosing Apple Speech still asks for the 483 MB Parakeet download before dictation counts as ready, although Apple Speech never loads it.
+
 ## G16. Model and controller lanes
 
 The corpus, its audio admission, local rendering, field recordings, the offline benchmark scorer and the speech-gate lane are ported. The lanes that run a real model over the corpus are not:

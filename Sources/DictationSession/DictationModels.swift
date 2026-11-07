@@ -9,6 +9,11 @@ struct DictationModels: Sendable {
     enum Part: CaseIterable, Sendable {
         case speech
         case speechDetector
+        /// Installed only when the person chooses it.
+        case speechUltra
+
+        /// What dictation needs before it can start.
+        static let required: [Self] = [.speech, .speechDetector]
     }
 
     /// Hashes the files, unless they are unchanged since a hash in this process.
@@ -27,9 +32,11 @@ struct DictationModels: Sendable {
     /// Throws the first failure, so the caller can say what went wrong.
     /// `progress` gets the share of the missing bytes in place, from 0 to 1, once per whole percent:
     /// the store reports every chunk, and the bar shows no finer steps.
-    func installMissing(progress: @escaping @Sendable (Double) -> Void = { _ in }) async throws {
+    func installMissing(
+        _ parts: [Part] = Part.required, progress: @escaping @Sendable (Double) -> Void = { _ in }
+    ) async throws {
         var missing: [Part] = []
-        for part in Part.allCases where await !isVerified(part) {
+        for part in parts where await !isVerified(part) {
             missing.append(part)
         }
         let total = missing.reduce(0) { $0 + size($1) }
@@ -101,6 +108,7 @@ extension DictationModels.Part {
         let folder = switch self {
         case .speech: "parakeet-tdt-0.6b-v3"
         case .speechDetector: "silero-vad-coreml"
+        case .speechUltra: "parakeet-ultra"
         }
         return seedRoot.appendingPathComponent(folder, isDirectory: true)
     }
@@ -109,6 +117,7 @@ extension DictationModels.Part {
         switch self {
         case .speech: ModelCatalog.parakeetTdtV3
         case .speechDetector: ModelCatalog.sileroVAD
+        case .speechUltra: ModelCatalog.parakeetUltra
         }
     }
 
@@ -116,6 +125,7 @@ extension DictationModels.Part {
         switch self {
         case .speech: "dictationVerifiedSpeechModel"
         case .speechDetector: "dictationVerifiedSpeechDetector"
+        case .speechUltra: "dictationVerifiedSpeechUltra"
         }
     }
 }
