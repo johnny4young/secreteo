@@ -77,6 +77,8 @@ final class DictationHistoryUITests: SecreteoUITestCase {
         history.click()
         let status = app.control(withIdentifier: "dictation-history-status")
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { renderedText(of: status) == "Kept on this Mac for 30 days." })
+        // The history window covers the menu's window, so it closes before Dictate is clicked.
+        app.windows["Dictation History"].buttons[XCUIIdentifierCloseWindow].click()
         let dictate = app.buttons["menu-bar-dictate"]
         XCTAssertTrue(dictate.waitForStableFrame(timeout: 5))
         dictate.click()
