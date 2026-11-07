@@ -5,22 +5,18 @@ import XCTest
 
 final class DictationIntentTests: XCTestCase {
     @MainActor
-    func testDictationRequestsAreAnsweredDuringThePostAndNeverReplayed() async throws {
+    func testDictationRequestsAreAnsweredNowAndNeverReplayed() async throws {
+        let previous = SecreteoAppIntentBridge.dictationHandler
+        defer { SecreteoAppIntentBridge.dictationHandler = previous }
+        SecreteoAppIntentBridge.dictationHandler = nil
         XCTAssertEqual(SecreteoAppIntentBridge.requestDictation(.toggle), .notReady, "nobody listening yet")
-        XCTAssertNil(SecreteoAppIntentBridge.consumeDictationRequest(), "a late dictation must not start after launch")
 
-        let observer = NotificationCenter.default.addObserver(
-            forName: SecreteoAppIntentBridge.dictationRequested, object: nil, queue: nil
-        ) { _ in
-            MainActor.assumeIsolated {
-                if SecreteoAppIntentBridge.consumeDictationRequest() == .pasteLast {
-                    SecreteoAppIntentBridge.answerDictationRequest(.nothingToPaste)
-                } else {
-                    SecreteoAppIntentBridge.answerDictationRequest(.accepted)
-                }
-            }
+        var handled: [SecreteoAppIntentBridge.DictationRequest] = []
+        SecreteoAppIntentBridge.dictationHandler = { request in
+            handled.append(request)
+            return request == .pasteLast ? .nothingToPaste : .accepted
         }
-        defer { NotificationCenter.default.removeObserver(observer) }
+        XCTAssertTrue(handled.isEmpty, "a request made before launch is not replayed")
 
         _ = try await DictateIntent().perform()
         do {
@@ -28,6 +24,21 @@ final class DictationIntentTests: XCTestCase {
             XCTFail("an empty paste must say so")
         } catch {
             XCTAssertEqual(error as? SecreteoDictationIntentError, .nothingToPaste)
+        }
+        XCTAssertEqual(handled, [.toggle, .pasteLast])
+    }
+
+    @MainActor
+    func testWithoutDictationTheActionsSayItIsUnavailable() async {
+        let previous = SecreteoAppIntentBridge.dictationHandler
+        defer { SecreteoAppIntentBridge.dictationHandler = previous }
+        DictationFeature.answerIntentsWithoutDictation()
+        XCTAssertEqual(SecreteoAppIntentBridge.requestDictation(.toggle), .unavailable)
+        do {
+            _ = try await DictateIntent().perform()
+            XCTFail("a build without dictation must say so")
+        } catch {
+            XCTAssertEqual(error as? SecreteoDictationIntentError, .unavailable)
         }
     }
 
@@ -53,6 +64,8 @@ final class DictationIntentTests: XCTestCase {
         XCTAssertEqual(outcome(.pasteLast, phase: .listening), .busy)
         XCTAssertEqual(outcome(.pasteLast, pastable: false), .nothingToPaste)
         XCTAssertEqual(outcome(.pasteLast), .accepted)
+        XCTAssertEqual(outcome(.toggle, phase: .recovery(.cancelled)), .busy)
+        XCTAssertEqual(outcome(.pasteLast, phase: .recovery(.cancelled)), .accepted, "like the menu's Paste last")
     }
 
     @MainActor
@@ -77,28 +90,51 @@ final class DictationIntentTests: XCTestCase {
     }
 
     @MainActor
-    func testAnIntentDictatesAndPastesLikeTheShortcut() async {
-        let text = "Send the report."
-        let harness = DictationControllerHarness(text: text)
+    func testAnIntentDictatesAndPastesLikeTheShortcutAfterAskingFirst() async {
+        func run(_ act: (DictationControllerHarness, DictationSessionDependencies,
+                         SecreteoAppIntentBridge.DictationRequest) -> Void) async -> (Int, [String]) {
+            let text = "Send the report."
+            let harness = DictationControllerHarness(text: text)
+            defer { harness.controller.cancel() }
+            var asked = 0
+            var owner = harness.dependencies
+            owner.admission = DictationAdmission(
+                acquire: { _ in asked += 1; return .success(DictationLease()) }, isEligible: { true })
+            act(harness, owner, .toggle)
+            let heard = await TestPolling.until { harness.controller.partialText == text }
+            XCTAssertTrue(heard)
+            harness.now = harness.now.addingTimeInterval(1)
+            act(harness, owner, .toggle)
+            let delivered = await TestPolling.until { harness.insertions == [text] }
+            XCTAssertTrue(delivered)
+            act(harness, owner, .pasteLast)
+            _ = await TestPolling.until { harness.insertions == [text, text] }
+            return (asked, harness.insertions)
+        }
+        let shortcut = await run { harness, dependencies, request in
+            switch request {
+            case .toggle: harness.controller.toggle(using: dependencies)
+            case .pasteLast: harness.controller.pasteLastDictation(using: dependencies)
+            }
+        }
+        let intent = await run { harness, dependencies, request in
+            XCTAssertEqual(harness.controller.performIntent(request, using: dependencies), .accepted)
+        }
+        XCTAssertEqual(intent.1, shortcut.1)
+        XCTAssertEqual(intent.0, shortcut.0 + 2, "the start and the paste each ask before acting; finishing does not")
+    }
+
+    @MainActor
+    func testAPasteThatSendsNothingSaysWhy() {
+        let harness = DictationControllerHarness(text: "Send the report.")
         defer { harness.controller.cancel() }
-        var leases = 0
-        var owner = harness.dependencies
-        owner.admission = DictationAdmission(
-            acquire: { _ in leases += 1; return .success(DictationLease()) }, isEligible: { true })
+        harness.controller.lastText.remember("Envía el informe.")
+        var noAccessibility = harness.dependencies
+        noAccessibility.admission = .open
+        noAccessibility.canInsert = { false }
 
-        XCTAssertEqual(harness.controller.performIntent(.pasteLast, using: owner), .nothingToPaste)
-        XCTAssertEqual(harness.controller.performIntent(.toggle, using: owner), .accepted)
-        let heard = await TestPolling.until { harness.controller.partialText == text }
-        XCTAssertTrue(heard)
-        harness.now = harness.now.addingTimeInterval(1)
-        XCTAssertEqual(harness.controller.performIntent(.toggle, using: owner), .accepted)
-        let delivered = await TestPolling.until { harness.insertions == [text] }
-        XCTAssertTrue(delivered)
-
-        XCTAssertEqual(harness.controller.performIntent(.pasteLast, using: owner), .accepted)
-        let pasted = await TestPolling.until { harness.insertions == [text, text] }
-        XCTAssertTrue(pasted)
-        XCTAssertGreaterThanOrEqual(leases, 4, "each start and paste asks first, then takes its own lease")
+        XCTAssertEqual(harness.controller.performIntent(.pasteLast, using: noAccessibility), .needsAccessibility)
+        XCTAssertTrue(harness.insertions.isEmpty)
     }
 
     @MainActor

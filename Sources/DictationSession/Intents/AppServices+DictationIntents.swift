@@ -14,10 +14,13 @@ extension DictationController {
             hasPastableText: store.current != nil)
         guard outcome == .accepted else { return outcome }
         switch request {
-        case .toggle: toggle(using: dependencies)
-        case .pasteLast: pasteLastDictation(using: dependencies)
+        case .toggle:
+            toggle(using: dependencies)
+            return outcome
+        case .pasteLast:
+            if pasteLastDictation(using: dependencies) { return outcome }
+            return dependencies.canInsert() ? .busy : .needsAccessibility
         }
-        return outcome
     }
 
     static func dictationIntentOutcome(
@@ -34,7 +37,7 @@ extension DictationController {
         case nil: break
         }
         switch (request, phase) {
-        case (_, .delivering), (_, .recovery):
+        case (_, .delivering), (.toggle, .recovery):
             return .busy
         case (.toggle, _):
             return .accepted
@@ -47,15 +50,9 @@ extension DictationController {
 }
 
 extension DictationFeature {
-    /// The app is the only listener, so a request posted before this runs is answered as not ready.
-    func installDictationIntents() -> any NSObjectProtocol {
-        NotificationCenter.default.addObserver(
-            forName: SecreteoAppIntentBridge.dictationRequested, object: nil, queue: nil
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                guard let self, let request = SecreteoAppIntentBridge.consumeDictationRequest() else { return }
-                SecreteoAppIntentBridge.answerDictationRequest(self.performDictationIntent(request))
-            }
+    func installDictationIntents() {
+        SecreteoAppIntentBridge.dictationHandler = { [weak self] request in
+            self?.performDictationIntent(request) ?? .unavailable
         }
     }
 
@@ -63,5 +60,10 @@ extension DictationFeature {
         _ request: SecreteoAppIntentBridge.DictationRequest
     ) -> SecreteoAppIntentBridge.DictationRequestOutcome {
         controller.performIntent(request, using: makeDictationSessionDependencies())
+    }
+
+    /// A build or launch with no dictation still lists the actions, so they say why they do nothing.
+    public static func answerIntentsWithoutDictation() {
+        SecreteoAppIntentBridge.dictationHandler = { _ in .unavailable }
     }
 }

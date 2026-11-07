@@ -41,6 +41,7 @@ enum SecreteoDictationIntentError: Error, Equatable, CustomLocalizedStringResour
     case dictationOff
     case notOwner
     case unavailable
+    case needsAccessibility
     case busy
     case nothingToPaste
 
@@ -55,6 +56,10 @@ enum SecreteoDictationIntentError: Error, Equatable, CustomLocalizedStringResour
                 "Another app handles dictation on this Mac. Open Secreteo Settings to use Secreteo.")
         case .unavailable:
             LocalizedStringResource("Dictation is unavailable right now. Open Secreteo Settings to see why.")
+        case .needsAccessibility:
+            LocalizedStringResource(
+                // swiftlint:disable:next line_length
+                "Dictation needs the Accessibility permission to type into other apps — grant it in System Settings and try again.")
         case .busy:
             LocalizedStringResource("Secreteo is finishing the current dictation. Run the action again when it's done.")
         case .nothingToPaste:
@@ -66,9 +71,6 @@ enum SecreteoDictationIntentError: Error, Equatable, CustomLocalizedStringResour
 /// The handoff between an intent and the running app's dictation.
 @MainActor
 enum SecreteoAppIntentBridge {
-    static let dictationRequested = Notification.Name(
-        "com.johnny4young.secreteo.dictation-intent")
-
     enum DictationRequest: Equatable {
         case toggle
         case pasteLast
@@ -80,6 +82,7 @@ enum SecreteoAppIntentBridge {
         case dictationOff
         case notOwner
         case unavailable
+        case needsAccessibility
         case busy
         case nothingToPaste
 
@@ -90,31 +93,19 @@ enum SecreteoAppIntentBridge {
             case .dictationOff: throw SecreteoDictationIntentError.dictationOff
             case .notOwner: throw SecreteoDictationIntentError.notOwner
             case .unavailable: throw SecreteoDictationIntentError.unavailable
+            case .needsAccessibility: throw SecreteoDictationIntentError.needsAccessibility
             case .busy: throw SecreteoDictationIntentError.busy
             case .nothingToPaste: throw SecreteoDictationIntentError.nothingToPaste
             }
         }
     }
 
-    private static var pendingDictationRequest: DictationRequest?
-    private static var dictationOutcome = DictationRequestOutcome.notReady
+    /// Set by the app once it can answer. One handler, so a second feature replaces the first.
+    static var dictationHandler: ((DictationRequest) -> DictationRequestOutcome)?
 
-    /// Answered during the synchronous post and never replayed: dictating
-    /// after a slow launch could put text into whatever app is in front then.
+    /// Answered now and never replayed: dictating after a slow launch could put
+    /// text into whatever app is in front then.
     static func requestDictation(_ request: DictationRequest) -> DictationRequestOutcome {
-        pendingDictationRequest = request
-        dictationOutcome = .notReady
-        NotificationCenter.default.post(name: dictationRequested, object: nil)
-        pendingDictationRequest = nil
-        return dictationOutcome
-    }
-
-    static func consumeDictationRequest() -> DictationRequest? {
-        defer { pendingDictationRequest = nil }
-        return pendingDictationRequest
-    }
-
-    static func answerDictationRequest(_ outcome: DictationRequestOutcome) {
-        dictationOutcome = outcome
+        dictationHandler?(request) ?? .notReady
     }
 }
