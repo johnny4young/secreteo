@@ -63,6 +63,16 @@ struct DictationSettingsControls: View {
                 Text("English").tag("en")
             }
             .accessibilityIdentifier("settings-dictation-language")
+            Picker("Speech Engine", selection: dictation.speechEngineBinding) {
+                Text("Parakeet").tag(LiveSpeechSelection.parakeet)
+                Text("Parakeet Ultra").tag(LiveSpeechSelection.parakeetUltra)
+                Text("Apple Speech").tag(LiveSpeechSelection.appleSpeech)
+            }
+            .accessibilityIdentifier("settings-dictation-engine")
+            .task(id: dictation.speechEngine) { await dictation.refreshUltra() }
+            if dictation.speechEngine == .parakeetUltra, dictation.environment.models != nil {
+                ultraRow
+            }
             microphonePicker
         }
         Section("Text") {
@@ -83,6 +93,25 @@ struct DictationSettingsControls: View {
         }
         DictationVocabularyEditor(stored: dictation.preference("customVocabulary", default: ""))
         DictationPolishSettings(dictation: dictation)
+    }
+
+    /// Until Ultra is downloaded, dictation keeps using Parakeet.
+    @ViewBuilder private var ultraRow: some View {
+        switch dictation.ultra.state {
+        case .ready:
+            EmptyView()
+        case .downloading:
+            ProgressView("Downloading Parakeet Ultra…", value: dictation.ultra.fraction)
+                .accessibilityIdentifier("settings-dictation-ultra-progress")
+        case .missing, .failed:
+            Button("Download Parakeet Ultra") { dictation.downloadUltra() }
+                .accessibilityIdentifier("settings-dictation-ultra-download")
+            if dictation.ultra.state == .failed {
+                Text("The download failed.")
+                    .foregroundStyle(.red)
+                    .accessibilityIdentifier("settings-dictation-ultra-failed")
+            }
+        }
     }
 
     @ViewBuilder private var modifierKeyControls: some View {

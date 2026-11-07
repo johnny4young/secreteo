@@ -546,6 +546,22 @@
         }
       }
     },
+    "Apple Speech" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Speech"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Speech"
+          }
+        }
+      }
+    },
     "Apple Speech could not start. Try Parakeet in Dictation settings." : {
       "localizations" : {
         "en" : {
@@ -1730,6 +1746,22 @@
         }
       }
     },
+    "Download Parakeet Ultra" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download Parakeet Ultra"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descargar Parakeet Ultra"
+          }
+        }
+      }
+    },
     "Download Speech Model" : {
       "localizations" : {
         "en" : {
@@ -1742,6 +1774,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Descargar modelo de voz"
+          }
+        }
+      }
+    },
+    "Downloading Parakeet Ultra…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloading Parakeet Ultra…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descargando Parakeet Ultra…"
           }
         }
       }
@@ -2862,6 +2910,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "O mantén tu atajo de dictado y di cómo reescribirlo."
+          }
+        }
+      }
+    },
+    "Parakeet" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parakeet"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parakeet"
+          }
+        }
+      }
+    },
+    "Parakeet Ultra" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parakeet Ultra"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parakeet Ultra"
           }
         }
       }
@@ -4366,6 +4446,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hablando"
+          }
+        }
+      }
+    },
+    "Speech Engine" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speech Engine"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Motor de voz"
           }
         }
       }

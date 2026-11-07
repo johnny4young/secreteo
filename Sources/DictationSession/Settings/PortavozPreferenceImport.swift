@@ -95,6 +95,9 @@ struct PortavozPreferenceImport {
                    [DictationModelMemory.balanced.rawValue, DictationModelMemory.lightweight.rawValue],
                    DictationModelMemory.balanced.rawValue),
             flag(DictationPrewarmPolicy.defaultsKey, L10n.text("Load the Speech Model at Launch")),
+            // Copied without downloading or loading anything: Ultra still needs its own Download.
+            choice(LiveSpeechSelection.dictationKey, L10n.text("Speech Engine"),
+                   LiveSpeechSelection.allCases.map(\.rawValue), LiveSpeechSelection.dictationDefault.rawValue),
             // A recipe that no longer exists falls back to the conservative edit, so any name is safe.
             text(DictationTextPreferences.polishRecipeKey, L10n.text("Polish Recipe")),
             Entry(key: DictationTextPreferences.recipesKey, name: L10n.text("Polish Recipes"), fallback: "[]") {
