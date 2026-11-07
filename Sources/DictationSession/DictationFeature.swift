@@ -47,6 +47,7 @@ public final class DictationFeature: AppServices {
     var preferenceRevision = 0
     var portavozImport: PortavozPreferenceImport?
     @ObservationIgnored private var preferencesObserver: (any NSObjectProtocol)?
+    @ObservationIgnored private var intentObserver: (any NSObjectProtocol)?
     let controller: DictationController
     @ObservationIgnored let practice = DictationPracticeField()
     @ObservationIgnored private let settingsWindowHolder = UUID()
@@ -131,6 +132,7 @@ public final class DictationFeature: AppServices {
         }
         ownership.start()
         syncDictationTriggers()
+        if intentObserver == nil { intentObserver = installDictationIntents() }
         Task {
             await showRememberedModels()
             await refreshReadiness()
