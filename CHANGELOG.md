@@ -5,6 +5,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 ## Unreleased
 
 - ✍️ **Rewrite the selection**: select text in any app, choose Polish, a recipe or say how, check the preview and press Return to replace it. From the menu, or with ⌃⌥⌘R once you turn it on.
+- 📊 **Dictation statistics**: if you turn them on, see dictations, words, speaking time and time saved for the last 7 or 30 days, and where you dictate most. They count, never keep what you said.
 - 📶 **Download progress**: Settings shows how much of the speech model has downloaded.
 - 🧾 **Polish recipes and translation in Settings**: write your own recipes for Polish, pick one as the default, and translate dictation into English or Spanish as it is pasted.
 - 🔎 **Search your dictations**: find a saved dictation by its words, with or without accents, while you type.
