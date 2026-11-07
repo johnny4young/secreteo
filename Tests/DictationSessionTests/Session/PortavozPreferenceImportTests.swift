@@ -1,5 +1,6 @@
 import DictationKit
 import Foundation
+import Testing
 import XCTest
 
 @testable import DictationSession
@@ -102,6 +103,19 @@ final class PortavozPreferenceImportTests: XCTestCase {
         XCTAssertEqual(unreadable.changes, [])
     }
 
+    func testRecipesNeverReplaceOnesWrittenInSecreteo() throws {
+        let own = DictationRecipe(id: "own-1", name: "Mine", instruction: "Keep it short.")
+        let theirs = DictationRecipe(id: "custom-1", name: "Standup", instruction: "Write it as a standup note.")
+        let defaults = try scratchDefaults()
+        defaults.set(try DictationTextPreferences.encodeRecipes([own]), forKey: DictationTextPreferences.recipesKey)
+
+        let found = PortavozPreferenceImport(
+            portavoz: [DictationTextPreferences.recipesKey: try DictationTextPreferences.encodeRecipes([theirs])],
+            current: defaults)
+
+        XCTAssertEqual(found.changes, [])
+    }
+
     func testImportingTwiceChangesNothingTheSecondTime() throws {
         let defaults = try scratchDefaults()
         // A disposable launch writes to the process-wide argument domain.
@@ -126,24 +140,26 @@ final class PortavozPreferenceImportTests: XCTestCase {
         feature.refreshPortavozImport()
         XCTAssertNil(feature.portavozImport)
     }
+}
 
-    func testAnOpenTextSectionShowsWhatWasImported() throws {
-        let defaults = try scratchDefaults()
-        addTeardownBlock { @MainActor in
-            var domain = UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)
-            domain.removeValue(forKey: DictationTextPreferences.translationKey)
-            domain.removeValue(forKey: DictationTextPreferences.modeKey)
-            UserDefaults.standard.setVolatileDomain(domain, forName: UserDefaults.argumentDomain)
-        }
+/// A disposable feature writes the process-wide argument domain, so this runs with the suites that guard it.
+@Suite(.serialized, .exclusiveArgumentDomain)
+@MainActor
+struct PortavozImportIntoOpenSettingsTests {
+    @Test
+    func anOpenTextSectionShowsWhatWasImported() throws {
+        let name = "PortavozImportIntoOpenSettingsTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
         var environment = DictationFeatureEnvironment.disposable(permissionsAreMissing: false)
         environment.portavozPreferences = { [DictationTextPreferences.translationKey: "en"] }
         let feature = try DictationFeature(
             usesTemporaryStore: true, arguments: [], defaults: defaults, environment: environment)
-        XCTAssertEqual(feature.textSettings.globalTranslationTarget, .off)
+        #expect(feature.textSettings.globalTranslationTarget == .off)
         feature.refreshPortavozImport()
 
         feature.importPortavozPreferences()
 
-        XCTAssertEqual(feature.textSettings.globalTranslationTarget, .english)
+        #expect(feature.textSettings.globalTranslationTarget == .english)
     }
 }

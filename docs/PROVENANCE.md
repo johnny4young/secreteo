@@ -169,9 +169,9 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/PolishTests/DictationPolishEgressTests.swift` | `Tests/PortavozKitTests/DictationPolishEgressTests.swift` | Extract: the gateway tests, rewritten for one operation with no store or journal |
 | `Tests/DictationSessionTests/Session/DictationPolishRouterTests.swift` | `Tests/PortavozAppTests/DictationPolishRouterTests.swift` | Extract: without the MLX tests, plus the default engine |
 | `Sources/DictationSession/Settings/DictationTextSettingsModel.swift` | `Sources/portavoz-app/DictationTextSettingsModel.swift` | Seam: `reload()`, for an import that writes the same keys |
-| `Sources/DictationSession/Settings/DictationRecipeSettings.swift` | `Sources/portavoz-app/DictationRecipeSettings.swift` | Seam: no helper text, labels in title case, and row identifiers joined from a prefix |
+| `Sources/DictationSession/Settings/DictationRecipeSettings.swift` | `Sources/portavoz-app/DictationRecipeSettings.swift` | Seam: no helper text, the instruction field named instead of asked about, labels in title case, and row identifiers joined from a prefix |
 | `Sources/DictationSession/Settings/DictationTranslationSettings.swift` | `Sources/portavoz-app/DictationTranslationSettings.swift` | Seam: a status and the download only when translation is on and needs them, and the label in title case |
-| `Tests/DictationSessionTests/Session/DictationRecipePreferenceTests.swift` | `Tests/PortavozAppTests/DictationRecipeTests.swift` | Extract: the preference and Settings tests |
+| `Tests/DictationSessionTests/Session/DictationRecipePreferenceTests.swift` | `Tests/PortavozAppTests/DictationRecipeTests.swift` | Extract: the preference and Settings tests, guarded like the other suites that read the argument domain |
 | `Tests/PolishTests/DictationRecipePromptTests.swift` | `Tests/PortavozAppTests/DictationRecipeTests.swift` | Extract: the prompt tests |
 | `Sources/DictationSession/Rewrite/SelectionRewriteController.swift` | `Sources/portavoz-app/SelectionRewriteController.swift` | Seam: imports the split targets, and two messages name the rewrite and the model instead of the summary engine |
 | `Sources/DictationSession/Rewrite/SelectionCapture.swift` | `Sources/portavoz-app/SelectionCapture.swift` | Seam: imports the split targets |
