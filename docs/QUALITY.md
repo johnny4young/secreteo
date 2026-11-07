@@ -6,7 +6,7 @@ Hosted CI is green on the final head, no mechanical review threads are open, and
 
 ## CI
 
-`gate` is the only required check. `scripts/ci_gate.py` decides it: a job may be skipped only when the validated scope from `scripts/ci_changes.py` says so, and never because of who authored a change. A docs-only change skips the macOS jobs. The handoff lane runs only when delivery or triggers change, and the release dry run only when packaging changes. `nightly.yml` runs both, plus the Full UI plan, every night.
+`gate` is the only required check. `scripts/ci_gate.py` decides it: a job may be skipped only when the validated scope from `scripts/ci_changes.py` says so, and never because of who authored a change. A docs-only change skips the macOS jobs. The handoff lane runs only when delivery or triggers change, and the release dry run only when packaging changes. `nightly.yml` runs both, plus the Full UI plan in two parallel halves, every night. `scripts/ui_test_shards.py` splits the UI test classes by test count, so a new class needs no list; keep one test class per file.
 
 `main` requires branches to be up to date, so a merge lands the tree its pull request proved. A push to `main` skips the macOS jobs only when `scripts/ci_reuse_gate.py` finds that merged pull request, the same tree at its head, and a passing `gate` in that head's newest CI run. Any doubt or API error runs every job.
 
