@@ -168,6 +168,26 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         attachScreenshot(named: "pr-settings-model-progress")
     }
 
+    func testUltraIsDownloadedOnlyWhenAsked() throws {
+        let app = try launchEnabled(arguments: ["-seed-model-download-held"])
+        defer { finishUITestApplication(app) }
+        let engine = app.control(withIdentifier: "settings-dictation-engine")
+        let download = app.control(withIdentifier: "settings-dictation-ultra-download")
+        let progress = app.control(withIdentifier: "settings-dictation-ultra-progress")
+        XCTAssertTrue(app.revealInSettings(engine))
+        XCTAssertTrue(app.revealInSettings(download), "Ultra is the default, and nothing has fetched it yet")
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-ultra-failed").exists)
+
+        download.click()
+
+        XCTAssertTrue(progress.waitForExistence(timeout: 5))
+        // The fixture stops Ultra at 40%, and macOS reports it as a fraction or a percentage.
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) {
+            (progress.value as? Double).map { abs($0 - 0.4) < 0.01 } == true || "\(progress.value ?? "")".contains("40")
+        }, "\(progress.value ?? "nil")")
+        attachScreenshot(named: "pr-settings-speech-engine")
+    }
+
     func testFreeingTheModelSoonRulesOutLoadingItAtLaunch() throws {
         let app = try launchEnabled(defaults: #""dictationPrewarm":true"#)
         defer { finishUITestApplication(app) }

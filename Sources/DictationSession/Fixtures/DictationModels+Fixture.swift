@@ -8,7 +8,8 @@ extension DictationModels {
             wasVerified: { _ in false },
             remember: { _, _ in },
             install: { part, placedBytes in
-                placedBytes(part == .speech ? 80 : 0)
+                // 40% of the required parts, or of Ultra alone.
+                placedBytes(part == .speech ? 80 : part == .speechUltra ? 40 : 0)
                 try await Task.sleep(for: .seconds(3_600))
             },
             size: { _ in 100 },

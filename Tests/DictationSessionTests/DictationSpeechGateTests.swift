@@ -102,7 +102,7 @@ final class DictationSpeechGateTests: XCTestCase {
             feature.setEnabled(true)
 
             let checked = await TestPolling.until {
-                models.remembered.withLock { $0 } == DictationModels.Part.allCases.count
+                models.remembered.withLock { $0 } == DictationModels.Part.required.count
             }
             XCTAssertTrue(checked)
             XCTAssertEqual(models.installs.withLock { $0 }, [], "Gate on: \(gateIsOn)")

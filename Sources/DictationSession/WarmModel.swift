@@ -11,6 +11,8 @@ final class WarmModel<Model: Sendable> {
     private var idleRelease: Task<Void, Never>?
     /// Each `acquire` not yet matched by `releaseWhenIdle`. A model in use has no idle clock.
     private var users = 0
+    /// Bumped by `release`, so a load that started before it is not kept or shared after it.
+    private var generation = 0
 
     var isHoldingModel: Bool { model != nil }
 
@@ -40,11 +42,12 @@ final class WarmModel<Model: Sendable> {
         if let model { return model }
         if let loading { return try await loading.value }
         let task = Task { [load] in try await load() }
+        let started = generation
         loading = task
-        defer { loading = nil }
+        defer { if generation == started { loading = nil } }
         let loaded = try await task.value
         // The right to hold it can end during a load, and nothing later would release it.
-        if mayKeep() { model = loaded }
+        if mayKeep(), generation == started { model = loaded }
         return loaded
     }
 
@@ -74,5 +77,7 @@ final class WarmModel<Model: Sendable> {
         idleRelease?.cancel()
         idleRelease = nil
         model = nil
+        loading = nil
+        generation += 1
     }
 }
