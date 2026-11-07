@@ -205,7 +205,7 @@ final class DictationFeatureTests: XCTestCase {
         defaults.set(true, forKey: DictationController.defaultsKey)
         let feature = try makeFeature(defaults: defaults, arguments: arguments)
         let registrations = Registrations()
-        feature.pasteLastRegistrar = registrations.registrar
+        feature.fixedShortcutRegistrar = registrations.registrar
         // A disposable launch stores choices in the process-wide volatile domain.
         addTeardownBlock { Self.forgetPasteLastChoice() }
         return (feature, registrations)
@@ -215,6 +215,7 @@ final class DictationFeatureTests: XCTestCase {
         let defaults = UserDefaults.standard
         var domain = defaults.volatileDomain(forName: UserDefaults.argumentDomain)
         domain.removeValue(forKey: PasteLastShortcut.defaultsKey)
+        domain.removeValue(forKey: RewriteSelectionShortcut.defaultsKey)
         defaults.setVolatileDomain(domain, forName: UserDefaults.argumentDomain)
     }
 
@@ -280,6 +281,46 @@ final class DictationFeatureTests: XCTestCase {
 
         XCTAssertEqual(registrations.active, 0)
         XCTAssertFalse(feature.pasteLastShortcutIsUnavailable, "Freed on purpose, so not a conflict")
+
+        feature.shortcutRecording(false)
+        XCTAssertEqual(registrations.active, 1)
+    }
+
+    func testTheRewriteShortcutIsOffUntilChosenAndNeedsDictationOn() throws {
+        let (feature, registrations) = try pasteLastFeature()
+        feature.start()
+        XCTAssertEqual(registrations.active, 0)
+
+        feature.rewriteSelectionShortcutBinding.wrappedValue = true
+        XCTAssertEqual(registrations.settings, [RewriteSelectionShortcut.setting])
+        XCTAssertEqual(registrations.active, 1)
+
+        feature.defaults.set(false, forKey: DictationController.defaultsKey)
+        feature.triggersChanged()
+        XCTAssertEqual(registrations.active, 0)
+    }
+
+    func testATakenRewriteShortcutIsShownUntilItIsTurnedOff() throws {
+        let (feature, registrations) = try pasteLastFeature()
+        feature.start()
+        registrations.isTaken = true
+
+        feature.rewriteSelectionShortcutBinding.wrappedValue = true
+        XCTAssertTrue(feature.rewriteSelectionShortcutIsUnavailable)
+        XCTAssertFalse(feature.pasteLastShortcutIsUnavailable, "Only the shortcut that was asked for")
+
+        feature.rewriteSelectionShortcutBinding.wrappedValue = false
+        XCTAssertFalse(feature.rewriteSelectionShortcutIsUnavailable)
+    }
+
+    func testRecordingAShortcutFreesTheRewriteShortcutAndThenRestoresIt() throws {
+        let (feature, registrations) = try pasteLastFeature()
+        feature.start()
+        feature.rewriteSelectionShortcutBinding.wrappedValue = true
+
+        feature.shortcutRecording(true)
+        XCTAssertEqual(registrations.active, 0)
+        XCTAssertFalse(feature.rewriteSelectionShortcutIsUnavailable, "Freed on purpose, so not a conflict")
 
         feature.shortcutRecording(false)
         XCTAssertEqual(registrations.active, 1)

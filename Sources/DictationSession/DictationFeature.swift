@@ -39,7 +39,8 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored private var modelInstall: Task<Void, any Error>?
     @ObservationIgnored private var memoryPressure: (any DispatchSourceMemoryPressure)?
     @ObservationIgnored let pressure = DictationMemoryPressure()
-    @ObservationIgnored var pasteLastRegistrar: DictationShortcut.Registrar?
+    /// Registers the fixed shortcuts, Paste Last and Rewrite; tests inject one.
+    @ObservationIgnored var fixedShortcutRegistrar: DictationShortcut.Registrar?
     @ObservationIgnored private var pasteLastRegistration: (any GlobalHotkeyRegistration)?
     @ObservationIgnored private(set) var isRecordingShortcut = false
     @ObservationIgnored var rewriteSelectionRegistration: (any GlobalHotkeyRegistration)?
@@ -120,7 +121,7 @@ public final class DictationFeature: AppServices {
             })
         controller = DictationController()
         practice.onForget = { [controller] in controller.practiceLastText.clear() }
-        pasteLastRegistrar = usesTemporaryStore ? nil : DictationShortcut.liveRegistrar
+        fixedShortcutRegistrar = usesTemporaryStore ? nil : DictationShortcut.liveRegistrar
         // A learned correction writes here directly, and an open Settings window must show it.
         preferencesObserver = NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification, object: defaults, queue: .main
@@ -421,11 +422,11 @@ public final class DictationFeature: AppServices {
         let wanted = !isRecordingShortcut && dictationTriggersMayArm
             && defaults.bool(forKey: DictationController.defaultsKey)
             && defaults.bool(forKey: PasteLastShortcut.defaultsKey)
-        guard wanted, let pasteLastRegistrar else {
+        guard wanted, let fixedShortcutRegistrar else {
             pasteLastShortcutIsUnavailable = false
             return
         }
-        pasteLastRegistration = pasteLastRegistrar(
+        pasteLastRegistration = fixedShortcutRegistrar(
             PasteLastShortcut.setting, { [weak self] in self?.pasteLast() }, {})
         pasteLastShortcutIsUnavailable = pasteLastRegistration == nil
     }

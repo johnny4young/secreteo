@@ -22,11 +22,11 @@ extension DictationFeature {
         let wanted = !isRecordingShortcut && dictationTriggersMayArm
             && defaults.bool(forKey: DictationController.defaultsKey)
             && defaults.bool(forKey: RewriteSelectionShortcut.defaultsKey)
-        guard wanted, let pasteLastRegistrar else {
+        guard wanted, let fixedShortcutRegistrar else {
             rewriteSelectionShortcutIsUnavailable = false
             return
         }
-        rewriteSelectionRegistration = pasteLastRegistrar(
+        rewriteSelectionRegistration = fixedShortcutRegistrar(
             RewriteSelectionShortcut.setting, { [weak self] in self?.rewriteSelection() }, {})
         rewriteSelectionShortcutIsUnavailable = rewriteSelectionRegistration == nil
     }
