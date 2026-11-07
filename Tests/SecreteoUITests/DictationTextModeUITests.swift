@@ -6,8 +6,10 @@ final class DictationTextModeUITests: SecreteoUITestCase {
     func testApplicationProfileUsesNativePickerAndKeepsTheOriginal() throws {
         let app = try XCUIApplication.secreteo(showMenuBarContent: true)
         app.launchArguments.append("-seed-dictation-profile-picker")
-        app.launchEnvironment["TMPDIR"] = FileManager.default.temporaryDirectory
-            .appendingPathComponent("secreteo-profiles-\(UUID().uuidString)", isDirectory: true).path
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("secreteo-profiles-\(UUID().uuidString)", isDirectory: true)
+        app.launchEnvironment["TMPDIR"] = root.path
+        addTeardownBlock { try? FileManager.default.removeItem(at: root) }
         app.launchEnvironment["SECRETEO_UI_TEST_DEFAULTS"] =
             #"{"globalDictationEnabled":true,"dictationTextMode":"literal","dictationApplicationTextProfiles":"[]"}"#
         let original = try makeApplication(in: app)
