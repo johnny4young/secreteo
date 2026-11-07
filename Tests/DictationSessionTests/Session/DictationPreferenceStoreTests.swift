@@ -95,9 +95,9 @@ final class DictationPreferenceStoreTests: XCTestCase {
     func testChoosingCleanIsWhatADictationReads() throws {
         let (defaults, _) = try makeDefaults()
         let feature = try makeFeature(defaults)
-        XCTAssertEqual(feature.textMode, .literal)
+        XCTAssertEqual(feature.textSettings.globalMode, .literal)
 
-        feature.textModeBinding.wrappedValue = .clean
+        feature.textSettings.setGlobalChoice(DictationTextChoice(mode: .clean))
 
         XCTAssertEqual(DictationTextPreferences.snapshot(in: defaults, bundleIdentifier: nil).mode, .clean)
     }

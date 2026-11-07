@@ -135,6 +135,23 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         XCTAssertTrue(sounds.value as? Int == 1 || sounds.value as? String == "1")
     }
 
+    func testADownloadShowsHowFarItGot() throws {
+        let app = try launch("-seed-model-download-held")
+        defer { finishUITestApplication(app) }
+        let download = app.control(withIdentifier: "settings-dictation-model-download")
+        let progress = app.control(withIdentifier: "settings-dictation-model-progress")
+        XCTAssertTrue(download.waitForStableFrame(timeout: 5))
+
+        download.click()
+
+        XCTAssertTrue(progress.waitForExistence(timeout: 5))
+        // The fixture stops at 40%, and macOS reports it as a fraction or a percentage.
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) {
+            (progress.value as? Double).map { abs($0 - 0.4) < 0.01 } == true || "\(progress.value ?? "")".contains("40")
+        }, "\(progress.value ?? "nil")")
+        attachScreenshot(named: "pr-settings-model-progress")
+    }
+
     func testFreeingTheModelSoonRulesOutLoadingItAtLaunch() throws {
         let app = try launchEnabled(defaults: #""dictationPrewarm":true"#)
         defer { finishUITestApplication(app) }

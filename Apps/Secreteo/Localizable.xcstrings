@@ -82,6 +82,22 @@
         }
       }
     },
+    "%d of %d characters" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d of %d characters"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d de %d caracteres"
+          }
+        }
+      }
+    },
     "%d words inserted into %@." : {
       "localizations" : {
         "en" : {
@@ -610,6 +626,22 @@
         }
       }
     },
+    "Bullet list" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bullet list"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lista de viñetas"
+          }
+        }
+      }
+    },
     "Button %d" : {
       "localizations" : {
         "en" : {
@@ -834,6 +866,38 @@
         }
       }
     },
+    "Collapsed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collapsed"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contraído"
+          }
+        }
+      }
+    },
+    "Concise" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Concise"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conciso"
+          }
+        }
+      }
+    },
     "Continue" : {
       "localizations" : {
         "en" : {
@@ -1053,7 +1117,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Borrar"
+            "value" : "Eliminar"
           }
         }
       }
@@ -1538,6 +1602,22 @@
         }
       }
     },
+    "Download English and Spanish" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download English and Spanish"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descargar inglés y español"
+          }
+        }
+      }
+    },
     "Download Speech Model" : {
       "localizations" : {
         "en" : {
@@ -1570,6 +1650,22 @@
         }
       }
     },
+    "Duplicate" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duplicate"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duplicar"
+          }
+        }
+      }
+    },
     "Edit" : {
       "localizations" : {
         "en" : {
@@ -1598,6 +1694,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "English"
+          }
+        }
+      }
+    },
+    "English and Spanish are not downloaded yet, so dictation is pasted untranslated." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "English and Spanish are not downloaded yet, so dictation is pasted untranslated."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El inglés y el español aún no están descargados, así que el dictado se pega sin traducir."
+          }
+        }
+      }
+    },
+    "Expanded" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expanded"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expandido"
           }
         }
       }
@@ -1650,6 +1778,22 @@
         }
       }
     },
+    "Formal" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formal"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formal"
+          }
+        }
+      }
+    },
     "Free the Model Soon After Dictating" : {
       "localizations" : {
         "en" : {
@@ -1662,6 +1806,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Liberar el modelo poco después de dictar"
+          }
+        }
+      }
+    },
+    "Friendly" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Friendly"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cercano"
           }
         }
       }
@@ -1838,6 +1998,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Insertando…"
+          }
+        }
+      }
+    },
+    "Instruction" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instruction"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instrucción"
           }
         }
       }
@@ -2190,6 +2366,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mover a Aplicaciones"
+          }
+        }
+      }
+    },
+    "Name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nombre"
+          }
+        }
+      }
+    },
+    "New Recipe…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Recipe…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nueva receta…"
           }
         }
       }
@@ -2866,6 +3074,38 @@
         }
       }
     },
+    "Polish Recipe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polish Recipe"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Receta de Pulir"
+          }
+        }
+      }
+    },
+    "Polish Recipes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polish Recipes"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recetas de Pulir"
+          }
+        }
+      }
+    },
     "Polish With" : {
       "localizations" : {
         "en" : {
@@ -3170,6 +3410,22 @@
         }
       }
     },
+    "Reset Recipes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Recipes"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restablecer recetas"
+          }
+        }
+      }
+    },
     "Retry Shortcut" : {
       "localizations" : {
         "en" : {
@@ -3230,6 +3486,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Option derecha"
+          }
+        }
+      }
+    },
+    "Save" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardar"
           }
         }
       }
@@ -3634,6 +3906,22 @@
         }
       }
     },
+    "Status update" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status update"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualización de estado"
+          }
+        }
+      }
+    },
     "Stop After a Pause" : {
       "localizations" : {
         "en" : {
@@ -3858,6 +4146,22 @@
         }
       }
     },
+    "The languages were not downloaded. Try again when you are online." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The languages were not downloaded. Try again when you are online."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se descargaron los idiomas. Inténtalo de nuevo cuando tengas conexión."
+          }
+        }
+      }
+    },
     "The microphone sent unusable audio. Check the input device and try again." : {
       "localizations" : {
         "en" : {
@@ -4018,6 +4322,22 @@
         }
       }
     },
+    "This recipe could not be saved." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This recipe could not be saved."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo guardar esta receta."
+          }
+        }
+      }
+    },
     "Time saved" : {
       "localizations" : {
         "en" : {
@@ -4030,6 +4350,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tiempo ahorrado"
+          }
+        }
+      }
+    },
+    "Translate Dictation Into" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translate Dictation Into"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traducir el dictado a"
           }
         }
       }
@@ -4414,6 +4750,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tu micrófono preferido no está disponible. Se usará el predeterminado del sistema para este dictado."
+          }
+        }
+      }
+    },
+    "Your recipes could not be read. Polish uses the built-in ones until you reset them." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your recipes could not be read. Polish uses the built-in ones until you reset them."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudieron leer tus recetas. Pulir usa las incluidas hasta que las restablezcas."
           }
         }
       }

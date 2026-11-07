@@ -168,6 +168,11 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/PolishTests/DictationTextPolisherTests.swift` | `Tests/PortavozKitTests/DictationTextPolisherTests.swift` | Extract: without the MLX tests |
 | `Tests/PolishTests/DictationPolishEgressTests.swift` | `Tests/PortavozKitTests/DictationPolishEgressTests.swift` | Extract: the gateway tests, rewritten for one operation with no store or journal |
 | `Tests/DictationSessionTests/Session/DictationPolishRouterTests.swift` | `Tests/PortavozAppTests/DictationPolishRouterTests.swift` | Extract: without the MLX tests, plus the default engine |
+| `Sources/DictationSession/Settings/DictationTextSettingsModel.swift` | `Sources/portavoz-app/DictationTextSettingsModel.swift` | Seam: `reload()`, for an import that writes the same keys |
+| `Sources/DictationSession/Settings/DictationRecipeSettings.swift` | `Sources/portavoz-app/DictationRecipeSettings.swift` | Seam: no helper text, the instruction field named instead of asked about, labels in title case, and row identifiers joined from a prefix |
+| `Sources/DictationSession/Settings/DictationTranslationSettings.swift` | `Sources/portavoz-app/DictationTranslationSettings.swift` | Seam: a status and the download only when translation is on and needs them, and the label in title case |
+| `Tests/DictationSessionTests/Session/DictationRecipePreferenceTests.swift` | `Tests/PortavozAppTests/DictationRecipeTests.swift` | Extract: the preference and Settings tests, guarded like the other suites that read the argument domain |
+| `Tests/PolishTests/DictationRecipePromptTests.swift` | `Tests/PortavozAppTests/DictationRecipeTests.swift` | Extract: the prompt tests |
 | `Sources/DictationSession/Fixtures/DictationUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationUITestFixture.swift` | Extract: without the composition extension |
 | `Sources/DictationSession/Fixtures/DictationNativeUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationNativeUITestFixture.swift` | Seam: a line wrapped for the longer identifier |
 | `Sources/DictationSession/Fixtures/DictationNativeControllerUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationNativeControllerUITestFixture.swift` | Renames |
@@ -186,7 +191,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/DictationSessionTests/Session/DictationCorrectionTests.swift` | `Tests/PortavozAppTests/DictationCorrectionTests.swift` | Extract: without the practice test, which arrives with Practice |
 | `Tests/DictationSessionTests/Session/DictationColdStartTests.swift` | `Tests/PortavozAppTests/DictationColdStartTests.swift` | Extract: without the prewarm tests, which arrive with the composition |
 | `Tests/DictationSessionTests/Session/DictationReadinessTests.swift` | `Tests/PortavozAppTests/DictationReadinessTests.swift` | Extract: without the tests of the composition, which arrive with it |
-| `Tests/DictationSessionTests/Session/DictationTextModeDeliveryTests.swift` | `Tests/PortavozAppTests/DictationTextModeDeliveryTests.swift` | Extract: without the Settings and composition tests, which arrive with them |
+| `Tests/DictationSessionTests/Session/DictationTextModeDeliveryTests.swift` | `Tests/PortavozAppTests/DictationTextModeDeliveryTests.swift` | Extract: without the chooser and composition tests, which arrive with them |
 | `Tests/DictationSessionTests/Delivery/DictationDestinationRecoveryTests.swift` | `Tests/PortavozAppTests/DictationDestinationRecoveryTests.swift` | Seam: imports the split targets |
 | `Tests/DictationSessionTests/DictationAutoStopTests.swift` | `Tests/PortavozAppTests/DictationAutoStopTests.swift` | Seam: imports the split targets |
 | `Tests/DictationSessionTests/Session/TranslateDictationTests.swift` | `Tests/PortavozKitTests/TranslateDictationTests.swift` | Seam: imports the split targets |
@@ -231,7 +236,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/SecreteoUITests/DictationUITests.swift` | `Tests/PortavozUITests/DictationUITests.swift` | Extract: without the native delivery tests, whose receiver arrives with the signed lane |
 | `Tests/SecreteoUITests/DictationCorrectionUITests.swift` | `Tests/PortavozUITests/DictationCorrectionUITests.swift` | Extract: without the dictionary test, which arrives with Settings |
 | `Tests/SecreteoUITests/DictationPolishUITests.swift` | `Tests/PortavozUITests/DictationPolishUITests.swift` | Extract: without the Settings tests, which are rewritten for the Polish section |
-| `Tests/SecreteoUITests/DictationTranslationUITests.swift` | `Tests/PortavozUITests/DictationTranslationUITests.swift` | Extract: without the Settings test |
+| `Tests/SecreteoUITests/DictationTranslationUITests.swift` | `Tests/PortavozUITests/DictationTranslationUITests.swift` | Extract: the Settings test is rewritten for Secreteo's form |
 | `Tests/SecreteoUITests/DictationTextModeUITests.swift` | `Tests/PortavozUITests/DictationTextModeUITests.swift` | Extract: without the Settings tests |
 | `Sources/DictationStore/DictationStore+History.swift` | `Sources/StorageKit/MeetingStore+DictationHistory.swift` | Seam: imports `DictationKit` and `SpeechCore`, and deleting, retention, a save that expires rows and a policy change end with a truncating checkpoint |
 | `Sources/DictationSession/History/ApplicationUseCase.swift` | `Sources/ApplicationKit/ApplicationUseCase.swift` | Renames |
