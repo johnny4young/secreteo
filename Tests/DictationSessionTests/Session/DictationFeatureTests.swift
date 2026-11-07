@@ -1,3 +1,4 @@
+import DictationKit
 import CryptoKit
 import Darwin
 import DictationOwnership
@@ -77,6 +78,18 @@ final class DictationFeatureTests: XCTestCase {
         try DictationFeature(
             usesTemporaryStore: true, arguments: arguments, defaults: defaults ?? makeDefaults(),
             environment: system.environment())
+    }
+
+    func testChoosingAPlainTextModeDropsASavedRecipe() {
+        let defaults = makeDefaults()
+        defaults.set(DictationTextMode.polish.rawValue, forKey: DictationTextPreferences.modeKey)
+        defaults.set("builtin.bullets", forKey: DictationTextPreferences.polishRecipeKey)
+
+        DictationFeature.store(DictationFeature.textModeValues(.polish), in: defaults, temporary: false)
+
+        let snapshot = DictationTextPreferences.snapshot(in: defaults, bundleIdentifier: nil)
+        XCTAssertEqual(snapshot.mode, .polish)
+        XCTAssertNil(snapshot.polishRecipe)
     }
 
     func testAPermissionGrantedLaterRedrawsWhatObservesIt() async throws {

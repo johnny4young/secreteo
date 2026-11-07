@@ -14,6 +14,7 @@ RENAMES = [
     # Split so the identifier ratchet does not read this file as a leak.
     ("PORTAVOZ" "_", "SECRETEO_"),
     ("@testable import portavoz" "_app", "@testable import DictationSession"),
+    ("@testable import IntelligenceKit", "@testable import Polish"),
 ]
 # App code names the app itself, so the session slices also take the new name.
 SESSION_RENAMES = [
