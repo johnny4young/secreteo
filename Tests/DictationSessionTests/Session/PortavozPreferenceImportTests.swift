@@ -102,6 +102,20 @@ final class PortavozPreferenceImportTests: XCTestCase {
         XCTAssertEqual(unreadable.changes, [])
     }
 
+    func testApplicationProfilesAreImportedOnlyWhenSecreteoCanReadThem() throws {
+        let readable = try DictationTextPreferences.encodeProfiles(
+            [DictationApplicationTextProfile(bundleIdentifier: "com.example.notes", mode: .polish)])
+        let defaults = try scratchDefaults()
+
+        let found = PortavozPreferenceImport(portavoz: [DictationTextPreferences.profilesKey: readable], current: defaults)
+        let unreadable = PortavozPreferenceImport(
+            portavoz: [DictationTextPreferences.profilesKey: #"[{"bundleIdentifier":"a b","mode":"clean"}]"#],
+            current: defaults)
+
+        XCTAssertEqual(found.values[DictationTextPreferences.profilesKey] as? String, readable)
+        XCTAssertEqual(unreadable.changes, [])
+    }
+
     func testImportingTwiceChangesNothingTheSecondTime() throws {
         let defaults = try scratchDefaults()
         // A disposable launch writes to the process-wide argument domain.

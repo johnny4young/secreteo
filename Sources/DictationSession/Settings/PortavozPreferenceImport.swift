@@ -2,7 +2,7 @@ import DictationKit
 import Foundation
 
 /// Portavoz's dictation settings that Secreteo's Settings can show and change. Activation,
-/// shortcuts, the microphone, the engines and per-app profiles stay out.
+/// shortcuts, the microphone and the engines stay out.
 @MainActor
 struct PortavozPreferenceImport {
     static let domain = KnownDictationPeers.release
@@ -89,6 +89,9 @@ struct PortavozPreferenceImport {
             text(DictationTextPreferences.polishRecipeKey, L10n.text("Polish Recipe")),
             Entry(key: DictationTextPreferences.recipesKey, name: L10n.text("Polish Recipes"), fallback: "[]") {
                 ($0 as? String).map { (try? DictationTextPreferences.decodeRecipes($0)) != nil } ?? false
+            },
+            Entry(key: DictationTextPreferences.profilesKey, name: L10n.text("Application Profiles"), fallback: "[]") {
+                ($0 as? String).map { (try? DictationTextPreferences.decodeProfiles($0)) != nil } ?? false
             },
             choice(DictationTextPreferences.translationKey, L10n.text("Translate Dictation Into"),
                    DictationTranslationTarget.allCases.map(\.rawValue), DictationTranslationTarget.off.rawValue)

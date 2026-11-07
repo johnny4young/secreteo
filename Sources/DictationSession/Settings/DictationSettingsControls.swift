@@ -77,6 +77,7 @@ struct DictationSettingsControls: View {
                 .accessibilityIdentifier("settings-dictation-filler")
             DictationDictionaryEditor(stored: dictation.preference(DictationController.replacementsKey, default: ""))
                 .disabled(!text.cleanModeInUse)
+            DictationProfileSettings(model: text) { await dictation.selectDictationProfileApplication() }
             DictationRecipeSettings(model: text)
             DictationTranslationSettings(model: text)
         }

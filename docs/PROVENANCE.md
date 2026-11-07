@@ -179,6 +179,9 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationSession/Rewrite/DictationFeature+SelectionRewrite.swift` | `Sources/portavoz-app/AppServices+SelectionRewrite.swift` | Seam: the feature instead of the app's services, the shortcut as a `HotkeySetting` through the injectable registrar, and its Settings binding |
 | `Tests/DictationSessionTests/Session/SelectionRewriteTests.swift` | `Tests/PortavozAppTests/SelectionRewriteTests.swift` | Seam: imports the split targets |
 | `Tests/SecreteoUITests/SelectionRewriteUITests.swift` | `Tests/PortavozUITests/SelectionRewriteUITests.swift` | Seam: assertions for choosing again, cancelling and the spoken instruction |
+| `Sources/DictationSession/Settings/DictationFeature+TextProfiles.swift` | `Sources/portavoz-app/AppServices+DictationTextProfiles.swift` | Seam: the feature instead of the app's services, and no message in the chooser |
+| `Sources/DictationSession/Settings/DictationProfileSettings.swift` | `Sources/portavoz-app/DictationTextSettingsSection.swift` | Extract: the application profiles, without the privacy note, labels in title case, and row identifiers joined from a prefix |
+| `Sources/DictationSession/Fixtures/DictationProfilePickerUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationTextProfileUITestFixture.swift` | Renames |
 | `Sources/DictationSession/Fixtures/DictationUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationUITestFixture.swift` | Extract: without the composition extension |
 | `Sources/DictationSession/Fixtures/DictationNativeUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationNativeUITestFixture.swift` | Seam: a line wrapped for the longer identifier |
 | `Sources/DictationSession/Fixtures/DictationNativeControllerUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationNativeControllerUITestFixture.swift` | Renames |
@@ -197,7 +200,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/DictationSessionTests/Session/DictationCorrectionTests.swift` | `Tests/PortavozAppTests/DictationCorrectionTests.swift` | Extract: without the practice test, which arrives with Practice |
 | `Tests/DictationSessionTests/Session/DictationColdStartTests.swift` | `Tests/PortavozAppTests/DictationColdStartTests.swift` | Extract: without the prewarm tests, which arrive with the composition |
 | `Tests/DictationSessionTests/Session/DictationReadinessTests.swift` | `Tests/PortavozAppTests/DictationReadinessTests.swift` | Extract: without the tests of the composition, which arrive with it |
-| `Tests/DictationSessionTests/Session/DictationTextModeDeliveryTests.swift` | `Tests/PortavozAppTests/DictationTextModeDeliveryTests.swift` | Extract: without the chooser and composition tests, which arrive with them |
+| `Tests/DictationSessionTests/Session/DictationTextModeDeliveryTests.swift` | `Tests/PortavozAppTests/DictationTextModeDeliveryTests.swift` | Extract: without the composition tests, which arrive with it. The chooser test builds the feature instead of the app's services |
 | `Tests/DictationSessionTests/Delivery/DictationDestinationRecoveryTests.swift` | `Tests/PortavozAppTests/DictationDestinationRecoveryTests.swift` | Seam: imports the split targets |
 | `Tests/DictationSessionTests/DictationAutoStopTests.swift` | `Tests/PortavozAppTests/DictationAutoStopTests.swift` | Seam: imports the split targets |
 | `Tests/DictationSessionTests/Session/TranslateDictationTests.swift` | `Tests/PortavozKitTests/TranslateDictationTests.swift` | Seam: imports the split targets |
@@ -240,7 +243,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/SecreteoUITests/DictationCorrectionUITests.swift` | `Tests/PortavozUITests/DictationCorrectionUITests.swift` | Extract: without the dictionary test, which arrives with Settings |
 | `Tests/SecreteoUITests/DictationPolishUITests.swift` | `Tests/PortavozUITests/DictationPolishUITests.swift` | Extract: without the Settings tests, which are rewritten for the Polish section |
 | `Tests/SecreteoUITests/DictationTranslationUITests.swift` | `Tests/PortavozUITests/DictationTranslationUITests.swift` | Extract: the Settings test is rewritten for Secreteo's form |
-| `Tests/SecreteoUITests/DictationTextModeUITests.swift` | `Tests/PortavozUITests/DictationTextModeUITests.swift` | Extract: without the Settings tests |
+| `Tests/SecreteoUITests/DictationTextModeUITests.swift` | `Tests/PortavozUITests/DictationTextModeUITests.swift` | Seam: the Settings tests reach the form by scrolling, without the privacy note, and drive the chooser with plain keys |
 
 ## Repository bootstrap
 
