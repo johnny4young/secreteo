@@ -15,6 +15,7 @@ The shell and dictation:
 - `DictationAgents` holds the read-only MCP server and its dictation tools. The `secreteo-mcp` executable ships in `Contents/Helpers`, opens the enclosing app's database read-only on its first call, and reads only while the user lets agents and Shortcuts read the history. The consent is a column of the database, checked in the same read as the rows. The App Intents live in `DictationSession/Intents` and reach the app through a chain of `AppIntentsPackage` types.
 - Models live in the shared store ([D9](DECISIONS.md#d9-shared-model-folder)). Before downloading, an install clones the files Portavoz already has in `Portavoz/Models`, keeps only those that hash right, and never writes there.
 - `Tests/Plans/Smoke.txt` lists the PR tests, and `scripts/run-ui-tests.sh full` runs everything.
+- `Fixtures/` holds the public synthetic dictation corpus and search fixture. The `scripts/dictation_*.py` tools admit, render and score them offline under `python3 -I`, and hygiene runs their tests ([quality protocol](DICTATION-QUALITY.md)).
 
 ## Target module graph
 

@@ -76,6 +76,18 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Preference import | `PortableSettings` | `PortableSettingsTests` | `PortavozPreferenceImportTests`, `DictationSettingsUITests` | Reads Portavoz's saved settings instead of an exported file. Imports only what Secreteo's Settings shows, after a preview ([G14](GAPS.md#g14-portavoz-settings-left-out-of-the-import)) |
 | English and Spanish | `Localizable.xcstrings` | `LocalizationTests` | | Pending, P5 |
 
+## Quality tooling
+
+| Capability or case | Portavoz source | Portavoz test | Secreteo test | State |
+|---|---|---|---|---|
+| Public corpus and audio admission | `dictation_corpus.py`, `Fixtures/DictationValidation` | `test_dictation_corpus` | The same test | Ported |
+| Rendering the corpus with macOS voices | `materialize_dictation_corpus.py`, `dictation_audio.py` | `test_dictation_materialization` | The same test | Ported |
+| Field recordings with a real microphone | `dictation_field_corpus.py`, `record-dictation-field-corpus.swift` | `test_dictation_field_corpus` | The same test, without the comparison | Ported |
+| Offline benchmark report | `dictation_benchmark.py`, `dictation_model_receipt.py` | `test_dictation_benchmark`, `test_dictation_model_runner` | `test_dictation_benchmark`, `test_dictation_model_receipt` | Ported, with only the score half of the receipt validator |
+| Speech gate over every cell | `DictationSpeechGateCorpusTests` | The same test | The same test | Ported. Skipped unless a scratch corpus and model store are named |
+| Search quality scorecard | `dictation_search_quality.py`, `Fixtures/DictationSearch` | `test_dictation_search_quality` | The same test | Scorer and fixture ported, without the meeting lane. Nothing produces observations ([G16](GAPS.md#g16-no-dictation-search-observations)) |
+| Model, controller and Ultra comparison lanes | `run_dictation_model_baseline.py`, `run_dictation_controller_matrix.py`, `run_dictation_model_comparison.py` | `test_dictation_model_runner`, `test_dictation_controller_runner`, `test_dictation_controller_matrix` | | Pending ([G15](GAPS.md#g15-model-and-controller-lanes)) |
+
 ## Approved losses
 
 | Capability | Portavoz test | Replacement |
@@ -90,7 +102,6 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 |---|---|
 | In `DictationOwnershipCoordinatorTests`: `anActivationBeforeLaunchFinishesPublishesNothing`, `turningThePreferenceOnTakesOwnershipFromNobody`, `onlyTheOwnerArmsTheShortcut`, `aWorkspaceChangeIsAHintToLookAgain`, `aHeldTriggerKeepsItsWordsWhenAHandoffDisarmsIt`, `aHeldTriggerStillCancelsWhenItIsDisabledWithNoHandoff` | The composition |
 | In `DictationAdmissionTests`: `compositionReadsOwnershipForPrewarmAndAdmission` | The composition |
-| `DictationSpeechGateCorpusTests` | The benchmark tooling |
 | In `DictationReadinessTests`: `testFixtureRecoverySurvivesFreshDependenciesForEachMenuInvocation`, `testAppSettingsWriteRejectsPreparationAndAllowsApplyAfterCancel`, `testLiveCompositionReadsTheInjectedAudioPreference` | The composition |
 | In `DictationTextModeDeliveryTests`: `firstEnableAfterAppCompositionStillDeliversLiteral`, `failedDatabaseAdmissionDoesNotInitializeTextPreferences` | The composition |
 | In `DictationSpeechGateTests`: `testTurningOnDictationPreparesTheDetectorOnlyWhenTheGateIsOn`, `testDisposableCompositionNeverDownloadsTheDetector` | The composition |
