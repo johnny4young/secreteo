@@ -80,21 +80,26 @@ extension DictationFeature {
     var textModeBinding: Binding<DictationTextMode> {
         Binding(
             get: { self.textMode },
-            set: { self.store([DictationTextPreferences.modeKey: $0.rawValue]) })
+            set: { self.store(Self.textModeValues($0)) })
+    }
+
+    /// A plain mode is never a recipe, or a saved one would keep applying under it.
+    static func textModeValues(_ mode: DictationTextMode) -> [String: Any] {
+        [DictationTextPreferences.modeKey: mode.rawValue, DictationTextPreferences.polishRecipeKey: ""]
     }
 
     var foundationModelsCapability: FoundationModelsCapability {
         .current(arguments: launchArguments)
     }
 
-    var polishEngine: DictationPolishEngine {
+    func polishEngine(capability: FoundationModelsCapability) -> DictationPolishEngine {
         _ = preferenceRevision
-        return DictationPolishEngine.current(in: defaults, capability: foundationModelsCapability)
+        return DictationPolishEngine.current(in: defaults, capability: capability)
     }
 
-    var polishEngineBinding: Binding<DictationPolishEngine> {
+    func polishEngineBinding(capability: FoundationModelsCapability) -> Binding<DictationPolishEngine> {
         Binding(
-            get: { self.polishEngine },
+            get: { self.polishEngine(capability: capability) },
             set: { self.store([DictationPolishEngine.defaultsKey: $0.rawValue]) })
     }
 
@@ -110,6 +115,7 @@ extension DictationFeature {
     /// A disposable launch never asks a real Ollama, so its tests see the same Mac everywhere.
     func ollamaModels() async -> [OllamaService.Model]? {
         guard usesTemporaryMeetingStore else { return await OllamaService.models() }
+        if launchArguments.contains("-seed-ollama-empty") { return [] }
         guard launchArguments.contains("-seed-ollama-models") else { return nil }
         return [
             OllamaService.Model(name: "llama3.2:3b", parameterSize: "3.2B", bytes: 2_019_393_189),

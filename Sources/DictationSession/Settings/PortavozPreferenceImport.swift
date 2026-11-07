@@ -2,7 +2,7 @@ import DictationKit
 import Foundation
 
 /// Portavoz's dictation settings that Secreteo's Settings can show and change. Activation,
-/// shortcuts, the microphone, the engine, Polish, translation and per-app profiles stay out.
+/// shortcuts, the microphone, the engines, recipes, translation and per-app profiles stay out.
 @MainActor
 struct PortavozPreferenceImport {
     static let domain = KnownDictationPeers.release
@@ -42,7 +42,7 @@ struct PortavozPreferenceImport {
             values[entry.key] = value
         }
         // Secreteo derives its mode from the same older keys, so compare with the mode after the import.
-        let modes = [DictationTextMode.literal.rawValue, DictationTextMode.clean.rawValue]
+        let modes = DictationTextMode.allCases.map(\.rawValue)
         if let mode = source[DictationTextPreferences.modeKey] as? String, modes.contains(mode) {
             let saved = defaults.string(forKey: DictationTextPreferences.modeKey).flatMap(DictationTextMode.init)
             let hasLegacy = legacyKeys.contains { defaults.object(forKey: $0) != nil || values[$0] != nil }

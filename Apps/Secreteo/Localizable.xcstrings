@@ -1890,6 +1890,22 @@
         }
       }
     },
+    "Ollama has no models yet. Pull one with “ollama pull”." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama has no models yet. Pull one with “ollama pull”."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ollama aún no tiene modelos. Descarga uno con “ollama pull”."
+          }
+        }
+      }
+    },
     "Ollama is not responding on localhost:11434. Install it and run “ollama serve”." : {
       "localizations" : {
         "en" : {

@@ -39,6 +39,17 @@ final class DictationPolishUITests: SecreteoUITestCase {
     }
 
     @MainActor
+    func testOllamaWithNoModelsSaysSo() throws {
+        let app = try launchSettings(#""dictationPolishEngine":"ollama""#, arguments: ["-seed-ollama-empty"])
+        defer { finishUITestApplication(app) }
+        let empty = app.control(withIdentifier: "settings-dictation-polish-ollama-empty")
+        XCTAssertTrue(reveal(empty, in: app))
+        XCTAssertTrue(app.control(withIdentifier: "settings-dictation-polish-ollama-retry").exists)
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-polish-ollama-model").exists)
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-polish-ollama-checking").exists)
+    }
+
+    @MainActor
     func testAppleIntelligenceThatCannotRunSaysWhyAndOllamaCanBeChosen() throws {
         let app = try launchSettings(
             #""dictationPolishEngine":"appleOnDevice""#, arguments: ["-simulate-no-apple-intelligence"])
