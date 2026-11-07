@@ -742,20 +742,23 @@ extension DictationController {
     /// Pastes the remembered text into whatever is focused now, through the
     /// same delivery and recovery path as a fresh dictation. Undelivered words
     /// in recovery are that text, so they paste where the user is now.
-    func pasteLastDictation(using dependencies: DictationSessionDependencies, alternate: Bool = false) {
+    /// False when nothing was sent.
+    @discardableResult
+    func pasteLastDictation(using dependencies: DictationSessionDependencies, alternate: Bool = false) -> Bool {
         guard !isActive, retryDeliveryTask == nil,
               case .success(let lease) = dependencies.admission.acquire(dependencies.admissionKind)
-        else { return }
+        else { return false }
         let store = dependencies.admissionKind == .practice ? practiceLastText : lastText
         guard let text = alternate ? store.takeCurrentAlternate() : store.takeCurrent(), dependencies.canInsert() else {
             lease.release()
-            return
+            return false
         }
         cancelFeedbackDismissal()
         self.dependencies = dependencies
         let id = UUID()
         deliveryID = id
         replay(text, into: dependencies.captureDestination(), id: id, lease: lease)
+        return true
     }
 
     private func replay(
