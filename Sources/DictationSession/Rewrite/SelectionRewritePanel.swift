@@ -64,7 +64,7 @@ struct SelectionRewriteView: View {
 
     static func height(for phase: SelectionRewriteController.Phase) -> CGFloat {
         switch phase {
-        case .preview: 300
+        case .preview: 264
         case .choosing, .rewriting, .listening: 190
         default: 96
         }
