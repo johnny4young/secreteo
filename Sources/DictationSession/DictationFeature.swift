@@ -51,13 +51,11 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored private var preferencesObserver: (any NSObjectProtocol)?
     let controller: DictationController
     @ObservationIgnored let practice = DictationPracticeField()
+    @ObservationIgnored let history: DictationHistoryModel
     @ObservationIgnored private let settingsWindowHolder = UUID()
 
     /// Created on first use, because creating it writes the initial text mode.
     @ObservationIgnored var textSettingsIfCreated: DictationTextSettingsModel?
-
-    /// Reads the engine chosen in Settings on every call.
-    var dictationPolisher: any DictationTextPolishing { DictationPolishRouter.live(defaults: defaults) }
 
     public internal(set) var modelState = ModelState.missing
     private var speechModelIsInstalled = false
@@ -88,6 +86,8 @@ public final class DictationFeature: AppServices {
                 : .userLibrary,
             consumer: StoreConsumer(bundleID: identifier, displayName: "Secreteo"))
         self.modelStore = modelStore
+        history = DictationHistoryModel(
+            store: Self.openHistoryStore(usesTemporaryStore: usesTemporaryStore, bundleIdentifier: identifier))
         fixture = DictationUITestFixture(arguments: arguments, usesTemporaryStore: usesTemporaryStore)
         launchArguments = arguments
         let environment = environment ?? (usesTemporaryStore
@@ -147,6 +147,7 @@ public final class DictationFeature: AppServices {
             await showRememberedModels()
             await refreshReadiness()
         }
+        Task { await loadDictationHistory() }
         if let models = environment.models {
             Task.detached(priority: .utility) { await models.collectUnused() }
         }
@@ -303,18 +304,14 @@ public final class DictationFeature: AppServices {
         makeDictationSessionDependencies(capturesInstruction: true)
     }
 
-    func makeDictationSessionDependencies(capturesInstruction: Bool) -> DictationSessionDependencies {
-        let routed = practice.route(
-            unroutedDependencies(), appIsActive: NSApplication.shared.isActive && practiceIsShown)
-        // A rewrite waiting for "Say how" takes the next session's words as its instruction.
-        return capturesInstruction && selectionRewrite.capturesInstruction
-            ? selectionRewrite.instructionDependencies(routed) : routed
+    func unroutedDependencies() -> DictationSessionDependencies {
+        var dependencies = usesTemporaryMeetingStore
+            ? fixtureDependencies() : .live(services: self, beginCapture: { {} })
+        dependencies.beginHistory = { [weak self] in self?.history.admit() }
+        return dependencies
     }
 
-    private func unroutedDependencies() -> DictationSessionDependencies {
-        guard usesTemporaryMeetingStore else {
-            return .live(services: self, beginCapture: { {} })
-        }
+    private func fixtureDependencies() -> DictationSessionDependencies {
         var dependencies = DictationUITestFixture.dependencies(
             fixture: fixture, admission: dictationAdmission, beginCapture: { {} })
         dependencies.waitForFeedbackDismissal = DictationUITestFixture.waitHoldingUnverifiedNotices

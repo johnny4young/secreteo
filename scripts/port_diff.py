@@ -30,6 +30,14 @@ SESSION_RENAMES = [
     ("0x5056" "_4F5A", "0x5343_5254"),
     ('"PV' 'OZ"', '"SCRT"'),
 ]
+# The store took the dictation tables out of the meeting store, so its files and their users rename it.
+STORE_RENAMES = [
+    (re.compile(r"\bMeeting" r"Store\b"), "DictationStore"),
+    (re.compile(r"\bStorageError\b"), "DictationStoreError"),
+    (re.compile(r"\bStorageSchema\b"), "DictationSchema"),
+    (re.compile(r"\bimport StorageKit\b"), "import DictationStore"),
+]
+STORE_SCOPE = ("DictationStore", "DictationHistory", "DictationStats", "DictationSearch", "ApplicationUseCase")
 ROW = re.compile(r"^\| `([^`]+)` \| `([^`]+)` \| (.+?) \|$")
 SECTION = "## Dictation code"
 
@@ -49,6 +57,9 @@ def renamed(source: str, ported_path: str) -> list[str]:
     source = source.replace("import TranscriptionKit", f"import {'DictationKit' if in_domain else 'LiveSpeech'}")
     for old, new in RENAMES + (SESSION_RENAMES if "DictationSession" in ported_path else []):
         source = source.replace(old, new)
+    if any(scope in ported_path for scope in STORE_SCOPE):
+        for pattern, new in STORE_RENAMES:
+            source = pattern.sub(new, source)
     return source.splitlines()
 
 

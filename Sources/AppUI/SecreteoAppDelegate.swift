@@ -49,6 +49,7 @@ public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
     private var model: AppModel?
     private var statusItem: StatusItemController?
     private var settings: SettingsWindowController?
+    private var history: HistoryWindowController?
     private var onboarding: OnboardingWindowController?
     private var watchdog: AffordanceWatchdog?
     private var menuContentWindow: NSWindow?
@@ -143,6 +144,14 @@ public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
         model.openSettings = { [weak settings, weak statusItem] in
             statusItem?.closeMenu()
             settings?.show()
+        }
+        if let dictation = model.dictation {
+            let history = HistoryWindowController(dictation: dictation)
+            model.openHistory = { [weak history, weak statusItem] in
+                statusItem?.closeMenu()
+                history?.show()
+            }
+            self.history = history
         }
         self.model = model
         self.settings = settings
