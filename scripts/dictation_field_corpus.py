@@ -67,11 +67,15 @@ def main(argv=None):
             if missing:
                 print(json.dumps({"missing": missing}), file=sys.stderr)
                 return 2
-            publish_json(arguments.audio_root / "manifest.json", manifest)
+            # Derived from the recordings, so a rebuild after --redo replaces it.
+            publish_json(arguments.audio_root / "manifest.json", manifest, replace=True)
         manifest, _ = corpus.read_json(arguments.audio_root / "manifest.json")
         print(json.dumps(validate(manifest, arguments.audio_root), sort_keys=True))
         return 0
-    except (OSError, corpus.CorpusError) as error:
+    except OSError as error:
+        print(f"field corpus: {error.strerror or 'file system error'}", file=sys.stderr)
+        return 2
+    except corpus.CorpusError as error:
         print(f"field corpus: {error}", file=sys.stderr)
         return 2
 

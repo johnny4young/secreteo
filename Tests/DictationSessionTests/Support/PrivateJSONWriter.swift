@@ -61,13 +61,10 @@ enum PrivateJSONWriter {
         }
         do {
             try writeAll(data, descriptor: descriptor)
-            guard Darwin.fsync(descriptor) == 0,
-                  Darwin.close(descriptor) == 0
-            else {
-                descriptor = -1
-                throw PrivateJSONWriterError.publicationFailed
-            }
+            let synced = Darwin.fsync(descriptor) == 0
+            let closed = Darwin.close(descriptor) == 0
             descriptor = -1
+            guard synced, closed else { throw PrivateJSONWriterError.publicationFailed }
             guard Darwin.link(temporary.path, output.path) == 0 else {
                 if errno == EEXIST {
                     throw PrivateJSONWriterError.outputAlreadyExists

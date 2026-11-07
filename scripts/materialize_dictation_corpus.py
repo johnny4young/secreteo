@@ -30,8 +30,8 @@ def fingerprint(value):
     return hashlib.sha256(data).hexdigest()
 
 
-def publish_json(path, document):
-    """Publish one owner-only file without replacing another writer's result."""
+def publish_json(path, document, *, replace=False):
+    """Publish one owner-only file; without `replace`, never over another writer's result."""
     data = (json.dumps(document, sort_keys=True, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
     descriptor, temporary = tempfile.mkstemp(prefix=".receipt-", dir=path.parent)
     try:
@@ -39,7 +39,10 @@ def publish_json(path, document):
             stream.write(data)
             stream.flush()
             os.fsync(stream.fileno())
-        os.link(temporary, path)
+        if replace:
+            os.replace(temporary, path)
+        else:
+            os.link(temporary, path)
     finally:
         Path(temporary).unlink(missing_ok=True)
 

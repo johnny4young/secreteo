@@ -76,6 +76,18 @@ class FieldCorpusTests(unittest.TestCase):
         self.assertEqual(built.returncode, 0, built.stderr)
         self.assertEqual(os.stat(self.root / 'manifest.json').st_mode & 0o777, 0o600)
 
+    def test_build_after_a_redo_replaces_the_manifest(self):
+        script = ROOT / 'scripts' / 'dictation_field_corpus.py'
+        command = [sys.executable, '-I', str(script), 'build', '--audio-root', str(self.root)]
+        self.assertEqual(subprocess.run(command, capture_output=True, check=False).returncode, 0)
+        before = (self.root / 'manifest.json').read_bytes()
+        write_wav(self.root / 'es-accent.field.wav', value=7)
+        rebuilt = subprocess.run(command, capture_output=True, text=True, check=False)
+        self.assertEqual(rebuilt.returncode, 0, rebuilt.stderr)
+        self.assertNotEqual((self.root / 'manifest.json').read_bytes(), before)
+        self.assertEqual(os.stat(self.root / 'manifest.json').st_mode & 0o777, 0o600)
+        self.assertEqual([path.name for path in self.root.glob('.receipt-*')], [])
+
     @unittest.skipUnless(shutil.which('xcrun'), 'needs the Swift toolchain')
     def test_recorder_writes_the_admitted_profile_and_format(self):
         recorder = ROOT / 'scripts' / 'record-dictation-field-corpus.swift'
