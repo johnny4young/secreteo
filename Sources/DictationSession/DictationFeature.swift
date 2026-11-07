@@ -135,6 +135,7 @@ public final class DictationFeature: AppServices {
         }
         ownership.start()
         syncDictationTriggers()
+        installDictationIntents()
         Task {
             await showRememberedModels()
             await refreshReadiness()
@@ -215,12 +216,6 @@ public final class DictationFeature: AppServices {
             modelState = .failed
             throw error
         }
-    }
-
-    /// Reports arrive on separate tasks, so a late one must not move the bar back or reach another install.
-    func modelDownloaded(_ fraction: Double, generation: Int) {
-        guard modelInstall != nil, generation == modelInstallGeneration else { return }
-        modelDownloadFraction = max(modelDownloadFraction ?? 0, fraction)
     }
 
     /// The way out of a corrupt ownership file, which nothing else may overwrite.
@@ -528,5 +523,13 @@ enum DictationFeatureError: LocalizedError {
 private struct UnavailablePolisher: DictationTextPolishing {
     func polish(_ text: String, recipe: String?) async throws -> String {
         throw DictationPolishUnavailable(reason: L10n.text("No Polish engine is available."))
+    }
+}
+
+extension DictationFeature {
+    /// Reports arrive on separate tasks, so a late one must not move the bar back or reach another install.
+    func modelDownloaded(_ fraction: Double, generation: Int) {
+        guard modelInstall != nil, generation == modelInstallGeneration else { return }
+        modelDownloadFraction = max(modelDownloadFraction ?? 0, fraction)
     }
 }
