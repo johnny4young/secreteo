@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
-# Usage: run-ui-tests.sh <smoke|full> [screenshot-dir]
+# Usage: run-ui-tests.sh <smoke|full> [screenshot-dir] [shard, as index/count]
 # Builds once, runs the plan, and exports `pr-*` attachments for PR evidence.
 set -euo pipefail
 
 plan="${1:?smoke or full}"
 screenshots="${2:-build/pr-screenshots}"
+shard="${3:-}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 scripts/fetch-sparkle.sh
 xcodegen generate --quiet
-results="build/ui-$plan.xcresult"
+results="build/ui-$plan${shard:+-${shard%%/*}}.xcresult"
 rm -rf "$results" "$screenshots"
 mkdir -p build "$screenshots"
 
@@ -19,6 +20,17 @@ if [[ "$plan" == "smoke" ]]; then
   while IFS= read -r test; do
     [[ -n "$test" ]] && selection+=("-only-testing:$test")
   done < Tests/Plans/Smoke.txt
+elif [[ "$plan" == "full" && -n "$shard" ]]; then
+  # A plain assignment, so a failing helper stops the run instead of leaving the selection empty.
+  classes="$(python3 -I scripts/ui_test_shards.py "${shard%%/*}" "${shard##*/}")"
+  while IFS= read -r test_class; do
+    [[ -n "$test_class" ]] && selection+=("-only-testing:SecreteoUITests/$test_class")
+  done <<< "$classes"
+  # An empty selection would run the whole plan.
+  if [[ ${#selection[@]} -eq 0 ]]; then
+    echo "Shard $shard has no test classes." >&2
+    exit 64
+  fi
 elif [[ "$plan" != "full" ]]; then
   echo "Unknown plan: $plan" >&2
   exit 64

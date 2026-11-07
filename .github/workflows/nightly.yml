@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: "17 6 * * *"
   workflow_dispatch:
+    inputs:
+      ui_only:
+        # The macOS runners are shared across repositories, so PR evidence skips the other lanes.
+        description: Run only the full UI plan
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -16,6 +22,12 @@ concurrency:
 
 jobs:
   ui-full:
+    # Two halves in parallel keep each within its budget as the plan grows.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    name: ui-full (${{ matrix.shard }}/2)
     runs-on: macos-26
     timeout-minutes: 20
     env:
@@ -24,23 +36,24 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: scripts/verify-ci-toolchain.sh 26 26.6
       - run: scripts/install-ci-xcodegen.sh "$RUNNER_TEMP/xcodegen"
-      - run: scripts/run-ui-tests.sh full build/pr-screenshots
+      - run: scripts/run-ui-tests.sh full build/pr-screenshots "${{ matrix.shard }}/2"
       # A dispatch on a branch is how tests outside the smoke plan get PR evidence.
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: pr-screenshots
+          name: pr-screenshots-${{ matrix.shard }}
           path: build/pr-screenshots
           if-no-files-found: ignore
           retention-days: 14
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: ui-full-results
-          path: build/ui-full.xcresult
+          name: ui-full-results-${{ matrix.shard }}
+          path: build/ui-full-${{ matrix.shard }}.xcresult
           retention-days: 7
 
   release-dryrun:
+    if: ${{ !inputs.ui_only }}
     runs-on: macos-26
     timeout-minutes: 25
     env:
@@ -52,6 +65,7 @@ jobs:
       - run: scripts/release-dryrun.sh
 
   signed-handoff:
+    if: ${{ !inputs.ui_only }}
     runs-on: macos-26
     timeout-minutes: 12
     env:
