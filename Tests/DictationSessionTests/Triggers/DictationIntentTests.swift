@@ -213,4 +213,32 @@ final class DictationIntentTests: XCTestCase {
         model.show(search: "report")
         XCTAssertEqual(model.filter, DictationRecordFilter(query: "report"))
     }
+
+    @MainActor
+    func testOpenDictationsSearchesAClosedOrAnAlreadyLoadedHistory() async throws {
+        let previous = SecreteoAppIntentBridge.navigationHandler
+        defer { SecreteoAppIntentBridge.navigationHandler = previous }
+        let name = "DictationIntentTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        let feature = try DictationFeature(
+            usesTemporaryStore: true, arguments: ["-seed-dictation-history", "-seed-dictation-history-records"],
+            defaults: defaults)
+        var opened = 0
+        feature.installDictationNavigation { opened += 1 }
+
+        SecreteoAppIntentBridge.requestNavigation(.dictations("informe"))
+        XCTAssertEqual(feature.history.filter, DictationRecordFilter(query: "informe"), "searched when it loads")
+        XCTAssertEqual(opened, 1)
+
+        feature.history.show(search: "")
+        await feature.loadDictationHistory()
+        XCTAssertEqual(feature.history.records.count, 2)
+        SecreteoAppIntentBridge.requestNavigation(.dictations("report"))
+        let reloaded = await TestPolling.until {
+            feature.history.records.map(\.text) == ["Send the report on Friday."]
+        }
+        XCTAssertTrue(reloaded, "an open window reloads with the new search")
+        XCTAssertEqual(opened, 2)
+    }
 }

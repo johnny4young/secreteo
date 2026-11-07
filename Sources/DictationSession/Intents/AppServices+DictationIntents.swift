@@ -79,7 +79,12 @@ extension DictationFeature {
             guard let self, case .dictations(let words)? = SecreteoAppIntentBridge.consumeNavigationRequest() else {
                 return
             }
-            history.show(search: words)
+            // A window already showing rows reloads now; a closed one searches when it loads.
+            if history.isLoaded {
+                Task { await self.history.apply(DictationRecordFilter(query: words)) }
+            } else {
+                history.show(search: words)
+            }
             openHistory()
         }
     }
