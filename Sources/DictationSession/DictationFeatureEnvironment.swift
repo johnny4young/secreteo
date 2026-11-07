@@ -33,14 +33,16 @@ struct DictationFeatureEnvironment {
     }
 
     /// A disposable launch never reads a real Portavoz install, only the fixture.
-    static func disposable(permissionsAreMissing: Bool, seedsPortavozPreferences: Bool = false) -> Self {
+    static func disposable(
+        permissionsAreMissing: Bool, seedsPortavozPreferences: Bool = false, models: DictationModels? = nil
+    ) -> Self {
         Self(
             microphoneState: { permissionsAreMissing ? .notDetermined : .authorized },
             accessibilityIsGranted: { !permissionsAreMissing },
             askForMicrophone: {},
             askForAccessibility: {},
             openMicrophoneSettings: {},
-            models: nil,
+            models: models,
             portavozPreferences: { seedsPortavozPreferences ? PortavozPreferenceImport.fixture : [:] })
     }
 }

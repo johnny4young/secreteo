@@ -37,6 +37,7 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored let warmEngine: WarmModel<ParakeetEngine>
     @ObservationIgnored private var readinessPoll: Task<Void, Never>?
     @ObservationIgnored private var modelInstall: Task<Void, any Error>?
+    @ObservationIgnored private(set) var modelInstallGeneration = 0
     @ObservationIgnored private var memoryPressure: (any DispatchSourceMemoryPressure)?
     @ObservationIgnored let pressure = DictationMemoryPressure()
     /// Registers the fixed shortcuts, Paste Last and Rewrite; tests inject one.
@@ -58,6 +59,8 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored var textSettingsIfCreated: DictationTextSettingsModel?
 
     public internal(set) var modelState = ModelState.missing
+    /// Nil until the store reports bytes, so the bar starts indeterminate.
+    private(set) var modelDownloadFraction: Double?
     private var speechModelIsInstalled = false
     public private(set) var isEnabled: Bool
     public private(set) var microphoneIsAuthorized: Bool
@@ -93,7 +96,8 @@ public final class DictationFeature: AppServices {
         let environment = environment ?? (usesTemporaryStore
             ? .disposable(
                 permissionsAreMissing: arguments.contains("-seed-dictation-permissions-missing"),
-                seedsPortavozPreferences: arguments.contains("-seed-portavoz-preferences"))
+                seedsPortavozPreferences: arguments.contains("-seed-portavoz-preferences"),
+                models: arguments.contains("-seed-model-download-held") ? .heldDownload : nil)
             : .live(microphone: microphonePermissions, models: .live(
                 store: modelStore, defaults: defaults, seedRoot: DictationModels.portavozModels)))
         self.environment = environment
@@ -198,23 +202,6 @@ public final class DictationFeature: AppServices {
         Task {
             try? await installModels()
             await refreshReadiness()
-        }
-    }
-
-    /// Settings and onboarding share one install, so neither reports the other's result as its own.
-    func installModels() async throws {
-        guard let models = environment.models else { return }
-        if let modelInstall { return try await modelInstall.value }
-        if modelState != .ready { modelState = .downloading }
-        let install = Task { try await models.installMissing() }
-        modelInstall = install
-        defer { modelInstall = nil }
-        do {
-            try await install.value
-            modelState = .ready
-        } catch {
-            modelState = .failed
-            throw error
         }
     }
 
@@ -525,5 +512,40 @@ enum DictationFeatureError: LocalizedError {
 
     var errorDescription: String? {
         L10n.text("The speech model is not installed. Download it in Settings.")
+    }
+}
+
+extension DictationFeature {
+    /// Settings and onboarding share one install, so neither reports the other's result as its own.
+    func installModels() async throws {
+        guard let models = environment.models else { return }
+        if let modelInstall { return try await modelInstall.value }
+        if modelState != .ready { modelState = .downloading }
+        modelDownloadFraction = nil
+        modelInstallGeneration += 1
+        let generation = modelInstallGeneration
+        let install = Task { [weak self] in
+            try await models.installMissing { fraction in
+                Task { @MainActor in self?.modelDownloaded(fraction, generation: generation) }
+            }
+        }
+        modelInstall = install
+        defer {
+            modelInstall = nil
+            modelDownloadFraction = nil
+        }
+        do {
+            try await install.value
+            modelState = .ready
+        } catch {
+            modelState = .failed
+            throw error
+        }
+    }
+
+    /// Reports arrive on separate tasks, so a late one must not move the bar back or reach another install.
+    func modelDownloaded(_ fraction: Double, generation: Int) {
+        guard modelInstall != nil, generation == modelInstallGeneration else { return }
+        modelDownloadFraction = max(modelDownloadFraction ?? 0, fraction)
     }
 }
