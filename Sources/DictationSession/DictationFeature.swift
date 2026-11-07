@@ -134,6 +134,7 @@ public final class DictationFeature: AppServices {
         }
         ownership.start()
         syncDictationTriggers()
+        installDictationIntents()
         Task {
             await showRememberedModels()
             await refreshReadiness()

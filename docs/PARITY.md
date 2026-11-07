@@ -36,7 +36,7 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Push to talk, Fn and modifiers | `ModifierKeyPTT`, `DictationController+ModifierKey` | `ModifierKeyGestureTests`, `DictationModifierOwnershipTests` | `ModifierKeyGestureTests` | Armed in Debug and `make install` when configured, with its control in Settings |
 | Push to talk, mouse | `MouseButtonPTT`, `MousePTTGesture` | `MousePTTGestureTests` | The same tests | Armed in Debug and `make install` when configured, with its control in Settings |
 | Menu | `MenuBarView`, `MenuBarModel` | `MenuBarModelTests`, `DictationUITests` | `DictationUITests` | Dictate and Paste last in the menu |
-| App Intents | `AppServices+DictationIntents` | `DictationIntentTests` | | Pending, P8 |
+| App Intents | `AppServices+DictationIntents` | `DictationIntentTests` | `DictationIntentTests` | Dictate and Paste last ported, through the shortcut's admission. Search and Open dictations wait for the history, P8 |
 | Paste last | `DictationController+PasteLast`, `AppServices+PasteLastDictation` | `DictationPasteLastTests` | The same tests | In the menu, and with an optional shortcut |
 | Selection Rewrite | `SelectionRewriteController`, `SelectionCapture` | `SelectionRewriteTests`, `SelectionRewriteUITests` | | Pending, P6 |
 | Practice | `DictationPracticeField`, `DictationPracticeView` | `DictationPracticeFieldTests`, `DictationPracticeUITests` | The same tests, with the onboarding journey in `OnboardingUITests` | In Settings and in onboarding, each window holding the field |
