@@ -51,7 +51,8 @@ struct DictationCompactStripView: View {
                 icon
                     .accessibilityIdentifier("dictation-panel-compact")
                 DictationWaveform(
-                    level: controller.micLevel, isActive: controller.phase == .listening, dimmed: isLoadingModel)
+                    level: controller.micLevel, isActive: DictationWaveform.animates(for: controller),
+                    dimmed: isLoadingModel)
                     .frame(width: 64, height: 22)
                     .accessibilityIdentifier("dictation-panel-meter")
                 TimelineView(.periodic(from: .now, by: 1)) { context in
@@ -85,7 +86,7 @@ struct DictationCompactStripView: View {
         } else {
             Image(systemName: "waveform.badge.mic")
                 .foregroundStyle(controller.phase == .listening ? SecreteoDesign.accent : Color.secondary)
-                .symbolEffect(.pulse, isActive: controller.phase == .listening)
+                .symbolEffect(.pulse, isActive: controller.microphoneIsOpen)
                 .accessibilityLabel(L10n.text("Dictating"))
         }
     }
