@@ -21,7 +21,7 @@ final class LiveSpeechSelectionTests: XCTestCase {
                        "an explicit Parakeet choice survives the new default")
     }
 
-    /// Ultra cannot be selected yet, so its default reads v3 for readiness and for the load.
+    /// Until Ultra is downloaded, its default reads v3 for readiness and for the load.
     func testTheDefaultUltraNeitherDownloadsNorBlocksDictation() async throws {
         let suite = "live-speech-ultra-default-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
