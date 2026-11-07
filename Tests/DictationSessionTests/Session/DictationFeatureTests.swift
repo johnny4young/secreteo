@@ -989,6 +989,29 @@ final class WarmModelTests: XCTestCase {
         XCTAssertFalse(warm.isHoldingModel, "Two apps must not each keep a model warm")
     }
 
+    func testALoadStartedBeforeAReleaseIsNotKeptOrShared() async throws {
+        let loads = Mutex(0)
+        let (gate, release) = AsyncStream.makeStream(of: Void.self)
+        let warm = WarmModel<Model>(mayKeep: { true }, load: {
+            let load = loads.withLock { $0 += 1; return $0 }
+            if load == 1 { for await _ in gate { break } }
+            return Model()
+        })
+        let earlier = Task { try await warm.acquire() }
+        await Task.yield()
+
+        warm.release()
+        _ = try await warm.acquire()
+        release.finish()
+        _ = try await earlier.value
+
+        XCTAssertEqual(loads.withLock { $0 }, 2, "The acquire after the release loads afresh")
+        warm.release()
+        XCTAssertFalse(warm.isHoldingModel)
+        _ = try await warm.acquire()
+        XCTAssertEqual(loads.withLock { $0 }, 3)
+    }
+
     func testAModelIsReusedAndGivenBackWhenIdle() async throws {
         let loads = Mutex(0)
         let warm = WarmModel<Model>(idleLimit: { .milliseconds(10) }, mayKeep: { true }, load: {

@@ -63,6 +63,7 @@ public final class DictationFeature: AppServices {
     public internal(set) var modelState = ModelState.missing
     /// Nil until the store reports bytes, so the bar starts indeterminate.
     private(set) var modelDownloadFraction: Double?
+    let ultra = SpeechUltraDownload()
     private var speechModelIsInstalled = false
     public private(set) var isEnabled: Bool
     public private(set) var microphoneIsAuthorized: Bool
@@ -117,17 +118,14 @@ public final class DictationFeature: AppServices {
             seedsCorruptState: usesTemporaryStore && arguments.contains("-seed-dictation-corrupt-ownership"))
         self.ownership = ownership
         // Two apps must not each keep a model warm.
+        // UserDefaults is thread-safe.
+        nonisolated(unsafe) let engineDefaults = defaults
         warmEngine = WarmModel(
             idleLimit: { [pressure] in
                 DictationModelMemory.current(in: defaults).idleLimit(underPressure: pressure.isActive)
             },
             mayKeep: { ownership.state == .owned },
-            load: {
-                guard let installed = await modelStore.verifiedInstallation(ModelCatalog.parakeetTdtV3) else {
-                    throw DictationFeatureError.modelMissing
-                }
-                return try await ParakeetEngine.load(fromVerifiedDirectory: installed.directory)
-            })
+            load: { try await Self.loadSpeechModel(store: modelStore, defaults: engineDefaults) })
         controller = DictationController()
         practice.onForget = { [controller] in controller.practiceLastText.clear() }
         fixedShortcutRegistrar = usesTemporaryStore ? nil : DictationShortcut.liveRegistrar
