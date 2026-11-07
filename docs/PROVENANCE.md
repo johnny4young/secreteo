@@ -136,7 +136,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/DictationSessionTests/Triggers/HotkeySettingTests.swift` | `Tests/PortavozAppTests/HotkeySettingTests.swift` | Renames |
 | `Tests/DictationSessionTests/Triggers/ModifierKeyGestureTests.swift` | `Tests/PortavozAppTests/ModifierKeyGestureTests.swift` | Renames |
 | `Tests/DictationSessionTests/Triggers/MousePTTGestureTests.swift` | `Tests/PortavozAppTests/MousePTTGestureTests.swift` | Renames |
-| `Sources/DictationSession/DictationController.swift` | `Sources/portavoz-app/DictationController.swift` | Seam: imports the split targets, messages that named Portavoz's engine and panels are rewritten, and the panel is a placeholder for now. Fixes: a cancelled session corrects nothing, an old transform keeps its hands off a new Escape key, a capture failure keeps the words, expired words leave its state, and a closed notice frees Paste last |
+| `Sources/DictationSession/DictationController.swift` | `Sources/portavoz-app/DictationController.swift` | Seam: imports the split targets, messages that named Portavoz's engine and panels are rewritten, and the panel is a placeholder for now. Fixes: a cancelled session corrects nothing, an old transform keeps its hands off a new Escape key, a capture failure keeps the words, expired words leave its state, a closed notice frees Paste last, and Paste last says whether it sent anything |
 | `Sources/DictationSession/DictationController+History.swift` | `Sources/portavoz-app/DictationController+History.swift` | Seam: imports the split targets, and the draft can be forgotten |
 | `Sources/DictationSession/DictationController+Hotkey.swift` | `Sources/portavoz-app/DictationController+Hotkey.swift` | Renames |
 | `Sources/DictationSession/DictationController+ModifierKey.swift` | `Sources/portavoz-app/DictationController+ModifierKey.swift` | Renames |
@@ -151,6 +151,23 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationKit/DictationTextPolishing.swift` | `Sources/IntelligenceKit/DictationTextPolishing.swift` | Renames |
 | `Sources/DictationKit/PolishDictation.swift` | `Sources/ApplicationKit/PolishDictation.swift` | Seam: imports the split targets |
 | `Sources/DictationKit/TranslateDictation.swift` | `Sources/ApplicationKit/TranslateDictation.swift` | Renames |
+| `Sources/Polish/DictationPolishPrompt.swift` | `Sources/IntelligenceKit/DictationPolishPrompt.swift` | Renames |
+| `Sources/Polish/ReasoningEnvelope.swift` | `Sources/IntelligenceKit/ReasoningEnvelope.swift` | Renames |
+| `Sources/Polish/GenerationOptions+Greedy.swift` | `Sources/IntelligenceKit/GenerationOptions+Greedy.swift` | Seam: a comment no longer names the source app |
+| `Sources/Polish/OpenAICompatibleChatCodec.swift` | `Sources/IntelligenceKit/BYOK.swift` | Extract: the chat codec, with an error of its own and no answer-only parse |
+| `Sources/Polish/OllamaService.swift` | `Sources/IntelligenceKit/OllamaService.swift` | Extract: the endpoint, the model list, which tells a silent Ollama from one with no models, and the Polish client |
+| `Sources/Polish/DictationTextPolishers.swift` | `Sources/IntelligenceKit/DictationTextPolishers.swift` | Seam: imports `DictationKit`, no MLX, no scheduler, and metadata with no meeting, operation or consent fields |
+| `Sources/Polish/FoundationModelsAvailability.swift` | `Sources/IntelligenceKit/FoundationModelSummaryProvider.swift` | Extract: the availability check and its reasons |
+| `Sources/Polish/DataEgress.swift` | `Sources/PortavozCore/DataEgress.swift` | Extract: destination scope, provider disclosure, request, response, error and port, for Polish only |
+| `Sources/Polish/URLSessionDataEgressGateway.swift` | `Sources/IntegrationsKit/URLSessionDataEgressGateway.swift` | Extract: the Polish validation and transport, with no receipt journal ([D24](DECISIONS.md#d24-polish-runs-only-on-this-mac-and-keeps-no-journal)) |
+| `Sources/DictationSession/FoundationModelsCapability.swift` | `Sources/portavoz-app/FoundationModelsCapability.swift` | Seam: the fallback engine is Ollama instead of MLX |
+| `Sources/DictationSession/DictationPolishRouter.swift` | `Sources/portavoz-app/AppServices+DictationPolish.swift` | Seam: two engines with Polish's own preference keys, messages point at Settings, and no MLX or resource governor |
+| `Tests/PolishTests/DictationPolishPromptTests.swift` | `Tests/PortavozKitTests/DictationPolishPromptTests.swift` | Renames |
+| `Tests/PolishTests/OllamaChatTests.swift` | `Tests/PortavozKitTests/IntelligenceTests.swift` | Extract: the chat codec, Ollama model list and reasoning tests, on a loopback endpoint |
+| `Tests/PolishTests/DataEgressGatewayTestDoubles.swift` | `Tests/PortavozTestSupport/DataEgressGatewayTestDoubles.swift` | Extract: the capturing gateway |
+| `Tests/PolishTests/DictationTextPolisherTests.swift` | `Tests/PortavozKitTests/DictationTextPolisherTests.swift` | Extract: without the MLX tests |
+| `Tests/PolishTests/DictationPolishEgressTests.swift` | `Tests/PortavozKitTests/DictationPolishEgressTests.swift` | Extract: the gateway tests, rewritten for one operation with no store or journal |
+| `Tests/DictationSessionTests/Session/DictationPolishRouterTests.swift` | `Tests/PortavozAppTests/DictationPolishRouterTests.swift` | Extract: without the MLX tests, plus the default engine |
 | `Sources/DictationSession/Fixtures/DictationUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationUITestFixture.swift` | Extract: without the composition extension |
 | `Sources/DictationSession/Fixtures/DictationNativeUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationNativeUITestFixture.swift` | Seam: a line wrapped for the longer identifier |
 | `Sources/DictationSession/Fixtures/DictationNativeControllerUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationNativeControllerUITestFixture.swift` | Renames |
@@ -204,13 +221,16 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/DictationSessionTests/Session/OnboardingModelPreparationTests.swift` | `Tests/PortavozAppTests/OnboardingModelPreparationTests.swift` | Seam: `LocalModelStore` errors, plus a busy store and a missing model |
 | `Tests/SecreteoUITests/OnboardingUITests.swift` | `Tests/PortavozUITests/OnboardingUITests.swift` | Extract: the model recovery journey, with the dictation steps, Skip, permissions and practice |
 | `Sources/DictationSession/Triggers/PasteLastShortcut.swift` | `Sources/portavoz-app/AppServices+PasteLastDictation.swift` | Extract: the key and its default, as a `HotkeySetting`. The registration is in `DictationFeature.swift`, frees the key while a shortcut is being recorded, and is injectable |
+| `Sources/DictationSession/Intents/DictationIntents.swift` | `Sources/portavoz-app/PortavozAppIntents.swift` | Extract: Dictate, Paste last and their bridge, which calls one handler instead of posting. Refusals name ownership, unavailability and Accessibility apart. Search and Open dictations wait for the history |
+| `Sources/DictationSession/Intents/AppServices+DictationIntents.swift` | `Sources/portavoz-app/PortavozAppDelegate.swift` | Extract: the intent outcome, on the controller with the shortcut's dependencies and admission. The feature answers instead of the delegate, a paste in recovery is allowed like the menu's, and a paste that sent nothing says why |
+| `Tests/DictationSessionTests/Triggers/DictationIntentTests.swift` | `Tests/PortavozAppTests/DictationIntentTests.swift` | Extract: the dictation and paste tests, plus refusals by ownership |
 | `Sources/DictationSession/DictationModelMemory.swift` | `Sources/portavoz-app/AppServices+DictationPrewarm.swift` | Extract: the prewarm policy, and the profile and dictation's idle delays from `AppModelMemoryPreferences.swift` and `AppModelIdleReleaseScheduler.swift` |
 | `Sources/DictationSession/Settings/DictationDictionaryEditor.swift` | `Sources/portavoz-app/DictationDictionaryEditor.swift` | Seam: its text comes through a binding, and imports `DictationKit` |
 | `Sources/DictationSession/Panel/DictationPanelSupport.swift` | `Sources/portavoz-app/PVDesign.swift` | Extract: the accent, one symbol, and the locale modifier from `AppLanguage` |
 | `Sources/DictationSession/Fixtures/UITestDefaults.swift` | `Sources/portavoz-app/UITestDefaults.swift` | Renames |
 | `Tests/SecreteoUITests/DictationUITests.swift` | `Tests/PortavozUITests/DictationUITests.swift` | Extract: without the native delivery tests, whose receiver arrives with the signed lane |
 | `Tests/SecreteoUITests/DictationCorrectionUITests.swift` | `Tests/PortavozUITests/DictationCorrectionUITests.swift` | Extract: without the dictionary test, which arrives with Settings |
-| `Tests/SecreteoUITests/DictationPolishUITests.swift` | `Tests/PortavozUITests/DictationPolishUITests.swift` | Extract: without the Settings tests |
+| `Tests/SecreteoUITests/DictationPolishUITests.swift` | `Tests/PortavozUITests/DictationPolishUITests.swift` | Extract: without the Settings tests, which are rewritten for the Polish section |
 | `Tests/SecreteoUITests/DictationTranslationUITests.swift` | `Tests/PortavozUITests/DictationTranslationUITests.swift` | Extract: without the Settings test |
 | `Tests/SecreteoUITests/DictationTextModeUITests.swift` | `Tests/PortavozUITests/DictationTextModeUITests.swift` | Extract: without the Settings tests |
 | `Sources/DictationStore/DictationStore+History.swift` | `Sources/StorageKit/MeetingStore+DictationHistory.swift` | Seam: imports `DictationKit` and `SpeechCore`, and deleting, retention, a save that expires rows and a policy change end with a truncating checkpoint |
