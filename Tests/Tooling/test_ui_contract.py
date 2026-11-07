@@ -13,6 +13,8 @@ LITERAL = re.compile(
     r'|String\(localized:\s*"([^"\\]+)"'
     r'|MenuRow\(title:\s*"([^"\\]+)"'
     r'|L10n\.(?:text|format)\(\s*(?://[^\n]*\n\s*)*"([^"\\]+)"'
+    r'|LocalizedStringResource(?:\(|\s*=)\s*"([^"\\]+)"'
+    r'|IntentDescription\(\s*"([^"\\]+)"'
 )
 # A locale also takes `identifier:`, and it names no control. A label may end in `Identifier:`.
 IDENTIFIER = re.compile(r'accessibilityIdentifier\("([^"]+)"\)|(?<!Locale\()(?:\bidentifier|[a-z]Identifier):\s*"([a-z][a-z-]+)"')
@@ -28,6 +30,12 @@ class UIContractTests(unittest.TestCase):
         self.assertEqual(IDENTIFIER.search('MenuRow(identifier: "menu-quit")').group(2), "menu-quit")
         self.assertEqual(IDENTIFIER.search('.accessibilityIdentifier("x")').group(1), "x")
         self.assertEqual(IDENTIFIER.search('Ids(fieldIdentifier: "practice-field")').group(2), "practice-field")
+
+    def test_intent_strings_are_read_as_visible_strings(self):
+        for source in ['static let title: LocalizedStringResource = "Dictate"',
+                       'LocalizedStringResource("Dictate")', 'IntentDescription(\n        "Dictate")']:
+            match = LITERAL.search(source)
+            self.assertEqual(next(group for group in match.groups() if group), "Dictate", source)
 
     def test_every_identifier_has_an_assertion(self):
         tests = "\n".join(path.read_text() for path in swift_files(UI_TESTS))
