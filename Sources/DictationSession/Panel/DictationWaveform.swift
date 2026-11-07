@@ -9,7 +9,7 @@ struct DictationWaveform: View {
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !isActive)) { context in
-            Canvas { canvas, size in
+            Canvas(rendersAsynchronously: true) { canvas, size in
                 let time = context.date.timeIntervalSinceReferenceDate
                 let amplitude = DictationWaveformShape.amplitude(for: level)
                 let color = dimmed ? Color.secondary : SecreteoDesign.accent
@@ -27,6 +27,15 @@ struct DictationWaveform: View {
         }
         .accessibilityElement()
         .accessibilityLabel(L10n.text("Audio level"))
+    }
+}
+
+extension DictationWaveform {
+    /// Stops redrawing at Stop: a slow window server blocks the main thread on every frame,
+    /// which would hold back the stop tail and the delivery.
+    @MainActor
+    static func animates(for controller: DictationController) -> Bool {
+        controller.microphoneIsOpen
     }
 }
 

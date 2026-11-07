@@ -1,7 +1,9 @@
 import Foundation
 import os
 import DictationKit
+import LocalModelStore
 import SpeechCore
+import Synchronization
 import XCTest
 
 @testable import DictationSession
@@ -80,8 +82,75 @@ final class DictationSpeechGateTests: XCTestCase {
         XCTAssertLessThan(start.duration(to: .now), .seconds(5))
     }
 
+    /// The detector arrives with the speech model from Settings or onboarding, because auto stop
+    /// needs it with the gate off, so turning on dictation downloads nothing either way.
+    @MainActor
+    func testTurningOnDictationDownloadsNoModelWhateverTheGate() async throws {
+        // A disposable launch stores the choice in the process-wide volatile domain.
+        let key = DictationController.defaultsKey
+        addTeardownBlock { Self.forget(key) }
+        for gateIsOn in [false, true] {
+            let suite = "speech-gate-prepare-\(UUID().uuidString)"
+            let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+            defer { defaults.removePersistentDomain(forName: suite) }
+            defaults.set(gateIsOn, forKey: DictationSpeechGate.defaultsKey)
+            let models = MissingModels()
+            let feature = try DictationFeature(
+                usesTemporaryStore: true, arguments: ["-use-temp-store"], defaults: defaults,
+                environment: .disposable(permissionsAreMissing: false, models: models.models))
+
+            feature.setEnabled(true)
+
+            let checked = await TestPolling.until {
+                models.remembered.withLock { $0 } == DictationModels.Part.allCases.count
+            }
+            XCTAssertTrue(checked)
+            XCTAssertEqual(models.installs.withLock { $0 }, [], "Gate on: \(gateIsOn)")
+            XCTAssertEqual(feature.modelState, .missing)
+        }
+    }
+
+    @MainActor
+    func testDisposableCompositionNeverDownloadsTheDetector() async throws {
+        let suite = "speech-gate-disposable-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let feature = try DictationFeature(usesTemporaryStore: true, arguments: ["-use-temp-store"], defaults: defaults)
+        XCTAssertNil(feature.environment.models)
+
+        feature.downloadModel()
+        try await feature.installModels()
+
+        XCTAssertEqual(feature.modelState, .missing)
+        let detector = await feature.modelStore.verifiedInstallation(ModelCatalog.sileroVAD)
+        XCTAssertNil(detector)
+    }
+
+    private nonisolated static func forget(_ key: String) {
+        let defaults = UserDefaults.standard
+        var domain = defaults.volatileDomain(forName: UserDefaults.argumentDomain)
+        domain.removeValue(forKey: key)
+        defaults.setVolatileDomain(domain, forName: UserDefaults.argumentDomain)
+    }
+
     private func waitUntil(_ condition: @escaping @Sendable () -> Bool) async -> Bool {
         return await TestPolling.until(condition)
+    }
+}
+
+/// Nothing installed, and every install asked of it recorded.
+private final class MissingModels: Sendable {
+    let installs = Mutex<[DictationModels.Part]>([])
+    let remembered = Mutex(0)
+
+    var models: DictationModels {
+        DictationModels(
+            isVerified: { _ in false },
+            wasVerified: { _ in false },
+            remember: { _, _ in self.remembered.withLock { $0 += 1 } },
+            install: { part, _ in self.installs.withLock { $0.append(part) } },
+            size: { _ in 100 },
+            collectUnused: {})
     }
 }
 

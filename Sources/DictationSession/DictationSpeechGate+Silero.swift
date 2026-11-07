@@ -9,8 +9,8 @@ extension DictationSpeechGate {
     /// withholding quiet real speech costs more than letting noise through.
     static let speechProbabilityThreshold: Float = 0.5
 
-    /// On unless the user turned it off; the detector itself downloads only
-    /// when dictation is turned on or from Settings.
+    /// On unless the user turned it off; the detector downloads with the speech model,
+    /// from Settings or onboarding, never when dictation is turned on.
     static func isEnabled(in defaults: UserDefaults) -> Bool {
         defaults.object(forKey: defaultsKey) as? Bool ?? enabledByDefault
     }
