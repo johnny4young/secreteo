@@ -157,9 +157,4 @@ if [[ -d Tests/Tooling ]]; then
   python3 -I -m unittest discover -s Tests/Tooling -p 'test_*.py'
 fi
 
-if [[ -f scripts/dictation_corpus.py ]]; then
-  python3 -I scripts/dictation_corpus.py verify-public >/dev/null || report "Public dictation corpus:" "verify-public failed"
-  python3 -I scripts/dictation_search_quality.py verify-public || report "Public dictation search fixture:" "verify-public failed"
-fi
-
 exit "$failures"

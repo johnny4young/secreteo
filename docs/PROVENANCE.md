@@ -288,12 +288,12 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `scripts/dictation_model_receipt.py` | `scripts/dictation_model_receipt.py` | Extract: `number` and `validate_score`, which the benchmark uses. The observation validators wait for the model lanes ([G16](GAPS.md#g16-model-and-controller-lanes)) |
 | `scripts/dictation_search_quality.py` | `scripts/dictation_search_quality.py` | Seam: no meeting expansion lane |
 | `scripts/record-dictation-field-corpus.swift` | `scripts/record-dictation-field-corpus.swift` | Renames |
-| `Tests/Tooling/test_dictation_benchmark.py` | `Tests/Tooling/test_dictation_benchmark.py` | Seam: runs the CLI with `-I` |
-| `Tests/Tooling/test_dictation_corpus.py` | `Tests/Tooling/test_dictation_corpus.py` | Seam: runs the CLI with `-I`, and a Secreteo scratch prefix |
-| `Tests/Tooling/test_dictation_field_corpus.py` | `Tests/Tooling/test_dictation_field_corpus.py` | Extract: admission and recorder tests, without the Ultra comparison, running the CLI with `-I` |
-| `Tests/Tooling/test_dictation_materialization.py` | `Tests/Tooling/test_dictation_materialization.py` | Renames |
-| `Tests/Tooling/test_dictation_model_receipt.py` | `Tests/Tooling/test_dictation_model_runner.py` | Extract: the two tests that call `validate_score` directly |
-| `Tests/Tooling/test_dictation_search_quality.py` | `Tests/Tooling/test_dictation_search_quality.py` | Seam: no meeting expansion lane, and an absent expansion is still reported |
+| `Tests/Tooling/test_dictation_benchmark.py` | `Tests/Tooling/test_dictation_benchmark.py` | Seam: runs the CLI with `-I`, and imports `scripts` after the standard library |
+| `Tests/Tooling/test_dictation_corpus.py` | `Tests/Tooling/test_dictation_corpus.py` | Seam: runs the CLI with `-I`, uses a Secreteo scratch prefix, and imports `scripts` after the standard library |
+| `Tests/Tooling/test_dictation_field_corpus.py` | `Tests/Tooling/test_dictation_field_corpus.py` | Extract: admission and recorder tests, without the Ultra comparison, running the CLI with `-I`, and imports `scripts` after the standard library |
+| `Tests/Tooling/test_dictation_materialization.py` | `Tests/Tooling/test_dictation_materialization.py` | Seam: renames, and imports `scripts` after the standard library |
+| `Tests/Tooling/test_dictation_model_receipt.py` | `Tests/Tooling/test_dictation_model_runner.py` | Extract: the two tests that call `validate_score` directly, plus a refusal test for each consistency check, and imports `scripts` after the standard library |
+| `Tests/Tooling/test_dictation_search_quality.py` | `Tests/Tooling/test_dictation_search_quality.py` | Seam: no meeting expansion lane, and an absent expansion is still reported and never passes |
 | `Tests/DictationSessionTests/DictationSpeechGateCorpusTests.swift` | `Tests/PortavozAppTests/DictationSpeechGateCorpusTests.swift` | Seam: an explicit scratch `LocalModelStore`, its manifest revision, and `PrivateJSONWriter` |
 | `Tests/DictationSessionTests/DictationModelFixture.swift` | `Tests/PortavozTestSupport/DictationModelFixture.swift` | Extract: without the repeated sequence, which only the model lanes use |
 | `Tests/DictationSessionTests/DictationModelProbe.swift` | `Tests/PortavozTestSupport/DictationModelProbe.swift` | Extract: the failure type and `seconds` |

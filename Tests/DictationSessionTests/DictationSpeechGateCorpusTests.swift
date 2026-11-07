@@ -39,10 +39,11 @@ final class DictationSpeechGateCorpusTests: XCTestCase {
         guard let audio = environment["SECRETEO_SPEECH_GATE_AUDIO"] else {
             throw XCTSkip("explicit local speech-gate corpus run not requested")
         }
-        guard let models = environment["SECRETEO_SPEECH_GATE_MODELS"], models.hasPrefix("/"),
+        guard audio.hasPrefix("/"),
+              let models = environment["SECRETEO_SPEECH_GATE_MODELS"], models.hasPrefix("/"),
               let output = environment["SECRETEO_SPEECH_GATE_OUTPUT"], output.hasPrefix("/"),
               !FileManager.default.fileExists(atPath: output) else {
-            XCTFail("speech-gate run requires an absolute scratch model root and a new absolute output")
+            XCTFail("speech-gate run requires absolute audio and scratch model roots and a new absolute output")
             return
         }
         let store = try LocalModelStore(

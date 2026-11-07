@@ -15,7 +15,7 @@ import unittest
 import wave
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "scripts"))
+sys.path.append(str(ROOT / "scripts"))
 import dictation_audio as audio  # noqa: E402
 import dictation_corpus as corpus  # noqa: E402
 import materialize_dictation_corpus as producer  # noqa: E402

@@ -1,7 +1,6 @@
 import Foundation
 
-/// Test-only model lane: no microphone, clipboard, settings, database or download.
-/// Uses production caption/assembly policies but does NOT stand in for the controller.
+/// The failure vocabulary and clock the model lanes share; the probe itself is not ported.
 enum DictationModelProbe {
     enum Failure: Error, Equatable {
         case invalidInput

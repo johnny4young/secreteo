@@ -11,7 +11,7 @@ import unittest
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / 'scripts'))
+sys.path.append(str(ROOT / 'scripts'))
 import dictation_benchmark as benchmark
 import dictation_corpus as corpus
 from materialize_dictation_corpus import fingerprint

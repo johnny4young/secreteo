@@ -11,7 +11,7 @@ import unittest
 import wave
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / 'scripts'))
+sys.path.append(str(ROOT / 'scripts'))
 import dictation_corpus as corpus
 import dictation_field_corpus as field
 

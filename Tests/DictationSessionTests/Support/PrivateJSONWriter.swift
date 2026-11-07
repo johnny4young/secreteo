@@ -7,8 +7,7 @@ enum PrivateJSONWriterError: Error, Equatable {
 }
 
 /// Publishes benchmark evidence without exposing a partial file or replacing
-/// an earlier run. Callers own their document schema and translate the narrow
-/// publication errors into their command-specific error vocabulary.
+/// an earlier run.
 enum PrivateJSONWriter {
     static func write<Document: Encodable>(
         _ document: Document,

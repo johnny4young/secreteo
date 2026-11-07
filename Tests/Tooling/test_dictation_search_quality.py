@@ -120,7 +120,10 @@ class DictationSearchQualityTests(unittest.TestCase):
     def test_an_absent_expansion_lane_is_reported(self):
         scorecard = quality.evaluate(self.fixture, observations_for(self.fixture, lambda q: [], lambda q: []))
 
-        self.assertFalse(scorecard["expansions"]["lexicalExpandedDictation"]["available"])
+        lane = scorecard["expansions"]["lexicalExpandedDictation"]
+        self.assertFalse(lane["available"])
+        self.assertIn("on-device rewriting was unavailable", lane["reasons"])
+        self.assertNotIn("lexicalExpandedDictation", scorecard["passingLanes"])
 
     def test_the_scorecard_is_private_and_never_overwritten(self):
         with tempfile.TemporaryDirectory() as directory:
