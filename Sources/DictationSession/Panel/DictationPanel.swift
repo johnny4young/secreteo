@@ -151,7 +151,7 @@ private struct DictationStripView: View {
                 } else {
                     Image(systemName: "waveform.badge.mic")
                         .foregroundStyle(isFailed ? Color.orange : SecreteoDesign.accent)
-                        .symbolEffect(.pulse, isActive: controller.phase == .listening)
+                        .symbolEffect(.pulse, isActive: controller.microphoneIsOpen)
                 }
                 Text(title)
                     .accessibilityIdentifier("dictation-panel-state")
@@ -180,7 +180,9 @@ private struct DictationStripView: View {
                 }
                 Spacer()
                 if controller.phase == .listening {
-                    DictationWaveform(level: controller.micLevel, isActive: true, dimmed: showsModelLoading)
+                    DictationWaveform(
+                        level: controller.micLevel, isActive: DictationWaveform.animates(for: controller),
+                        dimmed: showsModelLoading)
                         .frame(width: 70, height: 18)
                         .accessibilityIdentifier("dictation-panel-meter")
                 }
