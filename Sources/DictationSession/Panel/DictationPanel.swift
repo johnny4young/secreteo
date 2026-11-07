@@ -151,7 +151,7 @@ private struct DictationStripView: View {
                 } else {
                     Image(systemName: "waveform.badge.mic")
                         .foregroundStyle(isFailed ? Color.orange : SecreteoDesign.accent)
-                        .symbolEffect(.pulse, isActive: controller.phase == .listening)
+                        .symbolEffect(.pulse, isActive: controller.microphoneIsOpen)
                 }
                 Text(title)
                     .accessibilityIdentifier("dictation-panel-state")

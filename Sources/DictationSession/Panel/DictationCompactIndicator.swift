@@ -86,7 +86,7 @@ struct DictationCompactStripView: View {
         } else {
             Image(systemName: "waveform.badge.mic")
                 .foregroundStyle(controller.phase == .listening ? SecreteoDesign.accent : Color.secondary)
-                .symbolEffect(.pulse, isActive: controller.phase == .listening)
+                .symbolEffect(.pulse, isActive: controller.microphoneIsOpen)
                 .accessibilityLabel(L10n.text("Dictating"))
         }
     }
