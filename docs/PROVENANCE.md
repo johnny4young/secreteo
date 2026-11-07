@@ -175,7 +175,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/PolishTests/DictationRecipePromptTests.swift` | `Tests/PortavozAppTests/DictationRecipeTests.swift` | Extract: the prompt tests |
 | `Sources/DictationSession/Rewrite/SelectionRewriteController.swift` | `Sources/portavoz-app/SelectionRewriteController.swift` | Seam: imports the split targets, and two messages name the rewrite and the model instead of the summary engine |
 | `Sources/DictationSession/Rewrite/SelectionCapture.swift` | `Sources/portavoz-app/SelectionCapture.swift` | Seam: imports the split targets |
-| `Sources/DictationSession/Rewrite/SelectionRewritePanel.swift` | `Sources/portavoz-app/SelectionRewritePanel.swift` | Seam: imports the split targets, no helper text, and recipe identifiers joined from a prefix |
+| `Sources/DictationSession/Rewrite/SelectionRewritePanel.swift` | `Sources/portavoz-app/SelectionRewritePanel.swift` | Seam: imports the split targets, no helper text and a preview that much shorter, and recipe identifiers joined from a prefix |
 | `Sources/DictationSession/Rewrite/DictationFeature+SelectionRewrite.swift` | `Sources/portavoz-app/AppServices+SelectionRewrite.swift` | Seam: the feature instead of the app's services, the shortcut as a `HotkeySetting` through the injectable registrar, and its Settings binding |
 | `Tests/DictationSessionTests/Session/SelectionRewriteTests.swift` | `Tests/PortavozAppTests/SelectionRewriteTests.swift` | Seam: imports the split targets |
 | `Tests/SecreteoUITests/SelectionRewriteUITests.swift` | `Tests/PortavozUITests/SelectionRewriteUITests.swift` | Seam: assertions for choosing again, cancelling and the spoken instruction |
