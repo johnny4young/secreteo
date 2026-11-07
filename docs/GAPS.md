@@ -76,7 +76,7 @@ The import copies only settings Secreteo's Settings can show and change. Activat
 The corpus, its audio admission, local rendering, field recordings, the offline benchmark scorer and the speech-gate lane are ported. The lanes that run a real model over the corpus are not:
 
 - `run_dictation_model_baseline.py` and `run_dictation_controller_matrix.py` launch `DictationModelBaselineTests` and `DictationControllerModelTests` from a Release test bundle. Those receivers need the model probe, its paced PCM feeder, `TranscriptionAccuracy`, a vendor attribution probe and, for the controller, a session harness with footprint sampling: about 1,400 lines of test support, not a small entry point. `dictation_controller_receipt.py` and the observation half of `dictation_model_receipt.py` only admit their receipts, so they wait with them.
-- `run_dictation_model_comparison.py` compares Parakeet v3 with Ultra, whose selection has not arrived ([PARITY](PARITY.md#speech-and-capture)).
+- `run_dictation_model_comparison.py` compares Parakeet v3 with Ultra through the same baseline receivers, so it waits with them.
 
 Until they arrive, word error rates for Secreteo's own pipeline have no repeatable lane.
 
