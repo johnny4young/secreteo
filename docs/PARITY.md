@@ -24,15 +24,15 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Silero voice detection | `SileroVoiceActivityDetector` | `SileroVoiceActivityDetectorTests` | The same tests, and [paired evidence](spikes/fluidaudio-upstream.md) with the real model | Ported |
 | Microphone capture | `MicrophoneSource`, `AudioDeviceCatalog`, `CaptureDeliveryBuffer` | `AudioCaptureTests`, `CaptureDeliveryBufferTests`, `MicrophoneTapTransitionTests`, `LinearResamplerTests`, `CapturePCMGeometryTests` | The same tests | Logic ported. Engine start and route changes on a real device still have to be checked |
 | Microphone permission | `MicrophonePermissionClient` | `MicrophonePermissionClientTests` | `MicrophonePermissionClientTests` | Ported |
-| Choice of microphone | `MicrophoneInputSelection` | `DictationReadinessTests` | The same tests, without the composition's | Ported, with its picker in Settings |
+| Choice of microphone | `MicrophoneInputSelection` | `DictationReadinessTests` | The same tests, with `testLiveCompositionReadsTheInjectedAudioPreference` | Ported, with its picker in Settings |
 | Model download and storage | `ModelStore`, then `LocalModelStore` | `ModelStoreDownloadFailureTests` | In `local-model-store`, and `ModelCatalogTests` for the pins | Ported. A stopped download resumes at the next file, and unused models are collected at launch. Files Portavoz already downloaded are cloned from `Portavoz/Models` when they hash right, and onboarding warms the model |
-| Choice of live engine | `LiveSpeechSelection` | `LiveSpeechSelectionTests`, which has to be rewritten | `LiveSpeechSelectionTests`, for the preference | Preference ported with no meeting lane. Routing arrives with the composition |
+| Choice of live engine | `LiveSpeechSelection` | `LiveSpeechSelectionTests`, which has to be rewritten | `LiveSpeechSelectionTests`: the preference, `testSelectedAppleWithAutomaticLanguageNeverStartsAModelLoad`, and `testTheDefaultUltraNeitherDownloadsNorBlocksDictation` rewritten, because Ultra cannot be selected yet | Ported with no meeting lane. The Ultra default reads v3 for readiness and the load, and never downloads |
 
 ## Triggers
 
 | Capability or case | Portavoz source | Portavoz test | Secreteo test | State |
 |---|---|---|---|---|
-| Global shortcut | `GlobalHotkey`, `DictationController+Hotkey` | `GlobalHotkeyRoutingTests`, `DictationShortcutTests`, `HotkeySettingTests` | The same tests, without the UI fixture's | Armed in Debug and `make install`. A real shortcut still has to be checked |
+| Global shortcut | `GlobalHotkey`, `DictationController+Hotkey` | `GlobalHotkeyRoutingTests`, `DictationShortcutTests`, `HotkeySettingTests` | The same tests. `testNoRegistrarKeepsTemporaryCompositionInert` checks the disposable feature instead of a shortcut fixture | Armed in Debug and `make install`. A real shortcut still has to be checked |
 | Push to talk, Fn and modifiers | `ModifierKeyPTT`, `DictationController+ModifierKey` | `ModifierKeyGestureTests`, `DictationModifierOwnershipTests` | `ModifierKeyGestureTests` | Armed in Debug and `make install` when configured, with its control in Settings |
 | Push to talk, mouse | `MouseButtonPTT`, `MousePTTGesture` | `MousePTTGestureTests` | The same tests | Armed in Debug and `make install` when configured, with its control in Settings |
 | Menu | `MenuBarView`, `MenuBarModel` | `MenuBarModelTests`, `DictationUITests` | `DictationUITests` | Dictate and Paste last in the menu |
@@ -40,7 +40,7 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Paste last | `DictationController+PasteLast`, `AppServices+PasteLastDictation` | `DictationPasteLastTests` | The same tests | In the menu, and with an optional shortcut |
 | Selection Rewrite | `SelectionRewriteController`, `SelectionCapture` | `SelectionRewriteTests`, `SelectionRewriteUITests` | The same tests, and the Rewrite cases of `DictationAdmissionTests` and `DictationOwnershipCoordinatorTests` | Ported, in the menu and with an optional ⌃⌥⌘R. A real selection in another app still has to be checked |
 | Practice | `DictationPracticeField`, `DictationPracticeView` | `DictationPracticeFieldTests`, `DictationPracticeUITests` | The same tests, with the onboarding journey in `OnboardingUITests` | In Settings and in onboarding, each window holding the field |
-| One owner per Mac | `DictationOwnershipCoordinator`, `DictationAdmission` | `DictationOwnershipCoordinatorTests`, `DictationAdmissionTests` | The same tests, without the composition's, plus `KnownDictationPeersTests` and the reference tests | Coordinator ported. The app does not run it yet, and it has not run against a real Portavoz |
+| One owner per Mac | `DictationOwnershipCoordinator`, `DictationAdmission` | `DictationOwnershipCoordinatorTests`, `DictationAdmissionTests` | The same tests, with the composition's, among them `onlyTheOwnerArmsTheShortcut`, `aHeldTriggerKeepsItsWordsWhenAHandoffDisarmsIt` and `compositionReadsOwnershipForPrewarmAndAdmission`, plus `KnownDictationPeersTests` and the reference tests | Ported. `DictationFeature.start()` runs the coordinator. It has not run against a real Portavoz |
 
 ## Sessions and delivery
 
@@ -49,11 +49,11 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Retry with no double paste | `DictationController`, `DictationInsertion` | `DictationDeliveryPhaseTests`, `DictationDeliveryOutcomeTests` | The same tests | Logic ported. The app does not run a session yet |
 | Cancel during prepare and during Stop | `DictationController` | `DictationSessionLifecycleTests` | The same tests | Logic ported. The app does not run a session yet |
 | Text recovery | `DictationRecoveryView`, `CapturedDictationDestination` | `DictationDestinationRecoveryTests`, `DictationRecoveryCopyTests` | `DictationDestinationRecoveryTests`, `DictationSessionFixesTests` | Logic ported, and a capture failure now keeps the words too. The recovery view arrives with the panel |
-| Permissions revoked | `DictationMicrophoneReadiness`, `DictationController` | `DictationReadinessTests`, `DictationSessionLifecycleTests` | The same tests, without the composition's | Logic ported. A real revoked permission still has to be checked |
+| Permissions revoked | `DictationMicrophoneReadiness`, `DictationController` | `DictationReadinessTests`, `DictationSessionLifecycleTests` | The same tests, with `testFixtureRecoverySurvivesFreshDependenciesForEachMenuInvocation` | Logic ported. A real revoked permission still has to be checked |
 | Clipboard restored | `DictationClipboard`, `PasteboardSnapshot` | `DictationClipboardInsertionTests`, `DictationClipboardBoundaryTests` | The same tests | Logic ported. The real paste into another app still has to be checked |
 | Capitals and spacing from the caret | `DictationCaretCase`, `DictationCaretJoin` | `DictationCaretCaseTests`, `DictationCaretJoinTests` | The same tests | Logic ported. A real caret in another app still has to be checked |
 | Readback and verified delivery | `DictationTextReadback`, `TextInserter` | `TextInsertionReadbackTests`, `TextInsertionTargetTests` | The same tests | Logic ported. Real Accessibility readback still has to be checked |
-| Speech gate and auto stop | `DictationSpeechGate`, `DictationAutoStop` | `DictationSpeechGateTests`, `DictationPauseDetectorTests` | The same tests, without the composition's | Detector and pause logic ported. Session wiring arrives with the controller |
+| Speech gate and auto stop | `DictationSpeechGate`, `DictationAutoStop` | `DictationSpeechGateTests`, `DictationPauseDetectorTests` | The same tests, with `testDisposableCompositionNeverDownloadsTheDetector`, and `testTurningOnDictationDownloadsNoModelWhateverTheGate` rewritten, because the detector comes with the speech model | Detector and pause logic ported. Session wiring arrives with the controller |
 | Spoken correction in delivery | `DictationCorrections` | `DictationCorrectionTests` | The same tests, without the practice test | Logic ported. A real field still has to be checked |
 | Panel, compact indicator and waveform | `DictationPanel`, `DictationCompactIndicator` | `DictationPanelAnchorTests`, `DictationCompactIndicatorTests` | `DictationUITests` | Ported. Its unit tests are still to come |
 | Sounds and prewarm | `DictationSoundCue`, `AppServices+DictationPrewarm` | `DictationColdStartTests` | The same tests | Ported. Prewarm is off by default and never downloads |
@@ -63,7 +63,7 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 
 | Capability or case | Portavoz source | Portavoz test | Secreteo test | State |
 |---|---|---|---|---|
-| Modes, recipes and per-app profiles | `DictationTextPreferences`, `DictationTextSettingsModel` | `DictationRecipeTests`, `DictationTextModeDeliveryTests` | `DictationRecipeFidelityTests`, `DictationRecipePreferenceTests`, `DictationRecipePromptTests`, `DictationTextModeDeliveryTests`, `DictationPolishUITests` | Ported, with recipes and per-app profiles in Settings |
+| Modes, recipes and per-app profiles | `DictationTextPreferences`, `DictationTextSettingsModel` | `DictationRecipeTests`, `DictationTextModeDeliveryTests` | `DictationRecipeFidelityTests`, `DictationRecipePreferenceTests`, `DictationRecipePromptTests`, `DictationTextModeDeliveryTests` with `firstEnableAfterAppCompositionStillDeliversLiteral` and `buildingTheFeatureDoesNotInitializeTextPreferences`, rewritten because a database that cannot open no longer fails the feature, `DictationPolishUITests` | Ported, with recipes and per-app profiles in Settings |
 | Polish with Apple Foundation Models and Ollama | `PolishDictation`, `DictationTextPolishers` | `PolishDictationTests`, `DictationPolishRouterTests`, `DictationPolishDeliveryTests` | `PolishDictationTests`, `DictationPolishDeliveryTests`, `DictationPolishRouterTests`, `DictationTextPolisherTests`, `DictationPolishUITests` | Ported without MLX, with its engine and Ollama model in Settings |
 | Polish egress consent | `AppServices+DictationPolish`, `Schema+DictationPolish` | `DictationPolishEgressTests`, which has to be rewritten | `DictationPolishEgressTests`, rewritten | Ported. Only loopback, with no journal ([D24](DECISIONS.md#d24-polish-runs-only-on-this-mac-and-keeps-no-journal)) |
 | Translate while pasting | `TranslateDictation`, `AppleDictationTranslator` | `TranslateDictationTests`, `DictationTranslationDeliveryTests` | The same tests, and `DictationTranslationUITests` | Ported, with the target and the language download in Settings |
@@ -74,7 +74,7 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Settings: vocabulary, microphone, memory and Polish panels | `DictationSection`, `DictationTextSettingsSection`, `DictationDictionaryEditor` | `SettingsUITests` | `DictationSettingsUITests`, `DictationPreferenceStoreTests` | Triggers, language, microphone, replacements, vocabulary and text mode ported, without vocabulary suggestions from meetings. Memory is ported without its hardware suggestion. Polish is ported with its engine, recipes and translation |
 | Onboarding | `OnboardingDictationStep`, `OnboardingModelPreparation` | `OnboardingUITests`, `OnboardingModelPreparationTests` | `OnboardingUITests`, `OnboardingModelPreparationTests`, `FirstRunOnboardingPolicyTests` | Three steps on first launch: dictation and permissions, the speech model, which is loaded once even when installed, and practice. No meeting steps or voice enrollment |
 | Preference import | `PortableSettings` | `PortableSettingsTests` | `PortavozPreferenceImportTests`, `DictationSettingsUITests` | Reads Portavoz's saved settings instead of an exported file. Imports only what Secreteo's Settings shows, after a preview ([G14](GAPS.md#g14-portavoz-settings-left-out-of-the-import)) |
-| English and Spanish | `Localizable.xcstrings` | `LocalizationTests` | | Pending, P5 |
+| English and Spanish | `Localizable.xcstrings` | `LocalizationTests` | `Tests/Tooling/test_ui_contract.py`, run by the hygiene check | Ported: unique keys, Spanish for every key, matching placeholders, English left only for shared terms, every visible literal cataloged and no stale keys. The exporter and AppKit panel checks have no Secreteo counterpart |
 
 ## Quality tooling
 
@@ -85,8 +85,8 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Field recordings with a real microphone | `dictation_field_corpus.py`, `record-dictation-field-corpus.swift` | `test_dictation_field_corpus` | The same test, without the comparison | Ported |
 | Offline benchmark report | `dictation_benchmark.py`, `dictation_model_receipt.py` | `test_dictation_benchmark`, `test_dictation_model_runner` | `test_dictation_benchmark`, `test_dictation_model_receipt` | Ported, with only the score half of the receipt validator |
 | Speech gate over every cell | `DictationSpeechGateCorpusTests` | The same test | The same test | Ported. Skipped unless a scratch corpus and model store are named |
-| Search quality scorecard | `dictation_search_quality.py`, `Fixtures/DictationSearch` | `test_dictation_search_quality` | The same test | Scorer and fixture ported, without the meeting lane. Nothing produces observations ([G16](GAPS.md#g16-no-dictation-search-observations)) |
-| Model, controller and Ultra comparison lanes | `run_dictation_model_baseline.py`, `run_dictation_controller_matrix.py`, `run_dictation_model_comparison.py` | `test_dictation_model_runner`, `test_dictation_controller_runner`, `test_dictation_controller_matrix` | | Pending ([G15](GAPS.md#g15-model-and-controller-lanes)) |
+| Search quality scorecard | `dictation_search_quality.py`, `Fixtures/DictationSearch` | `test_dictation_search_quality` | The same test | Scorer and fixture ported, without the meeting lane. Nothing produces observations ([G17](GAPS.md#g17-no-dictation-search-observations)) |
+| Model, controller and Ultra comparison lanes | `run_dictation_model_baseline.py`, `run_dictation_controller_matrix.py`, `run_dictation_model_comparison.py` | `test_dictation_model_runner`, `test_dictation_controller_runner`, `test_dictation_controller_matrix` | | Pending ([G16](GAPS.md#g16-model-and-controller-lanes)) |
 
 ## Approved losses
 
@@ -95,15 +95,9 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Ask over dictations | `AskDictationsTests`, `AskDictationRetrievalTests` | Agents read history through MCP ([D2](DECISIONS.md#d2-scope-and-approved-losses)) |
 | Dictation into meeting notes | `DictationMeetingNoteStoreTests` | Copy and paste |
 | Polish with embedded MLX | `DictationTextPolisherTests`, in part | Apple Foundation Models and Ollama |
+| A settings import refused while a capture prepares | `testAppSettingsWriteRejectsPreparationAndAllowsApplyAfterCancel`, in `DictationReadinessTests` | No settings file. The Portavoz import writes only what Settings edits during a session |
+| A shortcut conflict fixture refused outside a disposable launch | The fixture half of `testNoRegistrarKeepsTemporaryCompositionInert` | No such fixture. A disposable launch registers no shortcut |
 
 ## Tests that wait for their slice
 
-| Test | Waits for |
-|---|---|
-| In `DictationOwnershipCoordinatorTests`: `anActivationBeforeLaunchFinishesPublishesNothing`, `turningThePreferenceOnTakesOwnershipFromNobody`, `onlyTheOwnerArmsTheShortcut`, `aWorkspaceChangeIsAHintToLookAgain`, `aHeldTriggerKeepsItsWordsWhenAHandoffDisarmsIt`, `aHeldTriggerStillCancelsWhenItIsDisabledWithNoHandoff` | The composition |
-| In `DictationAdmissionTests`: `compositionReadsOwnershipForPrewarmAndAdmission` | The composition |
-| In `DictationReadinessTests`: `testFixtureRecoverySurvivesFreshDependenciesForEachMenuInvocation`, `testAppSettingsWriteRejectsPreparationAndAllowsApplyAfterCancel`, `testLiveCompositionReadsTheInjectedAudioPreference` | The composition |
-| In `DictationTextModeDeliveryTests`: `firstEnableAfterAppCompositionStillDeliversLiteral`, `failedDatabaseAdmissionDoesNotInitializeTextPreferences` | The composition |
-| In `DictationSpeechGateTests`: `testTurningOnDictationPreparesTheDetectorOnlyWhenTheGateIsOn`, `testDisposableCompositionNeverDownloadsTheDetector` | The composition |
-| In `LiveSpeechSelectionTests`: `testTheDefaultUltraNeitherDownloadsNorBlocksDictation`, `testSelectedAppleWithAutomaticLanguageNeverStartsAModelLoad` | The composition |
-| In `DictationShortcutTests`: the fixture half of `testNoRegistrarKeepsTemporaryCompositionInert` | The shortcut fixture |
+None. Every ported test runs, or is listed above as rewritten or an approved loss.

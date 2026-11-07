@@ -81,6 +81,28 @@ final class DictationShortcutTests: XCTestCase {
         XCTAssertEqual(presses, 1)
     }
 
+    /// A disposable launch has no shortcut fixture: its composition hands the shortcut no registrar.
+    func testNoRegistrarKeepsTemporaryCompositionInert() async throws {
+        // The argument domain is process-wide, and starting a disposable feature writes the text mode there.
+        let written = [DictationController.defaultsKey, DictationTextPreferences.modeKey]
+        addTeardownBlock { Self.forget(written) }
+        let shortcut = DictationShortcut()
+        shortcut.sync(defaults: preferences(), registrar: nil, onPress: { XCTFail("unexpected input") }, onRelease: {})
+        XCTAssertEqual(shortcut.availability, .inactive)
+        XCTAssertEqual(shortcut.setting, .default)
+
+        let suite = "shortcut-composition-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(true, forKey: DictationController.defaultsKey)
+        let feature = try DictationFeature(usesTemporaryStore: true, arguments: ["-use-temp-store"], defaults: defaults)
+        XCTAssertNil(feature.dictationShortcutRegistrar)
+        XCTAssertNil(feature.fixedShortcutRegistrar)
+        feature.start()
+        XCTAssertTrue(feature.dictationTriggersMayArm)
+        XCTAssertEqual(feature.controller.shortcut.availability, .inactive)
+    }
+
     func testCorruptPreferencesReachRegistrarAsSafeDefaults() async {
         let defaults = preferences()
         defaults.setVolatileDomain([
@@ -91,6 +113,13 @@ final class DictationShortcutTests: XCTestCase {
         shortcut.sync(defaults: defaults, registrar: host.register, onPress: {}, onRelease: {})
         XCTAssertTrue(shortcut.usedFallback)
         XCTAssertEqual(host.settings, [.default])
+    }
+
+    private nonisolated static func forget(_ keys: [String]) {
+        let defaults = UserDefaults.standard
+        var domain = defaults.volatileDomain(forName: UserDefaults.argumentDomain)
+        for key in keys { domain.removeValue(forKey: key) }
+        defaults.setVolatileDomain(domain, forName: UserDefaults.argumentDomain)
     }
 
     private func preferences() -> UserDefaults {

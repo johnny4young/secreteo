@@ -409,7 +409,7 @@ and retain every stall. Do not restart each case and call that leak qualificatio
 ## 9. Reusable harness and evidence contracts (proposed)
 
 Reuse the corpus admission and the offline benchmark scorer, and the model and
-controller launchers once they are ported ([G15](GAPS.md#g15-model-and-controller-lanes)).
+controller launchers once they are ported ([G16](GAPS.md#g16-model-and-controller-lanes)).
 Their existing closed schemas remain unchanged. Add a separately versioned adapter/report layer only after reviewing
 this contract; do not add arbitrary fields to existing admitted receipts. No new
 harness is implemented by this documentation change. Before schema admission,

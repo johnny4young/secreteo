@@ -143,7 +143,7 @@ insertion. Model and end-to-end baselines need their own receipts and deadlines.
 
 The installed-model, controller and controller-matrix launchers, and the Parakeet
 v3 against Ultra comparison, are not here yet
-([G15](../../docs/GAPS.md#g15-model-and-controller-lanes)). The corpus, its
+([G16](../../docs/GAPS.md#g16-model-and-controller-lanes)). The corpus, its
 admission, local rendering, field recordings and the speech-gate lane below do
 not depend on them.
 

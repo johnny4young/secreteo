@@ -75,6 +75,11 @@ struct DictationOwnershipCoordinatorTests {
         return (gate, finished)
     }
 
+    /// The composition as a disposable launch builds it: it claims its scratch owner and starts nothing.
+    private func disposableFeature(_ defaults: UserDefaults) throws -> DictationFeature {
+        try DictationFeature(usesTemporaryStore: true, arguments: ["-use-temp-store"], defaults: defaults)
+    }
+
     @Test
     func aLockFileReplacedDuringTheRestoreRefusesTheJoin() async throws {
         let scratch = Scratch()
@@ -231,6 +236,53 @@ struct DictationOwnershipCoordinatorTests {
             Issue.record("A first run must not be admitted")
             return
         }
+    }
+
+    @Test
+    func anActivationBeforeLaunchFinishesPublishesNothing() {
+        let scratch = Scratch()
+        let ownership = scratch.participant(Self.secreteo)
+        _ = ownership.claimAtFirstRun()
+        let coordinator = DictationOwnershipCoordinator(ownership: ownership) {}
+        var changes = 0
+        coordinator.onStateChange = { _ in changes += 1 }
+
+        coordinator.reevaluate()
+
+        #expect(coordinator.state == .off)
+        #expect(changes == 0)
+        coordinator.start()
+        #expect(coordinator.state == .owned)
+        #expect(changes == 1)
+    }
+
+    @Test
+    func turningThePreferenceOnTakesOwnershipFromNobody() async {
+        let scratch = Scratch()
+        let preference = Preference()
+        let ownership = DictationOwnership(
+            participant: "com.johnny4young.secreteo.dev", root: scratch.root,
+            conditions: {
+                ParticipantConditions(
+                    preferenceIsOn: preference.isOn.withLock { $0 }, missingForReadiness: nil, legacyPeerIsActive: false)
+            },
+            notificationName: "com.johnny4young.secreteo.ownership-tests.\(scratch.root.lastPathComponent)")
+        let coordinator = DictationOwnershipCoordinator(ownership: ownership) {}
+        coordinator.start()
+        #expect(coordinator.state == .off)
+        preference.isOn.withLock { $0 = true }
+        var armed = 0
+
+        await coordinator.preferenceChanged(isOn: true, arm: { armed += 1; return true }, disarm: {})
+
+        #expect(coordinator.state == .owned)
+        #expect(armed > 0)
+
+        preference.isOn.withLock { $0 = false }
+        await coordinator.preferenceChanged(isOn: false, arm: { true }, disarm: {})
+
+        #expect(coordinator.state == .off)
+        #expect(!coordinator.armsTriggers)
     }
 
     @Test
@@ -402,6 +454,44 @@ struct DictationOwnershipCoordinatorTests {
 
         #expect(replace.generation != read.generation)
         #expect(replace.revalidate())
+    }
+
+    @Test
+    func onlyTheOwnerArmsTheShortcut() throws {
+        let suite = "secreteo-ownership-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(true, forKey: DictationController.defaultsKey)
+        let feature = try disposableFeature(defaults)
+        #expect(!feature.dictationTriggersMayArm)
+
+        feature.start()
+
+        #expect(feature.dictationTriggersMayArm)
+    }
+
+    @Test
+    func aWorkspaceChangeIsAHintToLookAgain() throws {
+        let scratch = Scratch()
+        _ = scratch.participant(Self.secreteo).claimAtFirstRun()
+        let peer = Preference()
+        peer.isOn.withLock { $0 = true }
+        let ownership = DictationOwnership(
+            participant: Self.secreteo, root: scratch.root,
+            conditions: {
+                ParticipantConditions(
+                    preferenceIsOn: true, missingForReadiness: nil, legacyPeerIsActive: peer.isOn.withLock { $0 })
+            },
+            notificationName: "com.johnny4young.secreteo.ownership-tests.\(scratch.root.lastPathComponent)")
+        let coordinator = DictationOwnershipCoordinator(ownership: ownership) {}
+        coordinator.start()
+        #expect(coordinator.state == .unavailable(.legacyPeerActive))
+        peer.isOn.withLock { $0 = false }
+
+        NSWorkspace.shared.notificationCenter.post(
+            name: NSWorkspace.didTerminateApplicationNotification, object: nil)
+
+        #expect(coordinator.state == .owned)
     }
 
     // MARK: Sessions
@@ -695,6 +785,45 @@ struct DictationOwnershipCoordinatorTests {
                 try? await Task.sleep(for: .milliseconds(5))
             }
         }
+    }
+
+    @Test
+    func aHeldTriggerKeepsItsWordsWhenAHandoffDisarmsIt() async throws {
+        let suite = "secreteo-ownership-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let feature = try disposableFeature(defaults)
+        let harness = DictationControllerHarness(text: "So we ship it tomorrow.")
+        defer { harness.controller.cancel() }
+        var dependencies = harness.dependencies
+        dependencies.handoffGrace = .seconds(3_600)
+        harness.controller.toggle(using: dependencies)
+        try await eventually { harness.controller.partialText == harness.text }
+        harness.now = harness.now.addingTimeInterval(1)
+        harness.controller.modifierTrigger.ownsSession = true
+        harness.controller.ownershipIntentSeen()
+
+        harness.controller.syncModifierPTT(services: feature)
+
+        try await eventually { harness.controller.phase == .recovery(.ownershipChanged) }
+        #expect(harness.controller.recoveryText == harness.text)
+        #expect(harness.insertions.isEmpty)
+    }
+
+    @Test
+    func aHeldTriggerStillCancelsWhenItIsDisabledWithNoHandoff() async throws {
+        let suite = "secreteo-ownership-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let feature = try disposableFeature(defaults)
+        let harness = DictationControllerHarness(text: "So we ship it tomorrow.")
+        harness.controller.toggle(using: harness.dependencies)
+        try await eventually { harness.controller.partialText == harness.text }
+        harness.controller.modifierTrigger.ownsSession = true
+
+        harness.controller.syncModifierPTT(services: feature)
+
+        #expect(harness.controller.phase == .idle)
     }
 
     private func previewRewrite(

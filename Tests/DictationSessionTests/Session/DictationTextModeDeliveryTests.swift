@@ -39,6 +39,19 @@ struct DictationTextModeDeliveryTests {
                 "An untouched installation must not opt itself into deterministic cleaning")
     }
 
+    @Test(arguments: examples)
+    func firstEnableAfterAppCompositionStillDeliversLiteral(_ example: Example) async throws {
+        let harness = DictationControllerHarness(text: example.recognized)
+        defer { harness.controller.cancel() }
+        let feature = try DictationFeature(
+            usesTemporaryStore: true, arguments: ["-use-temp-store"], defaults: harness.defaults)
+        feature.start()
+        harness.set(true, forKey: DictationController.defaultsKey)
+        let result = try await deliver(harness)
+        #expect(result == example.recognized,
+                "Enabling dictation for the first time must not masquerade as migrated legacy preferences")
+        withExtendedLifetime(feature) {}
+    }
 
     @Test(arguments: examples)
     func existingDictationKeepsImplicitCleaning(_ example: Example) async throws {
@@ -417,7 +430,20 @@ extension DictationTextModeDeliveryTests {
         #expect(harness.defaults.string(forKey: DictationTextPreferences.profilesKey) == nil)
     }
 
+    /// A database that cannot open no longer fails the composition, so this guards the rest of it:
+    /// only a feature that was built and started writes the text mode.
+    @Test
+    func buildingTheFeatureDoesNotInitializeTextPreferences() throws {
+        let harness = DictationControllerHarness(text: "unused")
+        #expect(harness.defaults.object(forKey: DictationTextPreferences.modeKey) == nil)
+        let feature = try DictationFeature(
+            usesTemporaryStore: true, arguments: ["-use-temp-store"], defaults: harness.defaults)
+        #expect(harness.defaults.object(forKey: DictationTextPreferences.modeKey) == nil)
 
+        feature.start()
+
+        #expect(harness.defaults.string(forKey: DictationTextPreferences.modeKey) == DictationTextMode.literal.rawValue)
+    }
 }
 
 extension DictationTextModeDeliveryTests {
