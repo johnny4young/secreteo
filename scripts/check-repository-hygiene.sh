@@ -154,7 +154,7 @@ for probe in "${ignore_probes[@]}"; do
 done
 
 if [[ -d Tests/Tooling ]]; then
-  python3 -m unittest discover -s Tests/Tooling -p 'test_*.py'
+  python3 -I -m unittest discover -s Tests/Tooling -p 'test_*.py'
 fi
 
 exit "$failures"
