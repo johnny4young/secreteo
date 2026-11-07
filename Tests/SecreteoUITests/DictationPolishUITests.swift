@@ -25,6 +25,8 @@ final class DictationPolishUITests: SecreteoUITestCase {
         qwen.click()
 
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { renderedText(of: model).contains("qwen3:8b") })
+        // Polish is the last section, so the evidence shows it whole at the bottom.
+        app.control(withIdentifier: "settings-root").scroll(byDeltaX: 0, deltaY: -2_000)
         attachScreenshot(named: "pr-settings-polish-ollama")
     }
 
@@ -57,6 +59,8 @@ final class DictationPolishUITests: SecreteoUITestCase {
         let unavailable = app.control(withIdentifier: "settings-dictation-polish-unavailable")
         XCTAssertTrue(reveal(unavailable, in: app))
         XCTAssertTrue(renderedText(of: unavailable).contains("Apple Intelligence is turned off"))
+        // Polish is the last section, so the evidence shows it whole at the bottom.
+        app.control(withIdentifier: "settings-root").scroll(byDeltaX: 0, deltaY: -2_000)
         attachScreenshot(named: "pr-settings-polish-apple-unavailable")
         let engine = app.control(withIdentifier: "settings-dictation-polish-engine")
 
