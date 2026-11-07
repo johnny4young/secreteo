@@ -41,7 +41,9 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored let pressure = DictationMemoryPressure()
     @ObservationIgnored var pasteLastRegistrar: DictationShortcut.Registrar?
     @ObservationIgnored private var pasteLastRegistration: (any GlobalHotkeyRegistration)?
-    @ObservationIgnored private var isRecordingShortcut = false
+    @ObservationIgnored private(set) var isRecordingShortcut = false
+    @ObservationIgnored var rewriteSelectionRegistration: (any GlobalHotkeyRegistration)?
+    @ObservationIgnored let selectionRewrite = SelectionRewriteController()
     /// Bumped on every write, because `UserDefaults` is not observable.
     var preferenceRevision = 0
     var portavozImport: PortavozPreferenceImport?
@@ -51,13 +53,7 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored private let settingsWindowHolder = UUID()
 
     /// Created on first use, because creating it writes the initial text mode.
-    @ObservationIgnored private(set) var textSettingsIfCreated: DictationTextSettingsModel?
-    var textSettings: DictationTextSettingsModel {
-        if let textSettingsIfCreated { return textSettingsIfCreated }
-        let model = DictationTextSettingsModel(defaults: defaults, temporary: usesTemporaryMeetingStore)
-        textSettingsIfCreated = model
-        return model
-    }
+    @ObservationIgnored var textSettingsIfCreated: DictationTextSettingsModel?
 
     /// Reads the engine chosen in Settings on every call.
     var dictationPolisher: any DictationTextPolishing { DictationPolishRouter.live(defaults: defaults) }
@@ -70,6 +66,7 @@ public final class DictationFeature: AppServices {
     private(set) var handoffProblem: HandoffProblem?
     public private(set) var lastResetFailed = false
     private(set) var pasteLastShortcutIsUnavailable = false
+    var rewriteSelectionShortcutIsUnavailable = false
 
     public convenience init(usesTemporaryStore: Bool, arguments: [String] = ProcessInfo.processInfo.arguments) throws {
         try self.init(usesTemporaryStore: usesTemporaryStore, arguments: arguments, defaults: .standard)
@@ -184,8 +181,10 @@ public final class DictationFeature: AppServices {
         controller.toggle(using: makeDictationSessionDependencies())
     }
 
+    /// A replay is never a rewrite instruction.
     public func pasteLast(alternate: Bool = false) {
-        controller.pasteLastDictation(using: makeDictationSessionDependencies(), alternate: alternate)
+        controller.pasteLastDictation(
+            using: makeDictationSessionDependencies(capturesInstruction: false), alternate: alternate)
     }
 
     public func downloadModel() {
@@ -271,6 +270,8 @@ public final class DictationFeature: AppServices {
         }
     }
     public var canPasteLast: Bool { controller.hasPastableText && mayPaste }
+    /// A rewrite reads and replaces through the same admission as a paste.
+    public var canRewriteSelection: Bool { mayPaste }
     public var canPasteUnpolished: Bool { canPasteAlternate && !controller.lastText.alternateIsOriginal }
     public var canPasteOriginal: Bool { canPasteAlternate && controller.lastText.alternateIsOriginal }
     private var canPasteAlternate: Bool { controller.hasAlternateText && mayPaste }
@@ -295,7 +296,15 @@ public final class DictationFeature: AppServices {
     }
 
     func makeDictationSessionDependencies() -> DictationSessionDependencies {
-        practice.route(unroutedDependencies(), appIsActive: NSApplication.shared.isActive && practiceIsShown)
+        makeDictationSessionDependencies(capturesInstruction: true)
+    }
+
+    func makeDictationSessionDependencies(capturesInstruction: Bool) -> DictationSessionDependencies {
+        let routed = practice.route(
+            unroutedDependencies(), appIsActive: NSApplication.shared.isActive && practiceIsShown)
+        // A rewrite waiting for "Say how" takes the next session's words as its instruction.
+        return capturesInstruction && selectionRewrite.capturesInstruction
+            ? selectionRewrite.instructionDependencies(routed) : routed
     }
 
     private func unroutedDependencies() -> DictationSessionDependencies {
@@ -345,6 +354,8 @@ public final class DictationFeature: AppServices {
 
     private func ownershipChanged(from previous: ParticipantState) {
         syncDictationTriggers()
+        if previous.armsTriggers, !ownership.state.armsTriggers { selectionRewrite.releaseGlobalKeys() }
+        if ownership.state == .unavailable(.corruptState) { selectionRewrite.revokeReplace() }
         if previous == .owned, ownership.state != .owned { warmEngine.release() }
         if previous != .owned, ownership.state == .owned { prewarmIfConfigured() }
     }
@@ -397,6 +408,7 @@ public final class DictationFeature: AppServices {
     private func syncDictationTriggers(promptIfNeeded: Bool = false) {
         if !isRecordingShortcut { controller.syncHotkey(services: self) }
         syncPasteLastShortcut()
+        syncRewriteSelectionShortcut()
         syncEventTaps(promptIfNeeded: promptIfNeeded)
     }
 

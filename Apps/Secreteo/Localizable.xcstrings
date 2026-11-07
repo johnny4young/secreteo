@@ -306,6 +306,22 @@
         }
       }
     },
+    "Another shortcut already uses ⌃⌥⌘R." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another shortcut already uses ⌃⌥⌘R."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otro atajo ya usa ⌃⌥⌘R."
+          }
+        }
+      }
+    },
     "Another shortcut already uses ⌃⌥⌘V." : {
       "localizations" : {
         "en" : {
@@ -546,6 +562,22 @@
         }
       }
     },
+    "Cancel rewrite" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel rewrite"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelar reescritura"
+          }
+        }
+      }
+    },
     "Changed “%@” to “%@”." : {
       "localizations" : {
         "en" : {
@@ -638,6 +670,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Elige un modelo de Ollama en Ajustes para pulir los dictados."
+          }
+        }
+      }
+    },
+    "Choose another" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose another"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegir otra"
           }
         }
       }
@@ -766,6 +814,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Continuar sin el modelo"
+          }
+        }
+      }
+    },
+    "Copied" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiado"
           }
         }
       }
@@ -2050,6 +2114,38 @@
         }
       }
     },
+    "Nothing was heard. Say how again, or choose a recipe." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing was heard. Say how again, or choose a recipe."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se oyó nada. Vuelve a decir cómo o elige una receta."
+          }
+        }
+      }
+    },
+    "Nothing was replaced. Copy the rewrite instead." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing was replaced. Copy the rewrite instead."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se reemplazó nada. Copia la reescritura."
+          }
+        }
+      }
+    },
     "Nothing was saved in Secreteo." : {
       "localizations" : {
         "en" : {
@@ -2190,6 +2286,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abrir al iniciar sesión y los permisos lo necesitan ahí."
+          }
+        }
+      }
+    },
+    "Or hold your dictation shortcut and say how to rewrite it." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Or hold your dictation shortcut and say how to rewrite it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O mantén tu atajo de dictado y di cómo reescribirlo."
+          }
+        }
+      }
+    },
+    "Password fields cannot be rewritten." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password fields cannot be rewritten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los campos de contraseña no se pueden reescribir."
           }
         }
       }
@@ -2738,6 +2866,22 @@
         }
       }
     },
+    "Preview" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vista previa"
+          }
+        }
+      }
+    },
     "Push-to-Talk Mouse Button" : {
       "localizations" : {
         "en" : {
@@ -2770,6 +2914,22 @@
         }
       }
     },
+    "Reading the selection…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reading the selection…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leyendo la selección…"
+          }
+        }
+      }
+    },
     "Ready" : {
       "localizations" : {
         "en" : {
@@ -2782,6 +2942,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Listo"
+          }
+        }
+      }
+    },
+    "Recipe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recipe"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Receta"
           }
         }
       }
@@ -2850,6 +3026,70 @@
         }
       }
     },
+    "Replace" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reemplazar"
+          }
+        }
+      }
+    },
+    "Replaced in %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replaced in %@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reemplazado en %@."
+          }
+        }
+      }
+    },
+    "Replaced." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replaced."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reemplazado."
+          }
+        }
+      }
+    },
+    "Replacing…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replacing…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reemplazando…"
+          }
+        }
+      }
+    },
     "Reset Dictation State" : {
       "localizations" : {
         "en" : {
@@ -2910,6 +3150,118 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vuelve a %@ y al campo original para reinsertar, o copia el texto."
+          }
+        }
+      }
+    },
+    "Rewrite Selection…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rewrite Selection…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reescribir la selección…"
+          }
+        }
+      }
+    },
+    "Rewrite instruction" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rewrite instruction"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instrucción de reescritura"
+          }
+        }
+      }
+    },
+    "Rewrite the Selection with ⌃⌥⌘R" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rewrite the Selection with ⌃⌥⌘R"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reescribir la selección con ⌃⌥⌘R"
+          }
+        }
+      }
+    },
+    "Rewrite your selection" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rewrite your selection"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reescribir tu selección"
+          }
+        }
+      }
+    },
+    "Rewrite your selection in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rewrite your selection in %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reescribir tu selección en %@"
+          }
+        }
+      }
+    },
+    "Rewriting needs the Accessibility permission. Grant it in System Settings and try again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rewriting needs the Accessibility permission. Grant it in System Settings and try again."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reescribir necesita el permiso de Accesibilidad. Concédelo en Ajustes del Sistema y vuelve a intentarlo."
+          }
+        }
+      }
+    },
+    "Rewriting…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rewriting…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reescribiendo…"
           }
         }
       }
@@ -2994,6 +3346,22 @@
         }
       }
     },
+    "Say how" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Say how"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decir cómo"
+          }
+        }
+      }
+    },
     "Secreteo can correct only its last insertion while it is unchanged in a field it can read." : {
       "localizations" : {
         "en" : {
@@ -3038,6 +3406,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Seleccionar todo"
+          }
+        }
+      }
+    },
+    "Select at least three words to rewrite." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select at least three words to rewrite."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecciona al menos tres palabras para reescribir."
+          }
+        }
+      }
+    },
+    "Select at most 2,000 characters to rewrite." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select at most 2,000 characters to rewrite."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecciona como máximo 2.000 caracteres para reescribir."
+          }
+        }
+      }
+    },
+    "Select some text first, then try again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select some text first, then try again."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Primero selecciona un texto y vuelve a intentarlo."
           }
         }
       }
@@ -3474,6 +3890,22 @@
         }
       }
     },
+    "The model could not rewrite it. Try again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The model could not rewrite it. Try again."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El modelo no pudo reescribirlo. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
     "The original field can't be verified. Your text is still available to copy." : {
       "localizations" : {
         "en" : {
@@ -3490,6 +3922,38 @@
         }
       }
     },
+    "The rewrite changed a fact, name or number, so it is not offered. Try another recipe." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The rewrite changed a fact, name or number, so it is not offered. Try another recipe."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La reescritura cambiaba un dato, un nombre o un número, así que no se ofrece. Prueba otra receta."
+          }
+        }
+      }
+    },
+    "The rewrite took too long. Try again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The rewrite took too long. Try again."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La reescritura tardó demasiado. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
     "The saved shortcut is invalid. Using %@ instead." : {
       "localizations" : {
         "en" : {
@@ -3502,6 +3966,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "El atajo guardado no es válido. Se usa %@ en su lugar."
+          }
+        }
+      }
+    },
+    "The selection changed, so nothing was replaced. Copy the rewrite instead." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The selection changed, so nothing was replaced. Copy the rewrite instead."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La selección cambió, así que no se reemplazó nada. Copia la reescritura."
           }
         }
       }
@@ -3550,6 +4030,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Avisos de terceros"
+          }
+        }
+      }
+    },
+    "This app does not let Secreteo read its selection." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This app does not let Secreteo read its selection."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta app no deja que Secreteo lea su selección."
           }
         }
       }

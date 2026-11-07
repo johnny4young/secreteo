@@ -19,6 +19,13 @@ extension DictationFeature {
         defaults.setVolatileDomain(domain, forName: UserDefaults.argumentDomain)
     }
 
+    var textSettings: DictationTextSettingsModel {
+        if let textSettingsIfCreated { return textSettingsIfCreated }
+        let model = DictationTextSettingsModel(defaults: defaults, temporary: usesTemporaryMeetingStore)
+        textSettingsIfCreated = model
+        return model
+    }
+
     func store(_ values: [String: Any]) {
         Self.store(values, in: defaults, temporary: usesTemporaryMeetingStore)
         preferenceRevision += 1

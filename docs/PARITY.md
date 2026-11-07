@@ -38,7 +38,7 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Menu | `MenuBarView`, `MenuBarModel` | `MenuBarModelTests`, `DictationUITests` | `DictationUITests` | Dictate and Paste last in the menu |
 | App Intents | `AppServices+DictationIntents` | `DictationIntentTests` | | Pending, P8 |
 | Paste last | `DictationController+PasteLast`, `AppServices+PasteLastDictation` | `DictationPasteLastTests` | The same tests | In the menu, and with an optional shortcut |
-| Selection Rewrite | `SelectionRewriteController`, `SelectionCapture` | `SelectionRewriteTests`, `SelectionRewriteUITests` | | Pending, P6 |
+| Selection Rewrite | `SelectionRewriteController`, `SelectionCapture` | `SelectionRewriteTests`, `SelectionRewriteUITests` | The same tests, and the Rewrite cases of `DictationAdmissionTests` and `DictationOwnershipCoordinatorTests` | Ported, in the menu and with an optional ⌃⌥⌘R. A real selection in another app still has to be checked |
 | Practice | `DictationPracticeField`, `DictationPracticeView` | `DictationPracticeFieldTests`, `DictationPracticeUITests` | The same tests, with the onboarding journey in `OnboardingUITests` | In Settings and in onboarding, each window holding the field |
 | One owner per Mac | `DictationOwnershipCoordinator`, `DictationAdmission` | `DictationOwnershipCoordinatorTests`, `DictationAdmissionTests` | The same tests, without the composition's, plus `KnownDictationPeersTests` and the reference tests | Coordinator ported. The app does not run it yet, and it has not run against a real Portavoz |
 
@@ -89,7 +89,6 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Test | Waits for |
 |---|---|
 | In `DictationOwnershipCoordinatorTests`: `anActivationBeforeLaunchFinishesPublishesNothing`, `turningThePreferenceOnTakesOwnershipFromNobody`, `onlyTheOwnerArmsTheShortcut`, `aWorkspaceChangeIsAHintToLookAgain`, `aHeldTriggerKeepsItsWordsWhenAHandoffDisarmsIt`, `aHeldTriggerStillCancelsWhenItIsDisabledWithNoHandoff` | The composition |
-| In `DictationOwnershipCoordinatorTests`: `aSpokenInstructionKeepsItsWordsWhenTheGraceEnds`, `aPreviewGivesUpItsGlobalKeysWhenOwnershipIsLost`, `aPreviewFromBeforeAResetCannotReplace`, `aRewriteReplaceIsRefusedAfterAHandoffThereAndBack`, `aHandoffCompletesWithARewritePreviewOpenAndTheReplaceIsRefused`, `aHandoffThereAndBackWithARewritePreviewOpenRefusesTheReplace`. In `DictationAdmissionTests`: `aRefusedRewriteReadsNothing`, `aRewriteHoldsNoLeaseWhileTheUserDecides`, `aRefusedRewriteLeavesTheOneInProgressAlone`, `aRefusedSpokenInstructionLeavesTheChoicesOpen`, `aCancelledRewriteKeepsItsLeaseUntilTheReadEnds`, `aReplaceHoldsItsLeaseThroughTheClipboardRestore`, `aRefusedReplaceKeepsTheRewriteToCopy` | Rewrite |
 | In `DictationAdmissionTests`: `compositionReadsOwnershipForPrewarmAndAdmission` | The composition |
 | `DictationHistoryRecordingTests` | The store |
 | `DictationSpeechGateCorpusTests` | The benchmark tooling |

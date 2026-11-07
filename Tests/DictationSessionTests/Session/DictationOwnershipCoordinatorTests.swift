@@ -565,10 +565,98 @@ struct DictationOwnershipCoordinatorTests {
         #expect(polished == 0)
     }
 
+    @Test
+    func aSpokenInstructionKeepsItsWordsWhenTheGraceEnds() async throws {
+        let port = DictationAdmission.open
+        let controller = SelectionRewriteController(presentsPanel: false)
+        defer { controller.cancel() }
+        controller.start(using: rewriteDependencies(admission: port))
+        try await eventually { controller.phase == .choosing }
+        let harness = DictationControllerHarness(text: "make it formal")
+        defer { harness.controller.cancel() }
+        var dependencies = controller.instructionDependencies(harness.dependencies)
+        dependencies.handoffGrace = .milliseconds(20)
+        harness.controller.toggle(using: dependencies)
+        try await eventually { harness.controller.partialText == harness.text }
+        harness.now = harness.now.addingTimeInterval(1)
+
+        harness.controller.ownershipIntentSeen()
+
+        try await eventually { harness.controller.phase == .recovery(.ownershipChanged) }
+        #expect(harness.controller.recoveryText == harness.text)
+        #expect(controller.spokenInstruction == nil)
+    }
+
+    @Test
+    func aPreviewGivesUpItsGlobalKeysWhenOwnershipIsLost() async throws {
+        var keys: [UInt32: () -> Void] = [:]
+        var dependencies = rewriteDependencies(admission: .open)
+        dependencies.registerKey = { keyCode, onPress in
+            keys[keyCode] = onPress
+            return KeyRegistration { keys[keyCode] = nil }
+        }
+        let controller = SelectionRewriteController(presentsPanel: false)
+        defer { controller.cancel() }
+        controller.start(using: dependencies)
+        try await eventually { controller.phase == .choosing }
+        controller.choose(nil)
+        try await eventually { controller.phase == .preview("SO WE SHIP IT TOMORROW") }
+        #expect(!keys.isEmpty)
+
+        controller.releaseGlobalKeys()
+
+        #expect(keys.isEmpty)
+        #expect(controller.result == "SO WE SHIP IT TOMORROW")
+    }
+
+    @Test
+    func aPreviewFromBeforeAResetCannotReplace() async throws {
+        var inserted: [String] = []
+        var dependencies = rewriteDependencies(admission: .open)
+        dependencies.capture = {
+            .success(CapturedSelection(
+                text: "so we ship it tomorrow", source: .accessibility, applicationName: "Receiver",
+                revalidate: { nil },
+                destination: CapturedDictationDestination(name: "Receiver", canRetry: false) { text in
+                    inserted.append(text)
+                    return .verified
+                }))
+        }
+        let controller = SelectionRewriteController(presentsPanel: false)
+        defer { controller.cancel() }
+        controller.start(using: dependencies)
+        try await eventually { controller.phase == .choosing }
+        controller.choose(nil)
+        try await eventually { controller.phase == .preview("SO WE SHIP IT TOMORROW") }
+
+        controller.revokeReplace()
+        controller.replace()
+
+        guard case .failed = controller.phase else {
+            Issue.record("A replace went through after the state was reset")
+            return
+        }
+        #expect(inserted.isEmpty)
+    }
+
     private final class KeyRegistration: GlobalHotkeyRegistration {
         let onUnregister: () -> Void
         init(onUnregister: @escaping () -> Void) { self.onUnregister = onUnregister }
         func unregister() { onUnregister() }
+    }
+
+    private func rewriteDependencies(admission: DictationAdmission) -> SelectionRewriteController.Dependencies {
+        SelectionRewriteController.Dependencies(
+            admission: admission,
+            capture: {
+                .success(CapturedSelection(
+                    text: "so we ship it tomorrow", source: .accessibility, applicationName: "Receiver",
+                    revalidate: { nil },
+                    destination: CapturedDictationDestination(name: "Receiver", canRetry: false) { _ in .verified }))
+            },
+            polish: { text, _, _ in .polished(text.uppercased()) },
+            recipes: { [] }, protectedTerms: { [] }, copyText: { _ in true },
+            wait: { _ in try await Task.sleep(for: .seconds(3_600)) })
     }
 
     @Test
@@ -607,6 +695,71 @@ struct DictationOwnershipCoordinatorTests {
                 try? await Task.sleep(for: .milliseconds(5))
             }
         }
+    }
+
+    private func previewRewrite(
+        admission: DictationAdmission, insertions: @escaping (String) -> Void
+    ) async throws -> SelectionRewriteController {
+        let controller = SelectionRewriteController(presentsPanel: false)
+        controller.start(using: SelectionRewriteController.Dependencies(
+            admission: admission,
+            capture: {
+                .success(CapturedSelection(
+                    text: "so we ship it tomorrow", source: .accessibility, applicationName: "Receiver",
+                    revalidate: { nil },
+                    destination: CapturedDictationDestination(name: "Receiver", canRetry: false) { text in
+                        insertions(text)
+                        return .verified
+                    }))
+            },
+            polish: { text, _, _ in .polished(text.uppercased()) },
+            recipes: { [] }, protectedTerms: { [] }, copyText: { _ in true },
+            wait: { _ in try await Task.sleep(for: .seconds(3_600)) }))
+        try await eventually { controller.phase == .choosing }
+        controller.choose(nil)
+        try await eventually { controller.phase == .preview("SO WE SHIP IT TOMORROW") }
+        return controller
+    }
+
+    @Test
+    func aHandoffCompletesWithARewritePreviewOpenAndTheReplaceIsRefused() async throws {
+        let scratch = Scratch()
+        let coordinator = scratch.coordinator()
+        var inserted: [String] = []
+        let rewrite = try await previewRewrite(admission: coordinator.admission) { inserted.append($0) }
+        defer { rewrite.cancel() }
+
+        let outcome = await scratch.participant(Self.other).takeOwnership(userConfirmed: true, triggers: Triggers())
+
+        #expect(outcome == .completed(generation: 2))
+        rewrite.replace()
+        guard case .failed = rewrite.phase else {
+            Issue.record("A replace went through for a former owner")
+            return
+        }
+        #expect(inserted.isEmpty)
+        #expect(rewrite.result == "SO WE SHIP IT TOMORROW")
+    }
+
+    @Test
+    func aHandoffThereAndBackWithARewritePreviewOpenRefusesTheReplace() async throws {
+        let scratch = Scratch()
+        let coordinator = scratch.coordinator()
+        var inserted: [String] = []
+        let rewrite = try await previewRewrite(admission: coordinator.admission) { inserted.append($0) }
+        defer { rewrite.cancel() }
+        let secreteo = try #require(scratch.lastOwnership)
+        #expect(await scratch.participant(Self.other)
+            .takeOwnership(userConfirmed: true, triggers: Triggers()) == .completed(generation: 2))
+        #expect(await secreteo.takeOwnership(userConfirmed: true, triggers: Triggers()) == .completed(generation: 3))
+
+        rewrite.replace()
+
+        guard case .failed = rewrite.phase else {
+            Issue.record("A replace went through across a handoff there and back")
+            return
+        }
+        #expect(inserted.isEmpty)
     }
 
     @Test
@@ -648,4 +801,41 @@ struct DictationOwnershipCoordinatorTests {
         #expect(harness.insertions.count == 1)
     }
 
+
+    @Test
+    func aRewriteReplaceIsRefusedAfterAHandoffThereAndBack() async throws {
+        var generation = 1
+        var insertions: [String] = []
+        let dependencies = SelectionRewriteController.Dependencies(
+            admission: DictationAdmission(
+                acquire: { _ in .success(DictationLease(generation: generation)) }, isEligible: { true }),
+            capture: {
+                .success(CapturedSelection(
+                    text: "so we ship it tomorrow", source: .accessibility, applicationName: "Receiver",
+                    revalidate: { nil },
+                    destination: CapturedDictationDestination(name: "Receiver", canRetry: false) { text in
+                        insertions.append(text)
+                        return .verified
+                    }))
+            },
+            polish: { text, _, _ in .polished(text.uppercased()) },
+            recipes: { [] }, protectedTerms: { [] }, copyText: { _ in true },
+            wait: { _ in try await Task.sleep(for: .seconds(3_600)) })
+        let controller = SelectionRewriteController(presentsPanel: false)
+        defer { controller.cancel() }
+        controller.start(using: dependencies)
+        try await eventually { controller.phase == .choosing }
+        controller.choose(nil)
+        try await eventually { controller.phase == .preview("SO WE SHIP IT TOMORROW") }
+        generation = 3
+
+        controller.replace()
+
+        guard case .failed = controller.phase else {
+            Issue.record("A replace went through after the owner changed")
+            return
+        }
+        #expect(insertions.isEmpty)
+        #expect(controller.result == "SO WE SHIP IT TOMORROW")
+    }
 }

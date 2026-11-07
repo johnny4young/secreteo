@@ -22,6 +22,13 @@ struct DictationSettingsControls: View {
                     .foregroundStyle(.red)
                     .accessibilityIdentifier("settings-dictation-paste-last-taken")
             }
+            Toggle("Rewrite the Selection with ⌃⌥⌘R", isOn: dictation.rewriteSelectionShortcutBinding)
+                .accessibilityIdentifier("settings-dictation-rewrite-hotkey")
+            if dictation.rewriteSelectionShortcutIsUnavailable {
+                Text("Another shortcut already uses ⌃⌥⌘R.")
+                    .foregroundStyle(.red)
+                    .accessibilityIdentifier("settings-dictation-rewrite-taken")
+            }
         }
         Section("While Dictating") {
             Toggle("Play Start and Stop Sounds", isOn: dictation.preference(

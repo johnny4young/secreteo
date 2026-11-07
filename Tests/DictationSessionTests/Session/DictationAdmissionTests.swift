@@ -360,4 +360,161 @@ struct DictationAdmissionTests {
         var heldWhileReplacing: [Int] = []
     }
 
+    private func rewriteDependencies(
+        _ port: Port, _ recorder: RewriteRecorder
+    ) -> SelectionRewriteController.Dependencies {
+        SelectionRewriteController.Dependencies(
+            admission: port.admission,
+            capture: {
+                recorder.captures += 1
+                recorder.heldWhileCapturing.append(port.held)
+                return .success(CapturedSelection(
+                    text: "so we ship it tomorrow", source: .accessibility, applicationName: "Receiver",
+                    revalidate: { nil },
+                    destination: CapturedDictationDestination(name: "Receiver", canRetry: false) { text in
+                        recorder.heldWhileReplacing.append(port.held)
+                        recorder.insertions.append(text)
+                        return .verified
+                    }))
+            },
+            polish: { text, _, _ in .polished(text.uppercased()) },
+            recipes: { [] },
+            protectedTerms: { [] },
+            copyText: { _ in true },
+            wait: { _ in try await Task.sleep(for: .seconds(3_600)) })
+    }
+
+    @Test
+    func aRefusedRewriteReadsNothing() {
+        let port = Port()
+        port.refuses = true
+        let recorder = RewriteRecorder()
+        let controller = SelectionRewriteController(presentsPanel: false)
+
+        controller.start(using: rewriteDependencies(port, recorder))
+
+        #expect(controller.phase == .idle)
+        #expect(recorder.captures == 0)
+    }
+
+    @Test
+    func aRewriteHoldsNoLeaseWhileTheUserDecides() async throws {
+        let port = Port()
+        let recorder = RewriteRecorder()
+        let controller = SelectionRewriteController(presentsPanel: false)
+        defer { controller.cancel() }
+
+        controller.start(using: rewriteDependencies(port, recorder))
+        try await eventually { controller.phase == .choosing }
+        #expect(recorder.heldWhileCapturing == [1])
+        #expect(port.held == 0)
+
+        controller.choose(nil)
+        try await eventually { controller.phase == .preview("SO WE SHIP IT TOMORROW") }
+        #expect(port.held == 0)
+
+        controller.replace()
+        try await eventually { controller.phase == .replaced }
+        #expect(recorder.heldWhileReplacing == [1])
+        #expect(port.held == 0)
+    }
+
+    @Test
+    func aRefusedRewriteLeavesTheOneInProgressAlone() async throws {
+        let port = Port()
+        let recorder = RewriteRecorder()
+        let controller = SelectionRewriteController(presentsPanel: false)
+        defer { controller.cancel() }
+        let dependencies = rewriteDependencies(port, recorder)
+        controller.start(using: dependencies)
+        try await eventually { controller.phase == .choosing }
+        controller.choose(nil)
+        try await eventually { controller.phase == .preview("SO WE SHIP IT TOMORROW") }
+        port.refuses = true
+
+        controller.start(using: dependencies)
+
+        #expect(controller.phase == .preview("SO WE SHIP IT TOMORROW"))
+        #expect(controller.result == "SO WE SHIP IT TOMORROW")
+        #expect(recorder.captures == 1)
+    }
+
+    @Test
+    func aRefusedSpokenInstructionLeavesTheChoicesOpen() async throws {
+        let port = Port()
+        let controller = SelectionRewriteController(presentsPanel: false)
+        defer { controller.cancel() }
+        controller.start(using: rewriteDependencies(port, RewriteRecorder()))
+        try await eventually { controller.phase == .choosing }
+        let harness = DictationControllerHarness(text: "make it formal")
+        port.refuses = true
+        var base = harness.dependencies
+        base.admission = port.admission
+
+        harness.controller.toggle(using: controller.instructionDependencies(base))
+
+        #expect(controller.phase == .choosing)
+        #expect(harness.controller.phase == .idle)
+    }
+
+    @Test
+    func aCancelledRewriteKeepsItsLeaseUntilTheReadEnds() async throws {
+        let port = Port()
+        let read = PreparationGate()
+        var dependencies = rewriteDependencies(port, RewriteRecorder())
+        let capture = dependencies.capture
+        dependencies.capture = {
+            await read.wait()
+            return await capture()
+        }
+        let controller = SelectionRewriteController(presentsPanel: false)
+        controller.start(using: dependencies)
+        try await eventually { read.started }
+
+        controller.cancel()
+
+        #expect(port.held == 1)
+        read.release()
+        try await eventually { port.held == 0 }
+    }
+
+    @Test
+    func aReplaceHoldsItsLeaseThroughTheClipboardRestore() async throws {
+        let port = Port()
+        let recorder = RewriteRecorder()
+        let controller = SelectionRewriteController(presentsPanel: false)
+        defer { controller.cancel() }
+        controller.start(using: rewriteDependencies(port, recorder))
+        try await eventually { controller.phase == .choosing }
+        controller.choose(nil)
+        try await eventually { controller.phase == .preview("SO WE SHIP IT TOMORROW") }
+        let restore = PreparationGate()
+        port.settle = { await restore.wait() }
+
+        controller.replace()
+
+        try await eventually { controller.phase == .replaced && restore.started }
+        #expect(port.held == 1)
+        restore.release()
+        try await eventually { port.held == 0 }
+    }
+
+    @Test
+    func aRefusedReplaceKeepsTheRewriteToCopy() async throws {
+        let port = Port()
+        let recorder = RewriteRecorder()
+        let controller = SelectionRewriteController(presentsPanel: false)
+        defer { controller.cancel() }
+        controller.start(using: rewriteDependencies(port, recorder))
+        try await eventually { controller.phase == .choosing }
+        controller.choose(nil)
+        try await eventually { controller.phase == .preview("SO WE SHIP IT TOMORROW") }
+        port.refuses = true
+
+        controller.replace()
+
+        guard case .failed = controller.phase else { throw CancellationError() }
+        #expect(recorder.insertions.isEmpty)
+        #expect(controller.result == "SO WE SHIP IT TOMORROW")
+    }
 }
