@@ -274,6 +274,22 @@
         }
       }
     },
+    "Another app handles dictation on this Mac. Open Secreteo Settings to use Secreteo." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another app handles dictation on this Mac. Open Secreteo Settings to use Secreteo."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otra app se encarga del dictado en esta Mac. Abre los Ajustes de Secreteo para usar Secreteo."
+          }
+        }
+      }
+    },
     "Another app is using this shortcut." : {
       "localizations" : {
         "en" : {
@@ -1218,6 +1234,22 @@
         }
       }
     },
+    "Dictation is off. Turn it on in Secreteo Settings." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictation is off. Turn it on in Secreteo Settings."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El dictado está desactivado. Actívalo en los Ajustes de Secreteo."
+          }
+        }
+      }
+    },
     "Dictation is unavailable right now." : {
       "localizations" : {
         "en" : {
@@ -1230,6 +1262,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "El dictado no está disponible en este momento."
+          }
+        }
+      }
+    },
+    "Dictation is unavailable right now. Open Secreteo Settings to see why." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictation is unavailable right now. Open Secreteo Settings to see why."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El dictado no está disponible ahora. Abre los Ajustes de Secreteo para ver por qué."
           }
         }
       }
@@ -2610,6 +2658,22 @@
         }
       }
     },
+    "Pastes your last dictation into the app in front, while Secreteo still remembers it." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pastes your last dictation into the app in front, while Secreteo still remembers it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pega tu último dictado en la app que está al frente, mientras Secreteo aún lo recuerde."
+          }
+        }
+      }
+    },
     "Pause Length" : {
       "localizations" : {
         "en" : {
@@ -3394,6 +3458,38 @@
         }
       }
     },
+    "Secreteo is finishing the current dictation. Run the action again when it's done." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Secreteo is finishing the current dictation. Run the action again when it's done."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Secreteo está terminando el dictado actual. Vuelve a ejecutar la acción cuando termine."
+          }
+        }
+      }
+    },
+    "Secreteo is still opening. Run the action again in a moment." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Secreteo is still opening. Run the action again in a moment."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Secreteo todavía se está abriendo. Vuelve a ejecutar la acción en un momento."
+          }
+        }
+      }
+    },
     "Select All" : {
       "localizations" : {
         "en" : {
@@ -3662,6 +3758,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Empieza un dictado con “cambia viernes por lunes”, “borra viernes” o “borra eso”."
+          }
+        }
+      }
+    },
+    "Starts dictation into the app in front, or finishes the one in progress, without bringing Secreteo forward." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starts dictation into the app in front, or finishes the one in progress, without bringing Secreteo forward."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empieza a dictar en la app que está al frente, o termina el dictado en curso, sin traer Secreteo al frente."
           }
         }
       }
@@ -4014,6 +4126,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "El modelo de voz tardó demasiado en cargar. No se insertó nada. Inténtalo de nuevo en un momento."
+          }
+        }
+      }
+    },
+    "There's no recent dictation to paste." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There's no recent dictation to paste."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay un dictado reciente para pegar."
           }
         }
       }
