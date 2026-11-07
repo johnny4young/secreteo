@@ -67,12 +67,19 @@ def main(argv=None):
             if missing:
                 print(json.dumps({"missing": missing}), file=sys.stderr)
                 return 2
-            publish_json(arguments.audio_root / "manifest.json", manifest)
+            published = arguments.audio_root / "manifest.json"
+            if published.exists():
+                previous = corpus.read_json(published)[0]
+                corpus.require(isinstance(previous, dict) and previous.get("microphone") == arguments.microphone,
+                               "the published manifest names another microphone; remove it to change")
+            # Derived from the recordings, so a rebuild after --redo replaces it.
+            publish_json(published, manifest, replace=True)
         manifest, _ = corpus.read_json(arguments.audio_root / "manifest.json")
         print(json.dumps(validate(manifest, arguments.audio_root), sort_keys=True))
         return 0
     except (OSError, corpus.CorpusError) as error:
-        print(f"field corpus: {error}", file=sys.stderr)
+        message = str(error) if isinstance(error, corpus.CorpusError) else "field corpus input/output is unavailable"
+        print(f"field corpus: {message}", file=sys.stderr)
         return 2
 
 
