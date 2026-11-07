@@ -9,7 +9,7 @@ extension PortavozPreferenceImport {
             DictationCompactIndicator.defaultsKey: true,
             DictationTextPreferences.modeKey: "clean",
             "dictationHotkeyKeyCode": 2,
-            "dictationTranslationTarget": "en"
+            "dictationLiveSpeechEngine": "parakeetUltra"
         ]
     }
 }

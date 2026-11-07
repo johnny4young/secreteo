@@ -30,7 +30,9 @@ final class PortavozPreferenceImportTests: XCTestCase {
         let found = PortavozPreferenceImport(portavoz: portavoz, current: try scratchDefaults())
 
         // Clean needs no write: the imported language makes Secreteo derive it, as Portavoz did.
-        XCTAssertEqual(Set(found.values.keys), [DictationController.languageKey, DictationSoundCue.defaultsKey])
+        XCTAssertEqual(
+            Set(found.values.keys),
+            [DictationController.languageKey, DictationSoundCue.defaultsKey, DictationTextPreferences.translationKey])
         XCTAssertEqual(Set(found.changes.map(\.key)), Set(found.values.keys))
     }
 
@@ -83,6 +85,23 @@ final class PortavozPreferenceImportTests: XCTestCase {
         XCTAssertEqual(found.values[DictationTextPreferences.modeKey] as? String, DictationTextMode.polish.rawValue)
     }
 
+    func testRecipesAreImportedOnlyWhenSecreteoCanReadThem() throws {
+        let recipe = DictationRecipe(id: "custom-1", name: "Standup", instruction: "Write it as a standup note.")
+        let readable = try DictationTextPreferences.encodeRecipes([recipe])
+        let defaults = try scratchDefaults()
+
+        let found = PortavozPreferenceImport(
+            portavoz: [DictationTextPreferences.recipesKey: readable, DictationTextPreferences.polishRecipeKey: "custom-1"],
+            current: defaults)
+        let unreadable = PortavozPreferenceImport(
+            portavoz: [DictationTextPreferences.recipesKey: "not json", DictationTextPreferences.translationKey: "fr"],
+            current: defaults)
+
+        XCTAssertEqual(found.values[DictationTextPreferences.recipesKey] as? String, readable)
+        XCTAssertEqual(found.values[DictationTextPreferences.polishRecipeKey] as? String, "custom-1")
+        XCTAssertEqual(unreadable.changes, [])
+    }
+
     func testImportingTwiceChangesNothingTheSecondTime() throws {
         let defaults = try scratchDefaults()
         // A disposable launch writes to the process-wide argument domain.
@@ -106,5 +125,25 @@ final class PortavozPreferenceImportTests: XCTestCase {
         XCTAssertNil(defaults.object(forKey: "dictationHotkeyKeyCode"))
         feature.refreshPortavozImport()
         XCTAssertNil(feature.portavozImport)
+    }
+
+    func testAnOpenTextSectionShowsWhatWasImported() throws {
+        let defaults = try scratchDefaults()
+        addTeardownBlock { @MainActor in
+            var domain = UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)
+            domain.removeValue(forKey: DictationTextPreferences.translationKey)
+            domain.removeValue(forKey: DictationTextPreferences.modeKey)
+            UserDefaults.standard.setVolatileDomain(domain, forName: UserDefaults.argumentDomain)
+        }
+        var environment = DictationFeatureEnvironment.disposable(permissionsAreMissing: false)
+        environment.portavozPreferences = { [DictationTextPreferences.translationKey: "en"] }
+        let feature = try DictationFeature(
+            usesTemporaryStore: true, arguments: [], defaults: defaults, environment: environment)
+        XCTAssertEqual(feature.textSettings.globalTranslationTarget, .off)
+        feature.refreshPortavozImport()
+
+        feature.importPortavozPreferences()
+
+        XCTAssertEqual(feature.textSettings.globalTranslationTarget, .english)
     }
 }

@@ -56,6 +56,30 @@ extension XCUIApplication {
     func control(withIdentifier identifier: String) -> XCUIElement {
         descendants(matching: .any).matching(identifier: identifier).firstMatch
     }
+
+    /// Settings with dictation on and these extra saved values, as JSON members.
+    @MainActor
+    static func launchSettings(_ defaults: String, arguments: [String] = []) throws -> XCUIApplication {
+        let app = try XCUIApplication.secreteo(showMenuBarContent: true)
+        app.launchArguments += arguments
+        app.launchEnvironment["SECRETEO_UI_TEST_DEFAULTS"] = "{\"globalDictationEnabled\":true,\(defaults)}"
+        app.launchSecreteo()
+        XCTAssertTrue(app.buttons["menu-settings"].waitForStableFrame(timeout: 30))
+        app.buttons["menu-settings"].click()
+        XCTAssertTrue(app.control(withIdentifier: "settings-root").waitForExistence(timeout: 5))
+        return app
+    }
+
+    /// The form leaves rows below the fold out of the accessibility tree. Scrolling is
+    /// synthesized globally, so it happens only while this app is in front.
+    @MainActor
+    func revealInSettings(_ element: XCUIElement) -> Bool {
+        guard state == .runningForeground else { return false }
+        for _ in 0..<8 where !(element.exists && element.isHittable) {
+            control(withIdentifier: "settings-root").scroll(byDeltaX: 0, deltaY: -400)
+        }
+        return element.waitForStableFrame(timeout: 5)
+    }
 }
 
 extension XCUIElement {

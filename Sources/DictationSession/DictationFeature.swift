@@ -50,6 +50,15 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored let practice = DictationPracticeField()
     @ObservationIgnored private let settingsWindowHolder = UUID()
 
+    /// Created on first use, because creating it writes the initial text mode.
+    @ObservationIgnored private(set) var textSettingsIfCreated: DictationTextSettingsModel?
+    var textSettings: DictationTextSettingsModel {
+        if let textSettingsIfCreated { return textSettingsIfCreated }
+        let model = DictationTextSettingsModel(defaults: defaults, temporary: usesTemporaryMeetingStore)
+        textSettingsIfCreated = model
+        return model
+    }
+
     /// Reads the engine chosen in Settings on every call.
     var dictationPolisher: any DictationTextPolishing { DictationPolishRouter.live(defaults: defaults) }
 

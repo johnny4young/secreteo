@@ -144,6 +144,25 @@ struct DictationTextModeDeliveryTests {
         #expect(harness.insertions == ["don’t delete Swift 1,250.50"])
     }
 
+    @Test(arguments: [
+        "not json", "{}", "[{}]",
+        #"[{"bundleIdentifier":"com.johnny4young.secreteo.example","mode":"translate"}]"#,
+        #"[{"bundleIdentifier":"com.johnny4young.secreteo.example","mode":"clean"},{"bundleIdentifier":"com.johnny4young.secreteo.example","mode":"literal"}]"#
+    ])
+    func corruptProfilesStayRecoverableWithoutOverridingGlobalMode(_ json: String) async throws {
+        let harness = DictationControllerHarness(text: "eh No borres estas notas 1.250,50 €")
+        defer { harness.controller.cancel() }
+        harness.set("literal", forKey: DictationTextPreferences.modeKey)
+        harness.set(json, forKey: DictationTextPreferences.profilesKey)
+        let model = DictationTextSettingsModel(defaults: harness.defaults, temporary: true)
+        #expect(model.hasInvalidProfiles)
+        #expect(harness.defaults.string(forKey: DictationTextPreferences.profilesKey) == json)
+        #expect(try await deliver(harness) == harness.text)
+        model.resetProfiles()
+        #expect(model.hasInvalidProfiles == false && model.profiles.isEmpty)
+        #expect(harness.defaults.string(forKey: DictationTextPreferences.profilesKey) == "[]")
+    }
+
     @Test(arguments: [("Hola, nueva línea, mundo", "Hola\nmundo"), ("Dear team. New paragraph. Thanks", "Dear team.\n\nThanks")])
     func spokenLayoutCommandsApplyOnlyInCleanMode(_ heard: String, _ typed: String) async throws {
         for (mode, expected) in [(DictationTextMode.clean, typed), (.literal, heard)] {
@@ -250,7 +269,57 @@ extension DictationTextModeDeliveryTests {
         #expect(harness.insertions == [harness.text])
     }
 
+    @Test
+    func settingsMutationsStayBoundedAndTemporary() throws {
+        let suite = "dictation-text-temporary-" + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.setVolatileDomain([:], forName: UserDefaults.argumentDomain)
+        #expect(defaults.persistentDomain(forName: suite) == nil)
+        let model = DictationTextSettingsModel(defaults: defaults, temporary: true)
+        model.setGlobalMode(.clean)
+        for index in 0..<DictationTextPreferences.maximumProfiles {
+            model.setProfile(bundleIdentifier: "com.johnny4young.secreteo.fixture\(index)", mode: .literal)
+        }
+        let original = defaults.string(forKey: DictationTextPreferences.profilesKey)
+        model.setProfile(bundleIdentifier: "com.johnny4young.secreteo.extra", mode: .clean)
+        #expect(model.selectionError == .invalidApplication)
+        #expect(model.profiles.count == 64)
+        #expect(defaults.string(forKey: DictationTextPreferences.profilesKey) == original)
+        model.setProfile(bundleIdentifier: "com.johnny4young.secreteo.fixture0", mode: .clean)
+        #expect(model.selectionError == nil)
+        #expect(model.profiles.count == 64)
+        #expect(model.profiles.first { $0.bundleIdentifier == "com.johnny4young.secreteo.fixture0" }?.mode == .clean)
+        let replaced = defaults.string(forKey: DictationTextPreferences.profilesKey)
+        model.setProfile(bundleIdentifier: "/Applications/Private name.app", mode: .literal)
+        #expect(model.selectionError == .invalidApplication)
+        #expect(defaults.string(forKey: DictationTextPreferences.profilesKey) == replaced)
+        #expect(model.beginApplicationSelection())
+        #expect(model.beginApplicationSelection() == false)
+        model.finishApplicationSelection()
+        #expect(model.beginApplicationSelection())
+        model.finishApplicationSelection()
+        model.removeProfile(bundleIdentifier: "com.johnny4young.secreteo.fixture0")
+        #expect(model.profiles.count == 63)
+        #expect(defaults.persistentDomain(forName: suite) == nil)
+    }
 
+    @Test
+    func fillerAndReplacementControlsFollowAnyCleanUse() throws {
+        let suite = "dictation-text-clean-use-" + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.setVolatileDomain([:], forName: UserDefaults.argumentDomain)
+        let model = DictationTextSettingsModel(defaults: defaults, temporary: true)
+        #expect(model.globalMode == .literal)
+        #expect(model.cleanModeInUse == false, "Literal never applies fillers or replacements")
+        model.setProfile(bundleIdentifier: "com.johnny4young.secreteo.fixture", mode: .clean)
+        #expect(model.cleanModeInUse, "One Clean application profile still uses them")
+        model.removeProfile(bundleIdentifier: "com.johnny4young.secreteo.fixture")
+        #expect(model.cleanModeInUse == false)
+        model.setGlobalMode(.clean)
+        #expect(model.cleanModeInUse)
+    }
 
     @Test
     func profileCodecAcceptsItsExactLimitsAndRejectsTheNextByte() throws {
@@ -272,6 +341,17 @@ extension DictationTextModeDeliveryTests {
         }
     }
 
+    @Test(arguments: ["", "Café", "app/private", "app name", "app\nname", "https://example.com"])
+    func rejectedIdentifiersCannotReplaceTheSavedProfile(_ identifier: String) {
+        let harness = DictationControllerHarness(text: "unused")
+        let model = DictationTextSettingsModel(defaults: harness.defaults, temporary: true)
+        model.setProfile(bundleIdentifier: "com.johnny4young.secreteo.valid", mode: .literal)
+        let original = harness.defaults.string(forKey: DictationTextPreferences.profilesKey)
+        model.setProfile(bundleIdentifier: identifier, mode: .clean)
+        #expect(model.selectionError == .invalidApplication)
+        #expect(model.profiles.count == 1)
+        #expect(harness.defaults.string(forKey: DictationTextPreferences.profilesKey) == original)
+    }
 
 }
 
