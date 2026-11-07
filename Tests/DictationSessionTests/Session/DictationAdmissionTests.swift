@@ -350,6 +350,25 @@ struct DictationAdmissionTests {
         try await eventually { port.held == 0 }
     }
 
+    @Test
+    func compositionReadsOwnershipForPrewarmAndAdmission() throws {
+        let suite = "dictation-admission-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(true, forKey: DictationController.defaultsKey)
+        let feature = try DictationFeature(usesTemporaryStore: true, arguments: ["-use-temp-store"], defaults: defaults)
+
+        #expect(!feature.prewarmConditions.dictationEnabled, "Nothing is owned before the start")
+        #expect(!feature.makeDictationSessionDependencies().admission.isEligible())
+        #expect(!feature.makeSelectionRewriteDependencies().admission.isEligible())
+
+        feature.start()
+
+        #expect(feature.prewarmConditions.dictationEnabled)
+        #expect(feature.makeDictationSessionDependencies().admission.isEligible())
+        #expect(feature.makeSelectionRewriteDependencies().admission.isEligible())
+    }
+
     // MARK: Rewrite
 
     @MainActor
