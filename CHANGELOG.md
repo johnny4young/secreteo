@@ -4,6 +4,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- 🗂️ **Dictation history**: save your dictations on this Mac if you turn it on, keep them 7, 30 or 90 days, filter them, and copy or delete them from Dictation History in the menu.
 - 📥 **Settings from Portavoz**: import your dictation settings from Portavoz in Settings, after seeing what will change.
 - ♻️ **Models from Portavoz**: when Portavoz already downloaded the speech model, Secreteo copies it instead of downloading it again.
 - 👋 **First-run setup**: turn on dictation and grant its permissions, prepare the speech model for this Mac, and try it, all in three steps.

@@ -213,6 +213,17 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/SecreteoUITests/DictationPolishUITests.swift` | `Tests/PortavozUITests/DictationPolishUITests.swift` | Extract: without the Settings tests |
 | `Tests/SecreteoUITests/DictationTranslationUITests.swift` | `Tests/PortavozUITests/DictationTranslationUITests.swift` | Extract: without the Settings test |
 | `Tests/SecreteoUITests/DictationTextModeUITests.swift` | `Tests/PortavozUITests/DictationTextModeUITests.swift` | Extract: without the Settings tests |
+| `Sources/DictationStore/DictationStore+History.swift` | `Sources/StorageKit/MeetingStore+DictationHistory.swift` | Seam: imports `DictationKit` and `SpeechCore`, and deleting, retention and a policy change end with a truncating checkpoint |
+| `Sources/DictationSession/History/ApplicationUseCase.swift` | `Sources/ApplicationKit/ApplicationUseCase.swift` | Renames |
+| `Sources/DictationSession/History/DictationHistoryUseCases.swift` | `Sources/ApplicationKit/DictationHistory.swift` | Seam: imports `SpeechCore` |
+| `Sources/DictationSession/History/DictationHistoryModel.swift` | `Sources/portavoz-app/DictationHistoryModel.swift` | Seam: imports `SpeechCore`, with no meeting links or Ask focus ([D2](DECISIONS.md#d2-scope-and-approved-losses)) |
+| `Sources/DictationSession/History/DictationFeature+History.swift` | `Sources/portavoz-app/AppServices+DictationSetup.swift` | Extract: the history seed, plus opening the store and a stand-in when it cannot open |
+| `Sources/DictationSession/History/DictationHistoryView.swift` | `Sources/portavoz-app/DictationHistoryView.swift` | Seam: reads the feature in its own window, title case, no helper text, and no meetings, Ask focus, statistics or search yet |
+| `Sources/DictationSession/Settings/DictationHistorySettingsSection.swift` | `Sources/portavoz-app/DictationHistorySettingsSection.swift` | Seam: reads the feature, title case, no helper text, shows a failure, and the agents switch arrives with the MCP server |
+| `Tests/DictationStoreTests/DictationHistoryStoreTests.swift` | `Tests/PortavozKitTests/DictationHistoryStoreTests.swift` | Seam: v1 instead of v54, imports `SpeechCore`, no `ApplicationKit` |
+| `Tests/DictationSessionTests/History/DictationHistoryModelTests.swift` | `Tests/PortavozAppTests/DictationHistoryModelTests.swift` | Seam: imports `SpeechCore` |
+| `Tests/DictationSessionTests/History/DictationHistoryRecordingTests.swift` | `Tests/PortavozAppTests/DictationHistoryRecordingTests.swift` | Seam: builds a `DictationFeature`, and the statistics test arrives with statistics |
+| `Tests/SecreteoUITests/DictationHistoryUITests.swift` | `Tests/PortavozUITests/DictationHistoryUITests.swift` | Seam: opens a window from the menu, English only, filters in the list test, and no meetings, Ask, search or statistics yet |
 
 ## Repository bootstrap
 

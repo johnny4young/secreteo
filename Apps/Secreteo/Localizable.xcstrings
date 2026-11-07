@@ -18,6 +18,22 @@
         }
       }
     },
+    "%d days" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d days"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d días"
+          }
+        }
+      }
+    },
     "%d words inserted into %@." : {
       "localizations" : {
         "en" : {
@@ -146,6 +162,22 @@
         }
       }
     },
+    "All Apps" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All Apps"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todas las apps"
+          }
+        }
+      }
+    },
     "Allow" : {
       "localizations" : {
         "en" : {
@@ -226,6 +258,22 @@
         }
       }
     },
+    "Also Keep the Words Before Clean Mode" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Also Keep the Words Before Clean Mode"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardar también las palabras antes del modo Limpio"
+          }
+        }
+      }
+    },
     "Always write “%@”" : {
       "localizations" : {
         "en" : {
@@ -286,6 +334,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Otro atajo ya usa ⌃⌥⌘V."
+          }
+        }
+      }
+    },
+    "App" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App"
           }
         }
       }
@@ -610,6 +674,22 @@
         }
       }
     },
+    "Copied" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiado"
+          }
+        }
+      }
+    },
     "Copied. You can paste the text yourself." : {
       "localizations" : {
         "en" : {
@@ -766,6 +846,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Predeterminado"
+          }
+        }
+      }
+    },
+    "Delete" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Borrar"
+          }
+        }
+      }
+    },
+    "Delete All" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete All"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Borrar todo"
+          }
+        }
+      }
+    },
+    "Delete every saved dictation?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete every saved dictation?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Borrar todos los dictados guardados?"
           }
         }
       }
@@ -930,6 +1058,38 @@
         }
       }
     },
+    "Dictation History" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictation History"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historial de dictado"
+          }
+        }
+      }
+    },
+    "Dictation History…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictation History…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historial de dictado…"
+          }
+        }
+      }
+    },
     "Dictation Shortcut" : {
       "localizations" : {
         "en" : {
@@ -978,6 +1138,22 @@
         }
       }
     },
+    "Dictation history could not be loaded." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictation history could not be loaded."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo cargar el historial de dictado."
+          }
+        }
+      }
+    },
     "Dictation is unavailable right now." : {
       "localizations" : {
         "en" : {
@@ -1022,6 +1198,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "El dictado nunca escribe en campos de contraseña."
+          }
+        }
+      }
+    },
+    "Dictations" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictations"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictados"
           }
         }
       }
@@ -1218,6 +1410,22 @@
         }
       }
     },
+    "History is off. New dictations are not saved." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History is off. New dictations are not saved."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El historial está apagado. Los dictados nuevos no se guardan."
+          }
+        }
+      }
+    },
     "Hold a Key to Dictate" : {
       "localizations" : {
         "en" : {
@@ -1314,6 +1522,22 @@
         }
       }
     },
+    "Inserted" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserted"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Insertado"
+          }
+        }
+      }
+    },
     "Inserting…" : {
       "localizations" : {
         "en" : {
@@ -1346,6 +1570,22 @@
         }
       }
     },
+    "Keep Dictations For" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep Dictations For"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conservar los dictados durante"
+          }
+        }
+      }
+    },
     "Keep talking. Your words appear once the model is ready." : {
       "localizations" : {
         "en" : {
@@ -1358,6 +1598,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sigue hablando. Tus palabras aparecen cuando el modelo esté listo."
+          }
+        }
+      }
+    },
+    "Kept on this Mac for %d days." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kept on this Mac for %d days."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se guardan en este Mac durante %d días."
           }
         }
       }
@@ -1650,6 +1906,22 @@
         }
       }
     },
+    "No dictations match." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No dictations match."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ningún dictado coincide."
+          }
+        }
+      }
+    },
     "No microphone audio arrived. Check the microphone in Audio settings and try again." : {
       "localizations" : {
         "en" : {
@@ -1714,6 +1986,22 @@
         }
       }
     },
+    "Not delivered" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not delivered"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No entregado"
+          }
+        }
+      }
+    },
     "Not saved to your dictation history." : {
       "localizations" : {
         "en" : {
@@ -1758,6 +2046,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apagado"
+          }
+        }
+      }
+    },
+    "Only Not Delivered" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only Not Delivered"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo los no entregados"
           }
         }
       }
@@ -2450,6 +2754,22 @@
         }
       }
     },
+    "Save Dictation History" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save Dictation History"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardar el historial de dictado"
+          }
+        }
+      }
+    },
     "Saved to your dictation history." : {
       "localizations" : {
         "en" : {
@@ -2622,6 +2942,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ajustes…"
+          }
+        }
+      }
+    },
+    "Show Older Dictations" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Older Dictations"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar dictados anteriores"
           }
         }
       }
@@ -2882,6 +3218,22 @@
         }
       }
     },
+    "The dictation could not be deleted." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The dictation could not be deleted."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo borrar el dictado."
+          }
+        }
+      }
+    },
     "The dictation session ended unexpectedly. Nothing was typed." : {
       "localizations" : {
         "en" : {
@@ -2898,6 +3250,22 @@
         }
       }
     },
+    "The dictations could not be deleted." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The dictations could not be deleted."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudieron borrar los dictados."
+          }
+        }
+      }
+    },
     "The download failed." : {
       "localizations" : {
         "en" : {
@@ -2910,6 +3278,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "La descarga falló."
+          }
+        }
+      }
+    },
+    "The history setting could not be saved." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The history setting could not be saved."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo guardar el ajuste del historial."
           }
         }
       }
@@ -3122,6 +3506,22 @@
         }
       }
     },
+    "Turn On History" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn On History"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activar el historial"
+          }
+        }
+      }
+    },
     "Type Instead" : {
       "localizations" : {
         "en" : {
@@ -3310,6 +3710,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ventana"
+          }
+        }
+      }
+    },
+    "Your dictations will appear here." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your dictations will appear here."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tus dictados aparecerán aquí."
           }
         }
       }

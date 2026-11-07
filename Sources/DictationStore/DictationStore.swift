@@ -75,11 +75,9 @@ public final class DictationStore: Sendable {
     /// Moves the write-ahead log into the database and truncates it, so erased text no longer
     /// sits in the log. Waits for readers up to the busy timeout and says whether it finished.
     @discardableResult
-    func checkpoint() -> Bool {
-        database.writeWithoutTransaction { database in
-            guard let result = try? database.checkpoint(.truncate) else { return false }
-            return result.walFrameCount == 0
-        }
+    func checkpoint() async -> Bool {
+        let result = try? await database.writeWithoutTransaction { try $0.checkpoint(.truncate) }
+        return result?.walFrameCount == 0
     }
 
     static func configuration(readonly: Bool) -> Configuration {

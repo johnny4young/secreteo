@@ -27,6 +27,7 @@ public final class AppModel {
 
     public let versionDescription: String
     public var openSettings: () -> Void = {}
+    public var openHistory: () -> Void = {}
 
     private let launchController: any LaunchAtLoginControlling
 
