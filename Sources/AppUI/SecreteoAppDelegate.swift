@@ -151,6 +151,7 @@ public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
                 statusItem?.closeMenu()
                 history?.show()
             }
+            dictation.installDictationNavigation { [weak history] in history?.show() }
             self.history = history
         }
         self.model = model

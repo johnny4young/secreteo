@@ -4,7 +4,8 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
-- ⚡ **Shortcuts actions**: Dictate and Paste Last Dictation run from Shortcuts, and refuse while another app handles dictation. Shortcuts built with Portavoz's actions have to be rebuilt with Secreteo's.
+- 🤖 **Agents read your history**: a read-only MCP server ships inside Secreteo. Turn on “Let Agents and Shortcuts Read History” in Settings, then add `/Applications/Secreteo.app/Contents/Helpers/secreteo-mcp` to your MCP client. Clients set up for Portavoz have to be pointed at Secreteo by hand.
+- ⚡ **Shortcuts actions**: Dictate and Paste Last Dictation run from Shortcuts, and refuse while another app handles dictation. Search Dictations and Open Dictations read the history you share. Shortcuts built with Portavoz's actions have to be rebuilt with Secreteo's.
 - 🗂️ **Dictation history**: save your dictations on this Mac if you turn it on, keep them 7, 30 or 90 days, filter them, and copy or delete them from Dictation History in the menu.
 - 📥 **Settings from Portavoz**: import your dictation settings from Portavoz in Settings, after seeing what will change.
 - ♻️ **Models from Portavoz**: when Portavoz already downloaded the speech model, Secreteo copies it instead of downloading it again.

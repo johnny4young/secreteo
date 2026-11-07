@@ -61,4 +61,7 @@ struct UnavailableDictationStore: DictationHistoryStore {
     func deleteDictationRecord(_ id: DictationRecordID) async throws -> Bool { throw error }
     func deleteAllDictationRecords() async throws -> Int { throw error }
     func purgeExpiredDictationRecords(at now: Date) async throws -> Int { throw error }
+    func dictationRecordsForAgents(
+        matching filter: DictationRecordFilter, offset: Int, limit: Int
+    ) async throws -> DictationAgentRead<DictationRecordPage> { throw error }
 }

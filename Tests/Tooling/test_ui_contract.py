@@ -14,7 +14,8 @@ LITERAL = re.compile(
     r'|MenuRow\(title:\s*"([^"\\]+)"'
     r'|L10n\.(?:text|format)\(\s*(?://[^\n]*\n\s*)*"([^"\\]+)"'
     r'|LocalizedStringResource(?:\(|\s*=)\s*"([^"\\]+)"'
-    r'|IntentDescription\(\s*"([^"\\]+)"'
+    r'|IntentDescription\(\s*(?://[^\n]*\n\s*)*"([^"\\]+)"'
+    r'|@Parameter\(title:\s*"([^"\\]+)"'
 )
 # A locale also takes `identifier:`, and it names no control. A label may end in `Identifier:`.
 IDENTIFIER = re.compile(r'accessibilityIdentifier\("([^"]+)"\)|(?<!Locale\()(?:\bidentifier|[a-z]Identifier):\s*"([a-z][a-z-]+)"')
@@ -33,7 +34,9 @@ class UIContractTests(unittest.TestCase):
 
     def test_intent_strings_are_read_as_visible_strings(self):
         for source in ['static let title: LocalizedStringResource = "Dictate"',
-                       'LocalizedStringResource("Dictate")', 'IntentDescription(\n        "Dictate")']:
+                       'LocalizedStringResource("Dictate")', 'IntentDescription(\n        "Dictate")',
+                       'IntentDescription(\n        // swiftlint:disable:next line_length\n        "Dictate")',
+                       '@Parameter(title: "Dictate")']:
             match = LITERAL.search(source)
             self.assertEqual(next(group for group in match.groups() if group), "Dictate", source)
 

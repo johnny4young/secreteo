@@ -16,7 +16,7 @@ final class DictationHistoryModel {
     private(set) var filter = DictationRecordFilter.all
     /// Applications with saved dictations, for the filter menu.
     private(set) var applications: [String] = []
-    @ObservationIgnored private let store: any DictationHistoryStore
+    @ObservationIgnored let store: any DictationHistoryStore
     /// Drops a page that arrives after a newer filter was applied.
     @ObservationIgnored private var pageRequest = 0
 

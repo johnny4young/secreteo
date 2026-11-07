@@ -18,6 +18,10 @@ public protocol DictationHistoryStore: Sendable {
     func deleteDictationRecord(_ id: DictationRecordID) async throws -> Bool
     func deleteAllDictationRecords() async throws -> Int
     func purgeExpiredDictationRecords(at now: Date) async throws -> Int
+    /// Reads only while the user shares the history with agents and Shortcuts.
+    func dictationRecordsForAgents(
+        matching filter: DictationRecordFilter, offset: Int, limit: Int
+    ) async throws -> DictationAgentRead<DictationRecordPage>
 }
 
 extension DictationStore: DictationHistoryStore {}
