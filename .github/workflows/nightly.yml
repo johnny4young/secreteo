@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: "17 6 * * *"
   workflow_dispatch:
+    inputs:
+      ui_only:
+        # The macOS runners are shared across repositories, so PR evidence skips the other lanes.
+        description: Run only the full UI plan
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -47,6 +53,7 @@ jobs:
           retention-days: 7
 
   release-dryrun:
+    if: ${{ !inputs.ui_only }}
     runs-on: macos-26
     timeout-minutes: 25
     env:
@@ -58,6 +65,7 @@ jobs:
       - run: scripts/release-dryrun.sh
 
   signed-handoff:
+    if: ${{ !inputs.ui_only }}
     runs-on: macos-26
     timeout-minutes: 12
     env:
