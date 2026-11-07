@@ -43,6 +43,37 @@ final class DictationHistoryRecordingTests: XCTestCase {
         controller.cancel()
     }
 
+    func testStatisticsCountADictationWithTheHistoryOffButNeverPractice() async throws {
+        let (controller, feature) = try makeFeature()
+        await feature.history.load()
+        await feature.stats.update(isEnabled: true)
+        let dependencies = feature.makeDictationSessionDependencies()
+        // The session clock may be a fixture; count on the day it reports.
+        let day = [DictationStatsCalendar.day(of: dependencies.now(), calendar: .current)]
+
+        try await dictate(controller, using: dependencies)
+        var totals = DictationStatsTotals.zero
+        for _ in 0..<200 where totals.dictations == 0 {
+            totals = try await feature.dictationStore.dictationStatsSummary(days: day).totals
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        let apps = try await feature.dictationStore.dictationStatsSummary(days: day).topApplications
+        XCTAssertEqual(totals.dictations, 1)
+        XCTAssertEqual(totals.words, 4)
+        XCTAssertEqual(apps.first?.name, "Dictation test receiver")
+        XCTAssertEqual(feature.history.records, [], "statistics never save the text")
+
+        let holder = UUID()
+        feature.practice.show(holder, isKey: true)
+        defer { feature.practice.hide(holder) }
+        let practice = feature.practice.route(feature.makeDictationSessionDependencies(), appIsActive: true)
+        try await dictate(controller, using: practice)
+        try await Task.sleep(for: .milliseconds(200))
+        let afterPractice = try await feature.dictationStore.dictationStatsSummary(days: day).totals
+        XCTAssertEqual(afterPractice.dictations, 1, "practice is never counted")
+        controller.cancel()
+    }
+
     func testDeletingEverythingWhileADictationFinishesKeepsItOut() async throws {
         let (_, feature) = try makeFeature()
         let history = feature.history

@@ -34,6 +34,22 @@
         }
       }
     },
+    "%@: %d words" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: %d words"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$d palabras"
+          }
+        }
+      }
+    },
     "%d days" : {
       "localizations" : {
         "en" : {
@@ -46,6 +62,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%d días"
+          }
+        }
+      }
+    },
+    "%d min" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d min"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d min"
           }
         }
       }
@@ -94,6 +126,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%d palabras insertadas."
+          }
+        }
+      }
+    },
+    "30 days" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 days"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 días"
+          }
+        }
+      }
+    },
+    "7 days" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 days"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 días"
           }
         }
       }
@@ -1074,6 +1138,22 @@
         }
       }
     },
+    "Delete Statistics" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Statistics"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Borrar estadísticas"
+          }
+        }
+      }
+    },
     "Delete every saved dictation?" : {
       "localizations" : {
         "en" : {
@@ -1086,6 +1166,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "¿Borrar todos los dictados guardados?"
+          }
+        }
+      }
+    },
+    "Delete your dictation statistics?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete your dictation statistics?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Borrar tus estadísticas de dictado?"
           }
         }
       }
@@ -1298,6 +1394,22 @@
         }
       }
     },
+    "Dictation Statistics" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictation Statistics"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estadísticas de dictado"
+          }
+        }
+      }
+    },
     "Dictation could not start." : {
       "localizations" : {
         "en" : {
@@ -1422,6 +1534,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "El dictado nunca escribe en campos de contraseña."
+          }
+        }
+      }
+    },
+    "Dictation statistics could not be loaded." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictation statistics could not be loaded."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudieron cargar las estadísticas de dictado."
           }
         }
       }
@@ -1906,6 +2034,22 @@
         }
       }
     },
+    "Keep Dictation Statistics" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep Dictation Statistics"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardar estadísticas de dictado"
+          }
+        }
+      }
+    },
     "Keep Dictations For" : {
       "localizations" : {
         "en" : {
@@ -2254,6 +2398,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nueva receta…"
+          }
+        }
+      }
+    },
+    "No dictations counted in this period yet." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No dictations counted in this period yet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aún no hay dictados contados en este periodo."
           }
         }
       }
@@ -2862,6 +3022,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Duración de la pausa"
+          }
+        }
+      }
+    },
+    "Period" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Period"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Periodo"
           }
         }
       }
@@ -3666,6 +3842,22 @@
         }
       }
     },
+    "Speaking" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speaking"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hablando"
+          }
+        }
+      }
+    },
     "Speech Model" : {
       "localizations" : {
         "en" : {
@@ -4050,6 +4242,38 @@
         }
       }
     },
+    "The statistics could not be deleted." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The statistics could not be deleted."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudieron borrar las estadísticas."
+          }
+        }
+      }
+    },
+    "The statistics setting could not be saved." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The statistics setting could not be saved."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo guardar el ajuste de estadísticas."
+          }
+        }
+      }
+    },
     "There's no recent dictation to paste." : {
       "localizations" : {
         "en" : {
@@ -4110,6 +4334,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No se pudo guardar esta receta."
+          }
+        }
+      }
+    },
+    "Time saved" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time saved"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tiempo ahorrado"
           }
         }
       }
@@ -4402,6 +4642,22 @@
         }
       }
     },
+    "Where You Dictate Most" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where You Dictate Most"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Donde más dictas"
+          }
+        }
+      }
+    },
     "While Dictating" : {
       "localizations" : {
         "en" : {
@@ -4430,6 +4686,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ventana"
+          }
+        }
+      }
+    },
+    "Words" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Words"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Palabras"
+          }
+        }
+      }
+    },
+    "Your Dictation" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your Dictation"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu dictado"
           }
         }
       }

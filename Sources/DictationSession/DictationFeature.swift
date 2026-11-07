@@ -49,7 +49,9 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored private var preferencesObserver: (any NSObjectProtocol)?
     let controller: DictationController
     @ObservationIgnored let practice = DictationPracticeField()
+    @ObservationIgnored let dictationStore: any DictationHistoryStore & DictationStatsStore
     @ObservationIgnored let history: DictationHistoryModel
+    @ObservationIgnored let stats: DictationStatsModel
     @ObservationIgnored private let settingsWindowHolder = UUID()
 
     /// Created on first use, because creating it writes the initial text mode.
@@ -94,8 +96,11 @@ public final class DictationFeature: AppServices {
                 : .userLibrary,
             consumer: StoreConsumer(bundleID: identifier, displayName: "Secreteo"))
         self.modelStore = modelStore
-        history = DictationHistoryModel(
-            store: Self.openHistoryStore(usesTemporaryStore: usesTemporaryStore, bundleIdentifier: identifier))
+        let dictationStore = Self.openDictationStore(
+            usesTemporaryStore: usesTemporaryStore, bundleIdentifier: identifier)
+        self.dictationStore = dictationStore
+        history = DictationHistoryModel(store: dictationStore)
+        stats = DictationStatsModel(store: dictationStore)
         fixture = DictationUITestFixture(arguments: arguments, usesTemporaryStore: usesTemporaryStore)
         launchArguments = arguments
         let environment = environment ?? (usesTemporaryStore
@@ -156,7 +161,10 @@ public final class DictationFeature: AppServices {
             await showRememberedModels()
             await refreshReadiness()
         }
-        Task { await loadDictationHistory() }
+        Task {
+            await loadDictationHistory()
+            await loadDictationStats()
+        }
         if let models = environment.models {
             Task.detached(priority: .utility) { await models.collectUnused() }
         }
@@ -296,6 +304,7 @@ public final class DictationFeature: AppServices {
         var dependencies = usesTemporaryMeetingStore
             ? fixtureDependencies() : .live(services: self, beginCapture: { {} })
         dependencies.beginHistory = { [weak self] in self?.history.admit() }
+        dependencies.recordStats = { [weak self] sample in self?.stats.record(sample) }
         return dependencies
     }
 
