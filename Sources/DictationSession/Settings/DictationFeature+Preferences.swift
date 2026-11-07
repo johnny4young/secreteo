@@ -72,22 +72,6 @@ extension DictationFeature {
             })
     }
 
-    var textMode: DictationTextMode {
-        _ = preferenceRevision
-        return DictationTextPreferences.globalMode(in: defaults)
-    }
-
-    var textModeBinding: Binding<DictationTextMode> {
-        Binding(
-            get: { self.textMode },
-            set: { self.store(Self.textModeValues($0)) })
-    }
-
-    /// A plain mode is never a recipe, or a saved one would keep applying under it.
-    static func textModeValues(_ mode: DictationTextMode) -> [String: Any] {
-        [DictationTextPreferences.modeKey: mode.rawValue, DictationTextPreferences.polishRecipeKey: ""]
-    }
-
     var foundationModelsCapability: FoundationModelsCapability {
         .current(arguments: launchArguments)
     }

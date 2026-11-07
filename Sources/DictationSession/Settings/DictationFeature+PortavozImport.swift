@@ -9,6 +9,7 @@ extension DictationFeature {
     func importPortavozPreferences() {
         guard let portavozImport else { return }
         store(portavozImport.values)
+        textSettingsIfCreated?.reload()
         modelMemoryChanged()
         refreshPortavozImport()
     }

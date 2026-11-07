@@ -5,6 +5,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 ## Unreleased
 
 - 📶 **Download progress**: Settings shows how much of the speech model has downloaded.
+- 🧾 **Polish recipes and translation in Settings**: write your own recipes for Polish, pick one as the default, and translate dictation into English or Spanish as it is pasted.
 - 🔎 **Search your dictations**: find a saved dictation by its words, with or without accents, while you type.
 - ✨ **Polish**: choose Polish as the text mode, and polish with Apple Intelligence or a model in Ollama, both on this Mac.
 - ⚡ **Shortcuts actions**: Dictate and Paste Last Dictation run from Shortcuts, and refuse while another app handles dictation. Shortcuts built with Portavoz's actions have to be rebuilt with Secreteo's.

@@ -42,9 +42,16 @@ struct DictationTextModePicker: View {
         return Text(verbatim: L10n.format("Polish: %@", Self.name(of: recipe)))
     }
 
-    /// Built-in names are catalog keys; a custom name is the user's own text.
+    /// Built-in names are catalog keys, spelled out so the catalog sees them; a custom name is the user's own text.
     static func name(of recipe: DictationRecipe) -> String {
-        recipe.isBuiltIn ? L10n.text(recipe.name) : recipe.name
+        guard recipe.isBuiltIn else { return recipe.name }
+        switch recipe.id {
+        case "builtin.formal": return L10n.text("Formal")
+        case "builtin.friendly": return L10n.text("Friendly")
+        case "builtin.bullets": return L10n.text("Bullet list")
+        case "builtin.concise": return L10n.text("Concise")
+        default: return L10n.text(recipe.name)
+        }
     }
 
     static func title(for mode: DictationTextMode) -> Text {
