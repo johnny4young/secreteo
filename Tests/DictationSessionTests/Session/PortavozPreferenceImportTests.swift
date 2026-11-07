@@ -76,6 +76,13 @@ final class PortavozPreferenceImportTests: XCTestCase {
         XCTAssertEqual(PortavozPreferenceImport(portavoz: portavoz, current: defaults).changes, [])
     }
 
+    func testAPolishModeIsImportedNowThatSettingsShowsIt() throws {
+        let found = PortavozPreferenceImport(
+            portavoz: [DictationTextPreferences.modeKey: DictationTextMode.polish.rawValue], current: try scratchDefaults())
+
+        XCTAssertEqual(found.values[DictationTextPreferences.modeKey] as? String, DictationTextMode.polish.rawValue)
+    }
+
     func testImportingTwiceChangesNothingTheSecondTime() throws {
         let defaults = try scratchDefaults()
         // A disposable launch writes to the process-wide argument domain.
