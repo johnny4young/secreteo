@@ -18,9 +18,9 @@ extension DictationFeature {
         do {
             return try DictationStore(databaseURL: url)
         } catch {
-            // The error names the cause, never any dictated text.
+            // Redacted like every logged value: a database error can quote what it was writing.
             Logger(subsystem: "com.johnny4young.secreteo", category: "dictation-history")
-                .error("History store unavailable: \(String(describing: error), privacy: .public)")
+                .error("History store unavailable: \(String(describing: error))")
             return UnavailableDictationStore(error: error)
         }
     }
