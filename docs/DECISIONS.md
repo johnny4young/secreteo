@@ -97,3 +97,7 @@ Secreteo keeps, between launches, what a model's files looked like after their l
 ## D22. The voice detector is part of the model download
 
 Settings offers the download until Parakeet and Silero are both verified, and a failure of either shows and can be retried. Only Parakeet holds dictation back: without Silero the speech gate fails open, so dictation keeps working and can paste silence until the download succeeds.
+
+## D23. The dictation database moves forward only, and an older build leaves a newer one alone
+
+`DictationStore` keeps history, search and statistics in `Dictations.sqlite`, in the app's own Application Support folder, which the cask's `zap` removes ([D3](#d3-history-stats-and-search-are-included)). Migrations are forward-only and each runs in its own transaction, so a failed upgrade leaves the previous version whole. A build that finds migrations it does not know refuses the file without migrating or writing it: going back to an older Secreteo keeps the data for when the newer one returns, and history reads as unavailable in the meantime. Other processes, such as the MCP server, open it read-only and never migrate. The file is owner-only, deleted rows are overwritten, and deleted words leave the search index at once.
