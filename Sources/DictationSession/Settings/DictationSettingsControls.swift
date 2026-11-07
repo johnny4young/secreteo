@@ -59,19 +59,19 @@ struct DictationSettingsControls: View {
             microphonePicker
         }
         Section("Text") {
-            let mode = dictation.textMode
-            Picker("Text Mode", selection: dictation.textModeBinding) {
-                Text("Literal").tag(DictationTextMode.literal)
-                Text("Clean").tag(DictationTextMode.clean)
-                Text("Polish").tag(DictationTextMode.polish)
-            }
-            .accessibilityIdentifier("settings-dictation-text-mode")
+            let text = dictation.textSettings
+            DictationTextModePicker(
+                identifier: "settings-dictation-text-mode", label: Text("Text Mode"),
+                selection: Binding(get: { text.globalChoice }, set: { text.setGlobalChoice($0) }),
+                recipes: text.recipes)
             Toggle("Filter Out Filler Words", isOn: dictation.preference(
                 DictationController.fillerFilterKey, default: true))
-                .disabled(mode == .literal)
+                .disabled(!text.cleanModeInUse)
                 .accessibilityIdentifier("settings-dictation-filler")
             DictationDictionaryEditor(stored: dictation.preference(DictationController.replacementsKey, default: ""))
-                .disabled(mode == .literal)
+                .disabled(!text.cleanModeInUse)
+            DictationRecipeSettings(model: text)
+            DictationTranslationSettings(model: text)
         }
         DictationVocabularyEditor(stored: dictation.preference("customVocabulary", default: ""))
         DictationPolishSettings(dictation: dictation)

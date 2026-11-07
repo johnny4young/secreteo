@@ -78,7 +78,7 @@ final class DictationFeatureTests: XCTestCase {
         defaults.set(DictationTextMode.polish.rawValue, forKey: DictationTextPreferences.modeKey)
         defaults.set("builtin.bullets", forKey: DictationTextPreferences.polishRecipeKey)
 
-        DictationFeature.store(DictationFeature.textModeValues(.polish), in: defaults, temporary: false)
+        DictationTextSettingsModel(defaults: defaults, temporary: false).setGlobalChoice(DictationTextChoice(mode: .polish))
 
         let snapshot = DictationTextPreferences.snapshot(in: defaults, bundleIdentifier: nil)
         XCTAssertEqual(snapshot.mode, .polish)
