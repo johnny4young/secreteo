@@ -52,6 +52,8 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored private let settingsWindowHolder = UUID()
 
     public internal(set) var modelState = ModelState.missing
+    /// Nil until the store reports bytes, so the bar starts indeterminate.
+    private(set) var modelDownloadFraction: Double?
     private var speechModelIsInstalled = false
     public private(set) var isEnabled: Bool
     public private(set) var microphoneIsAuthorized: Bool
@@ -84,7 +86,8 @@ public final class DictationFeature: AppServices {
         let environment = environment ?? (usesTemporaryStore
             ? .disposable(
                 permissionsAreMissing: arguments.contains("-seed-dictation-permissions-missing"),
-                seedsPortavozPreferences: arguments.contains("-seed-portavoz-preferences"))
+                seedsPortavozPreferences: arguments.contains("-seed-portavoz-preferences"),
+                models: arguments.contains("-seed-model-download-held") ? .heldDownload : nil)
             : .live(microphone: microphonePermissions, models: .live(
                 store: modelStore, defaults: defaults, seedRoot: DictationModels.portavozModels)))
         self.environment = environment
@@ -191,9 +194,17 @@ public final class DictationFeature: AppServices {
         guard let models = environment.models else { return }
         if let modelInstall { return try await modelInstall.value }
         if modelState != .ready { modelState = .downloading }
-        let install = Task { try await models.installMissing() }
+        modelDownloadFraction = nil
+        let install = Task { [weak self] in
+            try await models.installMissing { fraction in
+                Task { @MainActor in self?.modelDownloaded(fraction) }
+            }
+        }
         modelInstall = install
-        defer { modelInstall = nil }
+        defer {
+            modelInstall = nil
+            modelDownloadFraction = nil
+        }
         do {
             try await install.value
             modelState = .ready
@@ -201,6 +212,12 @@ public final class DictationFeature: AppServices {
             modelState = .failed
             throw error
         }
+    }
+
+    /// Reports arrive on separate tasks, so a late one must not move the bar back or outlive the install.
+    private func modelDownloaded(_ fraction: Double) {
+        guard modelInstall != nil else { return }
+        modelDownloadFraction = max(modelDownloadFraction ?? 0, fraction)
     }
 
     /// The way out of a corrupt ownership file, which nothing else may overwrite.

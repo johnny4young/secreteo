@@ -27,6 +27,8 @@ final class DictationFeatureTests: XCTestCase {
         let opened = Mutex(0)
         /// When set, a model check waits here until the test releases it.
         let modelGate = Mutex<AsyncStream<Void>?>(nil)
+        /// When set, an install reports half its bytes and waits here until the test releases it.
+        let installGate = Mutex<AsyncStream<Void>?>(nil)
 
         func environment() -> DictationFeatureEnvironment {
             DictationFeatureEnvironment(
@@ -48,11 +50,16 @@ final class DictationFeatureTests: XCTestCase {
                             if isVerified { remembered.insert(part) } else { remembered.remove(part) }
                         }
                     },
-                    install: { part in
+                    install: { part, placedBytes in
+                        if let gate = self.installGate.withLock({ $0 }) {
+                            placedBytes(50)
+                            for await _ in gate { break }
+                        }
                         if self.failsToInstall.withLock({ $0.contains(part) }) { throw InstallFailed() }
                         self.installed.withLock { $0.append(part) }
                         self.verified.withLock { _ = $0.insert(part) }
                     },
+                    size: { _ in 100 },
                     collectUnused: { self.collections.withLock { $0 += 1 } }))
         }
     }
@@ -442,6 +449,23 @@ final class DictationFeatureTests: XCTestCase {
         XCTAssertEqual(system.installed.withLock { $0 }, [.speech, .speechDetector], "A verified part is not fetched again")
     }
 
+    func testADownloadShowsItsShareOfTheBytesUntilItEnds() async throws {
+        let system = System()
+        system.verified.withLock { $0 = [] }
+        let (gate, release) = AsyncStream<Void>.makeStream()
+        system.installGate.withLock { $0 = gate }
+        let feature = try makeFeature(system)
+
+        feature.downloadModel()
+
+        await waitUntil { feature.modelDownloadFraction == 0.25 }
+        XCTAssertEqual(feature.modelState, .downloading)
+        system.installGate.withLock { $0 = nil }
+        release.yield()
+        await waitUntil { feature.modelState == .ready }
+        XCTAssertNil(feature.modelDownloadFraction, "A finished download leaves no bar behind")
+    }
+
     func testSettingsAndOnboardingShareOneInstall() async throws {
         let system = System()
         system.verified.withLock { $0 = [] }
@@ -823,7 +847,7 @@ final class VerifiedModelRecordTests: XCTestCase {
         try Data("not the model".utf8).write(to: seeded)
         let models = DictationModels.live(store: try offlineStore(), defaults: try scratchDefaults(), seedRoot: seedRoot)
 
-        let installed: Void? = try? await models.install(.speechDetector)
+        let installed: Void? = try? await models.install(.speechDetector) { _ in }
 
         XCTAssertNil(installed, "A seed that does not hash right is not the model")
         XCTAssertEqual(try Data(contentsOf: seeded), Data("not the model".utf8))
@@ -844,7 +868,7 @@ final class VerifiedModelRecordTests: XCTestCase {
         let models = DictationModels.live(
             store: try offlineStore(), defaults: try scratchDefaults(), seedRoot: seedRoot, manifests: { _ in pinned })
 
-        try await models.install(.speechDetector)
+        try await models.install(.speechDetector) { _ in }
 
         let isVerified = await models.isVerified(.speechDetector)
         XCTAssertTrue(isVerified, "Installed with no network, so from the seed")

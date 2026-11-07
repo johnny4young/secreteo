@@ -85,7 +85,7 @@ public struct DictationSettingsSection: View {
         case .ready:
             EmptyView()
         case .downloading:
-            ProgressView("Downloading Speech Model…")
+            ProgressView("Downloading Speech Model…", value: dictation.modelDownloadFraction)
                 .accessibilityIdentifier("settings-dictation-model-progress")
         case .missing, .failed:
             Button("Download Speech Model") { dictation.downloadModel() }

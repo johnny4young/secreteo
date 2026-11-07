@@ -4,6 +4,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- 📶 **Download progress**: Settings shows how much of the speech model has downloaded.
 - 📥 **Settings from Portavoz**: import your dictation settings from Portavoz in Settings, after seeing what will change.
 - ♻️ **Models from Portavoz**: when Portavoz already downloaded the speech model, Secreteo copies it instead of downloading it again.
 - 👋 **First-run setup**: turn on dictation and grant its permissions, prepare the speech model for this Mac, and try it, all in three steps.
