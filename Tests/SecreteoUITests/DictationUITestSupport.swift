@@ -70,14 +70,19 @@ extension XCUIApplication {
         return app
     }
 
-    /// The form leaves rows below the fold out of the accessibility tree. Scrolling is
-    /// synthesized globally, so it happens only while this app is in front.
+    /// The form leaves rows out of the accessibility tree once they scroll away, so it looks
+    /// down first and then back up. Scrolling is synthesized globally, so it happens only while
+    /// this app is in front.
     @MainActor
     func revealInSettings(_ element: XCUIElement) -> Bool {
         guard state == .runningForeground else { return false }
-        for _ in 0..<8 where !(element.exists && element.isHittable) {
-            control(withIdentifier: "settings-root").scroll(byDeltaX: 0, deltaY: -400)
+        let form = control(withIdentifier: "settings-root")
+        // A row still in the tree says which way it is.
+        if element.exists, !element.isHittable, element.frame.midY < form.frame.minY {
+            for _ in 0..<12 where !element.isHittable { form.scroll(byDeltaX: 0, deltaY: 400) }
         }
+        for _ in 0..<8 where !(element.exists && element.isHittable) { form.scroll(byDeltaX: 0, deltaY: -400) }
+        for _ in 0..<16 where !(element.exists && element.isHittable) { form.scroll(byDeltaX: 0, deltaY: 400) }
         return element.waitForStableFrame(timeout: 5)
     }
 }
