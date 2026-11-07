@@ -250,7 +250,7 @@ struct ModuleImportTests {
         let pins = try #require(try JSONSerialization.jsonObject(with: Data(resolved.utf8)) as? [String: Any])
         let identities = (pins["pins"] as? [[String: Any]])?.compactMap { $0["identity"] as? String } ?? []
 
-        #expect(Set(identities) == ["fluidaudio", "local-model-store"])
+        #expect(Set(identities) == ["fluidaudio", "grdb.swift", "local-model-store"])
         let fluidAudio = try #require(manifest.split(separator: "\n").first { $0.contains("FluidAudio.git") })
         #expect(fluidAudio.contains("traits: []"))
     }
