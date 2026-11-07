@@ -10,6 +10,7 @@ let package = Package(
         .library(name: "DictationKit", targets: ["DictationKit"]),
         .library(name: "DictationOwnership", targets: ["DictationOwnership"]),
         .library(name: "DictationSession", targets: ["DictationSession"]),
+        .library(name: "DictationStore", targets: ["DictationStore"]),
         .library(name: "MicCapture", targets: ["MicCapture"]),
         .library(name: "Polish", targets: ["Polish"]),
         .library(name: "SpeechCore", targets: ["SpeechCore"])
@@ -17,7 +18,8 @@ let package = Package(
     dependencies: [
         // Exact on purpose: patch releases change decoder behavior, so a move needs paired evidence.
         .package(url: "https://github.com/FluidInference/FluidAudio.git", exact: "0.18.2", traits: []),
-        .package(url: "https://github.com/johnny4young/local-model-store.git", exact: "0.1.3")
+        .package(url: "https://github.com/johnny4young/local-model-store.git", exact: "0.1.3"),
+        .package(url: "https://github.com/groue/GRDB.swift.git", .upToNextMajor(from: "7.11.1"))
     ],
     targets: [
         .target(name: "AppUI", dependencies: ["DictationSession"]),
@@ -29,6 +31,9 @@ let package = Package(
                 "DictationKit", "DictationOwnership", "LiveSpeech", "MicCapture", "Polish", "SpeechCore",
                 .product(name: "LocalModelStore", package: "local-model-store")
             ]),
+        .target(
+            name: "DictationStore",
+            dependencies: ["DictationKit", .product(name: "GRDB", package: "GRDB.swift")]),
         .target(
             name: "LiveSpeech",
             dependencies: [
@@ -42,6 +47,9 @@ let package = Package(
         .executableTarget(name: "ownership-test-client", dependencies: ["DictationOwnership"], path: "Tests/OwnershipTestClient"),
         .testTarget(name: "AppUITests", dependencies: ["AppUI"]),
         .testTarget(name: "DictationKitTests", dependencies: ["DictationKit", "SpeechCore"]),
+        .testTarget(
+            name: "DictationStoreTests",
+            dependencies: ["DictationStore", "DictationKit", .product(name: "GRDB", package: "GRDB.swift")]),
         .testTarget(
             name: "DictationSessionTests",
             dependencies: [
