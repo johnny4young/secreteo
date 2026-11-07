@@ -4,8 +4,6 @@ import GRDB
 /// Forward-only migrations. v1 is the final shape of history, search and statistics,
 /// with every consent off. Each later version adds a migration and never edits one.
 enum DictationSchema {
-    static let version = 1
-
     static func migrator() -> DatabaseMigrator {
         var migrator = DatabaseMigrator()
         migrator.registerMigration("v1") { database in
@@ -26,6 +24,8 @@ enum DictationSchema {
             table.column("generation", .integer).notNull().check(sql: "generation >= 0")
             // Read by the MCP server, which runs in another process.
             table.column("exposesToAgents", .boolean).notNull().check(sql: "exposesToAgents IN (0, 1)")
+            // Agents never read a history that is off, whatever wrote the row.
+            table.check(sql: "isEnabled = 1 OR exposesToAgents = 0")
         }
         try database.execute(sql: """
             INSERT INTO dictationHistoryPolicy
@@ -89,9 +89,10 @@ enum DictationSchema {
         }
         try database.create(table: "dictationStatsCounted") { table in
             table.primaryKey("dictationID", .text).check(sql: "length(dictationID) = 36")
-            table.column("day", .text).notNull()
+            table.column("day", .text).notNull().check(sql: "length(day) = 10")
             table.column("applicationName", .text).notNull()
-            table.column("delivered", .boolean).notNull()
+                .check(sql: "length(applicationName) <= \(DictationRecord.maximumLabelLength)")
+            table.column("delivered", .boolean).notNull().check(sql: "delivered IN (0, 1)")
             table.column("countedAt", .datetime).notNull()
         }
     }

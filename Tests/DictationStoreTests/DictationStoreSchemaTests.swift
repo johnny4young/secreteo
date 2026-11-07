@@ -25,7 +25,6 @@ struct DictationStoreSchemaTests {
                 #expect(try database.tableExists(table), "\(table)")
             }
         }
-        #expect(DictationSchema.version == 1)
     }
 
     @Test
@@ -35,7 +34,7 @@ struct DictationStoreSchemaTests {
             try await insertRecord("Una nota de prueba.", into: first)
             try first.database.close()
 
-            let upgraded = try DictationStore(writer: try pool(at: url), migrator: Self.migrator(addingV2: true))
+            let upgraded = try DictationStore(databaseURL: url, migrator: Self.migrator(addingV2: true))
             #expect(try await strings(upgraded, "SELECT identifier FROM grdb_migrations") == ["v1", "v2"])
             #expect(try await strings(upgraded, "SELECT text FROM dictationRecord") == ["Una nota de prueba."])
             #expect(try await strings(upgraded, "SELECT name FROM pragma_table_info('dictationRecord')")
@@ -55,7 +54,7 @@ struct DictationStoreSchemaTests {
                 try database.execute(sql: "DELETE FROM dictationRecord")
                 throw DatabaseError(resultCode: .SQLITE_ABORT, message: "synthetic failure")
             }
-            #expect(throws: DatabaseError.self) { try DictationStore(writer: try pool(at: url), migrator: failing) }
+            #expect(throws: DatabaseError.self) { try DictationStore(databaseURL: url, migrator: failing) }
 
             let reopened = try DictationStore(databaseURL: url)
             #expect(try await strings(reopened, "SELECT identifier FROM grdb_migrations") == ["v1"])
@@ -66,14 +65,17 @@ struct DictationStoreSchemaTests {
     @Test
     func anOlderBuildRefusesADatabaseFromANewerOneAndLeavesItUntouched() async throws {
         try await withScratch { url in
-            let newer = try DictationStore(writer: try pool(at: url), migrator: Self.migrator(addingV2: true))
+            let newer = try DictationStore(databaseURL: url, migrator: Self.migrator(addingV2: true))
             try await insertRecord("Escrito por una versión nueva.", into: newer)
             try newer.database.close()
+            let before = try Data(contentsOf: url)
 
             #expect(throws: DictationStoreError.newerSchema) { try DictationStore(databaseURL: url) }
+            #expect(try Data(contentsOf: url) == before, "the app refuses without writing")
             #expect(throws: DictationStoreError.newerSchema) { try DictationStore.openForReading(at: url) }
+            #expect(try Data(contentsOf: url) == before, "a reader never writes")
 
-            let again = try DictationStore(writer: try pool(at: url), migrator: Self.migrator(addingV2: true))
+            let again = try DictationStore(databaseURL: url, migrator: Self.migrator(addingV2: true))
             #expect(try await strings(again, "SELECT identifier FROM grdb_migrations") == ["v1", "v2"])
             #expect(try await strings(again, "SELECT text FROM dictationRecord") == ["Escrito por una versión nueva."])
         }
@@ -91,6 +93,33 @@ struct DictationStoreSchemaTests {
             await #expect(throws: DatabaseError.self) {
                 try await reader.database.write { try $0.execute(sql: "DELETE FROM dictationRecord") }
             }
+            #expect(throws: DictationStoreError.needsUpgrade) {
+                try DictationStore.openForReading(at: url, migrator: Self.migrator(addingV2: true))
+            }
+        }
+    }
+
+    @Test
+    func agentAccessCannotBeStoredWhileTheHistoryIsOff() async throws {
+        let store = try DictationStore.inMemory()
+        await #expect(throws: DatabaseError.self) {
+            try await store.database.write {
+                try $0.execute(sql: "UPDATE dictationHistoryPolicy SET isEnabled = 0, exposesToAgents = 1")
+            }
+        }
+        try await store.database.write {
+            try $0.execute(sql: "UPDATE dictationHistoryPolicy SET isEnabled = 1, exposesToAgents = 1")
+        }
+    }
+
+    @Test
+    func anExistingFileIsMadeOwnerOnly() async throws {
+        try await withScratch { url in
+            try FileManager.default.createDirectory(
+                at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            FileManager.default.createFile(atPath: url.path, contents: nil, attributes: [.posixPermissions: 0o644])
+            _ = try DictationStore(databaseURL: url)
+            #expect(try permissions(of: url) == 0o600)
         }
     }
 
@@ -101,13 +130,13 @@ struct DictationStoreSchemaTests {
             let token = "zebracornio\(UUID().uuidString.prefix(8).lowercased())"
             try await insertRecord("Esta nota se queda.", into: store)
             try await insertRecord("Recuerda \(token) mañana.", into: store)
-            store.checkpoint()
+            #expect(store.checkpoint())
             #expect(try bytes(near: url).contains(Data(token.utf8)), "the probe must reach the file first")
 
             try await store.database.write {
                 try $0.execute(sql: "DELETE FROM dictationRecord WHERE text LIKE ?", arguments: ["%\(token)%"])
             }
-            store.checkpoint()
+            #expect(store.checkpoint())
 
             #expect(!(try bytes(near: url).contains(Data(token.utf8))))
             #expect(try permissions(of: url) == 0o600)
@@ -135,11 +164,6 @@ struct DictationStoreSchemaTests {
             }
         }
         return migrator
-    }
-
-    private func pool(at url: URL) throws -> DatabasePool {
-        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        return try DatabasePool(path: url.path, configuration: DictationStore.configuration(readonly: false))
     }
 
     private func insertRecord(_ text: String, into store: DictationStore) async throws {
