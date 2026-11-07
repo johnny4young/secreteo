@@ -17,8 +17,19 @@ LITERAL = re.compile(
     r'|IntentDescription\(\s*(?://[^\n]*\n\s*)*"([^"\\]+)"'
     r'|@Parameter\(title:\s*"([^"\\]+)"'
 )
+# A placeholder and its optional positional index, as in `%1$@`.
+PLACEHOLDER = re.compile(r"%(\d+\$)?((?:\.\d+)?(?:ll|l)?[@dfsiu])")
+# Brand names and words Spanish shares with English. Anything else left in English is untranslated.
+SAME_IN_SPANISH = {
+    "%d min", "App", "Apple Intelligence", "Apple Speech", "Fn (🌐)", "Formal", "Literal", "Ollama",
+    "Parakeet", "Parakeet Ultra",
+}
 # A locale also takes `identifier:`, and it names no control. A label may end in `Identifier:`.
 IDENTIFIER = re.compile(r'accessibilityIdentifier\("([^"]+)"\)|(?<!Locale\()(?:\bidentifier|[a-z]Identifier):\s*"([a-z][a-z-]+)"')
+
+
+def spanish_value(entry):
+    return entry.get("localizations", {}).get("es", {}).get("stringUnit", {}).get("value", "")
 
 
 def swift_files(root: Path):
@@ -58,6 +69,30 @@ class UIContractTests(unittest.TestCase):
             spanish = entry.get("localizations", {}).get("es", {}).get("stringUnit", {})
             self.assertEqual(spanish.get("state"), "translated", f"{key} has no Spanish")
             self.assertTrue(spanish.get("value"), f"{key} has no Spanish")
+
+    def test_catalog_keys_are_unique_on_disk(self):
+        def refuse_duplicates(pairs):
+            keys = [key for key, _ in pairs]
+            duplicates = {key for key in keys if keys.count(key) > 1}
+            self.assertEqual(duplicates, set(), "duplicate keys in the catalog")
+            return dict(pairs)
+
+        json.loads(CATALOG.read_text(), object_pairs_hook=refuse_duplicates)
+
+    def test_spanish_keeps_every_placeholder(self):
+        for key, entry in json.loads(CATALOG.read_text())["strings"].items():
+            spanish = spanish_value(entry)
+            english, translated = PLACEHOLDER.findall(key), PLACEHOLDER.findall(spanish)
+            # Without positional indexes the runtime fills placeholders in order, so the order must match.
+            if all(index for index, _ in translated):
+                self.assertEqual(sorted(kind for _, kind in translated), sorted(kind for _, kind in english), key)
+            else:
+                self.assertEqual([kind for _, kind in translated], [kind for _, kind in english], key)
+
+    def test_spanish_matches_english_only_for_shared_terms(self):
+        catalog = json.loads(CATALOG.read_text())["strings"]
+        same = {key for key, entry in catalog.items() if spanish_value(entry) == key}
+        self.assertLessEqual(same, SAME_IN_SPANISH, "left in English")
 
     def test_the_catalog_has_no_stale_keys(self):
         used = set()

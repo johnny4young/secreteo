@@ -210,14 +210,14 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationSession/DictationOwnershipCoordinator.swift` | `Sources/portavoz-app/DictationOwnershipCoordinator.swift` | Seam: the legacy peers are the other app's builds, not this app's, this app never claims at first run, the user can take ownership and hear why it failed, readiness comes from the composition, a busy turn off retries, and a corrupt file can be seeded and reset |
 | `Tests/DictationSessionTests/Session/DictationOwnershipCoordinatorTests.swift` | `Tests/PortavozAppTests/DictationOwnershipCoordinatorTests.swift` | Seam: the composition cases build the feature, and the tests claim the owner themselves. The first run test is inverted, because only Portavoz claims |
 | `Tests/DictationSessionTests/Session/DictationAdmissionTests.swift` | `Tests/PortavozAppTests/DictationAdmissionTests.swift` | Seam: the composition case builds the feature, and the test helpers live in `DictationAdmission+Testing.swift` |
-| `Sources/DictationSession/Panel/DictationPanel.swift` | `Sources/portavoz-app/DictationPanel.swift` | Seam: two comments lose the source's internal identifiers |
-| `Sources/DictationSession/Panel/DictationCompactIndicator.swift` | `Sources/portavoz-app/DictationCompactIndicator.swift` | Renames |
+| `Sources/DictationSession/Panel/DictationPanel.swift` | `Sources/portavoz-app/DictationPanel.swift` | Seam: two comments lose the source's internal identifiers. Fixes: the meter and the icon's pulse stop at Stop |
+| `Sources/DictationSession/Panel/DictationCompactIndicator.swift` | `Sources/portavoz-app/DictationCompactIndicator.swift` | Seam. Fixes: the meter and the icon's pulse stop at Stop |
 | `Sources/DictationSession/Panel/DictationCopyStatusLabel.swift` | `Sources/portavoz-app/DictationCopyStatusLabel.swift` | Renames |
 | `Sources/DictationSession/Panel/DictationNoSpeechView.swift` | `Sources/portavoz-app/DictationNoSpeechView.swift` | Renames |
 | `Sources/DictationSession/Panel/DictationPanelTranscript.swift` | `Sources/portavoz-app/DictationPanelTranscript.swift` | Renames |
 | `Sources/DictationSession/Panel/DictationRecoveryView.swift` | `Sources/portavoz-app/DictationRecoveryView.swift` | Renames |
 | `Sources/DictationSession/Panel/DictationUnverifiedDeliveryView.swift` | `Sources/portavoz-app/DictationUnverifiedDeliveryView.swift` | Renames |
-| `Sources/DictationSession/Panel/DictationWaveform.swift` | `Sources/portavoz-app/DictationWaveform.swift` | Renames |
+| `Sources/DictationSession/Panel/DictationWaveform.swift` | `Sources/portavoz-app/DictationWaveform.swift` | Seam. Fixes: it stops at Stop and its canvas renders asynchronously, because a slow window server blocked the main thread on each frame |
 | `Sources/DictationSession/Panel/DictationTextPickers.swift` | `Sources/portavoz-app/DictationTextSettingsSection.swift` | Extract: the two pickers the panel uses |
 | `Sources/DictationSession/Settings/DictationSettingsControls.swift` | `Sources/portavoz-app/DictationSection.swift` | Seam: the controls and labels that have behavior here, grouped anew, with no helper text, and the microphone picker from `AudioSection.swift` |
 | `Sources/DictationSession/Settings/DictationVocabularyEditor.swift` | `Sources/portavoz-app/SettingsView.swift` | Extract: the vocabulary list and add field, with no suggestions from meetings |
