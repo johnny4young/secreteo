@@ -123,7 +123,7 @@ def artifact_problems(app: Path, dmg: Path, version: str, mode: str) -> list[str
         problems.append(f"codesign rejected the app: {verified.stderr.strip()}")
 
     nested = [current / "XPCServices/Installer.xpc", current / "XPCServices/Downloader.xpc",
-              current / "Autoupdate", current / "Updater.app", sparkle, app]
+              current / "Autoupdate", current / "Updater.app", sparkle, contents / "Helpers/secreteo-mcp", app]
     for item in nested:
         details = run("codesign", "-dvv", str(item)).stderr
         entitlements = run("codesign", "-d", "--entitlements", ":-", str(item)).stdout
