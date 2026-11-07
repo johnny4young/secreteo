@@ -173,6 +173,12 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationSession/Settings/DictationTranslationSettings.swift` | `Sources/portavoz-app/DictationTranslationSettings.swift` | Seam: a status and the download only when translation is on and needs them, and the label in title case |
 | `Tests/DictationSessionTests/Session/DictationRecipePreferenceTests.swift` | `Tests/PortavozAppTests/DictationRecipeTests.swift` | Extract: the preference and Settings tests, guarded like the other suites that read the argument domain |
 | `Tests/PolishTests/DictationRecipePromptTests.swift` | `Tests/PortavozAppTests/DictationRecipeTests.swift` | Extract: the prompt tests |
+| `Sources/DictationSession/Rewrite/SelectionRewriteController.swift` | `Sources/portavoz-app/SelectionRewriteController.swift` | Seam: imports the split targets, and two messages name the rewrite and the model instead of the summary engine |
+| `Sources/DictationSession/Rewrite/SelectionCapture.swift` | `Sources/portavoz-app/SelectionCapture.swift` | Seam: imports the split targets |
+| `Sources/DictationSession/Rewrite/SelectionRewritePanel.swift` | `Sources/portavoz-app/SelectionRewritePanel.swift` | Seam: imports the split targets, no helper text and a preview that much shorter, and recipe identifiers joined from a prefix |
+| `Sources/DictationSession/Rewrite/DictationFeature+SelectionRewrite.swift` | `Sources/portavoz-app/AppServices+SelectionRewrite.swift` | Seam: the feature instead of the app's services, the shortcut as a `HotkeySetting` through the injectable registrar, and its Settings binding |
+| `Tests/DictationSessionTests/Session/SelectionRewriteTests.swift` | `Tests/PortavozAppTests/SelectionRewriteTests.swift` | Seam: imports the split targets |
+| `Tests/SecreteoUITests/SelectionRewriteUITests.swift` | `Tests/PortavozUITests/SelectionRewriteUITests.swift` | Seam: assertions for choosing again, cancelling and the spoken instruction |
 | `Sources/DictationSession/Fixtures/DictationUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationUITestFixture.swift` | Extract: without the composition extension |
 | `Sources/DictationSession/Fixtures/DictationNativeUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationNativeUITestFixture.swift` | Seam: a line wrapped for the longer identifier |
 | `Sources/DictationSession/Fixtures/DictationNativeControllerUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationNativeControllerUITestFixture.swift` | Renames |
@@ -199,8 +205,8 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/DictationSessionTests/Support/ExclusiveArgumentDomain.swift` | `Tests/PortavozAppTests/ExclusiveArgumentDomain.swift` | Renames |
 | `Tests/DictationSessionTests/Support/DictationAdmission+Testing.swift` | `Tests/PortavozAppTests/DictationAdmissionTests.swift` | Extract: only the admission helpers |
 | `Sources/DictationSession/DictationOwnershipCoordinator.swift` | `Sources/portavoz-app/DictationOwnershipCoordinator.swift` | Seam: the legacy peers are the other app's builds, not this app's, this app never claims at first run, the user can take ownership and hear why it failed, readiness comes from the composition, a busy turn off retries, and a corrupt file can be seeded and reset |
-| `Tests/DictationSessionTests/Session/DictationOwnershipCoordinatorTests.swift` | `Tests/PortavozAppTests/DictationOwnershipCoordinatorTests.swift` | Extract: without the composition, practice and Rewrite cases, which arrive with them. The first run test is inverted, because only Portavoz claims |
-| `Tests/DictationSessionTests/Session/DictationAdmissionTests.swift` | `Tests/PortavozAppTests/DictationAdmissionTests.swift` | Extract: without the composition, practice and Rewrite cases, which arrive with them |
+| `Tests/DictationSessionTests/Session/DictationOwnershipCoordinatorTests.swift` | `Tests/PortavozAppTests/DictationOwnershipCoordinatorTests.swift` | Extract: without the composition and practice cases, which arrive with them. The first run test is inverted, because only Portavoz claims |
+| `Tests/DictationSessionTests/Session/DictationAdmissionTests.swift` | `Tests/PortavozAppTests/DictationAdmissionTests.swift` | Extract: without the composition and practice cases, which arrive with them |
 | `Sources/DictationSession/Panel/DictationPanel.swift` | `Sources/portavoz-app/DictationPanel.swift` | Seam: two comments lose the source's internal identifiers |
 | `Sources/DictationSession/Panel/DictationCompactIndicator.swift` | `Sources/portavoz-app/DictationCompactIndicator.swift` | Renames |
 | `Sources/DictationSession/Panel/DictationCopyStatusLabel.swift` | `Sources/portavoz-app/DictationCopyStatusLabel.swift` | Renames |
@@ -231,7 +237,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/DictationSessionTests/Triggers/DictationIntentTests.swift` | `Tests/PortavozAppTests/DictationIntentTests.swift` | Extract: the dictation and paste tests, plus refusals by ownership |
 | `Sources/DictationSession/DictationModelMemory.swift` | `Sources/portavoz-app/AppServices+DictationPrewarm.swift` | Extract: the prewarm policy, and the profile and dictation's idle delays from `AppModelMemoryPreferences.swift` and `AppModelIdleReleaseScheduler.swift` |
 | `Sources/DictationSession/Settings/DictationDictionaryEditor.swift` | `Sources/portavoz-app/DictationDictionaryEditor.swift` | Seam: its text comes through a binding, and imports `DictationKit` |
-| `Sources/DictationSession/Panel/DictationPanelSupport.swift` | `Sources/portavoz-app/PVDesign.swift` | Extract: the accent, one symbol, and the locale modifier from `AppLanguage` |
+| `Sources/DictationSession/Panel/DictationPanelSupport.swift` | `Sources/portavoz-app/PVDesign.swift` | Extract: the accent, three symbols, and the locale modifier from `AppLanguage` |
 | `Sources/DictationSession/Fixtures/UITestDefaults.swift` | `Sources/portavoz-app/UITestDefaults.swift` | Renames |
 | `Tests/SecreteoUITests/DictationUITests.swift` | `Tests/PortavozUITests/DictationUITests.swift` | Extract: without the native delivery tests, whose receiver arrives with the signed lane |
 | `Tests/SecreteoUITests/DictationCorrectionUITests.swift` | `Tests/PortavozUITests/DictationCorrectionUITests.swift` | Extract: without the dictionary test, which arrives with Settings |
