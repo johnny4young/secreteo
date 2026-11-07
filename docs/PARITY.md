@@ -68,7 +68,7 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | Polish egress consent | `AppServices+DictationPolish`, `Schema+DictationPolish` | `DictationPolishEgressTests`, which has to be rewritten | | Pending, P6 |
 | Translate while pasting | `TranslateDictation`, `AppleDictationTranslator` | `TranslateDictationTests`, `DictationTranslationDeliveryTests` | The same tests | Use case and delivery ported. Settings arrives in P6 |
 | History, with consent and retention | `DictationHistoryModel`, store | `DictationHistoryStoreTests`, `DictationHistoryRecordingTests` | The same tests, `DictationHistoryModelTests`, `DictationHistoryErasureTests` and `DictationHistoryUITests` | Ported, in its own window from the menu and in Settings. Erasing leaves no words in the files. Never imported from Portavoz |
-| Search | Store | `DictationSearchStoreTests` | | Pending, P7 |
+| Search | Store | `DictationSearchStoreTests` | The same tests, and `DictationHistoryUITests` | Ported. Accents and case are ignored, the last word completes, and typed search syntax is matched as text |
 | Statistics | `DictationStatsModel`, store | `DictationStatsStoreTests`, `DictationStatsTests` | | Pending, P7 |
 | Read-only MCP | `DictationToolbox` | `DictationToolboxTests`, `DictationAgentAccessStoreTests` | | Pending, P8 |
 | Settings: vocabulary, microphone, memory and Polish panels | `DictationSection`, `DictationTextSettingsSection`, `DictationDictionaryEditor` | `SettingsUITests` | `DictationSettingsUITests`, `DictationPreferenceStoreTests` | Triggers, language, microphone, replacements, vocabulary and text mode ported, without vocabulary suggestions from meetings. Memory is ported without its hardware suggestion. Polish and recipes are pending |
