@@ -21,7 +21,7 @@ struct DictationTranslationSettings: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("settings-dictation-translate-status")
         }
-        if installed == false, model.globalTranslationTarget != .off {
+        if installed == false, model.translationInUse {
             Button("Download English and Spanish") {
                 downloadFailed = false
                 download = TranslationSession.Configuration(
@@ -39,7 +39,7 @@ struct DictationTranslationSettings: View {
     /// Only a state that needs the user's action is shown.
     private var status: String? {
         if downloadFailed { return L10n.text("The languages were not downloaded. Try again when you are online.") }
-        guard installed == false, model.globalTranslationTarget != .off else { return nil }
+        guard installed == false, model.translationInUse else { return nil }
         return L10n.text("English and Spanish are not downloaded yet, so dictation is pasted untranslated.")
     }
 
@@ -61,5 +61,13 @@ struct DictationTranslationSettings: View {
         let backward = await availability.status(from: english, to: spanish)
         let ready = forward == .installed && backward == .installed
         await MainActor.run { installed = ready }
+    }
+}
+
+extension DictationTextSettingsModel {
+    /// The default or any readable application profile translates.
+    var translationInUse: Bool {
+        globalTranslationTarget != .off
+            || (!hasInvalidProfiles && profiles.contains { ($0.translationTarget ?? .off) != .off })
     }
 }

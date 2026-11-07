@@ -4,6 +4,8 @@ import Testing
 
 @testable import DictationSession
 
+/// Reads defaults, so it shares the guard of the suites that write the process-wide argument domain.
+@Suite(.serialized, .exclusiveArgumentDomain)
 @MainActor
 struct DictationRecipePreferenceTests {
     private func defaults(_ values: [String: Any]) -> UserDefaults {
@@ -86,5 +88,18 @@ struct DictationRecipePreferenceTests {
         model.resetRecipes()
         #expect(!model.hasInvalidRecipes)
         #expect(model.saveRecipe(custom))
+    }
+
+    @Test
+    func aProfileThatTranslatesCountsAsTranslationInUse() throws {
+        let profile = DictationApplicationTextProfile(
+            bundleIdentifier: "com.example.mail", mode: .clean, translationTarget: .english)
+        let model = DictationTextSettingsModel(
+            defaults: defaults([DictationTextPreferences.profilesKey: try DictationTextPreferences.encodeProfiles([profile])]),
+            temporary: false)
+        #expect(model.globalTranslationTarget == .off)
+        #expect(model.translationInUse)
+        let quiet = DictationTextSettingsModel(defaults: defaults([:]), temporary: false)
+        #expect(!quiet.translationInUse)
     }
 }

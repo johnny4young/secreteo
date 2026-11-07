@@ -35,7 +35,17 @@ struct PortavozPreferenceImport {
         }
         var changes: [Change] = []
         var values: [String: Any] = [:]
-        for entry in Self.entries {
+        // Recipes and profiles replace a list, so they arrive only where Secreteo has none of its own to lose.
+        var ownLists: Set<String> = []
+        if !((try? DictationTextPreferences.decodeRecipes(
+            defaults.string(forKey: DictationTextPreferences.recipesKey) ?? "[]")) ?? []).isEmpty {
+            ownLists.insert(DictationTextPreferences.recipesKey)
+        }
+        if !((try? DictationTextPreferences.decodeProfiles(
+            defaults.string(forKey: DictationTextPreferences.profilesKey) ?? "[]")) ?? []).isEmpty {
+            ownLists.insert(DictationTextPreferences.profilesKey)
+        }
+        for entry in Self.entries where !ownLists.contains(entry.key) {
             guard let value = source[entry.key], entry.accepts(value) else { continue }
             guard !(value as AnyObject).isEqual(defaults.object(forKey: entry.key) ?? entry.fallback) else { continue }
             changes.append(Change(key: entry.key, name: entry.name))

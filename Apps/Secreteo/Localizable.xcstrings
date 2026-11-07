@@ -1698,22 +1698,6 @@
         }
       }
     },
-    "How should Polish reshape your dictation?" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "How should Polish reshape your dictation?"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "¿Cómo debe Pulir dar forma a tu dictado?"
-          }
-        }
-      }
-    },
     "If you did speak, copy the text below. Nothing was saved in Secreteo." : {
       "localizations" : {
         "en" : {
@@ -1790,6 +1774,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Insertando…"
+          }
+        }
+      }
+    },
+    "Instruction" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instruction"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instrucción"
           }
         }
       }

@@ -99,13 +99,12 @@ private struct DictationRecipeEditor: View {
                 .textFieldStyle(.roundedBorder)
                 .accessibilityIdentifier("dictation-recipe-name")
             VStack(alignment: .leading, spacing: 4) {
-                Text("How should Polish reshape your dictation?")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Text("Instruction")
                 TextEditor(text: $recipe.instruction)
                     .font(.body)
                     .frame(height: 92)
                     .overlay(RoundedRectangle(cornerRadius: 6).stroke(.quaternary))
+                    .accessibilityLabel(Text("Instruction"))
                     .accessibilityIdentifier("dictation-recipe-instruction")
                 Text(L10n.format(
                     "%d of %d characters", recipe.instruction.count, DictationRecipe.maximumInstructionLength))
