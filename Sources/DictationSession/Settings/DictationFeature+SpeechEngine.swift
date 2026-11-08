@@ -50,12 +50,12 @@ extension DictationFeature {
         store: LocalModelStore, defaults: UserDefaults
     ) async throws -> ParakeetEngine {
         if LiveSpeechSelection.dictation(defaults: defaults) == .parakeetUltra,
-           let ultra = await store.verifiedInstallation(ModelCatalog.parakeetUltra) {
-            return try await ParakeetEngine.load(fromVerifiedDirectory: ultra.directory, checkpoint: .ultra)
+           await store.verifiedInstallation(ModelCatalog.parakeetUltra) != nil {
+            return try await ParakeetEngine.load(from: store, checkpoint: .ultra)
         }
-        guard let installed = await store.verifiedInstallation(ModelCatalog.parakeetTdtV3) else {
+        guard await store.verifiedInstallation(ModelCatalog.parakeetTdtV3) != nil else {
             throw DictationFeatureError.modelMissing
         }
-        return try await ParakeetEngine.load(fromVerifiedDirectory: installed.directory)
+        return try await ParakeetEngine.load(from: store)
     }
 }
