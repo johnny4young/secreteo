@@ -57,7 +57,7 @@ final class DictationReadinessTests: XCTestCase {
     func testTheAppsStopTailIsARealSleepThatStopsOnCancel() async throws {
         let feature = try DictationFeature(
             usesTemporaryStore: true, arguments: ["-use-temp-store"], defaults: scratchDefaults())
-        let wait = feature.makeDictationSessionDependencies().waitForStopTail
+        let wait = DictationSessionDependencies.live(services: feature, beginCapture: { {} }).waitForStopTail
         let start = ContinuousClock.now
         try await wait(.milliseconds(30))
         XCTAssertGreaterThanOrEqual(ContinuousClock.now - start, .milliseconds(30))
@@ -436,7 +436,7 @@ private final class ReadinessHarness {
             },
             waitForStopTail: { [weak self] tail in
                 self?.stopTails += 1
-                try await DictationSessionDependencies.immediateStopTail(tail)
+                try await DictationUITestFixture.immediateStopTail(tail)
             },
             admission: DictationAdmission.open,
             beginCapture: { {} })

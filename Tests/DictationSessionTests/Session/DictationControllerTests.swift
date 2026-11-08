@@ -505,7 +505,7 @@ final class DictationControllerHarness {
     var insertions: [String] = []
     var measurements: [DictationSessionMeasurement] = []
     var stopTails = 0
-    var waitForStopTail = DictationSessionDependencies.immediateStopTail
+    var waitForStopTail = DictationUITestFixture.immediateStopTail
     let consumerGate: PreparationGate?
     let stopsReadingAfterFirstCaption: Bool
 

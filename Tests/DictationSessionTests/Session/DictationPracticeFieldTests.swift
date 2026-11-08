@@ -57,7 +57,7 @@ final class DictationPracticeFieldTests: XCTestCase {
         feature.practice.show(holder, isKey: true)
         defer { feature.practice.hide(holder) }
         let clipboard = NSPasteboard.general.changeCount
-        let dependencies = feature.practice.route(feature.makeDictationSessionDependencies().skippingStopTail(), appIsActive: true)
+        let dependencies = feature.practice.route(feature.makeDictationSessionDependencies(), appIsActive: true)
 
         controller.toggle(using: dependencies)
         let listening = await eventually { controller.partialText == "No borres estas notas." }
