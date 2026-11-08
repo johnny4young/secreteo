@@ -17,9 +17,20 @@ extension DictationFeature {
             })
     }
 
+    var speechModelIsRequired: Bool { speechEngine != .appleSpeech }
+
+    /// Apple Speech still runs the speech gate and auto-stop on the detector.
+    var requiredModels: [DictationModels.Part] {
+        speechModelIsRequired ? DictationModels.Part.required : [.speechDetector]
+    }
+
     /// The warm model may be the other checkpoint, so the next dictation loads afresh.
+    /// A failure belonged to the other engine's parts, and Parakeet may not have been hashed.
     func speechEngineChanged() {
         warmEngine.release()
+        if modelState == .failed { modelState = .missing }
+        applyModelReadiness()
+        if speechModelIsRequired { Task { await refreshReadiness() } }
         prewarmIfConfigured()
     }
 

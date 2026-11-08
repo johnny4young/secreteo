@@ -37,7 +37,7 @@ final class LiveSpeechSelectionTests: XCTestCase {
 
         await feature.refreshReadiness()
         XCTAssertEqual(feature.modelState, .ready, "dictation keeps Parakeet until Ultra is downloaded")
-        XCTAssertTrue(feature.readiness.modelIsInstalled.withLock { $0 })
+        XCTAssertTrue(feature.readiness.modelIsReady.withLock { $0 })
 
         do {
             _ = try await feature.acquireLiveTranscriptionRuntime(for: .dictation)
