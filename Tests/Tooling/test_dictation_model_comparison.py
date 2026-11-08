@@ -22,6 +22,7 @@ class DictationModelComparisonTests(unittest.TestCase):
         cls.audio = Path(cls.shared.name) / 'audio'
         materialize(cls.audio, NAMES, SpeechDouble())
         cls.digest = corpus.read_json(cls.audio / 'manifest.json')[1]
+        cls.families = {family['id']: family for family in corpus.read_public_corpus()[0]['families']}
 
     @classmethod
     def tearDownClass(cls):
@@ -48,8 +49,10 @@ class DictationModelComparisonTests(unittest.TestCase):
         cells = []
         for case in env['SECRETEO_ASR_COMPARE_CASES'].split(','):
             failed = (model, case) in self.failed
+            family = self.families[case.rsplit('.', 1)[0]]
+            words = comparison.reference_words(family['acceptedTexts'][0])
             cells.append({'model': comparison.MODELS[model], 'caseID': case, 'group': 'g', 'shape': 'clean',
-                          'critical': False, 'score': None if failed else self.score(8 if 'decimal' in case else 5),
+                          'critical': family['critical'], 'score': None if failed else self.score(words),
                           'failure': 'engineEndedEarly' if failed else None, 'inputSeconds': 1,
                           'firstUpdateSeconds': None, 'completionSeconds': None, 'inputEndSeconds': None})
         receipt = {'kind': 'dictation-model-comparison-observation', 'schemaVersion': 2,
@@ -76,7 +79,7 @@ class DictationModelComparisonTests(unittest.TestCase):
         self.assertEqual(result['outcome'], 'observed')
         self.assertEqual(self.outcome(), 'observed')
         # The scorer counts 8 words in "0.05, not 0.5"; a plain split counts 6.
-        self.assertAlmostEqual(result['models']['ultra']['wordErrorRate'], 8 / 13)
+        self.assertAlmostEqual(result['models']['ultra']['wordErrorRate'], 8 / 17)
 
     def test_a_receipt_for_another_manifest_is_refused(self):
         self.mutate = lambda receipt: receipt.update(manifestSHA256='0' * 64)
@@ -89,6 +92,10 @@ class DictationModelComparisonTests(unittest.TestCase):
             lambda receipt: receipt.update(cells='not a list'),
             lambda receipt: receipt['cells'].__setitem__(0, 'not a cell'),
             lambda receipt: receipt.update(models=['not a model']),
+            lambda receipt: receipt['cells'][0]['score'].update(referenceWords=5, hypothesisWords=5),
+            lambda receipt: receipt['cells'][0].update(critical=not receipt['cells'][0]['critical']),
+            lambda receipt: receipt['models'][0].update(peakFootprintBytes=True),
+            lambda receipt: receipt['models'][0].update(loadSeconds=-1),
         ]
         for index, mutation in enumerate(mutations):
             with self.subTest(index=index):
@@ -101,6 +108,15 @@ class DictationModelComparisonTests(unittest.TestCase):
         for path in sorted((self.root / 'run').glob('*')):
             path.unlink()
         (self.root / 'run').rmdir()
+
+    def test_a_launcher_that_cannot_start_is_reported_as_such(self):
+        def unstartable(arguments, **options):
+            raise PermissionError('not executable')
+        self.assertEqual(self.run_comparison(unstartable)['outcome'], 'launcher-failed')
+        self.assertEqual(self.outcome(), 'launcher-failed')
+
+    def test_words_count_marks_as_the_swift_scorer_does(self):
+        self.assertEqual(comparison.reference_words('an\u0303o, 0.05'), 3)
 
     def test_a_failed_launch_still_publishes_its_outcome(self):
         def fail(arguments, **options):

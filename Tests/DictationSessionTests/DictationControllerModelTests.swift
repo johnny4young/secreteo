@@ -119,8 +119,6 @@ final class DictationControllerModelTests: XCTestCase {
                 samples.withLock { $0.append(value) }
             }, completion: {})
         })
-        // A cancelled cell can leave its cold load running; the next cell must not overlap it.
-        await runtime.settle()
         if result.measurement.elapsedSeconds["runtimeReady"] != nil { runtime.ready = true }
         let observations = samples.withLock { $0 }
         guard observations.count <= 1 else { throw DictationModelProbe.Failure.invalidInput }
@@ -141,35 +139,19 @@ final class DictationControllerModelTests: XCTestCase {
             fedFrames: result.frames, pipelineCompleted: pipelineCompleted, work: observations)
     }
 
+    /// A cancelled cell's cold load runs on and the next cell joins it, so loads never overlap.
     @MainActor
     private final class Runtime {
-        let directory: URL
-        var engine: ParakeetEngine?
-        var loadSeconds = 0.0
+        private let shared: DictationSharedModelLoad<ParakeetEngine>
         var ready = false
         var freshRequests = 0
-        private var loading: Task<ParakeetEngine, any Error>?
+        var loadSeconds: Double { shared.waitSeconds }
 
-        init(directory: URL) { self.directory = directory }
-
-        func acquire() async throws -> ParakeetEngine {
-            if let engine { return engine }
-            if let loading { return try await loading.value }
-            let start = ContinuousClock.now
-            let directory = directory
-            let task = Task { try await ParakeetEngine.load(fromVerifiedDirectory: directory) }
-            loading = task
-            defer {
-                loading = nil
-                loadSeconds += DictationModelProbe.seconds(start.duration(to: .now))
-            }
-            let engine = try await task.value
-            self.engine = engine
-            return engine
+        init(directory: URL) {
+            shared = DictationSharedModelLoad { try await ParakeetEngine.load(fromVerifiedDirectory: directory) }
         }
 
-        func settle() async {
-            if let loading { _ = try? await loading.value }
-        }
+        func acquire() async throws -> ParakeetEngine { try await shared.acquire() }
     }
+
 }

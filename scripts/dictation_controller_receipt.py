@@ -92,7 +92,10 @@ def validate_controller(value, score, input_seconds, timeout, complete):
     corpus.require(type(phases) is dict and phases.keys() <= allowed, 'unexpected controller timing')
     corpus.require(all(number(value, timeout) for value in phases.values())
                    and all(elapsed <= value['terminalSeconds'] for elapsed in phases.values()), 'invalid controller timing')
-    # Audio-first: capture may start before the runtime arrives, but no caption can.
+    # Audio-first: the runtime is awaited only once capture is ready, and no caption precedes it.
+    if 'runtimeReady' in phases:
+        corpus.require('microphoneReady' in phases and phases['microphoneReady'] <= phases['runtimeReady'],
+                       'runtime precedes microphone readiness')
     if 'firstCaptionHandled' in phases:
         corpus.require('runtimeReady' in phases and phases['runtimeReady'] <= phases['firstCaptionHandled'],
                        'caption precedes runtime acquisition')
