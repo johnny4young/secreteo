@@ -975,13 +975,19 @@ final class WarmModelTests: XCTestCase {
 
     func testALoadThatEndsAfterOwnershipMovedIsNotKept() async throws {
         let mayKeep = Mutex(true)
+        let loading = Mutex(false)
         let (gate, release) = AsyncStream.makeStream(of: Void.self)
         let warm = WarmModel<Model>(mayKeep: { mayKeep.withLock { $0 } }, load: {
+            loading.withLock { $0 = true }
             for await _ in gate { break }
             return Model()
         })
         let acquired = Task { try await warm.acquire() }
-        await Task.yield()
+        // Ownership must move while the load is running, not before it starts.
+        guard await TestPolling.until({ loading.withLock { $0 } }) else {
+            release.finish()
+            return XCTFail("The load never started")
+        }
         mayKeep.withLock { $0 = false }
         warm.release()
         release.finish()
@@ -999,8 +1005,10 @@ final class WarmModelTests: XCTestCase {
         })
         let earlier = Task { try await warm.acquire() }
         // The release must land after load 1 starts, or the next acquire becomes load 1 and waits on the gate.
-        let started = await TestPolling.until { loads.withLock { $0 } == 1 }
-        XCTAssertTrue(started)
+        guard await TestPolling.until({ loads.withLock { $0 } == 1 }) else {
+            release.finish()
+            return XCTFail("The first load never started")
+        }
 
         warm.release()
         _ = try await warm.acquire()
