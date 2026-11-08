@@ -186,31 +186,45 @@ class ReuseGateTests(unittest.TestCase):
 
 
 class BuildCacheTests(unittest.TestCase):
-    """The unit job restores what build-cache.yml saves only if both agree on key and flags."""
+    """The unit job restores what build-cache.yml saves only if both agree on key, toolchain and flags."""
 
     WORKFLOWS = SCRIPTS.parent / ".github" / "workflows"
+    # Changing these alters only what a job runs on, not what it builds.
+    NEUTRAL = {"build", "test", "--parallel", "--build-tests"}
 
     def job(self, workflow: str, name: str) -> str:
-        text = (self.WORKFLOWS / workflow).read_text()
-        start = text.index(f"\n  {name}:\n")
-        end = text.find("\n\n  ", start + 1)
-        return text[start:end if end != -1 else len(text)]
+        lines = (self.WORKFLOWS / workflow).read_text().splitlines()
+        start = lines.index(f"  {name}:")
+        end = next((i for i in range(start + 1, len(lines)) if re.match(r"  \S", lines[i])), len(lines))
+        return "\n".join(lines[start:end])
 
-    def test_the_unit_job_restores_the_saved_key(self):
-        saved = re.search(r"key: (.+?)\$\{\{ github\.run_id \}\}", self.job("build-cache.yml", "swift-build"))
-        unit = self.job("ci.yml", "unit")
-        self.assertIsNotNone(saved)
-        self.assertIn(f"key: {saved.group(1)}\n", unit)
-        self.assertIn(f"            {saved.group(1)}\n", unit, "the resolved-hash prefix must be a restore key")
-        self.assertIn("actions/cache/restore@", unit)
+    def jobs(self):
+        return self.job("ci.yml", "unit"), self.job("build-cache.yml", "swift-build")
+
+    def prefix(self, job: str) -> str:
+        image = re.search(r"runs-on: (\S+)", job).group(1)
+        xcode = re.search(r"Xcode_([\d.]+)\.app", job).group(1)
+        return f"swiftpm-build-{image}-xcode-{xcode}-"
+
+    def test_the_key_names_the_toolchain_both_jobs_use(self):
+        unit, cache = self.jobs()
+        self.assertEqual(self.prefix(unit), self.prefix(cache))
+        prefix = self.prefix(unit)
+        manifest = "${{ hashFiles('Package.swift') }}"
+        self.assertIn(f"key: {prefix}{manifest}-${{{{ hashFiles('Package.resolved') }}}}-\n", unit)
+        self.assertIn(f"restore-keys: {prefix}{manifest}-\n", unit, "a changed Package.swift must not restore")
+        self.assertIn(f'graph={prefix}$MANIFEST-"', cache)
+        self.assertIn(f'prefix={prefix}$MANIFEST-$RESOLVED-"', cache)
+        self.assertIn("restore-keys: ${{ steps.key.outputs.graph }}\n", cache)
+        self.assertIn("key: ${{ steps.key.outputs.prefix }}${{ github.run_id }}", cache)
         self.assertNotIn("actions/cache/save@", unit, "pull requests must not evict main's cache")
 
-    def test_both_jobs_build_with_the_same_flags(self):
-        flags = lambda job: sorted(set(re.findall(r"run: swift (?:build|test)\b.*?((?:-Xswiftc \S+ ?)+)$", job, re.M)))
-        unit, cache = self.job("ci.yml", "unit"), self.job("build-cache.yml", "swift-build")
-        self.assertEqual(flags(unit), flags(cache))
-        self.assertIn("swift build --build-tests", cache, "tests must be in the cache too")
-
+    def test_both_jobs_build_with_the_same_arguments(self):
+        commands = [set(line.split()[2:]) - self.NEUTRAL
+                    for job in self.jobs() for line in re.findall(r"run: swift .*", job)]
+        self.assertEqual(len(commands), 4)
+        self.assertTrue(all(arguments == commands[0] for arguments in commands), commands)
+        self.assertIn("run: swift build --build-tests", self.jobs()[1], "tests must be in the cache too")
 
 if __name__ == "__main__":
     unittest.main()

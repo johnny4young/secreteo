@@ -219,6 +219,9 @@ class CaskTests(unittest.TestCase):
 
 
 class WorkflowContractTests(unittest.TestCase):
+    def workflow_names(self):
+        return sorted(path.name for path in (ROOT / ".github/workflows").glob("*.yml"))
+
     def workflow(self, name):
         return (ROOT / ".github/workflows" / name).read_text()
 
@@ -232,10 +235,12 @@ class WorkflowContractTests(unittest.TestCase):
 
     def test_each_workflow_reads_only_its_own_secrets(self):
         expected = {"update-cask.yml": {"TAP_DEPLOY_KEY"},
-                    "pages.yml": {"CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"},
-                    "ci.yml": set(), "nightly.yml": set()}
-        for name, secrets in expected.items():
-            self.assertEqual(set(re.findall(r"secrets\.([A-Z0-9_]+)", self.workflow(name))), secrets, name)
+                    "pages.yml": {"CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"}}
+        for name in self.workflow_names():
+            if name == "release.yml":
+                continue
+            found = set(re.findall(r"secrets\.([A-Z0-9_]+)", self.workflow(name)))
+            self.assertEqual(found, expected.get(name, set()), name)
         self.assertIn("environment: homebrew", self.workflow("update-cask.yml"))
         self.assertIn("environment: site", self.workflow("pages.yml"))
 
@@ -252,7 +257,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(text.count("gh release create"), 1)
 
     def test_the_default_token_is_read_only(self):
-        for name in ("release.yml", "update-cask.yml", "pages.yml", "nightly.yml", "ci.yml"):
+        for name in self.workflow_names():
             self.assertRegex(self.workflow(name), r"(?m)^permissions:\n  contents: read$", name)
 
     def test_nothing_privileged_runs_on_untrusted_input(self):
