@@ -1,6 +1,7 @@
 import CryptoKit
 import DictationKit
 import Foundation
+import GRDB
 import SpeechCore
 
 @testable import DictationStore
@@ -98,8 +99,8 @@ enum DictationSearchBenchmark {
     ) async throws -> DictationSearchObservations {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        guard let fixture = try? decoder.decode(DictationSearchFixture.self, from: fixtureData),
-              fixture.kind == "dictation-search-fixture", !fixture.dictations.isEmpty, !fixture.queries.isEmpty
+        let fixture = try decoder.decode(DictationSearchFixture.self, from: fixtureData)
+        guard fixture.kind == "dictation-search-fixture", !fixture.dictations.isEmpty, !fixture.queries.isEmpty
         else { throw DictationSearchBenchmarkError.invalidFixture }
         let now = (fixture.dictations.map(\.createdAt).max() ?? Date()).addingTimeInterval(3_600)
         let corpus = try await Corpus.seed(fixture.dictations, now: now)
@@ -113,10 +114,11 @@ enum DictationSearchBenchmark {
             let lexical = try await corpus.lexical(query.text)
             lexicalTimes.append(milliseconds(since: started))
             started = ContinuousClock.now
-            let semantic = try await semanticHits(query.text, vectors: embedded.vectors, ids: embedded.ids, embed: embed)
+            let raw = try await vector(for: query.text, embed: embed)
+            let semantic = try semanticHits(raw, vectors: embedded.vectors, ids: embedded.ids)
             semanticTimes.append(milliseconds(since: started))
-            let centered = try await semanticHits(
-                query.text, vectors: embedded.centered, ids: embedded.ids, embed: embed, mean: embedded.mean)
+            let centered = try semanticHits(
+                centeredVector(raw, mean: embedded.mean), vectors: embedded.centered, ids: embedded.ids)
             queries.append(.init(
                 id: query.id.uuidString, lexical: lexical, semantic: semantic, semanticCentered: centered,
                 lexicalExpandedMeeting: nil, lexicalExpandedDictation: nil))
@@ -190,7 +192,7 @@ enum DictationSearchBenchmark {
             _ = try await corpus.lexical(query.text)
             lexicalTimes.append(milliseconds(since: started))
             started = ContinuousClock.now
-            _ = try await semanticHits(query.text, vectors: scaledVectors, ids: scaledIDs, embed: embed)
+            _ = try semanticHits(try await vector(for: query.text, embed: embed), vectors: scaledVectors, ids: scaledIDs)
             semanticTimes.append(milliseconds(since: started))
         }
         return .init(
@@ -201,10 +203,8 @@ enum DictationSearchBenchmark {
     }
 
     private static func semanticHits(
-        _ question: String, vectors: [[Float]], ids: [String], embed: Embed, mean: [Float]? = nil
-    ) async throws -> [DictationSearchObservations.Hit] {
-        let raw = try await vector(for: question, embed: embed)
-        let query = mean.map { centeredVector(raw, mean: $0) } ?? raw
+        _ query: [Float], vectors: [[Float]], ids: [String]
+    ) throws -> [DictationSearchObservations.Hit] {
         guard query.count == vectors.first?.count else { throw DictationSearchBenchmarkError.invalidEmbedding }
         var scored: [(index: Int, similarity: Float)] = []
         scored.reserveCapacity(vectors.count)
@@ -263,14 +263,18 @@ enum DictationSearchBenchmark {
             _ = try await store.setDictationHistoryPolicy(
                 isEnabled: true, keepsOriginal: false, retentionDays: 90, at: now)
             for dictation in dictations {
-                _ = try await store.recordDictation(
+                let outcome = try await store.recordDictation(
                     DictationRecord(
                         id: DictationRecordID(rawValue: dictation.id), createdAt: dictation.createdAt,
                         duration: 2, text: dictation.text, originalText: nil, mode: .literal, language: nil,
                         engine: "benchmark", applicationName: dictation.applicationName,
                         applicationBundleID: nil, delivery: .verified),
                     admittedGeneration: 0, at: now)
+                // A refused or purged row would leave the searched corpus smaller than reported.
+                guard outcome == .saved else { throw DictationSearchBenchmarkError.invalidFixture }
             }
+            let kept = try await store.database.read { try Int.fetchOne($0, sql: "SELECT COUNT(*) FROM dictationRecord") }
+            guard kept == dictations.count else { throw DictationSearchBenchmarkError.invalidFixture }
             return Self(store: store)
         }
 

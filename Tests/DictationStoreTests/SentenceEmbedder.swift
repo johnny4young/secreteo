@@ -1,20 +1,14 @@
 import Foundation
 import NaturalLanguage
 
-/// On-device sentence embeddings via Apple's contextual embedding model
-/// (NaturalLanguage). One Latin-script model covers Spanish AND English
-/// in a shared vector space — exactly what a bilingual meeting library
-/// needs. Vectors are mean-pooled token embeddings, L2-normalized so
-/// cosine similarity is a plain dot product.
-///
-/// Zero third-party downloads: the OS fetches its own assets on first
-/// use (`prepare()`), like keyboard dictation models do.
-public actor SentenceEmbedder {
-    public enum EmbedderError: Error, LocalizedError {
+/// Apple's Latin-script contextual embedding, which puts English and Spanish in one
+/// space. Mean-pooled and L2-normalized, so cosine similarity is a dot product.
+actor SentenceEmbedder {
+    enum EmbedderError: Error, LocalizedError {
         case unsupported
         case assetsUnavailable
 
-        public var errorDescription: String? {
+        var errorDescription: String? {
             switch self {
             case .unsupported:
                 return "this OS has no Latin-script contextual embedding model"
@@ -27,29 +21,21 @@ public actor SentenceEmbedder {
     private let embedding: NLContextualEmbedding
     private var loaded = false
 
-    public init() throws {
+    init() throws {
         guard let embedding = NLContextualEmbedding(script: .latin) else {
             throw EmbedderError.unsupported
         }
         self.embedding = embedding
     }
 
-    /// Vector dimensionality of the underlying model.
-    public var dimension: Int { embedding.dimension }
-
     /// Identity of the model and pooling behind a set of vectors. Reading it
     /// does not load or download model assets.
-    public var profileFingerprint: String {
+    var profileFingerprint: String {
         "\(embedding.modelIdentifier)-r\(embedding.revision)-d\(embedding.dimension)-token-mean-pooling-l2-v1"
     }
 
-    /// Whether Apple's one-time Latin embedding assets are already present.
-    /// Instant search checks this before semantic work so typing never opens a
-    /// download flow or starts network activity.
-    public var hasAvailableAssets: Bool { embedding.hasAvailableAssets }
-
-    /// Loads the model and optionally requests its OS-managed assets.
-    public func prepare(allowAssetDownload: Bool = true) async throws {
+    /// Loads the model, requesting the OS's assets only when allowed.
+    func prepare(allowAssetDownload: Bool = true) async throws {
         if !embedding.hasAvailableAssets {
             guard allowAssetDownload else { throw EmbedderError.assetsUnavailable }
             let result = try await embedding.requestAssets()
@@ -61,8 +47,7 @@ public actor SentenceEmbedder {
         }
     }
 
-    /// Embeds a batch of sentences (mean-pooled, L2-normalized).
-    public func embed(_ texts: [String]) throws -> [[Float]] {
+    func embed(_ texts: [String]) throws -> [[Float]] {
         try texts.map { text in
             let result = try embedding.embeddingResult(for: text, language: nil)
             var sum = [Double](repeating: 0, count: embedding.dimension)

@@ -47,16 +47,22 @@ final class DictationSearchQualityTests: XCTestCase {
         guard let output = environment["SECRETEO_SEARCH_OBSERVATIONS"] else {
             throw XCTSkip("explicit dictation search observation not requested")
         }
+        let outputURL = URL(fileURLWithPath: output)
+        var isDirectory: ObjCBool = false
         guard output.hasPrefix("/"), !FileManager.default.fileExists(atPath: output),
+              FileManager.default.fileExists(
+                atPath: outputURL.deletingLastPathComponent().path, isDirectory: &isDirectory),
+              isDirectory.boolValue,
               let commit = environment["SECRETEO_SEARCH_COMMIT"], commit.utf8.count == 40,
               commit.utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) })
         else {
-            XCTFail("search observation requires a new absolute output and a 40-character commit")
+            XCTFail("search observation requires a new absolute output in an existing folder and a 40-character commit")
             return
         }
-        let scales = (environment["SECRETEO_SEARCH_SCALES"] ?? "1000,10000")
-            .split(separator: ",").compactMap { Int($0) }
-        guard !scales.isEmpty, scales.allSatisfy({ (1...100_000).contains($0) }) else {
+        // A mistyped scale must fail, or the latency gate would read a smaller corpus.
+        let entries = (environment["SECRETEO_SEARCH_SCALES"] ?? "1000,10000").split(separator: ",", omittingEmptySubsequences: false)
+        let scales = entries.compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
+        guard !scales.isEmpty, scales.count == entries.count, scales.allSatisfy({ (1...100_000).contains($0) }) else {
             XCTFail("scales are 1 to 100000")
             return
         }
@@ -71,11 +77,7 @@ final class DictationSearchQualityTests: XCTestCase {
             scales: scales)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        guard FileManager.default.createFile(
-            atPath: output, contents: try encoder.encode(observations), attributes: [.posixPermissions: 0o600])
-        else {
-            XCTFail("the observations could not be written")
-            return
-        }
+        try encoder.encode(observations).write(to: outputURL, options: [.withoutOverwriting])
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: output)
     }
 }
