@@ -368,7 +368,7 @@ final class DictationFeatureTests: XCTestCase {
         let feature = try makeFeature(system)
         await feature.refreshReadiness()
         XCTAssertEqual(feature.modelState, .missing, "Parakeet in the shared store must not hide the detector")
-        XCTAssertTrue(feature.readiness.modelIsInstalled.withLock { $0 })
+        XCTAssertTrue(feature.readiness.modelIsReady.withLock { $0 })
     }
 
     func testPrewarmReadsItsChoicesFromPreferences() throws {
@@ -495,7 +495,7 @@ final class DictationFeatureTests: XCTestCase {
         await waitUntil { feature.modelState == .failed }
         await feature.refreshReadiness()
         XCTAssertEqual(feature.modelState, .failed)
-        XCTAssertTrue(feature.readiness.modelIsInstalled.withLock { $0 }, "Dictation still works without it")
+        XCTAssertTrue(feature.readiness.modelIsReady.withLock { $0 }, "Dictation still works without it")
 
         system.failsToInstall.withLock { $0 = [] }
         feature.downloadModel()
@@ -564,7 +564,7 @@ final class DictationFeatureTests: XCTestCase {
         await waitUntil { feature.modelState == .failed }
         await feature.refreshReadiness()
         XCTAssertEqual(system.installed.withLock { $0 }, [])
-        XCTAssertFalse(feature.readiness.modelIsInstalled.withLock { $0 })
+        XCTAssertFalse(feature.readiness.modelIsReady.withLock { $0 })
     }
 
     func testAModelHashedOnAnEarlierLaunchIsReadyBeforeThisLaunchsHashEnds() async throws {
@@ -573,11 +573,11 @@ final class DictationFeatureTests: XCTestCase {
         let (gate, release) = AsyncStream.makeStream(of: Void.self)
         system.modelGate.withLock { $0 = gate }
         let feature = try makeFeature(system)
-        XCTAssertFalse(feature.readiness.modelIsInstalled.withLock { $0 })
+        XCTAssertFalse(feature.readiness.modelIsReady.withLock { $0 })
 
         feature.start()
         await waitUntil { feature.modelState == .ready }
-        XCTAssertTrue(feature.readiness.modelIsInstalled.withLock { $0 })
+        XCTAssertTrue(feature.readiness.modelIsReady.withLock { $0 })
         release.finish()
     }
 
@@ -590,7 +590,7 @@ final class DictationFeatureTests: XCTestCase {
         feature.start()
         await waitUntil { system.remembered.withLock { $0.isEmpty } }
         XCTAssertEqual(feature.modelState, .missing)
-        XCTAssertFalse(feature.readiness.modelIsInstalled.withLock { $0 })
+        XCTAssertFalse(feature.readiness.modelIsReady.withLock { $0 })
     }
 
     func testARememberedDetectorAloneShowsNothing() async throws {
@@ -602,7 +602,7 @@ final class DictationFeatureTests: XCTestCase {
         feature.start()
         for _ in 0..<20 { await Task.yield() }
         XCTAssertEqual(feature.modelState, .missing)
-        XCTAssertFalse(feature.readiness.modelIsInstalled.withLock { $0 })
+        XCTAssertFalse(feature.readiness.modelIsReady.withLock { $0 })
         release.finish()
     }
 

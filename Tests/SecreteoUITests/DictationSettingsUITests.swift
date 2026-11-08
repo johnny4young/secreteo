@@ -188,6 +188,25 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         attachScreenshot(named: "pr-settings-speech-engine")
     }
 
+    func testAppleSpeechDownloadsOnlyTheDetector() throws {
+        let app = try launchEnabled(
+            defaults: #""dictationLiveSpeechEngine":"appleSpeech""#, arguments: ["-seed-model-download-held"])
+        defer { finishUITestApplication(app) }
+        let download = app.control(withIdentifier: "settings-dictation-model-download")
+        let progress = app.control(withIdentifier: "settings-dictation-model-progress")
+        XCTAssertTrue(app.revealInSettings(download))
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-ultra-download").exists)
+
+        download.click()
+
+        XCTAssertTrue(progress.waitForExistence(timeout: 5))
+        // The fixture holds the detector alone at 20%; with Parakeet in the set it would read 40%.
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) {
+            (progress.value as? Double).map { abs($0 - 0.2) < 0.01 } == true || "\(progress.value ?? "")".contains("20")
+        }, "\(progress.value ?? "nil")")
+        attachScreenshot(named: "pr-settings-apple-speech")
+    }
+
     func testFreeingTheModelSoonRulesOutLoadingItAtLaunch() throws {
         let app = try launchEnabled(defaults: #""dictationPrewarm":true"#)
         defer { finishUITestApplication(app) }

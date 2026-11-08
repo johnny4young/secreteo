@@ -65,6 +65,7 @@ public final class DictationFeature: AppServices {
     private(set) var modelDownloadFraction: Double?
     let ultra = SpeechUltraDownload()
     private var speechModelIsInstalled = false
+    private var detectorIsInstalled = false
     public private(set) var isEnabled: Bool
     public private(set) var microphoneIsAuthorized: Bool
     public private(set) var accessibilityIsGranted: Bool
@@ -235,7 +236,7 @@ public final class DictationFeature: AppServices {
 
     public var isActive: Bool { controller.isActive }
     /// A disposable launch has its own fixtures, so it needs no model.
-    var canPractice: Bool { environment.models == nil || speechModelIsInstalled }
+    var canPractice: Bool { environment.models == nil || speechModelIsInstalled || !speechModelIsRequired }
     var practiceIsShown: Bool { isEnabled && canPractice }
 
     /// The window holds the practice field, because the form's rows come and go as it scrolls.
@@ -459,15 +460,21 @@ public final class DictationFeature: AppServices {
         showModels(speechIsInstalled: true, detectorIsInstalled: await models.wasVerified(.speechDetector))
     }
 
-    /// Without the detector the speech gate fails open, so only the speech model holds dictation back.
     private func showModels(speechIsInstalled: Bool, detectorIsInstalled: Bool) {
-        if speechIsInstalled, detectorIsInstalled {
-            modelState = .ready
+        speechModelIsInstalled = speechIsInstalled
+        self.detectorIsInstalled = detectorIsInstalled
+        applyModelReadiness()
+    }
+
+    /// Without the detector the speech gate fails open, so only Parakeet holds dictation back.
+    func applyModelReadiness() {
+        let speechIsReady = speechModelIsInstalled || !speechModelIsRequired
+        if speechIsReady, detectorIsInstalled {
+            if modelState != .downloading { modelState = .ready }
         } else if modelState == .ready {
             modelState = .missing
         }
-        speechModelIsInstalled = speechIsInstalled
-        readiness.modelIsInstalled.withLock { $0 = speechIsInstalled }
+        readiness.modelIsReady.withLock { $0 = speechIsReady }
         ownership.reevaluate()
         syncEventTaps()
     }
@@ -496,7 +503,7 @@ public final class DictationFeature: AppServices {
 /// sees the truth; only the model's state is cached, because reading it can touch the disk.
 final class ReadinessGap: Sendable {
     static let missingModel = "model"
-    let modelIsInstalled = Mutex(false)
+    let modelIsReady = Mutex(false)
     private let isDisposable: Bool
     private let microphone: MicrophonePermissionClient
 
@@ -508,7 +515,7 @@ final class ReadinessGap: Sendable {
     func current() -> String? {
         // A disposable launch has its own fixtures, so nothing real can be missing there.
         if isDisposable { return nil }
-        if !modelIsInstalled.withLock({ $0 }) { return Self.missingModel }
+        if !modelIsReady.withLock({ $0 }) { return Self.missingModel }
         if microphone.state() != .authorized { return "microphone" }
         return AXIsProcessTrusted() ? nil : "accessibility"
     }
@@ -531,8 +538,9 @@ extension DictationFeature {
         modelDownloadFraction = nil
         modelInstallGeneration += 1
         let generation = modelInstallGeneration
+        let parts = requiredModels
         let install = Task { [weak self] in
-            try await models.installMissing { fraction in
+            try await models.installMissing(parts) { fraction in
                 Task { @MainActor in self?.modelDownloaded(fraction, generation: generation) }
             }
         }
