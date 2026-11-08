@@ -275,28 +275,50 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/SecreteoUITests/DictationHistoryUITests.swift` | `Tests/PortavozUITests/DictationHistoryUITests.swift` | Seam: opens a window from the menu, English only, filters in the list test, waits for seeded consent, deletes statistics, and no meetings or Ask |
 | `Fixtures/DictationSearch/public-synthetic-v1.json` | `Fixtures/DictationSearch/public-synthetic-v1.json` | Renames |
 | `Fixtures/DictationValidation/public-synthetic-v1.json` | `Fixtures/DictationValidation/public-synthetic-v1.json` | Renames |
-| `Fixtures/DictationValidation/README.md` | `Fixtures/DictationValidation/README.md` | Seam: `python3 -I` commands, the model, controller and Ultra sections give way to [G16](GAPS.md#g16-model-and-controller-lanes), and the speech-gate lane runs through `swift test` with `SECRETEO_` variables |
+| `Fixtures/DictationValidation/README.md` | `Fixtures/DictationValidation/README.md` | Seam: `python3 -I` commands, the speech-gate lane runs through `swift test` with `SECRETEO_` variables, the model lanes build with `swift build` and read a scratch store filled by one direct run, the decision rule is named as Portavoz's without its ticket or decision number, and no Dev diagnostics snapshot |
 | `Tests/Tooling/Fixtures/DictationBenchmark/README.md` | `Tests/Tooling/Fixtures/DictationBenchmark/README.md` | Seam: `python3 -I` commands, and links the local quality contract and score helper instead of pull requests |
 | `Tests/Tooling/Fixtures/DictationBenchmark/synthetic-input-v1.json` | `Tests/Tooling/Fixtures/DictationBenchmark/synthetic-input-v1.json` | Renames |
 | `Tests/Tooling/Fixtures/DictationBenchmark/synthetic-report-v1.json` | `Tests/Tooling/Fixtures/DictationBenchmark/synthetic-report-v1.json` | Renames |
-| `docs/DICTATION-QUALITY.md` | `docs/DICTATION-QUALITY.md` | Seam: the product is Secreteo, Portavoz's evidence and specs are named as Portavoz's, links that do not exist here are dropped, and the harness section points at [G16](GAPS.md#g16-model-and-controller-lanes) |
+| `docs/DICTATION-QUALITY.md` | `docs/DICTATION-QUALITY.md` | Seam: the product is Secreteo, Portavoz's evidence and specs are named as Portavoz's, links that do not exist here are dropped, and the harness section names only what was ported |
 | `scripts/dictation_audio.py` | `scripts/dictation_audio.py` | Renames |
 | `scripts/dictation_corpus.py` | `scripts/dictation_corpus.py` | Renames |
 | `scripts/dictation_benchmark.py` | `scripts/dictation_benchmark.py` | Seam: finds its siblings after the standard library, so it runs under `python3 -I` |
 | `scripts/dictation_field_corpus.py` | `scripts/dictation_field_corpus.py` | Seam: finds its siblings after the standard library, so it runs under `python3 -I`; `build` replaces the manifest after a redo, refuses to change its microphone, and reports file errors without paths |
 | `scripts/materialize_dictation_corpus.py` | `scripts/materialize_dictation_corpus.py` | Seam: finds its siblings after the standard library, so it runs under `python3 -I`; `publish_json` can replace on request, then syncs the directory |
-| `scripts/dictation_model_receipt.py` | `scripts/dictation_model_receipt.py` | Extract: `number` and `validate_score`, which the benchmark uses. The observation validators wait for the model lanes ([G16](GAPS.md#g16-model-and-controller-lanes)) |
+| `scripts/dictation_model_receipt.py` | `scripts/dictation_model_receipt.py` | Renames |
+| `scripts/dictation_controller_receipt.py` | `scripts/dictation_controller_receipt.py` | Renames |
+| `scripts/run_dictation_model_baseline.py` | `scripts/run_dictation_model_baseline.py` | Seam: finds its siblings after the standard library, so it runs under `python3 -I`; passes the scratch store from `--models` |
+| `scripts/run_dictation_controller_matrix.py` | `scripts/run_dictation_controller_matrix.py` | Seam: finds its siblings after the standard library, so it runs under `python3 -I`; passes the scratch store from `--models` |
+| `scripts/run_dictation_model_comparison.py` | `scripts/run_dictation_model_comparison.py` | Seam: finds its siblings after the standard library, so it runs under `python3 -I`, and its comments name no ticket |
+| `Tests/Tooling/test_dictation_model_runner.py` | `Tests/Tooling/test_dictation_model_runner.py` | Seam: imports `scripts` after the standard library and its siblings by name, plus a test that the receivers get only the selected scratch store |
+| `Tests/Tooling/test_dictation_controller_runner.py` | `Tests/Tooling/test_dictation_controller_runner.py` | Seam: imports `scripts` after the standard library and its siblings by name |
+| `Tests/Tooling/test_dictation_controller_matrix.py` | `Tests/Tooling/test_dictation_controller_matrix.py` | Seam: imports `scripts` after the standard library and its siblings by name |
 | `scripts/dictation_search_quality.py` | `scripts/dictation_search_quality.py` | Seam: no meeting expansion lane |
 | `scripts/record-dictation-field-corpus.swift` | `scripts/record-dictation-field-corpus.swift` | Renames |
 | `Tests/Tooling/test_dictation_benchmark.py` | `Tests/Tooling/test_dictation_benchmark.py` | Seam: runs the CLI with `-I`, and imports `scripts` after the standard library |
 | `Tests/Tooling/test_dictation_corpus.py` | `Tests/Tooling/test_dictation_corpus.py` | Seam: runs the CLI with `-I`, uses a Secreteo scratch prefix, and imports `scripts` after the standard library |
 | `Tests/Tooling/test_dictation_field_corpus.py` | `Tests/Tooling/test_dictation_field_corpus.py` | Extract: admission and recorder tests, without the Ultra comparison, running the CLI with `-I`, and imports `scripts` after the standard library, plus rebuild, microphone and path-free error tests |
 | `Tests/Tooling/test_dictation_materialization.py` | `Tests/Tooling/test_dictation_materialization.py` | Seam: renames, and imports `scripts` after the standard library |
-| `Tests/Tooling/test_dictation_model_receipt.py` | `Tests/Tooling/test_dictation_model_runner.py` | Extract: the two tests that call `validate_score` directly, plus a refusal test for each consistency check, and imports `scripts` after the standard library |
 | `Tests/Tooling/test_dictation_search_quality.py` | `Tests/Tooling/test_dictation_search_quality.py` | Seam: no meeting expansion lane, and an absent expansion is still reported and never passes |
 | `Tests/DictationSessionTests/DictationSpeechGateCorpusTests.swift` | `Tests/PortavozAppTests/DictationSpeechGateCorpusTests.swift` | Seam: an explicit scratch `LocalModelStore`, its manifest revision, and `PrivateJSONWriter` |
-| `Tests/DictationSessionTests/DictationModelFixture.swift` | `Tests/PortavozTestSupport/DictationModelFixture.swift` | Extract: without the repeated sequence, which only the model lanes use |
-| `Tests/DictationSessionTests/DictationModelProbe.swift` | `Tests/PortavozTestSupport/DictationModelProbe.swift` | Extract: the failure type and `seconds` |
+| `Tests/DictationSessionTests/DictationModelFixture.swift` | `Tests/PortavozTestSupport/DictationModelFixture.swift` | Renames |
+| `Tests/DictationSessionTests/DictationModelProbe.swift` | `Tests/PortavozTestSupport/DictationModelProbe.swift` | Seam: imports `SpeechCore` and `LiveSpeech` |
+| `Tests/DictationSessionTests/DictationPCMFeeder.swift` | `Tests/PortavozTestSupport/DictationPCMFeeder.swift` | Seam: imports `SpeechCore` |
+| `Tests/DictationSessionTests/TranscriptionAccuracy.swift` | `Sources/TranscriptionKit/TranscriptionAccuracy.swift` | Seam: the doc comment names no ticket |
+| `Tests/DictationSessionTests/TranscriptionAccuracyTests.swift` | `Tests/PortavozKitTests/TranscriptionAccuracyTests.swift` | Seam: no import, since the scorer is in the same test target |
+| `Tests/DictationSessionTests/DictationModelProbeTests.swift` | `Tests/PortavozAppTests/DictationModelProbeTests.swift` | Seam: imports `SpeechCore` and `LiveSpeech` |
+| `Tests/DictationSessionTests/DictationVendorProbe.swift` | `Tests/PortavozAppTests/DictationVendorProbe.swift` | Seam: no meeting consumer in the parity check, since Secreteo records no meetings |
+| `Tests/DictationSessionTests/DictationVendorProbeTests.swift` | `Tests/PortavozAppTests/DictationVendorProbeTests.swift` | Seam: the meeting recorder's assertions go with it; test names keep Portavoz's wording |
+| `Tests/DictationSessionTests/DictationModelBaselineTests.swift` | `Tests/PortavozAppTests/DictationModelBaselineTests.swift` | Seam: an explicit scratch `LocalModelStore`, optionally filled by `SECRETEO_DICTATION_BASELINE_INSTALL`, its manifest fields, and `PrivateJSONWriter` |
+| `Tests/DictationSessionTests/DictationControllerModelProbe.swift` | `Tests/PortavozAppTests/DictationControllerModelProbe.swift` | Seam: imports `LiveSpeech`, and names the real stop tail, which the repository check asks of every hand-built session |
+| `Tests/DictationSessionTests/DictationControllerModelProbeTests.swift` | `Tests/PortavozAppTests/DictationControllerModelProbeTests.swift` | Seam: imports `SpeechCore` and `LiveSpeech` |
+| `Tests/DictationSessionTests/DictationControllerPCMSource.swift` | `Tests/PortavozAppTests/DictationControllerPCMSource.swift` | Seam: imports `SpeechCore` |
+| `Tests/DictationSessionTests/DictationControllerModelTests.swift` | `Tests/PortavozAppTests/DictationControllerModelTests.swift` | Seam: the same scratch store as the baseline, its manifest fields, and `PrivateJSONWriter` |
+| `Tests/DictationSessionTests/DictationFootprintObservation.swift` | `Tests/PortavozAppTests/DictationFootprintObservation.swift` | Renames |
+| `Tests/DictationSessionTests/DictationModelComparisonTests.swift` | `Tests/PortavozAppTests/DictationModelComparisonTests.swift` | Seam: a scratch `LocalModelStore`, `ModelManifest`, its manifest revision, and `PrivateJSONWriter` |
+| `Tests/DictationSessionTests/ResourceProbeUsage.swift` | `Sources/portavoz-app/ResourceRunProbe.swift` | Extract: the usage sample, thermal state, power source and the two errors it throws |
+| `Tests/DictationSessionTests/ResourceProbeDiskCapacity.swift` | `Sources/portavoz-app/ResourceProbeDiskCapacity.swift` | Renames |
+| `Tests/DictationSessionTests/OwnProcessResourceUsage.swift` | `Sources/PlatformKit/OwnProcessResourceUsage.swift` | Renames |
 | `Tests/DictationSessionTests/Support/PrivateJSONWriter.swift` | `Sources/portavoz-cli/CLIPrivateJSONWriter.swift` | Extract: the generic writer, renamed `PrivateJSONWriter`, without the commitment-link wrappers, and always closes its descriptor |
 
 ## Repository bootstrap
