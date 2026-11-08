@@ -57,7 +57,7 @@ final class DictationPracticeFieldTests: XCTestCase {
         feature.practice.show(holder, isKey: true)
         defer { feature.practice.hide(holder) }
         let clipboard = NSPasteboard.general.changeCount
-        let dependencies = feature.practice.route(feature.makeDictationSessionDependencies(), appIsActive: true)
+        let dependencies = feature.practice.route(feature.makeDictationSessionDependencies().skippingStopTail(), appIsActive: true)
 
         controller.toggle(using: dependencies)
         let listening = await eventually { controller.partialText == "No borres estas notas." }
@@ -99,7 +99,7 @@ final class DictationPracticeFieldTests: XCTestCase {
     }
 
     private func baseDependencies() throws -> DictationSessionDependencies {
-        var dependencies = try feature(arguments: []).makeDictationSessionDependencies()
+        var dependencies = try feature(arguments: []).makeDictationSessionDependencies().skippingStopTail()
         dependencies.canInsert = { false }
         return dependencies
     }

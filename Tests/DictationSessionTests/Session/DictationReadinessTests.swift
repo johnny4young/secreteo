@@ -348,7 +348,7 @@ final class DictationReadinessTests: XCTestCase {
     }
 
     private func admittedDependencies(_ feature: DictationFeature) -> DictationSessionDependencies {
-        var dependencies = feature.makeDictationSessionDependencies()
+        var dependencies = feature.makeDictationSessionDependencies().skippingStopTail()
         dependencies.admission = .open
         return dependencies
     }
@@ -418,7 +418,7 @@ private final class ReadinessHarness {
                 Date(timeIntervalSince1970: self?.now ?? 0)
             },
             admission: DictationAdmission.open,
-            beginCapture: { {} })
+            beginCapture: { {} }).skippingStopTail()
     }
 }
 
