@@ -880,17 +880,22 @@ extension DictationController {
             return
         }
         let microphone = self.microphone
-        let playCue = dependencies?.playCue
+        guard let dependencies else {
+            cancel()
+            return
+        }
+        let playCue = dependencies.playCue
+        let waitForTail = dependencies.waitForStopTail
         stopTask = Task { [weak self] in
             do {
-                try await Task.sleep(for: Self.stopTail)
+                try await waitForTail(Self.stopTail)
             } catch {
                 return
             }
             guard let self, self.activeSessionID == sessionID else { return }
             self.stopIssuedSessionID = sessionID
             await microphone?.stop()
-            playCue?(.stop)
+            playCue(.stop)
         }
     }
 }
