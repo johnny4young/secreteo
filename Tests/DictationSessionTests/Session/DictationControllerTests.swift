@@ -171,13 +171,18 @@ final class DictationControllerTests: XCTestCase {
         for text in ["No borres estas notas", "Don’t delete these notes"] {
             let harness = DictationControllerHarness(text: text)
             defer { harness.controller.cancel() }
+            let tail = ControlledTestSleep()
+            harness.waitForStopTail = { try await tail.wait(for: $0) }
             harness.controller.toggle(using: harness.dependencies)
             let partial = await awaitEventually { harness.controller.partialText == text }
             XCTAssertTrue(partial)
             harness.now = harness.now.addingTimeInterval(1)
             harness.controller.toggle(using: harness.dependencies)
-            // Stop has been requested, but the controller has not yet issued
-            // source.stop() after its 250 ms tail. This EOF is still untrusted.
+            // The tail is held open, so this EOF arrives before the controller's own stop.
+            let tailPending = await tail.waitUntilCallCount(1)
+            XCTAssertTrue(tailPending)
+            let requested = await tail.requestedDuration(at: 0)
+            XCTAssertEqual(requested, DictationController.stopTail)
             await harness.microphone.stop()
             let released = await awaitEventually { harness.finishes == 1 }
             XCTAssertTrue(released)
@@ -498,6 +503,7 @@ final class DictationControllerHarness {
     var transcriptOutput: AsyncThrowingStream<TranscriptSegment, Error>.Continuation?
     var insertions: [String] = []
     var measurements: [DictationSessionMeasurement] = []
+    var waitForStopTail: @MainActor (Duration) async throws -> Void = { _ in }
     let consumerGate: PreparationGate?
     let stopsReadingAfterFirstCaption: Bool
 
@@ -535,7 +541,7 @@ final class DictationControllerHarness {
     }
 
     var dependencies: DictationSessionDependencies {
-        DictationSessionDependencies(
+        var dependencies = DictationSessionDependencies(
             authorizeMicrophone: { true },
             makeMicrophone: { [microphone] in .init(source: ControlledMicrophoneSession(microphone), warmUp: {}) },
             acquireRuntime: { [weak self] in
@@ -561,6 +567,8 @@ final class DictationControllerHarness {
             admission: DictationAdmission.open,
             beginCapture: { {} },
             measurementSink: { [weak self] in self?.measurements.append($0) })
+        dependencies.waitForStopTail = waitForStopTail
+        return dependencies
     }
 }
 
