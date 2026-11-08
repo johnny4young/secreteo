@@ -23,8 +23,8 @@ extension DictationControllerTests {
             XCTAssertTrue(held)
             harness.now = harness.now.addingTimeInterval(1)
             reportPause?()
-            // Longer than the stop tail a wrongful finish would take to deliver.
-            try? await Task.sleep(for: .milliseconds(600))
+            // Longer than a wrongful finish takes to deliver with the harness's immediate tail.
+            try? await Task.sleep(for: .milliseconds(100))
             XCTAssertTrue(harness.insertions.isEmpty, "a held hotkey owns the stop")
             harness.controller.handleHotkeyRelease(at: harness.now.addingTimeInterval(1))
             let released = await awaitEventually { harness.insertions == [text] }
@@ -56,8 +56,8 @@ extension DictationControllerTests {
         harness.controller.modifierTrigger.ownsSession = true
         harness.now = harness.now.addingTimeInterval(3)
         reportPause?()
-        // Longer than the stop tail a wrongful finish would take to deliver.
-        try? await Task.sleep(for: .milliseconds(600))
+        // Longer than a wrongful finish takes to deliver with the harness's immediate tail.
+        try? await Task.sleep(for: .milliseconds(100))
         XCTAssertTrue(harness.insertions.isEmpty, "the held key owns the stop")
     }
 }

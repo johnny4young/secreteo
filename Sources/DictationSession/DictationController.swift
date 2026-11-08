@@ -194,7 +194,7 @@ final class DictationController {
     /// The mic keeps capturing this long after the finish gesture so the
     /// tail of the last word survives — stopping on the release clips it
     /// mid-phoneme.
-    static let stopTail: Duration = .milliseconds(250)
+    private static let stopTail: Duration = .milliseconds(250)
     private var microphoneReadiness: DictationMicrophoneReadiness?
     var sessionLease: DictationLease?
     var yieldsToHandoff = false
@@ -880,8 +880,12 @@ extension DictationController {
             return
         }
         let microphone = self.microphone
-        let playCue = dependencies?.playCue
-        let waitForTail = dependencies?.waitForStopTail ?? { try await Task.sleep(for: $0) }
+        guard let dependencies else {
+            cancel()
+            return
+        }
+        let playCue = dependencies.playCue
+        let waitForTail = dependencies.waitForStopTail
         stopTask = Task { [weak self] in
             do {
                 try await waitForTail(Self.stopTail)
@@ -891,7 +895,7 @@ extension DictationController {
             guard let self, self.activeSessionID == sessionID else { return }
             self.stopIssuedSessionID = sessionID
             await microphone?.stop()
-            playCue?(.stop)
+            playCue(.stop)
         }
     }
 }

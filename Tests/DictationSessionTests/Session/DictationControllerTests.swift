@@ -182,7 +182,7 @@ final class DictationControllerTests: XCTestCase {
             let tailPending = await tail.waitUntilCallCount(1)
             XCTAssertTrue(tailPending)
             let requested = await tail.requestedDuration(at: 0)
-            XCTAssertEqual(requested, DictationController.stopTail)
+            XCTAssertEqual(requested, .milliseconds(250))
             await harness.microphone.stop()
             let released = await awaitEventually { harness.finishes == 1 }
             XCTAssertTrue(released)
@@ -192,6 +192,7 @@ final class DictationControllerTests: XCTestCase {
                 XCTFail("Early EOF during Stop tail must remain an actionable failure")
                 continue
             }
+            _ = await tail.resumeCall(at: 0)
         }
     }
 
@@ -503,7 +504,11 @@ final class DictationControllerHarness {
     var transcriptOutput: AsyncThrowingStream<TranscriptSegment, Error>.Continuation?
     var insertions: [String] = []
     var measurements: [DictationSessionMeasurement] = []
-    var waitForStopTail: @MainActor (Duration) async throws -> Void = { _ in }
+    // Skips the real tail but still honors cancellation, as the sleep does.
+    var waitForStopTail: @MainActor (Duration) async throws -> Void = { _ in
+        await Task.yield()
+        try Task.checkCancellation()
+    }
     let consumerGate: PreparationGate?
     let stopsReadingAfterFirstCaption: Bool
 
