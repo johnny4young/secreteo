@@ -113,7 +113,6 @@ final class DictationHistoryRecordingTests: XCTestCase {
 
     private func dictate(_ controller: DictationController, using dependencies: DictationSessionDependencies)
         async throws {
-        let dependencies = dependencies.skippingStopTail()
         controller.toggle(using: dependencies)
         let listening = await eventually { controller.partialText == "No borres estas notas." }
         XCTAssertTrue(listening)

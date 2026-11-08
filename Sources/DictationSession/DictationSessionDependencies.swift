@@ -7,7 +7,7 @@ import LiveSpeech
 import SpeechCore
 
 /// Session-scoped side effects. The controller still owns the production
-/// lifecycle; disposable tests replace audio and model work, not that lifecycle.
+/// lifecycle; disposable tests replace audio and model work, and skip the stop tail's wait.
 @MainActor
 struct DictationSessionDependencies {
     struct Microphone: Sendable {

@@ -67,6 +67,12 @@ final class DictationUITestFixture {
         return text.hasPrefix("Don't") ? "change notes to files" : "cambia notas por archivos"
     }
 
+    /// Fixture audio has no trailing words to wait for. Still honors cancellation, as the sleep does.
+    static let immediateStopTail: @MainActor (Duration) async throws -> Void = { _ in
+        await Task.yield()
+        try Task.checkCancellation()
+    }
+
     /// UI journeys inspect unverified notices; unit tests own their expiry.
     static func waitHoldingUnverifiedNotices(_ delay: Duration) async throws {
         try await Task.sleep(for: delay == DictationController.unverifiedFeedbackDuration ? .seconds(3_600) : delay)
@@ -145,7 +151,7 @@ final class DictationUITestFixture {
                 return TextInserter.copy(text, to: NSPasteboard(name: .init(boardName)))
             },
             defaults: .standard,
-            now: fixtureClock(fixture),
+            now: fixtureClock(fixture), waitForStopTail: immediateStopTail,
             admission: admission, beginCapture: beginCapture, makeSpeechGate: { noSpeechGate(fixture) })
     }
 

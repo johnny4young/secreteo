@@ -3,6 +3,7 @@ import Foundation
 import DictationKit
 import LiveSpeech
 import SpeechCore
+import Synchronization
 import XCTest
 
 @testable import DictationSession
@@ -54,10 +55,10 @@ final class DictationReadinessTests: XCTestCase {
         harness.controller.cancel()
     }
 
-    func testTheAppsStopTailIsARealSleepThatStopsOnCancel() async throws {
+    func testTheLiveStopTailIsARealSleepThatStopsOnCancel() async throws {
         let feature = try DictationFeature(
             usesTemporaryStore: true, arguments: ["-use-temp-store"], defaults: scratchDefaults())
-        let wait = feature.makeDictationSessionDependencies().waitForStopTail
+        let wait = DictationSessionDependencies.live(services: feature, beginCapture: { {} }).waitForStopTail
         let start = ContinuousClock.now
         try await wait(.milliseconds(30))
         XCTAssertGreaterThanOrEqual(ContinuousClock.now - start, .milliseconds(30))
@@ -67,6 +68,24 @@ final class DictationReadinessTests: XCTestCase {
             try await pending.value
             XCTFail("A cancelled tail must not run to its end")
         } catch is CancellationError {}
+    }
+
+    func testFixtureSessionsSkipTheStopTailAndRoutingKeepsTheSessionsTail() async throws {
+        let feature = try DictationFeature(
+            usesTemporaryStore: true, arguments: ["-use-temp-store", "-seed-dictation"], defaults: scratchDefaults())
+        let start = ContinuousClock.now
+        try await feature.makeDictationSessionDependencies().waitForStopTail(.seconds(30))
+        XCTAssertLessThan(ContinuousClock.now - start, .seconds(5))
+
+        var base = feature.makeDictationSessionDependencies()
+        let requested = Mutex<[Duration]>([])
+        base.waitForStopTail = { tail in requested.withLock { $0.append(tail) } }
+        let holder = UUID()
+        feature.practice.show(holder, isKey: true)
+        defer { feature.practice.hide(holder) }
+        try await feature.practice.route(base, appIsActive: true).waitForStopTail(.milliseconds(1))
+        try await feature.selectionRewrite.instructionDependencies(base).waitForStopTail(.milliseconds(2))
+        XCTAssertEqual(requested.withLock { $0 }, [.milliseconds(1), .milliseconds(2)])
     }
 
     func testCancelledCaptureKeepsRuntimeUntilNativeStopCompletes() async {
@@ -436,7 +455,7 @@ private final class ReadinessHarness {
             },
             waitForStopTail: { [weak self] tail in
                 self?.stopTails += 1
-                try await DictationSessionDependencies.immediateStopTail(tail)
+                try await DictationUITestFixture.immediateStopTail(tail)
             },
             admission: DictationAdmission.open,
             beginCapture: { {} })

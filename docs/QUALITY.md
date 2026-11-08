@@ -39,6 +39,7 @@ Run in series.
 - Actions pinned to full commit SHAs.
 - No left accent bars in web styles.
 - Test files stay under 2,400 lines.
+- Tests that build session dependencies by hand choose their stop tail; fixture dependencies skip the real one.
 - Logs carry no dictated text: no value is logged as public, crash messages are plain literals, and only the MCP command prints, to stdout.
 - `.nvmrc` and `engines.node` agree.
 

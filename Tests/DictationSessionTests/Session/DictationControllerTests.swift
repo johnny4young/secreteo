@@ -505,7 +505,7 @@ final class DictationControllerHarness {
     var insertions: [String] = []
     var measurements: [DictationSessionMeasurement] = []
     var stopTails = 0
-    var waitForStopTail = DictationSessionDependencies.immediateStopTail
+    var waitForStopTail = DictationUITestFixture.immediateStopTail
     let consumerGate: PreparationGate?
     let stopsReadingAfterFirstCaption: Bool
 
@@ -543,7 +543,7 @@ final class DictationControllerHarness {
     }
 
     var dependencies: DictationSessionDependencies {
-        var dependencies = DictationSessionDependencies(
+        DictationSessionDependencies(
             authorizeMicrophone: { true },
             makeMicrophone: { [microphone] in .init(source: ControlledMicrophoneSession(microphone), warmUp: {}) },
             acquireRuntime: { [weak self] in
@@ -566,14 +566,13 @@ final class DictationControllerHarness {
             },
             copyText: { _ in false },
             defaults: defaults, now: { [weak self] in self?.now ?? .distantPast },
+            waitForStopTail: { [weak self, waitForStopTail] tail in
+                self?.stopTails += 1
+                try await waitForStopTail(tail)
+            },
             admission: DictationAdmission.open,
             beginCapture: { {} },
             measurementSink: { [weak self] in self?.measurements.append($0) })
-        dependencies.waitForStopTail = { [weak self, waitForStopTail] tail in
-            self?.stopTails += 1
-            try await waitForStopTail(tail)
-        }
-        return dependencies
     }
 }
 
