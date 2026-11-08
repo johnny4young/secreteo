@@ -12,6 +12,8 @@ struct DictationMeterTests {
     func theMeterFollowsTheOpenMicrophoneAndFreezesAtStop() async throws {
         let harness = DictationControllerHarness(text: "no borres estas notas")
         defer { harness.controller.cancel() }
+        let tail = ControlledTestSleep()
+        harness.waitForStopTail = { try await tail.wait(for: $0) }
         #expect(!DictationWaveform.animates(for: harness.controller))
 
         harness.controller.toggle(using: harness.dependencies)
@@ -20,7 +22,9 @@ struct DictationMeterTests {
 
         harness.now = harness.now.addingTimeInterval(1)
         harness.controller.toggle(using: harness.dependencies)
+        #expect(await tail.waitUntilCallCount(1))
         #expect(harness.controller.phase == .listening, "the stop tail is still capturing")
         #expect(!DictationWaveform.animates(for: harness.controller))
+        _ = await tail.resumeCall(at: 0)
     }
 }

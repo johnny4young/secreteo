@@ -48,8 +48,8 @@ final class DictationColdStartTests: XCTestCase {
             XCTAssertTrue(cold.harness.controller.isLoadingModel)
             cold.harness.now = cold.harness.now.addingTimeInterval(3)
             reportPause?()
-            // Longer than the stop tail a wrongful finish would take.
-            try? await Task.sleep(for: .milliseconds(600))
+            // Longer than a wrongful finish takes with the harness's immediate tail.
+            try? await Task.sleep(for: .milliseconds(100))
             XCTAssertTrue(cold.harness.controller.isActive, "the load is not a pause")
             let stops = await cold.harness.microphone.stops
             XCTAssertEqual(stops, 0)

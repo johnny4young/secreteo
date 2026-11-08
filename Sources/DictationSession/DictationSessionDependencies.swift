@@ -29,6 +29,9 @@ struct DictationSessionDependencies {
     var waitForFeedbackDismissal: @MainActor (Duration) async throws -> Void = {
         try await Task.sleep(for: $0)
     }
+    var waitForStopTail: @MainActor (Duration) async throws -> Void = {
+        try await Task.sleep(for: $0)
+    }
     var admission: DictationAdmission
     var admissionKind = DictationAdmissionKind.global
     /// How long a listening session may run once another app asks for ownership.
