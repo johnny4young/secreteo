@@ -1,6 +1,6 @@
 import Foundation
 
-/// Word/character error rates for engine comparison (MODEL-001). The bench
+/// Word/character error rates for engine comparison. The bench
 /// harness measured only latency until now; swapping the live lane needs an
 /// accuracy number measured HERE, on our fixtures, not a citation of
 /// third-party tables (the quality spec forbids presenting those as ours).

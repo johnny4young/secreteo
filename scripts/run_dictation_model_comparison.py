@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare Parakeet v3 and Ultra, one model per process, and apply the T38 rule."""
+"""Compare Parakeet v3 and Ultra, one model per process, and apply the Ultra decision rule."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SELECTOR = 'DictationSessionTests.DictationModelComparisonTests/testParakeetV3AgainstUltraOnPublicCells'
 MODELS = {'v3': 'parakeet-tdt-0.6b-v3-coreml', 'ultra': 'parakeet-ultra-coreml'}
 COHORTS = ('en', 'es', 'mixed')
-# Fixed before any field data was seen; see the decision recorded for T38.
+# Fixed before any field data was seen.
 MINIMUM_RELATIVE_WER_REDUCTION = 0.15
 MAXIMUM_EXTRA_PEAK_BYTES = 150 * 1_048_576
 MAXIMUM_EXTRA_WARM_LOAD_SECONDS = 1.0
@@ -96,7 +96,7 @@ def summarize(receipt, warmup, words, cohorts):
 
 
 def decide(kind, v3, ultra):
-    """The pre-registered T38 rule; synthetic evidence can never promote Ultra."""
+    """The pre-registered Ultra rule; synthetic evidence can never promote Ultra."""
     if kind != 'field-microphone':
         return {'verdict': 'not-applicable', 'failedCriteria': ['field-microphone evidence required']}
     failed = []
