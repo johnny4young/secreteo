@@ -50,7 +50,23 @@ final class DictationReadinessTests: XCTestCase {
         let finished = await eventually { harness.finishes == 1 }
         XCTAssertTrue(finished)
         XCTAssertTrue(harness.insertions.isEmpty)
+        XCTAssertEqual(harness.stopTails, 0)
         harness.controller.cancel()
+    }
+
+    func testTheAppsStopTailIsARealSleepThatStopsOnCancel() async throws {
+        let feature = try DictationFeature(
+            usesTemporaryStore: true, arguments: ["-use-temp-store"], defaults: scratchDefaults())
+        let wait = feature.makeDictationSessionDependencies().waitForStopTail
+        let start = ContinuousClock.now
+        try await wait(.milliseconds(30))
+        XCTAssertGreaterThanOrEqual(ContinuousClock.now - start, .milliseconds(30))
+        let pending = Task { @MainActor in try await wait(.seconds(30)) }
+        pending.cancel()
+        do {
+            try await pending.value
+            XCTFail("A cancelled tail must not run to its end")
+        } catch is CancellationError {}
     }
 
     func testCancelledCaptureKeepsRuntimeUntilNativeStopCompletes() async {
@@ -348,7 +364,7 @@ final class DictationReadinessTests: XCTestCase {
     }
 
     private func admittedDependencies(_ feature: DictationFeature) -> DictationSessionDependencies {
-        var dependencies = feature.makeDictationSessionDependencies().skippingStopTail()
+        var dependencies = feature.makeDictationSessionDependencies()
         dependencies.admission = .open
         return dependencies
     }
@@ -382,6 +398,7 @@ private final class ReadinessHarness {
     var observedChunks = 0
     var finishes = 0
     var insertions: [String] = []
+    var stopTails = 0
 
     init(text: String) {
         self.text = text
@@ -417,8 +434,12 @@ private final class ReadinessHarness {
             defaults: defaults, now: { [weak self] in
                 Date(timeIntervalSince1970: self?.now ?? 0)
             },
+            waitForStopTail: { [weak self] tail in
+                self?.stopTails += 1
+                try await DictationSessionDependencies.immediateStopTail(tail)
+            },
             admission: DictationAdmission.open,
-            beginCapture: { {} }).skippingStopTail()
+            beginCapture: { {} })
     }
 }
 

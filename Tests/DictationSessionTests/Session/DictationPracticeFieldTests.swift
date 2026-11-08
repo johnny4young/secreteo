@@ -99,7 +99,7 @@ final class DictationPracticeFieldTests: XCTestCase {
     }
 
     private func baseDependencies() throws -> DictationSessionDependencies {
-        var dependencies = try feature(arguments: []).makeDictationSessionDependencies().skippingStopTail()
+        var dependencies = try feature(arguments: []).makeDictationSessionDependencies()
         dependencies.canInsert = { false }
         return dependencies
     }

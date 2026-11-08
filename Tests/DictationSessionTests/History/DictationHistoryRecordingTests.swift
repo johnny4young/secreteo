@@ -12,7 +12,7 @@ final class DictationHistoryRecordingTests: XCTestCase {
         await feature.history.load()
         await feature.history.update(isEnabled: true)
 
-        try await dictate(controller, using: feature.makeDictationSessionDependencies().skippingStopTail())
+        try await dictate(controller, using: feature.makeDictationSessionDependencies())
         let saved = await eventually { feature.history.records.count == 1 }
 
         XCTAssertTrue(saved)
@@ -28,14 +28,14 @@ final class DictationHistoryRecordingTests: XCTestCase {
     func testNothingIsSavedWhenHistoryIsOffOrTheSessionIsPractice() async throws {
         let (controller, feature) = try makeFeature()
         await feature.history.load()
-        try await dictate(controller, using: feature.makeDictationSessionDependencies().skippingStopTail())
+        try await dictate(controller, using: feature.makeDictationSessionDependencies())
         XCTAssertEqual(controller.deliveryPrivacyLine, L10n.text("Nothing was saved in Secreteo."))
 
         await feature.history.update(isEnabled: true)
         let holder = UUID()
         feature.practice.show(holder, isKey: true)
         defer { feature.practice.hide(holder) }
-        let practice = feature.practice.route(feature.makeDictationSessionDependencies().skippingStopTail(), appIsActive: true)
+        let practice = feature.practice.route(feature.makeDictationSessionDependencies(), appIsActive: true)
         try await dictate(controller, using: practice)
 
         await feature.history.load()
@@ -47,7 +47,7 @@ final class DictationHistoryRecordingTests: XCTestCase {
         let (controller, feature) = try makeFeature()
         await feature.history.load()
         await feature.stats.update(isEnabled: true)
-        let dependencies = feature.makeDictationSessionDependencies().skippingStopTail()
+        let dependencies = feature.makeDictationSessionDependencies()
         // The session clock may be a fixture; count on the day it reports.
         let day = [DictationStatsCalendar.day(of: dependencies.now(), calendar: .current)]
 
@@ -66,7 +66,7 @@ final class DictationHistoryRecordingTests: XCTestCase {
         let holder = UUID()
         feature.practice.show(holder, isKey: true)
         defer { feature.practice.hide(holder) }
-        let practice = feature.practice.route(feature.makeDictationSessionDependencies().skippingStopTail(), appIsActive: true)
+        let practice = feature.practice.route(feature.makeDictationSessionDependencies(), appIsActive: true)
         try await dictate(controller, using: practice)
         try await Task.sleep(for: .milliseconds(200))
         let afterPractice = try await feature.dictationStore.dictationStatsSummary(days: day).totals
@@ -113,6 +113,7 @@ final class DictationHistoryRecordingTests: XCTestCase {
 
     private func dictate(_ controller: DictationController, using dependencies: DictationSessionDependencies)
         async throws {
+        let dependencies = dependencies.skippingStopTail()
         controller.toggle(using: dependencies)
         let listening = await eventually { controller.partialText == "No borres estas notas." }
         XCTAssertTrue(listening)
