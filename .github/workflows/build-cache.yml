@@ -1,0 +1,50 @@
+name: Build cache
+
+on:
+  push:
+    branches: [main]
+    paths: [Sources/**, Tests/**, Package.swift, Package.resolved, .github/workflows/build-cache.yml]
+  schedule:
+    - cron: "41 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-cache
+  cancel-in-progress: true
+
+jobs:
+  swift-build:
+    # Pull requests can read caches saved on main only.
+    if: github.ref == 'refs/heads/main'
+    runs-on: macos-26
+    timeout-minutes: 15
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: scripts/verify-ci-toolchain.sh 26 26.6
+      # Hashed before the build, which may rewrite Package.resolved.
+      - id: key
+        env:
+          MANIFEST: ${{ hashFiles('Package.swift') }}
+          RESOLVED: ${{ hashFiles('Package.resolved') }}
+        run: |
+          echo "graph=swiftpm-build-macos-26-xcode-26.6-$MANIFEST-" >> "$GITHUB_OUTPUT"
+          echo "prefix=swiftpm-build-macos-26-xcode-26.6-$MANIFEST-$RESOLVED-" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
+        with:
+          path: .build
+          key: ${{ steps.key.outputs.prefix }}
+          restore-keys: ${{ steps.key.outputs.graph }}
+      # The same commands and flags as the unit job, or its restored products are rebuilt.
+      - run: swift build -Xswiftc -warnings-as-errors
+      - run: swift build --build-tests -Xswiftc -warnings-as-errors
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .build
+          key: ${{ steps.key.outputs.prefix }}${{ github.run_id }}

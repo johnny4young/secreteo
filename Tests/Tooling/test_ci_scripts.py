@@ -1,4 +1,5 @@
 import importlib.util
+import re
 import subprocess
 import unittest
 from pathlib import Path
@@ -183,6 +184,47 @@ class ReuseGateTests(unittest.TestCase):
                 mock.patch("sys.stdout"):
             self.assertEqual(ci_reuse_gate.main(), 0)
 
+
+class BuildCacheTests(unittest.TestCase):
+    """The unit job restores what build-cache.yml saves only if both agree on key, toolchain and flags."""
+
+    WORKFLOWS = SCRIPTS.parent / ".github" / "workflows"
+    # Changing these alters only what a job runs on, not what it builds.
+    NEUTRAL = {"build", "test", "--parallel", "--build-tests"}
+
+    def job(self, workflow: str, name: str) -> str:
+        lines = (self.WORKFLOWS / workflow).read_text().splitlines()
+        start = lines.index(f"  {name}:")
+        end = next((i for i in range(start + 1, len(lines)) if re.match(r"  \S", lines[i])), len(lines))
+        return "\n".join(lines[start:end])
+
+    def jobs(self):
+        return self.job("ci.yml", "unit"), self.job("build-cache.yml", "swift-build")
+
+    def prefix(self, job: str) -> str:
+        image = re.search(r"runs-on: (\S+)", job).group(1)
+        xcode = re.search(r"Xcode_([\d.]+)\.app", job).group(1)
+        return f"swiftpm-build-{image}-xcode-{xcode}-"
+
+    def test_the_key_names_the_toolchain_both_jobs_use(self):
+        unit, cache = self.jobs()
+        self.assertEqual(self.prefix(unit), self.prefix(cache))
+        prefix = self.prefix(unit)
+        manifest = "${{ hashFiles('Package.swift') }}"
+        self.assertIn(f"key: {prefix}{manifest}-${{{{ hashFiles('Package.resolved') }}}}-\n", unit)
+        self.assertIn(f"restore-keys: {prefix}{manifest}-\n", unit, "a changed Package.swift must not restore")
+        self.assertIn(f'graph={prefix}$MANIFEST-"', cache)
+        self.assertIn(f'prefix={prefix}$MANIFEST-$RESOLVED-"', cache)
+        self.assertIn("restore-keys: ${{ steps.key.outputs.graph }}\n", cache)
+        self.assertIn("key: ${{ steps.key.outputs.prefix }}${{ github.run_id }}", cache)
+        self.assertNotIn("actions/cache/save@", unit, "pull requests must not evict main's cache")
+
+    def test_both_jobs_build_with_the_same_arguments(self):
+        commands = [set(line.split()[2:]) - self.NEUTRAL
+                    for job in self.jobs() for line in re.findall(r"run: swift .*", job)]
+        self.assertEqual(len(commands), 4)
+        self.assertTrue(all(arguments == commands[0] for arguments in commands), commands)
+        self.assertIn("run: swift build --build-tests", self.jobs()[1], "tests must be in the cache too")
 
 if __name__ == "__main__":
     unittest.main()
