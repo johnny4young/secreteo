@@ -15,6 +15,12 @@ RENAMES = [
     ("PORTAVOZ" "_", "SECRETEO_"),
     ("@testable import portavoz" "_app", "@testable import DictationSession"),
     ("@testable import IntelligenceKit", "@testable import Polish"),
+    # Test support and the CLI writer live in the one test target here.
+    ("@testable import Portavoz" "TestSupport\n", ""),
+    ("@testable import Portavoz" "CLIKit\n", ""),
+    # The model lanes launch one XCTest bundle by name.
+    ("Portavoz" "AppTests", "DictationSessionTests"),
+    ("Portavoz" "PackageTests", "SecreteoPackageTests"),
 ]
 # App code names the app itself, so the session slices also take the new name.
 SESSION_RENAMES = [
