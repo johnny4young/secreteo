@@ -42,7 +42,7 @@ class DictationControllerRunnerTests(unittest.TestCase):
             end = row['inputSeconds'] + 0.01
             row['controller'] = {'schemaVersion': 1, 'outcome': 'deliveryRejected',
                                  'verifiedDeliveryMeasured': False, 'terminalSeconds': end + 0.1,
-                                 'elapsedSeconds': {'runtimeReady': 0.002, 'microphoneReady': 0.003,
+                                 'elapsedSeconds': {'microphoneReady': 0.002, 'runtimeReady': 0.003,
                                                     'firstBufferHandled': 0.01, 'firstCaptionHandled': 0.02,
                                                     'stopRequested': end, 'inputEnded': end + 0.02,
                                                     'transcriptionEnded': end + 0.03, 'textPrepared': end + 0.04,
@@ -117,12 +117,28 @@ class DictationControllerRunnerTests(unittest.TestCase):
                 self.assertEqual(result['outcome'], 'invalid-observation')
             self.reset_run()
 
+    def test_audio_first_capture_may_start_before_the_runtime_but_no_caption_may(self):
+        def cold_load(caption):
+            def mutate(document):
+                document['cells'][0]['controller']['elapsedSeconds'].update(
+                    microphoneReady=0.002, runtimeReady=0.094, firstBufferHandled=0.01, firstCaptionHandled=caption)
+            return mutate
+        result = self.run_observation(self.mutated(cold_load(0.2)))
+        self.assertEqual(result['outcome'], 'observed', 'the controller records the microphone before a cold load')
+        self.reset_run()
+        result = self.run_observation(self.mutated(cold_load(0.05)))
+        self.assertEqual(result['outcome'], 'invalid-observation')
+        self.reset_run()
+        result = self.run_observation(self.mutated(lambda document: document['cells'][0]['controller'][
+            'elapsedSeconds'].update(microphoneReady=0.005, runtimeReady=0.004)))
+        self.assertEqual(result['outcome'], 'invalid-observation', 'the runtime is awaited only after capture is ready')
+
     def test_valid_cancelled_short_attempt_is_kept_not_disguised_as_completed(self):
         def cancel(document):
             row = document['cells'][0]
             row['pipelineCompleted'] = False
             row['controller'].update(outcome='cancelled', elapsedSeconds={
-                'runtimeReady': 0.002, 'microphoneReady': 0.003,
+                'microphoneReady': 0.002, 'runtimeReady': 0.003,
                 'firstBufferHandled': 0.01, 'stopRequested': 0.04})
             row['proposedOutputScore'].update(wordErrorRate=1, characterErrorRate=1,
                                               hypothesisWords=0, exactReferenceMatch=False)
@@ -198,7 +214,7 @@ class DictationControllerRunnerTests(unittest.TestCase):
         def corrupt(document):
             row = document['cells'][0]
             row.update(pipelineCompleted=False)
-            row['controller'].update(outcome='cancelled', elapsedSeconds={'runtimeReady': 0.002})
+            row['controller'].update(outcome='cancelled', elapsedSeconds={'microphoneReady': 0.001, 'runtimeReady': 0.002})
             row['work'][0].update(outcome='cancelled')
             row['proposedOutputScore'].update(wordErrorRate=0, characterErrorRate=0,
                                               hypothesisWords=0, exactReferenceMatch=False)

@@ -96,7 +96,7 @@ final class DictationControllerModelTests: XCTestCase {
             try PrivateJSONWriter.write(Receipt(
                 manifestSHA256: fixture.manifestDigest, modelID: installation.manifestID,
                 modelRevision: installation.manifestRevision, modelVerificationSeconds: verification,
-                modelLoadSeconds: runtime.loadSeconds, modelLoadAttempts: runtime.loadAttempts, repetitions: repetitions, cells: cells),
+                modelLoadSeconds: runtime.loadSeconds, modelLoadAttempts: runtime.freshRequests, repetitions: repetitions, cells: cells),
                 to: URL(fileURLWithPath: output))
         } catch {
             XCTFail("controller model observation did not complete; no qualified receipt")
@@ -109,7 +109,9 @@ final class DictationControllerModelTests: XCTestCase {
     ) async throws -> Cell {
         let sequence = try fixture.sequence(id, repetitions: repetitions)
         let family = sequence.family
-        let state = runtime.engine == nil ? "first-engine-load" : "reused-engine"
+        // Reuse is what the controller recorded, as the validator reads it, not what the cache holds.
+        let state = runtime.ready ? "reused-engine" : "first-engine-load"
+        if !runtime.ready { runtime.freshRequests += 1 }
         let samples = OSAllocatedUnfairLock<[ParakeetLiveWorkSample]>(initialState: [])
         let result = try await DictationControllerModelProbe.run(samples: sequence.samples, acquireRuntime: {
             let engine = try await runtime.acquire()
@@ -117,6 +119,7 @@ final class DictationControllerModelTests: XCTestCase {
                 samples.withLock { $0.append(value) }
             }, completion: {})
         })
+        if result.measurement.elapsedSeconds["runtimeReady"] != nil { runtime.ready = true }
         let observations = samples.withLock { $0 }
         guard observations.count <= 1 else { throw DictationModelProbe.Failure.invalidInput }
         let pipelineCompleted = result.inputCompleted && result.frames == sequence.samples.count
@@ -136,23 +139,19 @@ final class DictationControllerModelTests: XCTestCase {
             fedFrames: result.frames, pipelineCompleted: pipelineCompleted, work: observations)
     }
 
+    /// A cancelled cell's cold load runs on and the next cell joins it, so loads never overlap.
     @MainActor
     private final class Runtime {
-        let directory: URL
-        var engine: ParakeetEngine?
-        var loadSeconds = 0.0
-        var loadAttempts = 0
+        private let shared: DictationSharedModelLoad<ParakeetEngine>
+        var ready = false
+        var freshRequests = 0
+        var loadSeconds: Double { shared.waitSeconds }
 
-        init(directory: URL) { self.directory = directory }
-
-        func acquire() async throws -> ParakeetEngine {
-            if let engine { return engine }
-            let start = ContinuousClock.now
-            loadAttempts += 1
-            defer { loadSeconds += DictationModelProbe.seconds(start.duration(to: .now)) }
-            let engine = try await ParakeetEngine.load(fromVerifiedDirectory: directory)
-            self.engine = engine
-            return engine
+        init(directory: URL) {
+            shared = DictationSharedModelLoad { try await ParakeetEngine.load(fromVerifiedDirectory: directory) }
         }
+
+        func acquire() async throws -> ParakeetEngine { try await shared.acquire() }
     }
+
 }
