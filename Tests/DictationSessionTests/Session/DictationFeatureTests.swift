@@ -998,7 +998,9 @@ final class WarmModelTests: XCTestCase {
             return Model()
         })
         let earlier = Task { try await warm.acquire() }
-        await Task.yield()
+        // The release must land after load 1 starts, or the next acquire becomes load 1 and waits on the gate.
+        let started = await TestPolling.until { loads.withLock { $0 } == 1 }
+        XCTAssertTrue(started)
 
         warm.release()
         _ = try await warm.acquire()
