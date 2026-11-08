@@ -504,6 +504,7 @@ final class DictationControllerHarness {
     var transcriptOutput: AsyncThrowingStream<TranscriptSegment, Error>.Continuation?
     var insertions: [String] = []
     var measurements: [DictationSessionMeasurement] = []
+    var stopTails = 0
     // Skips the real tail but still honors cancellation, as the sleep does.
     var waitForStopTail: @MainActor (Duration) async throws -> Void = { _ in
         await Task.yield()
@@ -572,7 +573,10 @@ final class DictationControllerHarness {
             admission: DictationAdmission.open,
             beginCapture: { {} },
             measurementSink: { [weak self] in self?.measurements.append($0) })
-        dependencies.waitForStopTail = waitForStopTail
+        dependencies.waitForStopTail = { [weak self, waitForStopTail] tail in
+            self?.stopTails += 1
+            try await waitForStopTail(tail)
+        }
         return dependencies
     }
 }
