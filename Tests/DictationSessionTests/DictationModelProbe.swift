@@ -64,9 +64,9 @@ enum DictationModelProbe {
                 guard updates <= 10_000, emittedBytes <= 1_000_000 else {
                     throw Failure.outputOverflow
                 }
-                // A protocol-only preview clear is not first recognized text.
+                // An empty update of any kind is not first recognized text.
                 // Replaceable preview snapshots are not canonical token deltas.
-                if firstUpdate == nil, segment.liveUpdateMode != .tokenPreview || !segment.text.isEmpty {
+                if firstUpdate == nil, !segment.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     firstUpdate = seconds(started.duration(to: .now))
                 }
                 if segment.liveUpdateMode != .tokenPreview { mappedTexts.append(segment.text) }

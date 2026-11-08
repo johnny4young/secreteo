@@ -117,6 +117,18 @@ class DictationControllerRunnerTests(unittest.TestCase):
                 self.assertEqual(result['outcome'], 'invalid-observation')
             self.reset_run()
 
+    def test_audio_first_capture_may_start_before_the_runtime_but_no_caption_may(self):
+        def cold_load(caption):
+            def mutate(document):
+                document['cells'][0]['controller']['elapsedSeconds'].update(
+                    microphoneReady=0.002, runtimeReady=0.094, firstBufferHandled=0.01, firstCaptionHandled=caption)
+            return mutate
+        result = self.run_observation(self.mutated(cold_load(0.2)))
+        self.assertEqual(result['outcome'], 'observed', 'the controller records the microphone before a cold load')
+        self.reset_run()
+        result = self.run_observation(self.mutated(cold_load(0.05)))
+        self.assertEqual(result['outcome'], 'invalid-observation')
+
     def test_valid_cancelled_short_attempt_is_kept_not_disguised_as_completed(self):
         def cancel(document):
             row = document['cells'][0]

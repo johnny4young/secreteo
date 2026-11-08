@@ -96,7 +96,7 @@ final class DictationControllerModelTests: XCTestCase {
             try PrivateJSONWriter.write(Receipt(
                 manifestSHA256: fixture.manifestDigest, modelID: installation.manifestID,
                 modelRevision: installation.manifestRevision, modelVerificationSeconds: verification,
-                modelLoadSeconds: runtime.loadSeconds, modelLoadAttempts: runtime.loadAttempts, repetitions: repetitions, cells: cells),
+                modelLoadSeconds: runtime.loadSeconds, modelLoadAttempts: runtime.freshRequests, repetitions: repetitions, cells: cells),
                 to: URL(fileURLWithPath: output))
         } catch {
             XCTFail("controller model observation did not complete; no qualified receipt")
@@ -109,7 +109,9 @@ final class DictationControllerModelTests: XCTestCase {
     ) async throws -> Cell {
         let sequence = try fixture.sequence(id, repetitions: repetitions)
         let family = sequence.family
-        let state = runtime.engine == nil ? "first-engine-load" : "reused-engine"
+        // Reuse is what the controller recorded, as the validator reads it, not what the cache holds.
+        let state = runtime.ready ? "reused-engine" : "first-engine-load"
+        if !runtime.ready { runtime.freshRequests += 1 }
         let samples = OSAllocatedUnfairLock<[ParakeetLiveWorkSample]>(initialState: [])
         let result = try await DictationControllerModelProbe.run(samples: sequence.samples, acquireRuntime: {
             let engine = try await runtime.acquire()
@@ -117,6 +119,9 @@ final class DictationControllerModelTests: XCTestCase {
                 samples.withLock { $0.append(value) }
             }, completion: {})
         })
+        // A cancelled cell can leave its cold load running; the next cell must not overlap it.
+        await runtime.settle()
+        if result.measurement.elapsedSeconds["runtimeReady"] != nil { runtime.ready = true }
         let observations = samples.withLock { $0 }
         guard observations.count <= 1 else { throw DictationModelProbe.Failure.invalidInput }
         let pipelineCompleted = result.inputCompleted && result.frames == sequence.samples.count
@@ -141,18 +146,30 @@ final class DictationControllerModelTests: XCTestCase {
         let directory: URL
         var engine: ParakeetEngine?
         var loadSeconds = 0.0
-        var loadAttempts = 0
+        var ready = false
+        var freshRequests = 0
+        private var loading: Task<ParakeetEngine, any Error>?
 
         init(directory: URL) { self.directory = directory }
 
         func acquire() async throws -> ParakeetEngine {
             if let engine { return engine }
+            if let loading { return try await loading.value }
             let start = ContinuousClock.now
-            loadAttempts += 1
-            defer { loadSeconds += DictationModelProbe.seconds(start.duration(to: .now)) }
-            let engine = try await ParakeetEngine.load(fromVerifiedDirectory: directory)
+            let directory = directory
+            let task = Task { try await ParakeetEngine.load(fromVerifiedDirectory: directory) }
+            loading = task
+            defer {
+                loading = nil
+                loadSeconds += DictationModelProbe.seconds(start.duration(to: .now))
+            }
+            let engine = try await task.value
             self.engine = engine
             return engine
+        }
+
+        func settle() async {
+            if let loading { _ = try? await loading.value }
         }
     }
 }

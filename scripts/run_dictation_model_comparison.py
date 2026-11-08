@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 
@@ -14,6 +15,7 @@ sys.path.append(str(Path(__file__).resolve().parent))  # after the standard libr
 
 import dictation_corpus as corpus
 import dictation_field_corpus as field
+from dictation_model_receipt import validate_score
 from materialize_dictation_corpus import publish_json
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,14 +29,19 @@ MAXIMUM_EXTRA_WARM_LOAD_SECONDS = 1.0
 
 
 def admitted_manifest(audio_root):
-    """Return (corpus kind, manifest entries); every byte is re-read before launch."""
+    """Return (corpus kind, manifest entries, manifest digest); every byte is re-read before launch."""
     document, cells = corpus.read_public_corpus()
-    manifest, _ = corpus.read_json(audio_root / 'manifest.json')
+    manifest, digest = corpus.read_json(audio_root / 'manifest.json')
     if manifest.get('kind') == field.KIND:
         field.validate(manifest, audio_root, document)
-        return 'field-microphone', manifest['entries']
+        return 'field-microphone', manifest['entries'], digest
     corpus.validate_audio_manifest(manifest, cells, audio_root)
-    return 'public-synthetic', manifest['entries']
+    return 'public-synthetic', manifest['entries'], digest
+
+
+def reference_words(text):
+    """Words as the Swift scorer counts them: alphanumeric runs, case and punctuation ignored."""
+    return len(re.findall(r'[^\W_]+', text.lower()))
 
 
 def deadline(entries, cases):
@@ -44,16 +51,22 @@ def deadline(entries, cases):
     return seconds
 
 
-def validate_receipt(receipt, kind, model, cases):
-    corpus.require(receipt.get('kind') == 'dictation-model-comparison-observation'
+def validate_receipt(receipt, kind, model, cases, manifest_digest, speech):
+    corpus.require(type(receipt) is dict and receipt.get('kind') == 'dictation-model-comparison-observation'
                    and receipt.get('schemaVersion') == 2 and receipt.get('corpus') == kind
-                   and receipt.get('corpusSHA256') == corpus.CORPUS_SHA256, 'comparison receipt provenance mismatch')
+                   and receipt.get('corpusSHA256') == corpus.CORPUS_SHA256
+                   and receipt.get('manifestSHA256') == manifest_digest, 'comparison receipt provenance mismatch')
     models = receipt.get('models')
-    corpus.require(type(models) is list and len(models) == 1 and models[0].get('model') == MODELS[model],
-                   'a receipt must hold exactly the selected model')
-    corpus.require(sorted(cell.get('caseID') for cell in receipt['cells']) == sorted(cases)
-                   and all(cell.get('model') == MODELS[model] for cell in receipt['cells']),
+    corpus.require(type(models) is list and len(models) == 1 and type(models[0]) is dict
+                   and models[0].get('model') == MODELS[model], 'a receipt must hold exactly the selected model')
+    cells = receipt.get('cells')
+    corpus.require(type(cells) is list and all(type(cell) is dict for cell in cells)
+                   and sorted(cell.get('caseID') for cell in cells) == sorted(cases)
+                   and all(cell.get('model') == MODELS[model] for cell in cells),
                    'receipt cells differ from the request')
+    for cell in cells:
+        if cell.get('score') is not None:
+            validate_score(cell['score'], speech_expected=speech[cell['caseID']])
     return receipt
 
 
@@ -102,7 +115,11 @@ def decide(kind, v3, ultra):
     failed = []
     for cohort in COHORTS:
         before, after = v3['wordErrorRateByCohort'].get(cohort), ultra['wordErrorRateByCohort'].get(cohort)
-        if not before or after is None or (before - after) / before < MINIMUM_RELATIVE_WER_REDUCTION:
+        if before is None or after is None:
+            failed.append(f'{cohort} not measured')
+        elif before == 0:
+            failed.append(f'{cohort} has no v3 errors to reduce')
+        elif (before - after) / before < MINIMUM_RELATIVE_WER_REDUCTION:
             failed.append(f'{cohort} relative WER reduction below 15%')
     if ultra['criticalCellsWithErrors'] > v3['criticalCellsWithErrors']:
         failed.append('more critical cells with errors than v3')
@@ -117,7 +134,7 @@ def report(kind, receipts, warmups, document):
     families = {family['id']: family for family in document['families']}
     family_of = lambda case: families[case.rsplit('.', 1)[0]]
     cases = [cell['caseID'] for cell in receipts['v3']['cells']]
-    words = {case: len(family_of(case)['acceptedTexts'][0].split()) for case in cases}
+    words = {case: reference_words(family_of(case)['acceptedTexts'][0]) for case in cases}
     cohorts = {case: family_of(case)['cohort'] for case in cases}
     v3, ultra = (summarize(receipts[name], warmups[name], words, cohorts) for name in ('v3', 'ultra'))
     rates = {name: {c['caseID']: cell_rate(c, words) for c in receipts[name]['cells']} for name in receipts}
@@ -153,7 +170,10 @@ def run(audio_root, models_root, bundle, xctest, output, cases=None, invoke=subp
     """A one-cell warm-up process per model fills Core ML's compiled cache, so the
     measured process loads the way a dictation does after an idle release."""
     document, _ = corpus.read_public_corpus()
-    kind, entries = admitted_manifest(audio_root)
+    kind, entries, manifest_digest = admitted_manifest(audio_root)
+    families = {family['id']: family for family in document['families']}
+    speech = {entry['caseID']: families[entry['caseID'].rsplit('.', 1)[0]]['audioKind'] == 'speech'
+              for entry in entries}
     cases = cases or sorted(entry['caseID'] for entry in entries)
     corpus.require(len(set(cases)) == len(cases) and set(cases) <= {e['caseID'] for e in entries},
                    'select unique cells from the admitted manifest')
@@ -162,18 +182,23 @@ def run(audio_root, models_root, bundle, xctest, output, cases=None, invoke=subp
     timeout = deadline(entries, cases)
     output.mkdir(mode=0o700)
     receipts, warmups = {}, {}
-    for model in MODELS:
-        for name, selected, store in ((f'{model}-warmup', cases[:1], warmups), (model, cases, receipts)):
-            path = output / f'{name}.json'
-            if failure := launch(model, selected, path, audio_root, models_root, bundle, xctest, timeout, invoke):
-                return failure
-            receipt, _ = corpus.read_json(path, maximum_bytes=8_000_000)
-            store[model] = validate_receipt(receipt, kind, model, selected)
-    corpus.require(receipts['v3']['manifestSHA256'] == receipts['ultra']['manifestSHA256'],
-                   'the models measured different manifests')
-    admitted_manifest(audio_root)
-    document_report = report(kind, receipts, warmups, document)
+    try:
+        for model in MODELS:
+            for name, selected, store in ((f'{model}-warmup', cases[:1], warmups), (model, cases, receipts)):
+                path = output / f'{name}.json'
+                if failure := launch(model, selected, path, audio_root, models_root, bundle, xctest, timeout, invoke):
+                    publish_json(output / 'outcome.json', failure)
+                    return failure
+                receipt, _ = corpus.read_json(path, maximum_bytes=8_000_000)
+                store[model] = validate_receipt(receipt, kind, model, selected, manifest_digest, speech)
+        corpus.require(admitted_manifest(audio_root)[2] == manifest_digest, 'audio manifest changed during measurement')
+        document_report = report(kind, receipts, warmups, document)
+    except (OSError, corpus.CorpusError, KeyError, TypeError, AttributeError, ValueError):
+        failure = {'outcome': 'invalid-observation'}
+        publish_json(output / 'outcome.json', failure)
+        return failure
     publish_json(output / 'report.json', document_report)
+    publish_json(output / 'outcome.json', {'outcome': 'observed'})
     return {'outcome': 'observed', **document_report}
 
 

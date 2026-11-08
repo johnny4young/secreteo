@@ -105,6 +105,23 @@ final class DictationModelProbeTests: XCTestCase {
         XCTAssertGreaterThan(silence.hypothesisWords, 0)
     }
 
+    func testAnEmptyConfirmedUpdateIsNotFirstText() async throws {
+        let result = try await DictationModelProbe.run(samples: [0], transcribe: { input in
+            AsyncThrowingStream { output in
+                let task = Task {
+                    for await _ in input { }
+                    var empty = Self.segment(" ")
+                    empty.liveUpdateMode = .tokenDelta
+                    output.yield(empty)
+                    output.finish()
+                }
+                output.onTermination = { _ in task.cancel() }
+            }
+        }, pace: { _ in })
+        XCTAssertEqual(result.updates, 1)
+        XCTAssertNil(result.firstUpdateSeconds)
+    }
+
     func testTokenPreviewAndControlClearCannotInflateCanonicalDeltaScore() async throws {
         let result = try await DictationModelProbe.run(samples: [0], transcribe: { input in
             AsyncThrowingStream { output in
