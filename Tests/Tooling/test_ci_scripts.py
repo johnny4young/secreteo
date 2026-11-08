@@ -1,4 +1,5 @@
 import importlib.util
+import re
 import subprocess
 import unittest
 from pathlib import Path
@@ -182,6 +183,33 @@ class ReuseGateTests(unittest.TestCase):
                 mock.patch("sys.argv", ["ci_reuse_gate.py", REPO, MERGED]), \
                 mock.patch("sys.stdout"):
             self.assertEqual(ci_reuse_gate.main(), 0)
+
+
+class BuildCacheTests(unittest.TestCase):
+    """The unit job restores what build-cache.yml saves only if both agree on key and flags."""
+
+    WORKFLOWS = SCRIPTS.parent / ".github" / "workflows"
+
+    def job(self, workflow: str, name: str) -> str:
+        text = (self.WORKFLOWS / workflow).read_text()
+        start = text.index(f"\n  {name}:\n")
+        end = text.find("\n\n  ", start + 1)
+        return text[start:end if end != -1 else len(text)]
+
+    def test_the_unit_job_restores_the_saved_key(self):
+        saved = re.search(r"key: (.+?)\$\{\{ github\.run_id \}\}", self.job("build-cache.yml", "swift-build"))
+        unit = self.job("ci.yml", "unit")
+        self.assertIsNotNone(saved)
+        self.assertIn(f"key: {saved.group(1)}\n", unit)
+        self.assertIn(f"            {saved.group(1)}\n", unit, "the resolved-hash prefix must be a restore key")
+        self.assertIn("actions/cache/restore@", unit)
+        self.assertNotIn("actions/cache/save@", unit, "pull requests must not evict main's cache")
+
+    def test_both_jobs_build_with_the_same_flags(self):
+        flags = lambda job: sorted(set(re.findall(r"run: swift (?:build|test)\b.*?((?:-Xswiftc \S+ ?)+)$", job, re.M)))
+        unit, cache = self.job("ci.yml", "unit"), self.job("build-cache.yml", "swift-build")
+        self.assertEqual(flags(unit), flags(cache))
+        self.assertIn("swift build --build-tests", cache, "tests must be in the cache too")
 
 
 if __name__ == "__main__":

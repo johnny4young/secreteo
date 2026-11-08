@@ -75,6 +75,14 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: scripts/verify-ci-toolchain.sh 26 26.6
+      # build-cache.yml saves main's .build; SwiftPM rebuilds only what this checkout changed.
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .build
+          key: swiftpm-build-macos-26-xcode-26.6-${{ hashFiles('Package.resolved') }}-
+          restore-keys: |
+            swiftpm-build-macos-26-xcode-26.6-${{ hashFiles('Package.resolved') }}-
+            swiftpm-build-macos-26-xcode-26.6-
       - run: swift build -Xswiftc -warnings-as-errors
       - run: swift test --parallel -Xswiftc -warnings-as-errors
 
