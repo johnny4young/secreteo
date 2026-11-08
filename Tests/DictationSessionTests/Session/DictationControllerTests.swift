@@ -505,11 +505,7 @@ final class DictationControllerHarness {
     var insertions: [String] = []
     var measurements: [DictationSessionMeasurement] = []
     var stopTails = 0
-    // Skips the real tail but still honors cancellation, as the sleep does.
-    var waitForStopTail: @MainActor (Duration) async throws -> Void = { _ in
-        await Task.yield()
-        try Task.checkCancellation()
-    }
+    var waitForStopTail = DictationSessionDependencies.immediateStopTail
     let consumerGate: PreparationGate?
     let stopsReadingAfterFirstCaption: Bool
 
