@@ -96,7 +96,7 @@ Secreteo keeps, between launches, what a model's files looked like after their l
 
 ## D22. The voice detector is part of the model download
 
-Settings offers the download until Parakeet and Silero are both verified, and a failure of either shows and can be retried. Only Parakeet holds dictation back: without Silero the speech gate fails open, so dictation keeps working and can paste silence until the download succeeds.
+Settings offers the download until the chosen engine's parts are verified: Parakeet and Silero, or Silero alone with Apple Speech, which never loads Parakeet. A failure shows and can be retried. Only Parakeet holds dictation back, and only while a Parakeet engine is chosen: without Silero the speech gate fails open, so dictation keeps working and can paste silence until the download succeeds.
 
 ## D23. The dictation database moves forward only, and an older build leaves a newer one alone
 

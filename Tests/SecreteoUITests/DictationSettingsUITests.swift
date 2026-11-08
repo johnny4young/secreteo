@@ -202,7 +202,9 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         XCTAssertTrue(progress.waitForExistence(timeout: 5))
         // The fixture holds the detector alone at 20%; with Parakeet in the set it would read 40%.
         XCTAssertTrue(waitForUITestCondition(timeout: 5) {
-            (progress.value as? Double).map { abs($0 - 0.2) < 0.01 } == true || "\(progress.value ?? "")".contains("20")
+            if let fraction = progress.value as? Double { return abs(fraction - 0.2) < 0.01 }
+            let percent = "\(progress.value ?? "")".trimmingCharacters(in: .whitespaces)
+            return percent == "20%" || percent == "20 %"
         }, "\(progress.value ?? "nil")")
         attachScreenshot(named: "pr-settings-apple-speech")
     }

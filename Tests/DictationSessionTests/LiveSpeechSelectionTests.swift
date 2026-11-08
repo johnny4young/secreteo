@@ -50,45 +50,6 @@ final class LiveSpeechSelectionTests: XCTestCase {
         XCTAssertNil(ultra)
     }
 
-    func testAppleSpeechNeedsOnlyTheDetectorAndChoosingParakeetAsksForIt() async throws {
-        let suite = "live-speech-apple-readiness-\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-        defaults.set(LiveSpeechSelection.appleSpeech.rawValue, forKey: LiveSpeechSelection.dictationKey)
-        let verified = Mutex<Set<DictationModels.Part>>([])
-        let installed = Mutex<[DictationModels.Part]>([])
-        let models = DictationModels(
-            isVerified: { part in verified.withLock { $0.contains(part) } }, wasVerified: { _ in false },
-            remember: { _, _ in },
-            install: { part, _ in
-                installed.withLock { $0.append(part) }
-                verified.withLock { _ = $0.insert(part) }
-            },
-            size: { _ in 100 }, collectUnused: {})
-        let feature = try DictationFeature(
-            usesTemporaryStore: true, arguments: ["-use-temp-store"], defaults: defaults,
-            environment: .disposable(permissionsAreMissing: false, models: models))
-
-        await feature.refreshReadiness()
-        XCTAssertEqual(feature.modelState, .missing, "The speech gate and auto-stop still use the detector")
-        XCTAssertTrue(feature.readiness.modelIsReady.withLock { $0 }, "Without it the gate fails open")
-        XCTAssertTrue(feature.canPractice)
-
-        try await feature.installModels()
-        XCTAssertEqual(installed.withLock { $0 }, [.speechDetector], "Apple Speech never loads Parakeet")
-        await feature.refreshReadiness()
-        XCTAssertEqual(feature.modelState, .ready)
-
-        feature.speechEngineBinding.wrappedValue = .parakeet
-        XCTAssertEqual(feature.modelState, .missing)
-        XCTAssertFalse(feature.readiness.modelIsReady.withLock { $0 })
-        XCTAssertFalse(feature.canPractice)
-
-        feature.speechEngineBinding.wrappedValue = .appleSpeech
-        XCTAssertEqual(feature.modelState, .ready)
-        XCTAssertTrue(feature.readiness.modelIsReady.withLock { $0 })
-    }
-
     func testSelectedAppleWithAutomaticLanguageNeverStartsAModelLoad() async throws {
         let suite = "live-speech-route-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

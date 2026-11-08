@@ -10,6 +10,7 @@ extension DictationFeature {
         guard let portavozImport else { return }
         store(portavozImport.values)
         textSettingsIfCreated?.reload()
+        if portavozImport.values[LiveSpeechSelection.dictationKey] != nil { speechEngineChanged() }
         modelMemoryChanged()
         refreshPortavozImport()
     }

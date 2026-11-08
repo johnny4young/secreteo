@@ -37,6 +37,7 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored let warmEngine: WarmModel<ParakeetEngine>
     @ObservationIgnored private var readinessPoll: Task<Void, Never>?
     @ObservationIgnored private var modelInstall: Task<Void, any Error>?
+    @ObservationIgnored private var modelInstallParts: Set<DictationModels.Part> = []
     @ObservationIgnored private(set) var modelInstallGeneration = 0
     @ObservationIgnored private var memoryPressure: (any DispatchSourceMemoryPressure)?
     @ObservationIgnored let pressure = DictationMemoryPressure()
@@ -443,40 +444,15 @@ public final class DictationFeature: AppServices {
             ownership.reevaluate()
             return
         }
-        let speech = await models.isVerified(.speech)
+        // Apple Speech never loads Parakeet, so its 483 MB are not hashed on every look.
+        let speech = speechModelIsRequired ? await models.isVerified(.speech) : nil
         let detector = await models.isVerified(.speechDetector)
         // A cancelled check stops hashing and reports the files as bad, which says nothing about them.
         guard !Task.isCancelled else { return }
-        showModels(speechIsInstalled: speech, detectorIsInstalled: detector)
+        showModels(speechIsInstalled: speech ?? speechModelIsInstalled, detectorIsInstalled: detector)
         watchReadiness()
-        await models.remember(.speech, speech)
+        if let speech { await models.remember(.speech, speech) }
         await models.remember(.speechDetector, detector)
-    }
-
-    /// A model hashed on an earlier launch and unchanged since need not read as missing during
-    /// this launch's first hash, which still runs and takes this back if the files are bad.
-    private func showRememberedModels() async {
-        guard let models = environment.models, await models.wasVerified(.speech) else { return }
-        showModels(speechIsInstalled: true, detectorIsInstalled: await models.wasVerified(.speechDetector))
-    }
-
-    private func showModels(speechIsInstalled: Bool, detectorIsInstalled: Bool) {
-        speechModelIsInstalled = speechIsInstalled
-        self.detectorIsInstalled = detectorIsInstalled
-        applyModelReadiness()
-    }
-
-    /// Without the detector the speech gate fails open, so only Parakeet holds dictation back.
-    func applyModelReadiness() {
-        let speechIsReady = speechModelIsInstalled || !speechModelIsRequired
-        if speechIsReady, detectorIsInstalled {
-            if modelState != .downloading { modelState = .ready }
-        } else if modelState == .ready {
-            modelState = .missing
-        }
-        readiness.modelIsReady.withLock { $0 = speechIsReady }
-        ownership.reevaluate()
-        syncEventTaps()
     }
 
     /// A permission changed in System Settings may never activate this agent app, so look again:
@@ -530,30 +506,67 @@ enum DictationFeatureError: LocalizedError {
 }
 
 extension DictationFeature {
+    /// A model hashed on an earlier launch and unchanged since need not read as missing during
+    /// this launch's first hash, which still runs and takes this back if the files are bad.
+    fileprivate func showRememberedModels() async {
+        guard let models = environment.models else { return }
+        let speech = await models.wasVerified(.speech)
+        guard speech || !speechModelIsRequired else { return }
+        showModels(speechIsInstalled: speech, detectorIsInstalled: await models.wasVerified(.speechDetector))
+    }
+
+    fileprivate func showModels(speechIsInstalled: Bool, detectorIsInstalled: Bool) {
+        speechModelIsInstalled = speechIsInstalled
+        self.detectorIsInstalled = detectorIsInstalled
+        applyModelReadiness()
+    }
+
+    /// Without the detector the speech gate fails open, so only Parakeet holds dictation back.
+    func applyModelReadiness() {
+        let speechIsReady = speechModelIsInstalled || !speechModelIsRequired
+        if speechIsReady, detectorIsInstalled {
+            if modelState != .downloading { modelState = .ready }
+        } else if modelState == .ready {
+            modelState = .missing
+        }
+        readiness.modelIsReady.withLock { $0 = speechIsReady }
+        ownership.reevaluate()
+        syncEventTaps()
+    }
+
     /// Settings and onboarding share one install, so neither reports the other's result as its own.
+    /// An install started for another engine is joined only when it covers this one's parts.
     func installModels() async throws {
         guard let models = environment.models else { return }
-        if let modelInstall { return try await modelInstall.value }
+        let parts = requiredModels
+        while let running = modelInstall {
+            if modelInstallParts.isSuperset(of: parts) { return try await running.value }
+            _ = try? await running.value
+            if modelInstall == running { break }
+        }
         if modelState != .ready { modelState = .downloading }
         modelDownloadFraction = nil
         modelInstallGeneration += 1
         let generation = modelInstallGeneration
-        let parts = requiredModels
         let install = Task { [weak self] in
             try await models.installMissing(parts) { fraction in
                 Task { @MainActor in self?.modelDownloaded(fraction, generation: generation) }
             }
         }
         modelInstall = install
+        modelInstallParts = Set(parts)
         defer {
-            modelInstall = nil
-            modelDownloadFraction = nil
+            if modelInstall == install {
+                modelInstall = nil
+                modelDownloadFraction = nil
+            }
         }
         do {
             try await install.value
-            modelState = .ready
+            guard modelInstall == install else { return }
+            modelState = Set(parts).isSuperset(of: requiredModels) ? .ready : .missing
         } catch {
-            modelState = .failed
+            if modelInstall == install { modelState = .failed }
             throw error
         }
     }
