@@ -72,7 +72,6 @@ public actor SileroVoiceActivityDetector {
             let configuration = MLModelConfiguration()
             configuration.computeUnits = computeUnits
             let model = try await MLModel.load(contentsOf: url, configuration: configuration)
-            try Task.checkCancellation()
             let manager = VadManager(config: VadConfig(computeUnits: computeUnits), vadModel: model)
             return { frame, state in try await manager.processStreamingChunk(frame, state: state) }
         }
@@ -103,8 +102,6 @@ public actor SileroVoiceActivityDetector {
     /// One ordered producer owns each detector. Reentrant concurrent calls
     /// fail rather than interleaving explicit Silero state across audio chunks.
     public func process(_ chunk: AudioChunk) async throws -> VoiceActivityBatch {
-        let lease = modelLease
-        defer { withExtendedLifetime(lease) {} }
         guard !isProcessing else { throw VoiceActivityDetectionError.concurrentUse }
         isProcessing = true
         defer { isProcessing = false }

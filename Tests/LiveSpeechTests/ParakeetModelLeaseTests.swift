@@ -1,4 +1,3 @@
-import CryptoKit
 import Foundation
 import LocalModelStore
 import SpeechCore
@@ -12,7 +11,7 @@ struct ParakeetModelLeaseTests {
 
     @Test
     func leaseProtectsLoadingAndObserverUntilTheLastEngineIsReleased() async throws {
-        let fixture = try await Fixture()
+        let fixture = try await ModelLeaseFixture()
         defer { fixture.cleanUp() }
         var engine: ParakeetEngine? = try await ParakeetEngine.loadLeased(
             from: fixture.store, manifest: fixture.manifest, checkpoint: .ultra
@@ -38,7 +37,7 @@ struct ParakeetModelLeaseTests {
 
     @Test
     func failedPreparationReleasesTheLease() async throws {
-        let fixture = try await Fixture()
+        let fixture = try await ModelLeaseFixture()
         defer { fixture.cleanUp() }
         await #expect(throws: PreparationFailure.expected) {
             _ = try await ParakeetEngine.loadLeased(
@@ -67,7 +66,7 @@ struct ParakeetModelLeaseTests {
 
     @Test
     func cancelledPreparationReleasesTheLease() async throws {
-        let fixture = try await Fixture()
+        let fixture = try await ModelLeaseFixture()
         defer { fixture.cleanUp() }
         let (started, signal) = AsyncStream.makeStream(of: Void.self)
         let (hold, release) = AsyncStream.makeStream(of: Void.self)
@@ -91,7 +90,7 @@ struct ParakeetModelLeaseTests {
 
     @Test
     func liveJobKeepsTheLeaseAfterItsEngineIsReleased() async throws {
-        let fixture = try await Fixture()
+        let fixture = try await ModelLeaseFixture()
         defer { fixture.cleanUp() }
         let (started, signal) = AsyncStream.makeStream(of: Void.self)
         let (hold, release) = AsyncStream.makeStream(of: Void.self)
@@ -122,7 +121,7 @@ struct ParakeetModelLeaseTests {
 
     @Test
     func fileJobKeepsTheLeaseAfterItsEngineIsReleased() async throws {
-        let fixture = try await Fixture()
+        let fixture = try await ModelLeaseFixture()
         defer { fixture.cleanUp() }
         let (started, signal) = AsyncStream.makeStream(of: Void.self)
         let (hold, release) = AsyncStream.makeStream(of: Void.self)
@@ -162,38 +161,5 @@ struct ParakeetModelLeaseTests {
         ParakeetEngine(
             prepareLiveManager: { _ in throw PreparationFailure.expected },
             prepareBatchManager: { _ in throw PreparationFailure.expected }, checkpoint: checkpoint)
-    }
-
-    private struct Fixture: Sendable {
-        let root: URL
-        let directory: URL
-        let store: LocalModelStore
-        let peer: LocalModelStore
-        var manifest: ModelManifest { Self.manifest }
-
-        static let bytes = Data("synthetic model".utf8)
-        static let manifest = ModelManifest(
-            id: "test", displayName: "Test", resolveBase: URL(string: "https://example.invalid")!, revision: "a",
-            artifacts: [ModelArtifact(
-                path: "model.bin",
-                sha256: SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined(),
-                sizeBytes: bytes.count)],
-            minimumRAMGB: 1, license: "MIT")
-
-        init() async throws {
-            root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-            store = try LocalModelStore(
-                location: .directory(root),
-                consumer: StoreConsumer(bundleID: "com.example.secreteo-test", displayName: "Test"))
-            peer = try LocalModelStore(
-                location: .directory(root),
-                consumer: StoreConsumer(bundleID: "com.example.peer-test", displayName: "Peer"))
-            let seed = root.appendingPathComponent("seed")
-            try FileManager.default.createDirectory(at: seed, withIntermediateDirectories: true)
-            try Self.bytes.write(to: seed.appendingPathComponent("model.bin"))
-            directory = try await store.ensureAvailable(Self.manifest, seeds: [seed])
-        }
-
-        func cleanUp() { try? FileManager.default.removeItem(at: root) }
     }
 }
