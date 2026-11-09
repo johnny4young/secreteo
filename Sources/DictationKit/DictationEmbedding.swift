@@ -14,7 +14,9 @@ public struct DictationEmbedding: Equatable, Sendable {
         self.vector = vector
     }
 
+    /// A zero vector has no direction, so no similarity can be computed from it.
     public var isValid: Bool {
         (1...Self.maximumDimension).contains(vector.count) && vector.allSatisfy(\.isFinite)
+            && vector.contains { $0 != 0 }
     }
 }
