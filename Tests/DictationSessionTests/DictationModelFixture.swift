@@ -98,6 +98,30 @@ struct DictationModelFixture {
         self.corpus = corpus
     }
 
+    struct Sequence {
+        let family: Source.Family
+        let entry: Manifest.Entry
+        let samples: [Float]
+        let references: [String]
+    }
+
+    /// Repeat source PCM and ground truth together; never relabel a short run as long.
+    func sequence(_ id: String, repetitions: Int) throws -> Sequence {
+        guard (1...12).contains(repetitions) else { throw DictationModelProbe.Failure.invalidInput }
+        let (family, entry, source) = try cell(id)
+        guard source.count <= 1_920_000 / repetitions else { throw DictationModelProbe.Failure.invalidInput }
+        if repetitions == 1 {
+            return Sequence(family: family, entry: entry, samples: source, references: family.acceptedTexts)
+        }
+        var samples: [Float] = []
+        samples.reserveCapacity(source.count * repetitions)
+        for _ in 0..<repetitions { samples.append(contentsOf: source) }
+        let references = family.acceptedTexts.map {
+            Array(repeating: $0, count: repetitions).joined(separator: " ").trimmingCharacters(in: .whitespaces)
+        }
+        return Sequence(family: family, entry: entry, samples: samples, references: references)
+    }
+
     func cell(_ id: String) throws -> (Source.Family, Manifest.Entry, [Float]) {
         guard selectedIDs.contains(id),
               let family = source.families.first(where: { id.hasPrefix($0.id + ".") }),

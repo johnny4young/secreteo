@@ -139,13 +139,252 @@ double. Actual macOS synthesis is a separate lane. Neither a speech-double run
 nor real synthesis measures ASR quality, product memory usage or verified text
 insertion. Model and end-to-end baselines need their own receipts and deadlines.
 
-## Model and controller lanes
+## Observe the installed Parakeet adapter
 
-The installed-model, controller and controller-matrix launchers, and the Parakeet
-v3 against Ultra comparison, are not here yet
-([G16](../../docs/GAPS.md#g16-model-and-controller-lanes)). The corpus, its
-admission, local rendering, field recordings and the speech-gate lane below do
-not depend on them.
+Build the test bundle in Release. Debug is refused for an explicit model run
+because the vendor can mirror transcript-bearing diagnostics to stderr. The
+model comes only from an explicit scratch store, and a measurement never
+downloads. Fill that store once with a direct run that sets
+`SECRETEO_DICTATION_BASELINE_INSTALL=1`; its receipt is not a launcher
+observation:
+
+```sh
+swift build -c release --build-tests -Xswiftc -enable-testing -Xswiftc -warnings-as-errors
+RELEASE_TEST_BUNDLE=.build/release/DictationSessionTests.xctest
+SECRETEO_DICTATION_BASELINE_AUDIO=/absolute/scratch/new-dictation-audio \
+SECRETEO_DICTATION_BASELINE_CASES=en-payment-negation.clean \
+SECRETEO_DICTATION_BASELINE_MODELS=/absolute/scratch/models \
+SECRETEO_DICTATION_BASELINE_INSTALL=1 \
+SECRETEO_DICTATION_BASELINE_OUTPUT=/absolute/scratch/install-run.json \
+"$(xcrun --find xctest)" -XCTest DictationSessionTests.DictationModelBaselineTests "$RELEASE_TEST_BUNDLE"
+python3 -I scripts/run_dictation_model_baseline.py \
+  --audio-root /absolute/scratch/new-dictation-audio \
+  --models /absolute/scratch/models \
+  --test-bundle "$RELEASE_TEST_BUNDLE" \
+  --xctest "$(xcrun --find xctest)" \
+  --case en-payment-negation.clean --case es-payment-negation.clean \
+  --case mixed-review.clean --case non-speech-silence.clean \
+  --output /absolute/scratch/new-model-observation
+```
+
+The launcher admits the complete audio matrix before and after measurement,
+requires explicit unique canonical case IDs and a new output directory, and
+records the exact test binary and audio-manifest digests. It passes a minimal
+environment to one owned XCTest process, discards raw process output and enforces
+a finite subprocess deadline. No other process is reserved, suspended or stopped.
+A zero child exit without the matching complete observation is not success.
+`request.json` and `outcome.json` identify scope, failure and timeout without
+transcript text; they do not certify that an uncommitted source snapshot produced
+a particular executable. An integration-qualified source SHA is a separate gate.
+
+The launcher resolves `CFBundleExecutable` from the selected bundle's bounded
+XML or binary `Contents/Info.plist`; it does not assume a build-system-specific
+executable name. Missing/malformed metadata, a missing executable, path traversal
+and symlink escape fail before output or launch. The metadata bytes and declared
+executable identity must remain unchanged through the run and between matrix
+cohorts. Tests enter both launchers with native SwiftPM and SwiftBuild layouts,
+including an adversarial metadata replacement after child completion. This does
+not attest every framework or resource in the bundle.
+
+The native lane re-hashes installed Parakeet artifacts through
+`LocalModelStore.verifiedInstallation` in the selected scratch store, checks each selected PCM hash and frame count,
+and feeds 100 ms buffers paced by `ContinuousClock`. Overflow, early termination
+and stream errors never produce a successful model receipt. Its observation
+reuses the production `CaptionCoalescer`, `DictationAssembler`,
+`DictationTextRules` and `TranscriptionAccuracy`; no alternate tokenizer or
+accuracy normalizer is introduced. The original assembled text is scored; the
+legacy filler-cleaned variant is measured separately as a change flag, not used
+to conceal recognition errors. Recognized text and references stay in memory.
+
+`model.json` contains two sequential passes over the selected cells, per-cell
+WER/CER and exact-reference-match, model preparation times and content-free public
+live-work counts. An exact mismatch in a critical family calls for review, not an
+automatic claim of a factual error. A successful run means observation completed,
+not that quality passed a competitive threshold. The first engine load may use
+existing Core ML disk caches; these passes are not independent cold starts.
+The probe does **not** execute `DictationController`, real microphone capture,
+transformation providers or `TextInserter`, and explicitly marks controller,
+verified delivery and memory as unmeasured. Those require their own lanes; four
+selected cases are not a full bilingual/product qualification.
+
+### Repeat speech beyond the live context window
+
+Use `--repetitions 12` to concatenate each selected admitted PCM cell twelve
+times in memory. The default remains `1`; allowed values are `1...12`. The
+native fixture repeats every accepted reference with the same count and retains
+empty non-speech ground truth. No source WAV is edited, no silence is cropped,
+and no new synthesis or model download occurs. Repetitions are adversarial
+variants of the same phrase/voice, not independent speakers or new source cells.
+
+The **derived sequence**, not merely its source, must fit 120 seconds. Both the
+launcher and native consumer reject overflow before inference. The run deadline
+includes repeated duration and any additional attribution pass; the two-hour
+limit does not increase. For example, append `--repetitions 12 --attribute-live`
+to a run selecting `en-payment-negation.clean` and `es-payment-negation.clean`
+to exercise long repeated utterances. Select smaller groups if a request exceeds
+a bound; do not trim the source or relax the bound to obtain a passing run.
+
+Model request/observation schema **2** binds repetition count at the run and row
+levels, source PCM/manifest identity and the actual consumed duration. The child
+receives the count explicitly. A short row, stale schema-1 binary, ignored count,
+or boolean masquerading as an integer cannot satisfy a repeated request.
+The native producer verifies its public live-work frame count against the
+expanded PCM, not the original file. Older archived observations remain evidence
+of their own binaries; they cannot qualify this new input contract.
+
+A longer duration alone is not a quality pass. The rejected all-token-passthrough
+experiment demonstrated that even a provider with a deduplication call can replay
+its left context. Report WER/CER and output growth for repeated speech rather
+than hiding the failure behind successful frame conservation or a green process.
+
+### Attribute a mismatch before replacing the engine
+
+`--attribute-live` explicitly adds a separate pinned-vendor run for each selected
+case and pass. It uses the production window configuration and real mapper, but
+is a **test-only experiment**, not an alternate shipping engine. It compares the
+vendor's `finish()` result with the mapped/coalesced text, counts token timings
+rejected at/before the mapper's current edge, and compares the experiment's final
+text with the actual production adapter's result in memory. Only scores, counts
+and that equality flag are written. `adapterDeltas` separately scores the actual
+production adapter's space-joined deltas before coalescing; this naive join is a
+diagnostic stage, not a proposed final assembler.
+
+A changed WER across stages identifies a boundary to investigate, not permission
+to patch it with vocabulary or an epsilon. If the independent experiment does
+not reproduce the product text, that mismatch remains explicit; it cannot prove
+an exact cause in the production run. Both paths currently use the same verified
+model artifacts, but attribution loads an additional set of weights and executes
+another live pass. Its timing and memory must not be compared with the ordinary
+single-engine baseline as if conditions were identical.
+
+The provider does not publicly expose per-window failure counts. Input-frame
+conservation and a successful terminal callback do not certify that every
+inference window succeeded; `backendWindowFailureCoverageMeasured` stays false.
+No model receipt substitutes for the pending controller failure/dispatch tests.
+
+Source and audio manifests retain their 2 MB input bound. A model observation has
+an explicit 8 MB bound for the full two-pass, per-cell diagnostic schema. The
+launcher computes the required paced audio duration plus its fixed five-minute
+allowance **before** reserving output. A selection exceeding the two-hour owned
+process bound is refused instead of silently capped and started anyway. Split
+large attribution requests into sequential selections; never hide a missing
+selection in an aggregate or assume independent cold starts between its passes.
+
+### Admit complete observations, not success flags
+
+The launcher validates a closed root/cell/score/live-work schema before marking
+an observation admitted. Every requested row binds the canonical public source,
+actual frames/chunks, typed finite metrics and ordered input/completion phases.
+`qualityMeasured: true` without the score payload is invalid. Unknown fields,
+including accidental transcript content, cannot enter an admitted receipt.
+Absent first-update time is allowed only when both text stages emitted no words;
+high WER/CER is retained as a bad-quality observation rather than rejected for
+looking bad. These checks validate receipt structure and attribution, not
+scientific truth, a quality threshold, or controller/verified-delivery coverage.
+Adversarial runner tests inject incomplete and content-bearing receipts at the
+actual launch boundary instead of testing only a standalone schema helper.
+
+
+## Observe the real controller without native insertion
+
+Add `--controller` to the same explicit launcher. This selects
+`DictationControllerModelTests`, not the model-only consumer. Build Release
+with the matching source first. Requests/outcomes use schema 3; the distinct
+controller observation uses schema 1. Model-only schema 2 remains unchanged.
+`--controller --attribute-live` is rejected before output or a child exists:
+independent vendor attribution is a different experiment, not a controller run.
+
+The lane enters the production `DictationController` with one isolated
+microphone source per request. It reuses the same 100 ms public-PCM feeder as
+the model-only lane. After all admitted bytes have been supplied, a test driver
+requests Stop through the real controller; only that controller's Stop closes
+the microphone stream. There is no extra padding, fake capture clock or bypass
+of the minimum-duration/stop-tail rules. Installed Parakeet weights load lazily
+inside the first controller request and are reused for later cells/passes.
+Every row states whether it requested a fresh load or reused the engine; failed
+preparation attempts remain counted. Core ML disk-cache state is uncontrolled.
+
+This is **not native insertion**. Platform admission is a declared test double;
+no global trigger, microphone device, permission prompt, clipboard access or
+keyboard event is used. The insertion port retains the proposed output in RAM
+and returns rejection. Literal mode, automatic language, no replacements and
+no vocabulary are explicit volatile test preferences, not changes to user
+settings. The controller's coalescer and final rules actually produce that
+output; the probe does not reconstruct it using a parallel text policy.
+
+Every requested attempt remains in the observation, including cancellations
+and pipeline failures. `proposedOutputScore` evaluates the output the user
+would have been offered, **including empty output from an unsuccessful
+attempt**, not the recognizer in isolation. The original public corpus contains
+valid subminimum utterances; excluding them would conceal a reachable outcome.
+`pipelineCompleted` independently requires an eligible controller outcome,
+completed public input, exact fed/backend frames/chunks and a valid completed
+live-work sample. It does not mean successful insertion or acceptable quality.
+Failed work may have no public sample; missing evidence cannot be filled with
+an invented successful sample. All such rows retain their outcome and counts.
+
+The bounded memory observer reuses `ResourceProbeUsage.current`, sampling the
+whole XCTest process approximately every 100 ms plus start/end. It reports
+observed peak, endpoints, sample count and thermal endpoints. A sampling error
+cannot become zero memory usage. PCM is already allocated at the initial
+snapshot; caches, framework allocations and the test harness are included.
+This is not attribution to dictation alone, the absolute instantaneous peak,
+a leak proof, or a hardware reservation. The source and acquired runtime lease
+are stopped/released before the final footprint sample; controller outcome
+timestamps themselves do not certify resource-quiescence timing.
+
+A cancelled controller may release its lease before the adapter's asynchronous
+cleanup finishes. A missing live-work sample preserves that limitation; the
+final footprint is not proof of backend quiescence, and process footprint does
+not attribute all accelerator/driver allocations to this feature.
+
+The launcher checks executable bytes and file identity before and after the
+child. A concurrently replaced build cannot retain the prelaunch digest in an
+admitted observation. This detects changes; it is not immutable bundle capture
+or proof that frameworks, resources and source belong to a qualified commit.
+
+Closed-schema admission rechecks every requested row, model/manifest identity,
+preparation-attempt accounting, phase shape, proposed-output score, input/work
+accounting and memory sample. It retains bad results instead of relabeling them
+as successful; `observed` means the observation completed, **not** that any
+quality/performance threshold passed. Native receiver acknowledgement, physical
+gesture timing, rendered frames, AppServices cache ownership, physical devices
+and the integrated source SHA require separate evidence.
+
+## Observe the complete controller matrix in bounded cohorts
+
+```sh
+python3 -I scripts/run_dictation_controller_matrix.py \
+  --audio-root "$PUBLIC_AUDIO_ROOT" --models /absolute/scratch/models --all \
+  --test-bundle "$RELEASE_TEST_BUNDLE" --xctest "$(xcrun --find xctest)" \
+  --output "$NEW_PRIVATE_OUTPUT_DIRECTORY"
+```
+
+The command reuses the existing controller lane without changing its model,
+profile or timeout formula. `--all` explicitly selects the pinned 480-cell
+matrix; repeated `--case` options instead select a declared subset. Default
+cohorts contain at most 16 cells and 120 seconds of input per pass. An explicit
+`--cohort-size 1...16` can reduce the count, not enlarge those bounds.
+
+Each cohort runs sequentially in a **fresh process with two local passes**.
+Engine preparation therefore restarts at cohort boundaries; compare rows by
+their recorded runtime state rather than treating every first cell as a
+controlled cold-cache measurement. This condition does not qualify a long
+single-process stress run or repair a backend failure that such a run reveals.
+
+`matrix-request.json` records every planned cohort before execution. Each
+`cohort-NNNN` directory retains its request, model receipt when available and
+terminal outcome. The first non-observed cohort stops execution without retry;
+an interrupted child cannot delete earlier completed cohorts. An interrupted
+matrix without `matrix-outcome.json` is incomplete, not implicitly successful.
+An unfinished cohort still has no admitted per-cell completion count.
+
+The final matrix receipt revalidates the original executable, audio and all
+completed cohort files. It reports selected versus observed cells and whether
+the full public corpus was selected, never accepted quality or verified
+insertion. Files are create-only and owner-only; a new attempt needs a new
+output directory. Keep failed attempts instead of replacing them with a later
+green result. Neither raw child output nor transcript text is exported.
 
 ## Observe the speech gate over every cell
 
@@ -169,6 +408,30 @@ Each cell records whether the gate heard speech, the first speech frame, the pea
 probability, process CPU time and the slowest chunk. Chunks are fed unpaced, so
 the receipt measures the decision and its cost, not live timing.
 
+## Compare Parakeet v3 and Ultra on the same cells
+
+`DictationModelComparisonTests` runs v3 and the opt-in Ultra checkpoint over the
+same admitted cells, with the same real-time 100 ms feed and scoring as the
+installed-model lane. Both models come from one explicit scratch store that already
+holds verified copies; the lane never downloads. Release only:
+
+```sh
+SECRETEO_ASR_COMPARE_AUDIO=/absolute/scratch/new-dictation-audio \
+SECRETEO_ASR_COMPARE_MODELS=/absolute/scratch/models \
+SECRETEO_ASR_COMPARE_OUTPUT=/absolute/scratch/compare.json \
+"$(xcrun --find xctest)" -XCTest DictationSessionTests.DictationModelComparisonTests "$RELEASE_TEST_BUNDLE"
+```
+
+`SECRETEO_ASR_COMPARE_CASES` limits the run to a comma-separated list of cells.
+A cell that fails records only the error type, never provider text.
+
+Set `SECRETEO_ASR_COMPARE_MODEL=v3` or `ultra` to measure one model in its own
+process. The receipt then records that model's load time, its physical footprint
+before load, after load and after the cells, and the process peak. Running both
+models in one process mixes their footprints. Core ML maps the weights outside
+the process footprint, so the steady numbers stay small and the peak mostly
+reflects loading.
+
 ## Record the speech families with a real microphone
 
 The synthetic voices cannot show how a model handles a person and a microphone.
@@ -188,3 +451,30 @@ families already recorded; `--redo <family>` records one again. `build` names an
 family still missing instead of publishing a partial manifest. The resulting
 `dictation-field-audio-manifest` has no synthesis recipe and declares the
 microphone as `built-in` or `external`.
+
+## Run the comparison and its decision rule
+
+`run_dictation_model_comparison.py` admits either manifest and, per model, runs a
+one-cell warm-up process and then the measured process, each with a minimal
+environment. The warm-up fills Core ML's compiled cache, so the measured load is
+the one a dictation pays after an idle release. The warm-up's load is reported as
+the first load, which is cold only when Core ML has not compiled that copy before.
+It validates every receipt and writes a content-free
+`report.json`:
+
+```sh
+python3 -I scripts/run_dictation_model_comparison.py \
+  --audio-root /absolute/scratch/field-audio \
+  --models /absolute/scratch/models \
+  --test-bundle "$RELEASE_TEST_BUNDLE" --xctest "$(xcrun --find xctest)" \
+  --output /absolute/scratch/new-ultra-comparison
+```
+
+The report gives each model's reference-weighted WER, overall and per cohort,
+exact matches, failed cells, critical cells with errors, load times and
+footprints, plus the cells where Ultra is better or worse. A failed cell counts
+every reference word as an error. On a field manifest it also applies the rule
+Portavoz fixed before any field data was seen: Ultra becomes the dictation default
+only if it cuts WER by at least 15% relative in English, Spanish and mixed, has no
+more critical cells with errors than v3, peaks at most 150 MiB above v3 and warm
+loads at most 1 s slower. Synthetic evidence always reports `not-applicable`.
