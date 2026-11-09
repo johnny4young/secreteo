@@ -4,6 +4,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- 🔎 **Search by meaning**: Dictation History also finds dictations that say the same thing in other words, in English or Spanish, best matches first. It runs on this Mac and uses the language model macOS already has.
 - 🎙️ **Speech engine**: choose Parakeet, Parakeet Ultra or Apple Speech in Settings. Ultra downloads only when you ask, and dictation uses Parakeet until it is ready. Apple Speech never downloads Parakeet.
 - ⏹️ **Faster stop on slow displays**: the audio meter freezes when you press Stop, so the words arrive sooner.
 - 🤖 **Agents read your history**: a read-only MCP server ships inside Secreteo. Turn on “Let Agents and Shortcuts Read History” in Settings, then add `/Applications/Secreteo.app/Contents/Helpers/secreteo-mcp` to your MCP client. Clients set up for Portavoz have to be pointed at Secreteo by hand.

@@ -2,32 +2,15 @@ import Foundation
 import SpeechCore
 
 /// Search by meaning fused with the word search, as measured on the public search
-/// corpus: vectors centered on the library's mean, a 0.5 similarity floor, and
-/// reciprocal rank fusion. Every exact match stays first; paraphrases join them.
+/// corpus: plain cosine with a 0.9 floor, and reciprocal rank fusion. Centering on the
+/// library's mean measured slightly better but is unstable while a library is small.
 public enum DictationHybridSearch {
-    public static let similarityThreshold: Float = 0.5
+    public static let similarityThreshold: Float = 0.9
     public static let semanticLimit = 12
     public static let resultLimit = 100
     static let fusionK = 60.0
 
-    public static func mean(_ vectors: [[Float]]) -> [Float] {
-        guard let first = vectors.first else { return [] }
-        var sum = [Float](repeating: 0, count: first.count)
-        for vector in vectors where vector.count == first.count {
-            for index in vector.indices { sum[index] += vector[index] }
-        }
-        return sum.map { $0 / Float(vectors.count) }
-    }
-
-    /// Removes the direction every vector shares, so similarity reflects what differs.
-    public static func centered(_ vector: [Float], mean: [Float]) -> [Float] {
-        guard vector.count == mean.count else { return vector }
-        let shifted = zip(vector, mean).map { $0 - $1 }
-        let norm = shifted.reduce(0) { $0 + $1 * $1 }.squareRoot()
-        return norm > 0 ? shifted.map { $0 / norm } : shifted
-    }
-
-    /// The dictations whose centered vector is close enough to the centered query, best first.
+    /// The dictations whose normalized vector is close enough to the query's, best first.
     public static func semanticRanking(query: [Float], candidates: [DictationEmbedding]) -> [DictationRecordID] {
         var scored: [(id: DictationRecordID, similarity: Float)] = []
         for candidate in candidates where candidate.vector.count == query.count {
@@ -51,8 +34,9 @@ public enum DictationHybridSearch {
                 scores[id, default: 0] += 1 / (fusionK + Double(rank))
             }
         }
-        return scores.keys.sorted {
-            scores[$0] != scores[$1] ? scores[$0] ?? 0 > scores[$1] ?? 0 : $0.rawValue.uuidString < $1.rawValue.uuidString
-        }.prefix(limit).map { $0 }
+        let ranked = scores.sorted {
+            $0.value != $1.value ? $0.value > $1.value : $0.key.rawValue.uuidString < $1.key.rawValue.uuidString
+        }
+        return ranked.prefix(limit).map(\.key)
     }
 }

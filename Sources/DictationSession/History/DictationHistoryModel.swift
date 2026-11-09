@@ -17,11 +17,14 @@ final class DictationHistoryModel {
     /// Applications with saved dictations, for the filter menu.
     private(set) var applications: [String] = []
     @ObservationIgnored let store: any DictationHistoryStore
+    /// Nil when this Mac cannot rank by meaning; searches then match words only.
+    @ObservationIgnored let semantic: DictationSemanticIndex?
     /// Drops a page that arrives after a newer filter was applied.
     @ObservationIgnored private var pageRequest = 0
 
-    init(store: any DictationHistoryStore) {
+    init(store: any DictationHistoryStore, semantic: DictationSemanticIndex? = nil) {
         self.store = store
+        self.semantic = semantic
     }
 
     /// Reads the consent, drops expired rows and loads the newest page.
@@ -33,12 +36,15 @@ final class DictationHistoryModel {
             if let application = filter.applicationName, !applications.contains(application) {
                 filter.applicationName = nil
             }
+            await semantic?.invalidate()
             try await reloadPage()
             isLoaded = true
             failure = nil
         } catch {
             failure = L10n.text("Dictation history could not be loaded.")
         }
+        // Vectors for dictations saved before this model; searches match words until each is ready.
+        if let semantic { Task.detached(priority: .utility) { await semantic.backfill() } }
     }
 
     /// Shows the newest page that matches; every filter applies before the page limit.
@@ -80,10 +86,33 @@ final class DictationHistoryModel {
     private func reloadPage() async throws {
         pageRequest += 1
         let request = pageRequest
+        if let ranked = try await hybridPage() {
+            guard request == pageRequest else { return }
+            records = ranked
+            hasMore = false
+            return
+        }
         let page = try await ListDictations(store: store).execute(.init(filter: filter))
         guard request == pageRequest else { return }
         records = page
         hasMore = page.count == ListDictations.pageSize
+    }
+
+    /// One page ranked by relevance: word matches fused with dictations close in meaning.
+    /// Nil without words to search or a model to rank with, so the newest-first page shows.
+    private func hybridPage() async throws -> [DictationRecord]? {
+        guard let semantic, !filter.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              let meaning = try? await semantic.ranking(for: filter.query, matching: filter)
+        else { return nil }
+        let lexical = try await store.dictationRecords(
+            matching: filter, before: nil, limit: DictationHybridSearch.resultLimit)
+        let ranked = DictationHybridSearch.fuse(lexical: lexical.map(\.id), semantic: meaning)
+        var byID = Dictionary(lexical.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let missing = ranked.filter { byID[$0] == nil }
+        if !missing.isEmpty {
+            for record in try await semantic.records(missing) { byID[record.id] = record }
+        }
+        return ranked.compactMap { byID[$0] }
     }
 
     func update(
@@ -107,6 +136,7 @@ final class DictationHistoryModel {
         do {
             if try await DeleteDictation(store: store).execute(id) {
                 records.removeAll { $0.id == id }
+                await semantic?.invalidate()
             }
             failure = nil
         } catch {
@@ -117,6 +147,7 @@ final class DictationHistoryModel {
     func deleteAll() async {
         do {
             _ = try await DeleteAllDictations(store: store).execute(())
+            await semantic?.invalidate()
             records = []
             hasMore = false
             applications = []
@@ -142,7 +173,11 @@ final class DictationHistoryModel {
         do {
             let outcome = try await RecordDictation(store: store).execute(
                 .init(record: record, admittedGeneration: generation))
-            if outcome == .saved { show(record) }
+            if outcome == .saved {
+                show(record)
+                // The store refuses the vector if the dictation is deleted first, so a late one keeps nothing.
+                if let semantic { Task.detached(priority: .utility) { await semantic.index(record) } }
+            }
             return true
         } catch {
             return false

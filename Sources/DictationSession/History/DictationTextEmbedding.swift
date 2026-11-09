@@ -50,7 +50,8 @@ actor SystemSentenceEmbedding: DictationTextEmbedding {
 }
 
 /// A disposable launch's stand-in: words that mean the same in English and Spanish
-/// share one axis, so a UI test can search by meaning without a model.
+/// share one axis, and a text points along its most frequent concept (the earlier one
+/// on a tie), so a UI test can search by meaning without a model.
 struct DictationFixtureEmbedding: DictationTextEmbedding {
     private static let concepts: [Set<String>] = [
         ["report", "informe", "reporte"], ["friday", "viernes"], ["notes", "notas", "note", "nota"],
@@ -63,10 +64,14 @@ struct DictationFixtureEmbedding: DictationTextEmbedding {
 
     func embed(_ text: String) async throws -> [Float] {
         let words = text.lowercased().split { !$0.isLetter }.map(String.init)
-        var vector = Self.concepts.map { concept in Float(words.filter(concept.contains).count) }
-        // An axis for everything else keeps unrelated text from looking like a match.
-        vector.append(Float(words.filter { word in !Self.concepts.contains { $0.contains(word) } }.count) * 0.2)
-        let norm = vector.reduce(0) { $0 + $1 * $1 }.squareRoot()
-        return norm > 0 ? vector.map { $0 / norm } : vector
+        let counts = Self.concepts.map { concept in words.filter(concept.contains).count }
+        var vector = [Float](repeating: 0, count: Self.concepts.count + 1)
+        if let best = counts.max(), best > 0, let axis = counts.firstIndex(of: best) {
+            vector[axis] = 1
+        } else {
+            // Text with no known concept points elsewhere, so it never looks like a match.
+            vector[Self.concepts.count] = 1
+        }
+        return vector
     }
 }
