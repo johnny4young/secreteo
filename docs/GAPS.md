@@ -70,3 +70,7 @@ The watchdog's events cover both halves of its check: `isVisible` through key-va
 ## G14. Portavoz settings left out of the import
 
 The import copies only settings Secreteo's Settings can show and change. Activation and every trigger stay out, because the two apps must not answer the same keys. The microphone needs its own confirmation, since another input can change a Bluetooth profile. Polish's engine stays out because Portavoz's is its summary engine, which may be MLX. Portavoz Dev's settings are not read.
+
+## G18. Search by meaning has limits
+
+It reaches only the Dictation History window: the Shortcuts actions and the MCP server still match words. A Mac without the system's Latin embedding assets searches by words only, and Secreteo offers no way to fetch them. Questions in one language rarely find a dictation in the other, which the public corpus measures at zero.

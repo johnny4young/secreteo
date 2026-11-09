@@ -17,11 +17,17 @@ final class DictationHistoryModel {
     /// Applications with saved dictations, for the filter menu.
     private(set) var applications: [String] = []
     @ObservationIgnored let store: any DictationHistoryStore
+    /// Nil when this Mac cannot rank by meaning; searches then match words only.
+    @ObservationIgnored let semantic: DictationSemanticIndex?
     /// Drops a page that arrives after a newer filter was applied.
     @ObservationIgnored private var pageRequest = 0
+    /// How many rows at the end match by meaning only, after every word match.
+    @ObservationIgnored private var meaningCount = 0
+    @ObservationIgnored private var watchesVectors = false
 
-    init(store: any DictationHistoryStore) {
+    init(store: any DictationHistoryStore, semantic: DictationSemanticIndex? = nil) {
         self.store = store
+        self.semantic = semantic
     }
 
     /// Reads the consent, drops expired rows and loads the newest page.
@@ -33,12 +39,16 @@ final class DictationHistoryModel {
             if let application = filter.applicationName, !applications.contains(application) {
                 filter.applicationName = nil
             }
+            await watchVectors()
+            await semantic?.invalidate()
             try await reloadPage()
             isLoaded = true
             failure = nil
         } catch {
             failure = L10n.text("Dictation history could not be loaded.")
         }
+        // Vectors for dictations saved before this model; searches match words until each is ready.
+        if let semantic { Task.detached(priority: .utility) { await semantic.backfill() } }
     }
 
     /// Shows the newest page that matches; every filter applies before the page limit.
@@ -72,6 +82,7 @@ final class DictationHistoryModel {
             guard request == pageRequest else { return }
             records += page
             hasMore = page.count == ListDictations.pageSize
+            if !hasMore { await appendMeaning(request) }
         } catch {
             failure = L10n.text("Dictation history could not be loaded.")
         }
@@ -83,7 +94,36 @@ final class DictationHistoryModel {
         let page = try await ListDictations(store: store).execute(.init(filter: filter))
         guard request == pageRequest else { return }
         records = page
+        meaningCount = 0
         hasMore = page.count == ListDictations.pageSize
+        if !hasMore { await appendMeaning(request) }
+    }
+
+    /// Once every word match is listed, adds the dictations close in meaning that hold
+    /// none of the words. A failure or a Mac without the model leaves the word matches alone.
+    private func appendMeaning(_ request: Int) async {
+        guard let semantic, !hasMore,
+              let ranking = try? await semantic.ranking(for: filter.query, matching: filter),
+              request == pageRequest
+        else { return }
+        let words = records.dropLast(meaningCount)
+        let extra = DictationHybridSearch.meaningOnly(ranking, after: words.map(\.id))
+        let found = extra.isEmpty ? [] : (try? await semantic.records(extra)) ?? []
+        guard request == pageRequest, !hasMore else { return }
+        records = Array(records.dropLast(meaningCount)) + found
+        meaningCount = found.count
+    }
+
+    /// Vectors saved after a search was shown may find more; only the meaning rows change.
+    private func refreshMeaning() async {
+        guard isLoaded, DictationHybridSearch.isSearchable(filter.query) else { return }
+        await appendMeaning(pageRequest)
+    }
+
+    private func watchVectors() async {
+        guard let semantic, !watchesVectors else { return }
+        watchesVectors = true
+        await semantic.setChangeHandler { [weak self] in await self?.refreshMeaning() }
     }
 
     func update(
@@ -106,7 +146,11 @@ final class DictationHistoryModel {
     func delete(_ id: DictationRecordID) async {
         do {
             if try await DeleteDictation(store: store).execute(id) {
-                records.removeAll { $0.id == id }
+                if let index = records.firstIndex(where: { $0.id == id }) {
+                    if index >= records.count - meaningCount { meaningCount -= 1 }
+                    records.remove(at: index)
+                }
+                await semantic?.invalidate()
             }
             failure = nil
         } catch {
@@ -117,7 +161,9 @@ final class DictationHistoryModel {
     func deleteAll() async {
         do {
             _ = try await DeleteAllDictations(store: store).execute(())
+            await semantic?.invalidate()
             records = []
+            meaningCount = 0
             hasMore = false
             applications = []
             filter = .all
@@ -142,7 +188,11 @@ final class DictationHistoryModel {
         do {
             let outcome = try await RecordDictation(store: store).execute(
                 .init(record: record, admittedGeneration: generation))
-            if outcome == .saved { show(record) }
+            if outcome == .saved {
+                show(record)
+                // The store refuses the vector if the dictation is deleted first, so a late one keeps nothing.
+                if let semantic { Task.detached(priority: .utility) { await semantic.index(record) } }
+            }
             return true
         } catch {
             return false

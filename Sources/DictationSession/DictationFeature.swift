@@ -53,7 +53,7 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored private var preferencesObserver: (any NSObjectProtocol)?
     let controller: DictationController
     @ObservationIgnored let practice = DictationPracticeField()
-    @ObservationIgnored let dictationStore: any DictationHistoryStore & DictationStatsStore
+    @ObservationIgnored let dictationStore: any DictationHistoryStore & DictationStatsStore & DictationEmbeddingStore
     @ObservationIgnored let history: DictationHistoryModel
     @ObservationIgnored let stats: DictationStatsModel
     @ObservationIgnored private let settingsWindowHolder = UUID()
@@ -97,7 +97,12 @@ public final class DictationFeature: AppServices {
         let dictationStore = Self.openDictationStore(
             usesTemporaryStore: usesTemporaryStore, bundleIdentifier: identifier)
         self.dictationStore = dictationStore
-        history = DictationHistoryModel(store: dictationStore)
+        // A disposable launch ranks with fixture concepts, so tests never need the system model.
+        let embedding: (any DictationTextEmbedding)? = usesTemporaryStore
+            ? DictationFixtureEmbedding() : SystemSentenceEmbedding()
+        history = DictationHistoryModel(
+            store: dictationStore,
+            semantic: embedding.map { DictationSemanticIndex(store: dictationStore, embedding: $0) })
         stats = DictationStatsModel(store: dictationStore)
         fixture = DictationUITestFixture(arguments: arguments, usesTemporaryStore: usesTemporaryStore)
         launchArguments = arguments
