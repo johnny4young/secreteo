@@ -49,13 +49,22 @@ extension DictationFeature {
     nonisolated static func loadSpeechModel(
         store: LocalModelStore, defaults: UserDefaults
     ) async throws -> ParakeetEngine {
-        if LiveSpeechSelection.dictation(defaults: defaults) == .parakeetUltra,
-           let ultra = await store.verifiedInstallation(ModelCatalog.parakeetUltra) {
-            return try await ParakeetEngine.load(fromVerifiedDirectory: ultra.directory, checkpoint: .ultra)
+        try await loadSpeechModel(defaults: defaults) { try await ParakeetEngine.load(from: store, checkpoint: $0) }
+    }
+
+    nonisolated static func loadSpeechModel<Engine>(
+        defaults: UserDefaults, load: (ParakeetCheckpoint) async throws -> Engine
+    ) async throws -> Engine {
+        // The lease verifies under its lock, so a separate check first would only race it.
+        if LiveSpeechSelection.dictation(defaults: defaults) == .parakeetUltra {
+            do {
+                return try await load(.ultra)
+            } catch LocalModelStore.LocalModelStoreError.notInstalled {}
         }
-        guard let installed = await store.verifiedInstallation(ModelCatalog.parakeetTdtV3) else {
+        do {
+            return try await load(.v3)
+        } catch LocalModelStore.LocalModelStoreError.notInstalled {
             throw DictationFeatureError.modelMissing
         }
-        return try await ParakeetEngine.load(fromVerifiedDirectory: installed.directory)
     }
 }

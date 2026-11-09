@@ -63,7 +63,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/LiveSpeech/VocabularyPrompt.swift` | `Sources/TranscriptionKit/VocabularyPrompt.swift` | Renames |
 | `Sources/LiveSpeech/TranscriptionEngine.swift` | `Sources/TranscriptionKit/TranscriptionEngine.swift` | Renames |
 | `Sources/LiveSpeech/FileTranscription.swift` | `Sources/TranscriptionKit/FileTranscription.swift` | Renames |
-| `Sources/LiveSpeech/ParakeetEngine.swift` | `Sources/TranscriptionKit/ParakeetEngine.swift` | Seam: loads through `LocalModelStore`, with v3 named directly instead of a routing table, and takes seeds |
+| `Sources/LiveSpeech/ParakeetEngine.swift` | `Sources/TranscriptionKit/ParakeetEngine.swift` | Seam: loads through `LocalModelStore`, with v3 named directly instead of a routing table, takes seeds, and holds a store lease while loaded |
 | `Sources/LiveSpeech/SileroVoiceActivityDetector.swift` | `Sources/TranscriptionKit/SileroVoiceActivityDetector.swift` | Seam: loads through `LocalModelStore` |
 | `Sources/LiveSpeech/ModelCatalog.swift` | `Sources/ModelStoreKit/ModelRegistry.swift` | Extract: the Parakeet v3 pin as a `ModelManifest`, with no task or folder name |
 | `Sources/LiveSpeech/ModelCatalog+ParakeetUltra.swift` | `Sources/ModelStoreKit/ModelCatalog+ParakeetUltra.swift` | Seam: a `ModelManifest`, with no task or folder name |

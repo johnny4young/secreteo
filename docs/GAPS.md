@@ -61,7 +61,7 @@ Dictate and the paste rows give focus back to the app that was frontmost when th
 - The readiness check counts a verified model even if only another app claims it, so Secreteo can show ready and load it with no claim of its own. If that app removes its claim, the next launch's collection, in either app, can delete the model.
 - A crash after a model is published and before its claim is written leaves it unclaimed. Secreteo shows it as ready, and the next launch's collection deletes it, which costs one more download.
 - Settings shows no download progress, so a resumed download looks like one starting over.
-- A loaded model holds no store lease, so another app's removal can delete the files under it. The engine keeps running from memory, and the next load reports the model as missing.
+- Silero still holds no store lease, so another app's removal can delete its files while the detector is loaded. Parakeet leases its checkpoint from the load until the engine and its jobs end, except on a volume with no `flock`, where only claims protect it.
 
 ## G13. An icon loss no event announces
 

@@ -24,8 +24,7 @@ final class ParakeetIntegrationTests: XCTestCase {
         let descriptor = ModelCatalog.parakeetTdtV3
         let report = await store.verify(descriptor)
         try XCTSkipUnless(report.isComplete, "model not installed in SECRETEO_MODEL_ROOT")
-        let directory = try await store.directory(for: descriptor)
-        return try await ParakeetEngine.load(fromVerifiedDirectory: directory)
+        return try await ParakeetEngine.load(from: store)
     }
 
     /// Feeds a spoken WAV through the *live* sliding-window path in ~100 ms

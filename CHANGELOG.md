@@ -4,6 +4,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- ♻️ **Shared speech models**: another app cannot remove Parakeet's files while Secreteo is loading or using them.
 - 🎙️ **Speech engine**: choose Parakeet, Parakeet Ultra or Apple Speech in Settings. Ultra downloads only when you ask, and dictation uses Parakeet until it is ready. Apple Speech never downloads Parakeet.
 - ⏹️ **Faster stop on slow displays**: the audio meter freezes when you press Stop, so the words arrive sooner.
 - 🤖 **Agents read your history**: a read-only MCP server ships inside Secreteo. Turn on “Let Agents and Shortcuts Read History” in Settings, then add `/Applications/Secreteo.app/Contents/Helpers/secreteo-mcp` to your MCP client. Clients set up for Portavoz have to be pointed at Secreteo by hand.
