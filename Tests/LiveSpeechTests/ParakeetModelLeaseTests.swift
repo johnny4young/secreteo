@@ -24,8 +24,7 @@ struct ParakeetModelLeaseTests {
             return Self.engine(checkpoint: checkpoint)
         }
         var observed = engine?.observingLiveWork { _ in }
-        weak var original = engine
-        defer { original = nil }
+        weak let original = engine
         engine = nil
         #expect(original == nil)
         #expect(observed?.checkpoint == .ultra)
@@ -116,6 +115,46 @@ struct ParakeetModelLeaseTests {
         release.finish()
         await #expect(throws: PreparationFailure.expected) {
             for try await _ in output { Issue.record("Preparation failure cannot emit words") }
+        }
+        // The stream fails before the job's task ends, so its release trails by a moment.
+        #expect(try await Self.collectOnceReleased(fixture.peer) == 1)
+    }
+
+    @Test
+    func fileJobKeepsTheLeaseAfterItsEngineIsReleased() async throws {
+        let fixture = try await Fixture()
+        defer { fixture.cleanUp() }
+        let (started, signal) = AsyncStream.makeStream(of: Void.self)
+        let (hold, release) = AsyncStream.makeStream(of: Void.self)
+        defer { signal.finish(); release.finish() }
+        var engine: ParakeetEngine? = try await ParakeetEngine.loadLeased(
+            from: fixture.store, manifest: fixture.manifest, checkpoint: .v3
+        ) { _, _ in
+            ParakeetEngine(
+                prepareLiveManager: { _ in throw PreparationFailure.expected },
+                prepareBatchManager: { _ in
+                    signal.yield(())
+                    for await _ in hold { break }
+                    throw PreparationFailure.expected
+                })
+        }
+        let file = fixture.directory.appendingPathComponent("model.bin")
+        let job = Task { [weak engine] in _ = try await engine?.transcribeFile(at: file) }
+        var iterator = started.makeAsyncIterator()
+        _ = await iterator.next()
+        engine = nil
+        #expect(try await fixture.peer.remove(fixture.manifest, scope: .allConsumers) == .deferred)
+        release.finish()
+        await #expect(throws: PreparationFailure.expected) { try await job.value }
+        #expect(try await fixture.peer.collectGarbage().removed.count == 1)
+    }
+
+    private static func collectOnceReleased(_ store: LocalModelStore) async throws -> Int {
+        let deadline = ContinuousClock.now + .seconds(5)
+        while true {
+            let removed = try await store.collectGarbage().removed.count
+            guard removed == 0, ContinuousClock.now < deadline else { return removed }
+            try await Task.sleep(for: .milliseconds(10))
         }
     }
 
