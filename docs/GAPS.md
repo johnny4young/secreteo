@@ -70,7 +70,3 @@ The watchdog's events cover both halves of its check: `isVisible` through key-va
 ## G14. Portavoz settings left out of the import
 
 The import copies only settings Secreteo's Settings can show and change. Activation and every trigger stay out, because the two apps must not answer the same keys. The microphone needs its own confirmation, since another input can change a Bluetooth profile. Polish's engine stays out because Portavoz's is its summary engine, which may be MLX. Portavoz Dev's settings are not read.
-
-## G17. No dictation search observations
-
-`scripts/dictation_search_quality.py` generates and verifies the public search fixture and scores observations, but Secreteo has nothing that produces them. Portavoz's producer ranks with a sentence embedder that Secreteo does not ship, so semantic search stays unmeasured, and the lexical lane has no runner either.
