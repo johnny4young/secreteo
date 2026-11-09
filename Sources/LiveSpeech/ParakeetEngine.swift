@@ -341,8 +341,6 @@ public final class ParakeetEngine: TranscriptionEngine, Sendable {
         hints: TranscriptionHints = TranscriptionHints(),
         channel: AudioChannel = .system
     ) async throws -> FileTranscription {
-        let lease = modelLease
-        defer { withExtendedLifetime(lease) {} }
         let config = ASRConfig(
             parallelChunkConcurrency: 1,
             // Recommended off for v3 multilingual long-form (FluidAudio #594).

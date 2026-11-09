@@ -50,6 +50,24 @@ final class LiveSpeechSelectionTests: XCTestCase {
         XCTAssertNil(ultra)
     }
 
+    nonisolated func testALeaseThatFindsNoModelFallsBackFromUltraThenReportsMissing() async throws {
+        let suite = "live-speech-lease-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let removed = LocalModelStore.LocalModelStoreError.notInstalled(missing: ["model"], corrupted: [])
+
+        let loaded = try await DictationFeature.loadSpeechModel(defaults: defaults) { checkpoint in
+            if checkpoint == .ultra { throw removed }
+            return checkpoint
+        }
+        XCTAssertEqual(loaded, .v3)
+
+        do {
+            _ = try await DictationFeature.loadSpeechModel(defaults: defaults) { _ -> ParakeetCheckpoint in throw removed }
+            XCTFail("No installed checkpoint must surface as modelMissing")
+        } catch DictationFeatureError.modelMissing {}
+    }
+
     func testSelectedAppleWithAutomaticLanguageNeverStartsAModelLoad() async throws {
         let suite = "live-speech-route-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
