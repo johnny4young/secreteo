@@ -66,6 +66,9 @@ struct DictationEmbeddingStoreTests {
 
         #expect(byApp.map(\.recordID) == [notes.id])
         #expect(one.map(\.recordID) == [slack.id])
+        #expect(try await store.dictationEmbeddingIDs(profile: "model", matching: .init(applicationName: "Slack")) == [slack.id])
+        #expect(try await store.dictationEmbeddingIDs(profile: "model") == [notes.id, slack.id])
+        #expect(try await store.dictationEmbeddingIDs(profile: "other").isEmpty)
         #expect(undelivered.map(\.recordID) == [slack.id])
         #expect(Set(worded.map(\.recordID)) == [notes.id, slack.id])
     }
