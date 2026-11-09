@@ -7,7 +7,9 @@ extension DictationStore {
     /// Saves or replaces a dictation's vector. False when the dictation is gone, so a
     /// vector computed after a delete is never kept.
     public func saveDictationEmbedding(_ embedding: DictationEmbedding, profile: String) async throws -> Bool {
-        guard embedding.isValid, (1...DictationEmbedding.maximumProfileLength).contains(profile.count) else {
+        // SQLite's length() counts code points, so the guard does too.
+        guard embedding.isValid,
+              (1...DictationEmbedding.maximumProfileLength).contains(profile.unicodeScalars.count) else {
             throw DictationStoreError.invalidDictationRecord("invalid embedding")
         }
         let blob = Self.encode(embedding.vector)
@@ -23,21 +25,16 @@ extension DictationStore {
         }
     }
 
-    /// Vectors made by `profile` for the dictations the filter's application and delivery
-    /// allow. Its words are ignored: search by meaning ranks what words would not match.
+    /// Vectors made by `profile` for the dictations the filter allows. Its words are
+    /// ignored: search by meaning ranks what words would not match.
     public func dictationEmbeddings(
         profile: String, matching filter: DictationRecordFilter = .all
     ) async throws -> [DictationEmbedding] {
-        var conditions = ["dictationEmbedding.profile = ?"]
-        var arguments: StatementArguments = [profile]
-        if let application = filter.applicationName {
-            conditions.append("dictationRecord.applicationName = ?")
-            arguments += [application]
-        }
-        if filter.onlyNotDelivered {
-            conditions.append("dictationRecord.delivery = ?")
-            arguments += [DictationRecordDelivery.notDelivered.rawValue]
-        }
+        var wordless = filter
+        wordless.query = ""
+        guard let (filters, filterArguments) = Self.dictationFilterConditions(wordless) else { return [] }
+        let conditions = ["dictationEmbedding.profile = ?"] + filters
+        let arguments: StatementArguments = [profile] + filterArguments
         let sql = """
             SELECT dictationEmbedding.recordID, dictationEmbedding.vector
             FROM dictationEmbedding JOIN dictationRecord ON dictationRecord.id = dictationEmbedding.recordID
@@ -74,30 +71,31 @@ extension DictationStore {
 
     /// These dictations in the order given; any no longer saved are left out.
     public func dictationRecords(ids: [DictationRecordID]) async throws -> [DictationRecord] {
-        guard !ids.isEmpty, ids.count <= Self.maximumDictationPageSize else { return [] }
-        let placeholders = Array(repeating: "?", count: ids.count).joined(separator: ", ")
-        let sql = Self.dictationColumns + "\nWHERE id IN (\(placeholders))"
-        let arguments = StatementArguments(ids.map(\.rawValue.uuidString))
         let found = try await database.read { database in
-            try Row.fetchAll(database, sql: sql, arguments: arguments).map(Self.dictationRecord(from:))
+            // SQLite bounds the arguments of one statement, so long lists go in pages.
+            try stride(from: 0, to: ids.count, by: Self.maximumDictationPageSize).flatMap { start in
+                let page = ids[start..<min(start + Self.maximumDictationPageSize, ids.count)]
+                let placeholders = Array(repeating: "?", count: page.count).joined(separator: ", ")
+                return try Row.fetchAll(
+                    database, sql: Self.dictationColumns + "\nWHERE id IN (\(placeholders))",
+                    arguments: StatementArguments(page.map(\.rawValue.uuidString))
+                ).map(Self.dictationRecord(from:))
+            }
         }
         let byID = Dictionary(uniqueKeysWithValues: found.map { ($0.id, $0) })
         return ids.compactMap { byID[$0] }
     }
 
+    /// Little-endian 32-bit floats, the layout of every Mac Secreteo runs on.
     static func encode(_ vector: [Float]) -> Data {
-        var data = Data(capacity: vector.count * 4)
-        for value in vector {
-            withUnsafeBytes(of: value.bitPattern.littleEndian) { data.append(contentsOf: $0) }
-        }
-        return data
+        vector.map(\.bitPattern.littleEndian).withUnsafeBytes { Data($0) }
     }
 
     static func decode(_ data: Data) -> [Float] {
-        stride(from: 0, to: data.count - data.count % 4, by: 4).map { offset in
-            let bits = data[data.startIndex + offset..<data.startIndex + offset + 4]
-                .enumerated().reduce(UInt32(0)) { $0 | UInt32($1.element) << (8 * $1.offset) }
-            return Float(bitPattern: bits)
+        data.withUnsafeBytes { bytes in
+            (0..<data.count / 4).map { index in
+                Float(bitPattern: UInt32(littleEndian: bytes.loadUnaligned(fromByteOffset: index * 4, as: UInt32.self)))
+            }
         }
     }
 }

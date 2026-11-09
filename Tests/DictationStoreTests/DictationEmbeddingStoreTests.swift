@@ -62,8 +62,10 @@ struct DictationEmbeddingStoreTests {
         let byApp = try await store.dictationEmbeddings(profile: "model", matching: .init(applicationName: "Notes"))
         let undelivered = try await store.dictationEmbeddings(profile: "model", matching: .init(onlyNotDelivered: true))
         let worded = try await store.dictationEmbeddings(profile: "model", matching: .init(query: "nada"))
+        let one = try await store.dictationEmbeddings(profile: "model", matching: .init(recordID: slack.id))
 
         #expect(byApp.map(\.recordID) == [notes.id])
+        #expect(one.map(\.recordID) == [slack.id])
         #expect(undelivered.map(\.recordID) == [slack.id])
         #expect(Set(worded.map(\.recordID)) == [notes.id, slack.id])
     }
@@ -96,16 +98,35 @@ struct DictationEmbeddingStoreTests {
     }
 
     @Test
+    func moreIDsThanOnePageStillComeBackInOrder() async throws {
+        let store = try await historyStore()
+        var saved: [DictationRecord] = []
+        for index in 0..<(DictationStore.maximumDictationPageSize + 20) {
+            saved.append(try await save("Nota \(index).", app: "Notes", at: now.addingTimeInterval(-Double(index)), into: store))
+        }
+        let asked = saved.map(\.id).reversed().map { $0 }
+
+        #expect(try await store.dictationRecords(ids: asked).map(\.id) == asked)
+    }
+
+    @Test
     func anUnusableVectorIsRefused() async throws {
         let store = try await historyStore()
         let saved = try await save("Uno.", app: "Notes", into: store)
-        for vector in [[], [Float.nan], [Float](repeating: 1, count: DictationEmbedding.maximumDimension + 1)] {
+        let unusable: [[Float]] = [
+            [], [.nan], [0, 0, 0], [Float](repeating: 1, count: DictationEmbedding.maximumDimension + 1)
+        ]
+        for vector in unusable {
             await #expect(throws: DictationStoreError.self) {
                 try await store.saveDictationEmbedding(.init(recordID: saved.id, vector: vector), profile: "model")
             }
         }
-        await #expect(throws: DictationStoreError.self) {
-            try await store.saveDictationEmbedding(.init(recordID: saved.id, vector: [1]), profile: "")
+        // 150 characters, each a letter and a combining accent: 300 code points for SQLite.
+        let decomposed = String(repeating: "e\u{301}", count: 150)
+        for profile in ["", decomposed] {
+            await #expect(throws: DictationStoreError.self) {
+                try await store.saveDictationEmbedding(.init(recordID: saved.id, vector: [1]), profile: profile)
+            }
         }
     }
 
