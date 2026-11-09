@@ -51,6 +51,7 @@ public actor SileroVoiceActivityDetector {
 
     private let channel: AudioChannel
     private let infer: Inference
+    private let modelLease: LocalModelStore.ModelLease?
     private var resampler = StreamingLinearResampler()
     private var modelState = VadStreamState.initial()
     private var pending: [Float] = []
@@ -66,26 +67,36 @@ public actor SileroVoiceActivityDetector {
         channel: AudioChannel,
         computeUnits: MLComputeUnits = .cpuOnly
     ) async throws -> SileroVoiceActivityDetector {
-        guard let installed = await store.verifiedInstallation(ModelCatalog.sileroVAD) else {
-            throw VoiceActivityDetectionError.modelNotInstalled
-        }
-        try Task.checkCancellation()
-        let url = installed.directory.appendingPathComponent(
-            ModelCatalog.sileroVADBundleDirectory, isDirectory: true)
-        let configuration = MLModelConfiguration()
-        configuration.computeUnits = computeUnits
-        let model = try await MLModel.load(contentsOf: url, configuration: configuration)
-        try Task.checkCancellation()
-        let manager = VadManager(
-            config: VadConfig(computeUnits: computeUnits), vadModel: model)
-        return SileroVoiceActivityDetector(channel: channel) { frame, state in
-            try await manager.processStreamingChunk(frame, state: state)
+        try await loadLeased(from: store, manifest: ModelCatalog.sileroVAD, channel: channel) { directory in
+            let url = directory.appendingPathComponent(ModelCatalog.sileroVADBundleDirectory, isDirectory: true)
+            let configuration = MLModelConfiguration()
+            configuration.computeUnits = computeUnits
+            let model = try await MLModel.load(contentsOf: url, configuration: configuration)
+            let manager = VadManager(config: VadConfig(computeUnits: computeUnits), vadModel: model)
+            return { frame, state in try await manager.processStreamingChunk(frame, state: state) }
         }
     }
 
-    init(channel: AudioChannel, infer: @escaping Inference) {
+    static func loadLeased(
+        from store: LocalModelStore, manifest: ModelManifest, channel: AudioChannel,
+        prepare: @Sendable (URL) async throws -> Inference
+    ) async throws -> SileroVoiceActivityDetector {
+        let lease: LocalModelStore.ModelLease
+        do {
+            lease = try await store.lease(manifest)
+        } catch LocalModelStore.LocalModelStoreError.notInstalled {
+            throw VoiceActivityDetectionError.modelNotInstalled
+        }
+        try Task.checkCancellation()
+        let infer = try await prepare(lease.directory)
+        try Task.checkCancellation()
+        return SileroVoiceActivityDetector(channel: channel, modelLease: lease, infer: infer)
+    }
+
+    init(channel: AudioChannel, modelLease: LocalModelStore.ModelLease? = nil, infer: @escaping Inference) {
         self.channel = channel
         self.infer = infer
+        self.modelLease = modelLease
     }
 
     /// One ordered producer owns each detector. Reentrant concurrent calls
