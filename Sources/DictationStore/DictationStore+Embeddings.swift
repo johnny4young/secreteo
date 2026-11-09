@@ -54,6 +54,27 @@ extension DictationStore {
         }
     }
 
+    /// Which dictations the filter allows that have a vector from `profile`, without reading the vectors.
+    public func dictationEmbeddingIDs(
+        profile: String, matching filter: DictationRecordFilter = .all
+    ) async throws -> Set<DictationRecordID> {
+        var wordless = filter
+        wordless.query = ""
+        guard let (filters, filterArguments) = Self.dictationFilterConditions(wordless) else { return [] }
+        let conditions = ["dictationEmbedding.profile = ?"] + filters
+        let arguments: StatementArguments = [profile] + filterArguments
+        let sql = """
+            SELECT dictationEmbedding.recordID
+            FROM dictationEmbedding JOIN dictationRecord ON dictationRecord.id = dictationEmbedding.recordID
+            WHERE \(conditions.joined(separator: " AND "))
+            """
+        return try await database.read { [arguments] database in
+            Set(try String.fetchAll(database, sql: sql, arguments: arguments).compactMap { raw in
+                UUID(uuidString: raw).map(DictationRecordID.init(rawValue:))
+            })
+        }
+    }
+
     /// The newest dictations with no vector from `profile`, to compute in the background.
     public func dictationRecordsMissingEmbedding(profile: String, limit: Int) async throws -> [DictationRecord] {
         guard (1...Self.maximumDictationPageSize).contains(limit) else { return [] }
