@@ -96,6 +96,9 @@ struct UnavailableDictationStore: DictationHistoryStore, DictationStatsStore, Di
     func dictationEmbeddings(
         profile: String, matching filter: DictationRecordFilter
     ) async throws -> [DictationEmbedding] { throw error }
+    func dictationEmbeddingIDs(
+        profile: String, matching filter: DictationRecordFilter
+    ) async throws -> Set<DictationRecordID> { throw error }
     func dictationRecordsMissingEmbedding(profile: String, limit: Int) async throws -> [DictationRecord] { throw error }
     func dictationRecords(ids: [DictationRecordID]) async throws -> [DictationRecord] { throw error }
 }

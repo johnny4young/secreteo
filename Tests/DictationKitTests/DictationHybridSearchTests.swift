@@ -10,25 +10,6 @@ struct DictationHybridSearchTests {
     private let third = DictationRecordID()
 
     @Test
-    func aDictationBothSearchesFoundRanksAboveEitherAlone() {
-        let fused = DictationHybridSearch.fuse(lexical: [first, second], semantic: [third, second])
-        #expect(fused.first == second)
-        #expect(Set(fused) == [first, second, third])
-    }
-
-    @Test
-    func theFirstWordMatchStaysFirstWhenMeaningAddsNothingAboveIt() {
-        let fused = DictationHybridSearch.fuse(lexical: [first, second], semantic: [first])
-        #expect(fused == [first, second])
-    }
-
-    @Test
-    func fusionStopsAtItsLimit() {
-        let ids = (0..<150).map { _ in DictationRecordID() }
-        #expect(DictationHybridSearch.fuse(lexical: ids, semantic: []).count == DictationHybridSearch.resultLimit)
-    }
-
-    @Test
     func onlyCloseEnoughDictationsRankByMeaningBestFirst() {
         let query: [Float] = [1, 0]
         let candidates = [
@@ -39,5 +20,19 @@ struct DictationHybridSearchTests {
         ]
         let ranked = DictationHybridSearch.semanticRanking(query: query, candidates: candidates)
         #expect(ranked == [second, first], "below the floor or another dimension never ranks")
+    }
+
+    @Test
+    func meaningMatchesSkipWhatTheWordSearchListed() {
+        let added = DictationHybridSearch.meaningOnly([second, third, first], after: [first])
+        #expect(added == [second, third])
+    }
+
+    @Test
+    func punctuationAloneHasNothingToMean() {
+        #expect(!DictationHybridSearch.isSearchable("?! --"))
+        #expect(!DictationHybridSearch.isSearchable(""))
+        #expect(DictationHybridSearch.isSearchable("informe"))
+        #expect(DictationHybridSearch.isSearchable("2026"))
     }
 }

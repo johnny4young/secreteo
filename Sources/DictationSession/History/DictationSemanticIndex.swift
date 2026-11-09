@@ -9,6 +9,9 @@ protocol DictationEmbeddingStore: Sendable {
     func dictationEmbeddings(
         profile: String, matching filter: DictationRecordFilter
     ) async throws -> [DictationEmbedding]
+    func dictationEmbeddingIDs(
+        profile: String, matching filter: DictationRecordFilter
+    ) async throws -> Set<DictationRecordID>
     func dictationRecordsMissingEmbedding(profile: String, limit: Int) async throws -> [DictationRecord]
     func dictationRecords(ids: [DictationRecordID]) async throws -> [DictationRecord]
 }
@@ -23,23 +26,32 @@ actor DictationSemanticIndex {
     private let store: any DictationEmbeddingStore
     private let embedding: any DictationTextEmbedding
     private var library: [DictationEmbedding]?
-    private var isBackfilling = false
+    /// Bumped on every change, so a read that started before one is never cached.
+    private var generation = 0
+    private var backfilling: Task<Void, Never>?
+    /// Dictations the model could not embed this launch, so a backfill does not retry them forever.
+    private var unembeddable: Set<DictationRecordID> = []
+    private var onChange: (@Sendable () async -> Void)?
 
     init(store: any DictationEmbeddingStore, embedding: any DictationTextEmbedding) {
         self.store = store
         self.embedding = embedding
     }
 
-    /// Dictations close in meaning to the query among those the filter's application and
-    /// delivery allow; nil when the model is not on this Mac.
+    /// Called after new vectors are saved, so a search on screen can add what they find.
+    func setChangeHandler(_ handler: @escaping @Sendable () async -> Void) {
+        onChange = handler
+    }
+
+    /// Dictations close in meaning to the query among those the filter allows; nil when
+    /// the query has nothing to mean or the model is not on this Mac.
     func ranking(for query: String, matching filter: DictationRecordFilter) async throws -> [DictationRecordID]? {
-        guard await embedding.isReady() else { return nil }
+        guard DictationHybridSearch.isSearchable(query), await embedding.isReady() else { return nil }
         var candidates = try await currentLibrary()
         guard !candidates.isEmpty else { return [] }
         let vector = try await embedding.embed(query)
-        if filter.applicationName != nil || filter.onlyNotDelivered {
-            let allowed = Set(try await store.dictationEmbeddings(profile: embedding.profile, matching: filter)
-                .map(\.recordID))
+        if filter.applicationName != nil || filter.onlyNotDelivered || filter.recordID != nil {
+            let allowed = try await store.dictationEmbeddingIDs(profile: embedding.profile, matching: filter)
             candidates = candidates.filter { allowed.contains($0.recordID) }
         }
         return DictationHybridSearch.semanticRanking(query: vector, candidates: candidates)
@@ -51,41 +63,59 @@ actor DictationSemanticIndex {
 
     /// A store that refuses the vector, because the dictation is gone, keeps nothing.
     func index(_ record: DictationRecord) async {
-        guard await embedding.isReady(), let vector = try? await embedding.embed(record.text) else { return }
-        _ = try? await store.saveDictationEmbedding(
-            .init(recordID: record.id, vector: vector), profile: embedding.profile)
+        guard await embedding.isReady(), let vector = try? await embedding.embed(record.text),
+              (try? await store.saveDictationEmbedding(
+                .init(recordID: record.id, vector: vector), profile: embedding.profile)) == true
+        else { return }
+        invalidate()
+        await onChange?()
+    }
+
+    /// Computes vectors for dictations saved before this model, newest first. A second
+    /// call waits for the one already running.
+    func backfill() async {
+        if let backfilling { return await backfilling.value }
+        let task = Task { await runBackfill() }
+        backfilling = task
+        await task.value
+        backfilling = nil
+    }
+
+    func invalidate() {
+        generation += 1
         library = nil
     }
 
-    /// Computes vectors for dictations saved before this model, newest first.
-    func backfill() async {
-        guard !isBackfilling, await embedding.isReady() else { return }
-        isBackfilling = true
-        defer { isBackfilling = false }
-        while let missing = try? await store.dictationRecordsMissingEmbedding(
-            profile: embedding.profile, limit: Self.backfillBatch), !missing.isEmpty {
-            var saved = 0
+    private func runBackfill() async {
+        guard await embedding.isReady() else { return }
+        var savedAny = false
+        while true {
+            let limit = min(Self.backfillBatch + unembeddable.count, DictationStore.maximumDictationPageSize)
+            guard let batch = try? await store.dictationRecordsMissingEmbedding(
+                profile: embedding.profile, limit: limit)
+            else { break }
+            let missing = batch.filter { !unembeddable.contains($0.id) }
+            guard !missing.isEmpty else { break }
             for record in missing {
                 guard let vector = try? await embedding.embed(record.text),
                       (try? await store.saveDictationEmbedding(
                         .init(recordID: record.id, vector: vector), profile: embedding.profile)) == true
-                else { continue }
-                saved += 1
+                else {
+                    unembeddable.insert(record.id)
+                    continue
+                }
+                savedAny = true
             }
-            library = nil
-            // A batch that saved nothing would come back unchanged forever.
-            guard saved > 0 else { return }
+            invalidate()
         }
-    }
-
-    func invalidate() {
-        library = nil
+        if savedAny { await onChange?() }
     }
 
     private func currentLibrary() async throws -> [DictationEmbedding] {
         if let library { return library }
+        let started = generation
         let all = try await store.dictationEmbeddings(profile: embedding.profile, matching: .all)
-        library = all
+        if generation == started { library = all }
         return all
     }
 }

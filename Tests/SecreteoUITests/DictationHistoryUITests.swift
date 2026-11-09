@@ -71,11 +71,11 @@ final class DictationHistoryUITests: SecreteoUITestCase {
 
         let search = app.control(withIdentifier: "dictation-history-search")
         search.click()
-        search.typeText("informe")
+        search.typeText("elimina las notas")
 
-        // No saved dictation contains the word; the report means the same.
+        // No saved dictation holds these words; the note about not deleting means the same.
         XCTAssertTrue(waitForUITestCondition(timeout: 5) {
-            renderedText(of: first) == "Send the report on Friday." && !second.exists
+            renderedText(of: first) == "No borres estas notas." && !second.exists
         })
         attachScreenshot(named: "pr-dictation-history-meaning")
     }
