@@ -78,10 +78,16 @@ def copy_synthetic_audio(destination):
     shutil.copytree(source, destination)
 
 
+def clear_synthetic_audio_template():
+    if _synthetic_audio_template.cache_info().currsize:
+        _synthetic_audio_template().cleanup()
+    _synthetic_audio_template.cache_clear()
+
+
 class SyntheticAudioFixtureTests(unittest.TestCase):
     def setUp(self):
-        _synthetic_audio_template.cache_clear()
-        self.addCleanup(_synthetic_audio_template.cache_clear)
+        clear_synthetic_audio_template()
+        self.addCleanup(clear_synthetic_audio_template)
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
@@ -147,6 +153,16 @@ class SyntheticAudioFixtureTests(unittest.TestCase):
         copy_synthetic_audio(self.root / "retry")
         manifest, _ = corpus.read_json(self.root / "retry/manifest.json")
         self.assertEqual(len(manifest["entries"]), 480)
+
+
+    def test_reset_releases_the_template_even_if_a_reference_is_still_alive(self):
+        template = _synthetic_audio_template()
+        root = Path(template.name)
+        self.assertTrue(root.is_dir())
+        clear_synthetic_audio_template()
+        self.assertFalse(root.exists())
+        self.assertEqual(_synthetic_audio_template.cache_info().currsize, 0)
+        clear_synthetic_audio_template()
 
 
 class DictationMaterializationTests(unittest.TestCase):
