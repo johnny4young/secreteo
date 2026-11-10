@@ -36,6 +36,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: scripts/verify-ci-toolchain.sh 26 26.6
       - run: scripts/install-ci-xcodegen.sh "$RUNNER_TEMP/xcodegen"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+          package-manager-cache: false
       - run: scripts/run-ui-tests.sh full build/pr-screenshots "${{ matrix.shard }}/2"
       # A dispatch on a branch is how tests outside the smoke plan get PR evidence.
       - if: always()

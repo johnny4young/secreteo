@@ -25,6 +25,11 @@ jobs:
           GLOBAL_DICTATION_CLEARED: ${{ vars.GLOBAL_DICTATION_CLEARED }}
         run: python3 scripts/check_release.py check "$GITHUB_REF_NAME"
       - run: scripts/verify-ci-toolchain.sh 26 26.6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+          package-manager-cache: false
       - run: scripts/check-repository-hygiene.sh
       - run: swift build -Xswiftc -warnings-as-errors
       - run: swift test --parallel -Xswiftc -warnings-as-errors
