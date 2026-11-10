@@ -24,7 +24,10 @@ function validate(sources, script) {
     [...source.matchAll(/scripts\/check-repository-hygiene\.sh/g)].map(() => name));
   assert.deepEqual(consumers.sort(), ['ci.yml', 'release.yml']);
   const hygiene = job(sources['ci.yml'], 'hygiene');
-  assert.ok(hygiene.includes(`      - run: ${command}\n`));
+  const hygieneStep = `      - run: ${command}`;
+  assert.ok(hygiene.includes(`${hygieneStep}\n`));
+  assert.equal(hygiene.slice(hygiene.indexOf(hygieneStep)).split(/\n      - /)[0].trimEnd(), hygieneStep,
+    'Repository hygiene cannot be conditional or allowed to fail');
   assert.doesNotMatch(hygiene, /^    (?:if|continue-on-error|needs):/m,
     'CI hygiene must run independently and unconditionally');
   assert.doesNotMatch(hygiene, /python3/, 'CI legacy coverage runs on an independent runner');
@@ -67,6 +70,8 @@ for (const [name, file, mutate] of [
   ['conditional legacy step', 'ci.yml', source => source.replace(`        run: ${legacy}`, `        run: ${legacy}\n        if: false`)],
   ['allowed legacy failure', 'release.yml', source => source.replace(`        run: ${legacy}`, `        run: ${legacy}\n        continue-on-error: true`)],
   ['conditional verification job', 'ci.yml', source => source.replace('  hygiene:\n', '  hygiene:\n    if: false\n')],
+  ['conditional hygiene step', 'ci.yml', source => source.replace(`      - run: ${command}`, `      - run: ${command}\n        if: false`)],
+  ['allowed hygiene step failure', 'ci.yml', source => source.replace(`      - run: ${command}`, `      - run: ${command}\n        continue-on-error: true`)],
   ['missing legacy job', 'ci.yml', source => source.replace('  legacy-tooling:\n', '  removed:\n')],
   ['conditional legacy job', 'ci.yml', source => source.replace('  legacy-tooling:\n', '  legacy-tooling:\n    if: false\n')],
   ['allowed legacy job failure', 'ci.yml', source => source.replace('  legacy-tooling:\n', '  legacy-tooling:\n    continue-on-error: true\n')],
