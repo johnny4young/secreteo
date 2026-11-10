@@ -99,6 +99,8 @@ struct UnavailableDictationStore: DictationHistoryStore, DictationStatsStore, Di
     func dictationEmbeddingIDs(
         profile: String, matching filter: DictationRecordFilter
     ) async throws -> Set<DictationRecordID> { throw error }
-    func dictationRecordsMissingEmbedding(profile: String, limit: Int) async throws -> [DictationRecord] { throw error }
+    func dictationRecordsMissingEmbedding(
+        profile: String, before cursor: DictationRecord?, limit: Int
+    ) async throws -> [DictationRecord] { throw error }
     func dictationRecords(ids: [DictationRecordID]) async throws -> [DictationRecord] { throw error }
 }

@@ -76,17 +76,26 @@ extension DictationStore {
     }
 
     /// The newest dictations with no vector from `profile`, to compute in the background.
-    public func dictationRecordsMissingEmbedding(profile: String, limit: Int) async throws -> [DictationRecord] {
+    public func dictationRecordsMissingEmbedding(
+        profile: String, before cursor: DictationRecord? = nil, limit: Int
+    ) async throws -> [DictationRecord] {
         guard (1...Self.maximumDictationPageSize).contains(limit) else { return [] }
+        var arguments: StatementArguments = [profile]
+        var before = ""
+        if let cursor {
+            before = " AND (createdAt < ? OR (createdAt = ? AND id < ?))"
+            arguments += [cursor.createdAt, cursor.createdAt, cursor.id.rawValue.uuidString]
+        }
+        arguments += [limit]
         let sql = Self.dictationColumns + """
 
             WHERE NOT EXISTS (
                 SELECT 1 FROM dictationEmbedding
-                WHERE dictationEmbedding.recordID = dictationRecord.id AND dictationEmbedding.profile = ?)
+                WHERE dictationEmbedding.recordID = dictationRecord.id AND dictationEmbedding.profile = ?)\(before)
             ORDER BY createdAt DESC, id DESC LIMIT ?
             """
-        return try await database.read { database in
-            try Row.fetchAll(database, sql: sql, arguments: [profile, limit]).map(Self.dictationRecord(from:))
+        return try await database.read { [arguments] database in
+            try Row.fetchAll(database, sql: sql, arguments: arguments).map(Self.dictationRecord(from:))
         }
     }
 

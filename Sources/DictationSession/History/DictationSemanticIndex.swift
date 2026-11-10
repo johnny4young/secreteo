@@ -12,7 +12,9 @@ protocol DictationEmbeddingStore: Sendable {
     func dictationEmbeddingIDs(
         profile: String, matching filter: DictationRecordFilter
     ) async throws -> Set<DictationRecordID>
-    func dictationRecordsMissingEmbedding(profile: String, limit: Int) async throws -> [DictationRecord]
+    func dictationRecordsMissingEmbedding(
+        profile: String, before cursor: DictationRecord?, limit: Int
+    ) async throws -> [DictationRecord]
     func dictationRecords(ids: [DictationRecordID]) async throws -> [DictationRecord]
 }
 
@@ -89,14 +91,13 @@ actor DictationSemanticIndex {
     private func runBackfill() async {
         guard await embedding.isReady() else { return }
         var savedAny = false
+        var cursor: DictationRecord?
         while true {
-            let limit = min(Self.backfillBatch + unembeddable.count, DictationStore.maximumDictationPageSize)
             guard let batch = try? await store.dictationRecordsMissingEmbedding(
-                profile: embedding.profile, limit: limit)
+                profile: embedding.profile, before: cursor, limit: Self.backfillBatch), let last = batch.last
             else { break }
-            let missing = batch.filter { !unembeddable.contains($0.id) }
-            guard !missing.isEmpty else { break }
-            for record in missing {
+            cursor = last
+            for record in batch where !unembeddable.contains(record.id) {
                 guard let vector = try? await embedding.embed(record.text),
                       (try? await store.saveDictationEmbedding(
                         .init(recordID: record.id, vector: vector), profile: embedding.profile)) == true

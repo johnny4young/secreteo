@@ -89,6 +89,21 @@ struct DictationEmbeddingStoreTests {
     }
 
     @Test
+    func missingVectorPagesContinuePastAnIndexedCursorWithEqualDates() async throws {
+        let store = try await historyStore()
+        let first = try await save("First.", app: "Notes", id: .init(rawValue: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!), into: store)
+        let second = try await save("Second.", app: "Notes", id: .init(rawValue: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!), into: store)
+        let third = try await save("Third.", app: "Notes", id: .init(rawValue: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!), into: store)
+
+        let page = try await store.dictationRecordsMissingEmbedding(profile: "model", limit: 2)
+        #expect(page.map(\.id) == [first.id, second.id])
+        #expect(try await store.saveDictationEmbedding(.init(recordID: second.id, vector: [1]), profile: "model"))
+        let next = try await store.dictationRecordsMissingEmbedding(profile: "model", before: second, limit: 2)
+
+        #expect(next.map(\.id) == [third.id])
+    }
+
+    @Test
     func recordsComeBackInTheOrderAskedWithoutTheMissingOnes() async throws {
         let store = try await historyStore()
         let first = try await save("Primero.", app: "Notes", into: store)
@@ -141,10 +156,11 @@ struct DictationEmbeddingStoreTests {
 
     private func save(
         _ text: String, app: String, delivery: DictationRecordDelivery = .verified, at createdAt: Date? = nil,
+        id: DictationRecordID = DictationRecordID(),
         into store: DictationStore
     ) async throws -> DictationRecord {
         let record = DictationRecord(
-            id: DictationRecordID(), createdAt: createdAt ?? now, duration: 1, text: text, originalText: nil,
+            id: id, createdAt: createdAt ?? now, duration: 1, text: text, originalText: nil,
             mode: .literal, language: nil, engine: "parakeet", applicationName: app, applicationBundleID: nil,
             delivery: delivery)
         #expect(try await store.recordDictation(record, admittedGeneration: 0, at: now) == .saved)
