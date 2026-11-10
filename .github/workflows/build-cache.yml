@@ -41,8 +41,7 @@ jobs:
           path: .build
           key: ${{ steps.key.outputs.prefix }}
           restore-keys: ${{ steps.key.outputs.graph }}
-      # The same commands and flags as the unit job, or its restored products are rebuilt.
-      - run: swift build -Xswiftc -warnings-as-errors
+      # Includes default products and test bundles in one planning pass, with the unit job's flags.
       - run: swift build --build-tests -Xswiftc -warnings-as-errors
       - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:

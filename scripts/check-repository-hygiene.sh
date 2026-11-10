@@ -154,7 +154,7 @@ for probe in "${ignore_probes[@]}"; do
 done
 
 if [[ -d Tests/Tooling ]]; then
-  node --test Tests/Tooling/test_ui_shards.mjs Tests/Tooling/test_ui_results.mjs
+  node --test Tests/Tooling/test_ui_shards.mjs Tests/Tooling/test_ui_results.mjs Tests/Tooling/test_build_cache.mjs
   python3 -I -m unittest discover -s Tests/Tooling -p 'test_*.py'
 fi
 
