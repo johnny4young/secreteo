@@ -54,7 +54,7 @@ test('packaging reports every stage and total without changing build or verifica
   assert.deepEqual(result.calls.find(row => row.name === 'xcodebuild').args, [
     '-project', 'Secreteo.xcodeproj', '-scheme', 'Secreteo', '-configuration', 'Release',
     '-destination', 'platform=macOS,arch=arm64', '-derivedDataPath', 'build/release',
-    '-skipPackagePluginValidation', '-showBuildTimingSummary', 'MARKETING_VERSION=1.2.3',
+    '-skipPackagePluginValidation', '-showBuildTimingSummary', 'ARCHS=arm64', 'MARKETING_VERSION=1.2.3',
     'SPARKLE_PUBLIC_ED_KEY=synthetic-public-key', 'build',
   ]);
   assert.deepEqual(result.calls.find(row => row.name === 'sign-app.sh').args, ['build/release-stage/1.2.3/Secreteo.app', '-']);
@@ -69,7 +69,7 @@ test('production keeps quiet build output and does not use the diagnostic dry-ru
   assert.deepEqual(result.calls.find(row => row.name === 'xcodebuild').args, [
     '-project', 'Secreteo.xcodeproj', '-scheme', 'Secreteo', '-configuration', 'Release',
     '-destination', 'platform=macOS,arch=arm64', '-derivedDataPath', 'build/release',
-    '-skipPackagePluginValidation', '-quiet', 'MARKETING_VERSION=1.2.3', 'build',
+    '-skipPackagePluginValidation', '-quiet', 'ARCHS=arm64', 'MARKETING_VERSION=1.2.3', 'build',
   ]);
   assert.equal(result.calls.at(-1).name, 'xcodebuild');
   assert.doesNotMatch(result.output, /synthetic-identity|synthetic-id|synthetic-issuer|synthetic-unused-key-path/);

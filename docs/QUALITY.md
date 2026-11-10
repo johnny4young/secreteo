@@ -24,6 +24,8 @@ The Settings scroll helper ends each directional search when its control is hitt
 
 Packaging logs `PackageTiming` records for preparation, build, copy, signing, disk-image creation and verification, plus a successful total. Records contain elapsed whole seconds from Bash and the exit status, without command arguments. An exit trap reports nonzero exits from an active stage while preserving the status; an unsuccessful package has no success total. Interrupted runs can lack stage completion records. Dry-run builds use Xcode's full build log with its command timing summary; production keeps quiet build output. These records distinguish packaging stages from the full release dry-run and its runner setup; compiler task times can overlap and must not be summed as elapsed time. Production notarization remains part of the total, outside these individual stages. Timings alone do not establish a speedup or certify the CI budget.
 
+Packaging passes `ARCHS=arm64` to `xcodebuild` so the Apple silicon product policy also covers package targets. Project-level architecture settings alone still let those targets compile additional Intel slices. Both production and dry-run use the same architecture argument, and release verification still requires the main executable to contain only arm64. This does not thin or change vendored prebuilt frameworks.
+
 ## Local gates
 
 Run in series.
