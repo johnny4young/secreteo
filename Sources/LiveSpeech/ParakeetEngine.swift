@@ -32,9 +32,11 @@ public final class ParakeetEngine: TranscriptionEngine, Sendable {
     private let prepareLiveManager: LiveManagerPreparation
     private let prepareBatchManager: BatchManagerPreparation
     private let liveWorkObserver: (@Sendable (ParakeetLiveWorkSample) -> Void)?
+    private let modelLease: LocalModelStore.ModelLease?
 
     /// Loads the engine from a directory the `ModelStore` has verified.
     /// Never point this at an unverified download — model files are code.
+    /// The caller keeps its own store lease; use `load(from:)` to manage that lifetime here.
     @concurrent
     public static func load(
         fromVerifiedDirectory directory: URL, checkpoint: ParakeetCheckpoint = .v3
@@ -56,14 +58,41 @@ public final class ParakeetEngine: TranscriptionEngine, Sendable {
         case unexpectedOptionalModel
     }
 
+    /// Verifies and leases an installed checkpoint before loading; never downloads.
+    public static func load(
+        from store: LocalModelStore, checkpoint: ParakeetCheckpoint = .v3
+    ) async throws -> ParakeetEngine {
+        try await loadLeased(
+            from: store,
+            manifest: checkpoint == .ultra ? ModelCatalog.parakeetUltra : ModelCatalog.parakeetTdtV3,
+            checkpoint: checkpoint,
+            prepare: { try await load(fromVerifiedDirectory: $0, checkpoint: $1) })
+    }
+
+    static func loadLeased(
+        from store: LocalModelStore, manifest: ModelManifest, checkpoint: ParakeetCheckpoint,
+        prepare: @Sendable (URL, ParakeetCheckpoint) async throws -> ParakeetEngine
+    ) async throws -> ParakeetEngine {
+        let lease = try await store.lease(manifest)
+        try Task.checkCancellation()
+        let engine = try await prepare(lease.directory, checkpoint)
+        try Task.checkCancellation()
+        return ParakeetEngine(
+            prepareLiveManager: engine.prepareLiveManager,
+            prepareBatchManager: engine.prepareBatchManager,
+            liveWorkObserver: engine.liveWorkObserver,
+            checkpoint: checkpoint,
+            modelLease: lease)
+    }
+
     /// Ensures the catalog model is downloaded + verified, then loads it.
     public static func loadRecommended(
         store: LocalModelStore,
         seeds: [URL] = [],
         progress: (@Sendable (LocalModelStore.InstallEvent) -> Void)? = nil
     ) async throws -> ParakeetEngine {
-        let directory = try await store.ensureAvailable(ModelCatalog.parakeetTdtV3, seeds: seeds, progress: progress)
-        return try await load(fromVerifiedDirectory: directory)
+        try await store.ensureAvailable(ModelCatalog.parakeetTdtV3, seeds: seeds, progress: progress)
+        return try await load(from: store)
     }
 
     /// Shares verified immutable model weights while observing only public
@@ -75,7 +104,8 @@ public final class ParakeetEngine: TranscriptionEngine, Sendable {
             prepareLiveManager: prepareLiveManager,
             prepareBatchManager: prepareBatchManager,
             liveWorkObserver: observer,
-            checkpoint: checkpoint)
+            checkpoint: checkpoint,
+            modelLease: modelLease)
     }
 
     convenience init(
@@ -115,7 +145,8 @@ public final class ParakeetEngine: TranscriptionEngine, Sendable {
         prepareLiveManager: @escaping LiveManagerPreparation,
         prepareBatchManager: @escaping BatchManagerPreparation,
         liveWorkObserver: (@Sendable (ParakeetLiveWorkSample) -> Void)? = nil,
-        checkpoint: ParakeetCheckpoint = .v3
+        checkpoint: ParakeetCheckpoint = .v3,
+        modelLease: LocalModelStore.ModelLease? = nil
     ) {
         // Vendor debug messages contain hypotheses. Keep them out of stderr;
         // warnings/errors remain in the system log with default private text.
@@ -125,6 +156,7 @@ public final class ParakeetEngine: TranscriptionEngine, Sendable {
         self.prepareBatchManager = prepareBatchManager
         self.liveWorkObserver = liveWorkObserver
         self.checkpoint = checkpoint
+        self.modelLease = modelLease
         self.descriptor = EngineDescriptor(
             id: checkpoint == .ultra ? "parakeet-ultra" : "parakeet-tdt-0.6b-v3",
             displayName: checkpoint == .ultra ? "Parakeet Ultra" : "Parakeet TDT 0.6B v3",
@@ -159,8 +191,10 @@ public final class ParakeetEngine: TranscriptionEngine, Sendable {
     ) -> AsyncThrowingStream<TranscriptSegment, Error> {
         let prepareLiveManager = self.prepareLiveManager
         let observer = liveWorkObserver
+        let lease = modelLease
         return AsyncThrowingStream { continuation in
             let job = Task {
+                defer { withExtendedLifetime(lease) {} }
                 let probe = observer.map { _ in ParakeetLiveWorkProbe() }
                 var preparedManager: SlidingWindowAsrManager?
                 var consumer: Task<Void, Error>?
