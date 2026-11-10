@@ -65,9 +65,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          # main requires up-to-date branches, so a merge lands the tree its pull request proved.
-          if [ "$EVENT_NAME" = push ] && python3 scripts/ci_reuse_gate.py "$GITHUB_REPOSITORY" "$HEAD_SHA"; then
-            printf 'code=false\ndelivery=false\nrelease=false\n' | tee -a "$GITHUB_OUTPUT"
+          # Reuse only a proven exact tree and a stable, completed CI attempt.
+          if [ "$EVENT_NAME" = push ]; then
+            run_jobs=true
+            if node scripts/ci_reuse_gate.mjs "$GITHUB_REPOSITORY" "$HEAD_SHA"; then
+              run_jobs=false
+            fi
+            printf 'code=%s\ndelivery=%s\nrelease=%s\n' "$run_jobs" "$run_jobs" "$run_jobs" | tee -a "$GITHUB_OUTPUT"
             exit 0
           fi
           # A manual run has no diff, and an empty list runs everything.
