@@ -18,18 +18,21 @@ if (name === 'xcodebuild') fs.mkdirSync('build/release/Build/Products/Release/Se
 if (name === 'ditto') fs.cpSync(args[0], args[1], {recursive:true});
 if (name === 'hdiutil') fs.writeFileSync(args.at(-1), 'synthetic disk image');
 `;
-function run({ fail = '', retries = 0, version = '1.2.3' } = {}) {
+function run({ fail = '', retries = 0, version = '1.2.3', mode = 'dryrun' } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'secreteo release timings '));
   roots.push(root);
   mkdirSync(join(root, 'scripts')); mkdirSync(join(root, 'bin'));
   copyFileSync(new URL('../../scripts/package-release.sh', import.meta.url), join(root, 'scripts/package-release.sh'));
+  writeFileSync(join(root, 'project.yml'), 'settings:\n  base:\n    MARKETING_VERSION: "1.2.3"\n    SPARKLE_PUBLIC_ED_KEY: "synthetic-public-key"\n');
   for (const name of ['fetch-sparkle.sh', 'sign-app.sh']) writeFileSync(join(root, 'scripts', name), stub, { mode: 0o755 });
   for (const name of ['xcodegen', 'xcodebuild', 'ditto', 'hdiutil', 'python3', 'sleep']) {
     writeFileSync(join(root, 'bin', name), stub, { mode: 0o755 });
   }
-  const result = spawnSync('/bin/bash', ['scripts/package-release.sh', version, 'dryrun'], {
+  const result = spawnSync('/bin/bash', ['scripts/package-release.sh', version, mode], {
     cwd: root, encoding: 'utf8', env: { PATH: `${join(root, 'bin')}:${process.env.PATH}`, LC_ALL: 'C',
-      DRYRUN_SPARKLE_PUBLIC_KEY: 'synthetic-public-key', FAIL_STAGE: fail, DMG_RETRIES: String(retries) },
+      DRYRUN_SPARKLE_PUBLIC_KEY: 'synthetic-public-key', FAIL_STAGE: fail, DMG_RETRIES: String(retries),
+      MACOS_CODE_SIGN_IDENTITY: 'synthetic-identity', MACOS_NOTARY_KEY_ID: 'synthetic-id',
+      MACOS_NOTARY_KEY_ISSUER_ID: 'synthetic-issuer', MACOS_NOTARY_KEY_P8: 'synthetic-unused-key-path' },
   });
   let calls = [];
   try { calls = readFileSync(join(root, 'calls.jsonl'), 'utf8').trim().split('\n').map(JSON.parse); }
@@ -51,13 +54,25 @@ test('packaging reports every stage and total without changing build or verifica
   assert.deepEqual(result.calls.find(row => row.name === 'xcodebuild').args, [
     '-project', 'Secreteo.xcodeproj', '-scheme', 'Secreteo', '-configuration', 'Release',
     '-destination', 'platform=macOS,arch=arm64', '-derivedDataPath', 'build/release',
-    '-skipPackagePluginValidation', '-quiet', '-showBuildTimingSummary', 'MARKETING_VERSION=1.2.3',
+    '-skipPackagePluginValidation', '-showBuildTimingSummary', 'MARKETING_VERSION=1.2.3',
     'SPARKLE_PUBLIC_ED_KEY=synthetic-public-key', 'build',
   ]);
   assert.deepEqual(result.calls.find(row => row.name === 'sign-app.sh').args, ['build/release-stage/1.2.3/Secreteo.app', '-']);
   assert.deepEqual(result.calls.find(row => row.name === 'python3').args, ['scripts/verify_release.py', 'dist/Secreteo-1.2.3.dmg', '1.2.3', 'dryrun']);
   assert.match(readFileSync(join(result.root, 'dist/Secreteo-1.2.3.dmg.sha256'), 'utf8'), /^[a-f0-9]{64}  Secreteo-1\.2\.3\.dmg\n$/);
   assert.doesNotMatch(result.output, /synthetic-public-key|MARKETING_VERSION|SPARKLE_PUBLIC_ED_KEY/);
+});
+
+test('production keeps quiet build output and does not use the diagnostic dry-run flag', () => {
+  const result = run({ mode: 'production', fail: 'xcodebuild' });
+  assert.equal(result.status, 37);
+  assert.deepEqual(result.calls.find(row => row.name === 'xcodebuild').args, [
+    '-project', 'Secreteo.xcodeproj', '-scheme', 'Secreteo', '-configuration', 'Release',
+    '-destination', 'platform=macOS,arch=arm64', '-derivedDataPath', 'build/release',
+    '-skipPackagePluginValidation', '-quiet', 'MARKETING_VERSION=1.2.3', 'build',
+  ]);
+  assert.equal(result.calls.at(-1).name, 'xcodebuild');
+  assert.doesNotMatch(result.output, /synthetic-identity|synthetic-id|synthetic-issuer|synthetic-unused-key-path/);
 });
 
 for (const [fail, phase] of [['fetch-sparkle.sh', 'prepare'], ['xcodegen', 'prepare'], ['xcodebuild', 'build'],

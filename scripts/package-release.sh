@@ -34,6 +34,7 @@ project_setting() {
 }
 
 settings=("MARKETING_VERSION=$version")
+build_output=(-quiet)
 case "$mode" in
   production)
     identity="${MACOS_CODE_SIGN_IDENTITY:?MACOS_CODE_SIGN_IDENTITY is required}"
@@ -49,6 +50,8 @@ case "$mode" in
   dryrun)
     identity="-"
     settings+=("SPARKLE_PUBLIC_ED_KEY=${DRYRUN_SPARKLE_PUBLIC_KEY:?DRYRUN_SPARKLE_PUBLIC_KEY is required}")
+    # Quiet output also suppresses Xcode's timing summary.
+    build_output=(-showBuildTimingSummary)
     ;;
   *)
     echo "Unknown mode: $mode" >&2
@@ -89,7 +92,7 @@ mkdir -p "$stage"
 begin_phase build
 xcodebuild -project Secreteo.xcodeproj -scheme Secreteo -configuration Release \
   -destination 'platform=macOS,arch=arm64' -derivedDataPath "$derived" \
-  -skipPackagePluginValidation -quiet -showBuildTimingSummary "${settings[@]}" build
+  -skipPackagePluginValidation "${build_output[@]}" "${settings[@]}" build
 finish_phase 0
 begin_phase copy
 ditto "$derived/Build/Products/Release/Secreteo.app" "$app"
