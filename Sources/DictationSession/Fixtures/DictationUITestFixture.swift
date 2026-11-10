@@ -218,7 +218,7 @@ final class DictationUITestFixture {
 
     /// Recovery and delivery journeys use a deterministic clock; others use real time.
     private static func fixtureClock(_ fixture: DictationUITestFixture?) -> () -> Date {
-        var clockTick = 0.0
+        var clockTick = Date().timeIntervalSince1970
         return {
             guard fixture?.recoversDestination == true || fixture?.deliveryOutcome != nil else { return Date() }
             defer { clockTick += 1 }

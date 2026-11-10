@@ -263,6 +263,83 @@ final class DictationHybridHistoryTests: XCTestCase {
         XCTAssertNil(model.failure)
     }
 
+    func testReapplyingAFilterCancelledDuringMeaningSearchRestoresItsMatches() async throws {
+        try await assertCancelledMeaningSearchCanRetry(overlapping: false)
+    }
+
+    func testReapplyingAFilterWhileItsCancelledMeaningSearchIsStillFinishing() async throws {
+        try await assertCancelledMeaningSearchCanRetry(overlapping: true)
+    }
+
+    private func assertCancelledMeaningSearchCanRetry(overlapping: Bool) async throws {
+        let store = try DictationStore.inMemory()
+        let policy = try await store.setDictationHistoryPolicy(
+            isEnabled: true, keepsOriginal: false, retentionDays: 30, at: Date())
+        let report = record("Send the report on Friday.", app: "Notes")
+        _ = try await store.recordDictation(report, admittedGeneration: policy.generation, at: Date())
+        let fixture = DictationFixtureEmbedding()
+        let vector = try await fixture.embed(report.text)
+        _ = try await store.saveDictationEmbedding(
+            .init(recordID: report.id, vector: vector), profile: fixture.profile)
+        let gate = ControlledTestSleep()
+        let index = DictationSemanticIndex(
+            store: store, embedding: HeldQueryEmbedding(gate: gate, ignoresCancellation: overlapping))
+        let model = DictationHistoryModel(store: store, semantic: index)
+        await model.load()
+        await index.backfill()
+        let filter = DictationRecordFilter(query: "summary")
+        let search = Task { await model.apply(filter) }
+        addTeardownBlock {
+            search.cancel()
+            _ = await gate.resumeCall(at: 0)
+            await search.value
+        }
+        let held = await gate.waitUntilCallCount(1)
+        guard held else {
+            XCTFail("the semantic query did not suspend")
+            return
+        }
+
+        search.cancel()
+        if overlapping {
+            await model.apply(filter)
+            XCTAssertEqual(model.records.map(\.id), [report.id], "the retry finishes while the old query is held")
+            _ = await gate.resumeCall(at: 0)
+            await search.value
+        } else {
+            await search.value
+            await model.apply(filter)
+        }
+
+        XCTAssertEqual(model.records.map(\.id), [report.id])
+        XCTAssertNil(model.failure)
+    }
+
+    private actor HeldQueryEmbedding: DictationTextEmbedding {
+        nonisolated let profile = DictationFixtureEmbedding().profile
+        let gate: ControlledTestSleep
+        let ignoresCancellation: Bool
+        private var held = false
+
+        init(gate: ControlledTestSleep, ignoresCancellation: Bool) {
+            self.gate = gate
+            self.ignoresCancellation = ignoresCancellation
+        }
+        func isReady() async -> Bool { true }
+        func embed(_ text: String) async throws -> [Float] {
+            if text == "summary", !held {
+                held = true
+                if ignoresCancellation {
+                    let operation = Task { try await gate.wait(for: .zero) }
+                    try await operation.value
+                } else {
+                    try await gate.wait(for: .zero)
+                }
+            }
+            return try await DictationFixtureEmbedding().embed(text)
+        }
+    }
+
     func testReapplyingACancelledFilterLoadsItsRowsAfterASave() async throws {
         let store = try DictationStore.inMemory()
         let policy = try await store.setDictationHistoryPolicy(

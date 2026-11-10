@@ -21,6 +21,8 @@ final class DictationHistoryModel {
     @ObservationIgnored let semantic: DictationSemanticIndex?
     /// Drops a page that arrives after a newer filter was applied.
     @ObservationIgnored private var pageRequest = 0
+    /// Displayed word matches do not mean the semantic part has finished.
+    @ObservationIgnored private var completedPageRequest: Int?
     /// Invalidates reads after history writes, vector updates or visible page changes.
     @ObservationIgnored private var mutationRevision = 0
     /// The filter that produced the rows currently on screen.
@@ -56,7 +58,7 @@ final class DictationHistoryModel {
 
     /// Shows the newest page that matches; every filter applies before the page limit.
     func apply(_ filter: DictationRecordFilter) async {
-        guard filter != self.filter || (isLoaded && loadedFilter != filter) else { return }
+        guard filter != self.filter || (isLoaded && completedPageRequest != pageRequest) else { return }
         self.filter = filter
         pageRequest += 1
         let request = pageRequest
@@ -117,6 +119,7 @@ final class DictationHistoryModel {
             hasMore = page.count == ListDictations.pageSize
             if !hasMore { await appendMeaning(request) }
             guard request == pageRequest, !Task.isCancelled else { return }
+            completedPageRequest = request
             failure = nil
             return
         }
@@ -200,6 +203,7 @@ final class DictationHistoryModel {
             applications = []
             filter = .all
             loadedFilter = .all
+            completedPageRequest = pageRequest
             await semantic?.invalidate()
             policy = try await LoadDictationHistoryPolicy(store: store).execute(())
             failure = nil

@@ -4,8 +4,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
-- 🔎 **Search errors**: A failed older search no longer shows an error after a newer search succeeds.
-- 🔎 **Search errors**: Canceling a search no longer shows a load error, and an older search cannot clear a newer error.
+- 🔎 **Search errors**: cancelled searches can be retried without a false error, and older searches no longer replace the latest error state.
 - 🔎 **History search**: keep results ordered and up to date after saving or deleting, and continue indexing older dictations when some cannot be processed.
 - 🔎 **Search by meaning**: after the dictations that hold your words, Dictation History lists those that say the same thing in other words, in English or Spanish. It runs on this Mac and uses the language model macOS already has.
 - 🎙️ **Shared voice detector**: another app cannot remove Silero while dictation loads it or checks speech, including when a check is being cancelled.
