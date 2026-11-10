@@ -18,6 +18,8 @@ The existing CI and nightly screenshot artifacts also retain `test-results.json`
 
 The settings activation smoke checks its required controls from one accessibility snapshot. Each identifier absent from that snapshot still gets its original five-second existence wait; a failed snapshot falls back to those individual waits. The identifier inventory, absence checks and interaction assertions are unchanged.
 
+The Settings scroll helper ends each directional search when its control is hittable, rather than querying it for the rest of that loop's iterations. It retains the foreground guard, directional scroll limits and final existence/hittability wait. This does not change the selected tests or their assertions.
+
 ## Local gates
 
 Run in series.
