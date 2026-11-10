@@ -2,16 +2,19 @@
 
 from array import array
 import copy
+import functools
 import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import stat
 import subprocess
 import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 import wave
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -56,6 +59,94 @@ def write_pcm(path, samples):
     with path.open("xb") as stream, wave.open(stream, "wb") as target:
         target.setparams((1, 2, 16_000, len(block), "NONE", "not compressed"))
         target.writeframes(block.tobytes())
+
+
+@functools.cache
+def _synthetic_audio_template():
+    temporary = tempfile.TemporaryDirectory()
+    try:
+        producer.materialize(Path(temporary.name) / "audio", NAMES, SpeechDouble())
+    except BaseException:
+        temporary.cleanup()
+        raise
+    return temporary
+
+
+def copy_synthetic_audio(destination):
+    """Reuse generation, never mutable files: each test owns a full independent copy."""
+    source = Path(_synthetic_audio_template().name) / "audio"
+    shutil.copytree(source, destination)
+
+
+class SyntheticAudioFixtureTests(unittest.TestCase):
+    def setUp(self):
+        _synthetic_audio_template.cache_clear()
+        self.addCleanup(_synthetic_audio_template.cache_clear)
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+
+    @staticmethod
+    def inventory(root):
+        return {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in root.rglob("*") if path.is_file()}
+
+    def test_copies_materialize_once_and_keep_the_full_admitted_corpus(self):
+        with mock.patch.object(producer, "materialize", wraps=producer.materialize) as render:
+            for name in ("first", "second"):
+                destination = self.root / name
+                copy_synthetic_audio(destination)
+                manifest, _ = corpus.read_json(destination / "manifest.json")
+                _, cells = corpus.read_public_corpus()
+                corpus.validate_audio_manifest(manifest, cells, destination)
+                self.assertEqual(len(manifest["entries"]), 480)
+                self.assertEqual(stat.S_IMODE(destination.stat().st_mode), 0o700)
+                for path in destination.iterdir():
+                    self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
+            self.assertEqual(render.call_count, 1)
+        self.assertEqual(self.inventory(self.root / "first"), self.inventory(self.root / "second"))
+
+    def test_mutation_and_deletion_cannot_reach_another_copy_or_the_template(self):
+        first, second, third = (self.root / name for name in ("first", "second", "third"))
+        copy_synthetic_audio(first)
+        copy_synthetic_audio(second)
+        expected = self.inventory(second)
+        wav = next(first.glob("*.wav"))
+        self.assertNotEqual(wav.stat().st_ino, (second / wav.name).stat().st_ino)
+        wav.write_bytes(b"changed synthetic bytes")
+        (first / "manifest.json").write_bytes(b"changed manifest")
+        (first / "recipe.json").unlink()
+        self.assertEqual(self.inventory(second), expected)
+        copy_synthetic_audio(third)
+        self.assertEqual(self.inventory(third), expected)
+
+    def test_an_existing_destination_is_not_overwritten(self):
+        destination = self.root / "keep"
+        destination.mkdir()
+        sentinel = destination / "sentinel"
+        sentinel.write_bytes(b"keep")
+        with self.assertRaises(FileExistsError):
+            copy_synthetic_audio(destination)
+        self.assertEqual(list(destination.iterdir()), [sentinel])
+        self.assertEqual(sentinel.read_bytes(), b"keep")
+
+    def test_failed_generation_cleans_up_and_can_retry(self):
+        attempted = []
+
+        def fail(destination, *_):
+            attempted.append(destination.parent)
+            destination.mkdir()
+            (destination / "partial").write_bytes(b"incomplete")
+            raise RuntimeError("synthetic generation failed")
+
+        with mock.patch.object(producer, "materialize", side_effect=fail):
+            with self.assertRaisesRegex(RuntimeError, "synthetic generation failed"):
+                copy_synthetic_audio(self.root / "failed")
+        self.assertFalse(attempted[0].exists())
+        self.assertFalse((self.root / "failed").exists())
+        copy_synthetic_audio(self.root / "retry")
+        manifest, _ = corpus.read_json(self.root / "retry/manifest.json")
+        self.assertEqual(len(manifest["entries"]), 480)
 
 
 class DictationMaterializationTests(unittest.TestCase):
