@@ -19,11 +19,13 @@ final class DictationHybridHistoryTests: XCTestCase {
     }
 
     func testAParaphraseFindsTheDictationByMeaning() async throws {
-        let (model, index, _) = try await model()
+        let (model, _, store) = try await model()
         let write = try XCTUnwrap(model.admit())
-        _ = await write(record("Send the report on Friday.", app: "Slack"))
-        _ = await write(record("No borres estas notas.", app: "Notes"))
-        await index.backfill()
+        let report = record("Send the report on Friday.", app: "Slack")
+        let notes = record("No borres estas notas.", app: "Notes")
+        _ = await write(report)
+        _ = await write(notes)
+        try await waitForVectors([report.id, notes.id], in: store)
 
         await model.apply(.init(query: "summary"))
 
@@ -31,11 +33,13 @@ final class DictationHybridHistoryTests: XCTestCase {
     }
 
     func testWordMatchesComeFirstThenMeaningMatchesAndFiltersApply() async throws {
-        let (model, index, _) = try await model()
+        let (model, _, store) = try await model()
         let write = try XCTUnwrap(model.admit())
-        _ = await write(record("Send the report on Friday.", app: "Slack", minutesAgo: 1))
-        _ = await write(record("El informe sale el viernes.", app: "Notes"))
-        await index.backfill()
+        let report = record("Send the report on Friday.", app: "Slack", minutesAgo: 1)
+        let paraphrase = record("El informe sale el viernes.", app: "Notes")
+        _ = await write(report)
+        _ = await write(paraphrase)
+        try await waitForVectors([report.id, paraphrase.id], in: store)
 
         await model.apply(.init(query: "report"))
         XCTAssertEqual(model.records.map(\.text), ["Send the report on Friday.", "El informe sale el viernes."],
@@ -889,6 +893,19 @@ final class DictationHybridHistoryTests: XCTestCase {
             if !word.isEmpty, text.contains(word) { throw Failure() }
             return try await DictationFixtureEmbedding().embed(text)
         }
+    }
+
+    private func waitForVectors(_ ids: Set<DictationRecordID>, in store: DictationStore) async throws {
+        // Joining the launch backfill is not a barrier for a writer's detached indexing.
+        let indexed = await TestPolling.untilAsync {
+            let actual = try? await store.dictationEmbeddingIDs(
+                profile: DictationFixtureEmbedding().profile, matching: .all)
+            return actual == ids
+        }
+        XCTAssertTrue(indexed, "Every saved fixture must be indexed automatically before testing ranking")
+        let actual = try await store.dictationEmbeddingIDs(
+            profile: DictationFixtureEmbedding().profile, matching: .all)
+        XCTAssertEqual(actual, ids)
     }
 
     private func record(_ text: String, app: String, minutesAgo: Int = 0) -> DictationRecord {
