@@ -19,18 +19,31 @@ function compare(left, right) {
   return a.length - b.length;
 }
 
-export function testClasses(directory = join(root, 'Tests/SecreteoUITests')) {
+function catalog(directory) {
   let paths;
   try { paths = readdirSync(directory).filter(name => name.endsWith('.swift')).sort(compare); }
-  catch (error) { if (error.code === 'ENOENT') return new Map(); throw error; }
-  const found = new Map();
+  catch (error) { if (error.code === 'ENOENT') return []; throw error; }
+  const found = [];
   for (const path of paths) {
     const text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true })
       .decode(readFileSync(join(directory, path))).replace(/\r\n?/g, '\n');
-    const tests = [...text.matchAll(testPattern)].length;
+    const tests = [...text.matchAll(testPattern)].map(match => match[1]);
     const names = [...text.matchAll(classPattern)].map(match => match[1]);
-    if (tests && names.length !== 1) throw new Error(`${path}: keep one test class per file to shard it`);
-    if (tests) found.set(names[0], tests);
+    if (tests.length && names.length !== 1) throw new Error(`${path}: keep one test class per file to shard it`);
+    if (tests.length) found.push([names[0], tests]);
+  }
+  return found;
+}
+
+export function testClasses(directory = join(root, 'Tests/SecreteoUITests')) {
+  return new Map(catalog(directory).map(([name, tests]) => [name, tests.length]));
+}
+
+export function testInventory(directory = join(root, 'Tests/SecreteoUITests')) {
+  const found = new Map();
+  for (const [name, tests] of catalog(directory)) {
+    if (found.has(name) || new Set(tests).size !== tests.length) throw new Error('Duplicate UI test declaration');
+    found.set(name, tests);
   }
   return found;
 }
@@ -47,7 +60,7 @@ export function shards(found, count) {
   return bins.map(bin => bin.names.sort(compare));
 }
 
-export function main(args) {
+export function shardArguments(args) {
   const parse = value => {
     if (typeof value !== 'string' || !/^[+-]?[0-9](?:_?[0-9])*$/.test(value.trim())) {
       throw new Error('index and count must be integers');
@@ -59,6 +72,11 @@ export function main(args) {
   const index = parse(args[0]);
   const count = parse(args[1]);
   if (!(1 <= index && index <= count)) throw new Error('index must be between 1 and count');
+  return [index, count];
+}
+
+export function main(args) {
+  const [index, count] = shardArguments(args);
   return `${shards(testClasses(), count)[index - 1].join('\n')}\n`;
 }
 
