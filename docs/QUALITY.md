@@ -43,7 +43,7 @@ Repository hygiene runs with Bash and Node, including its scratch-repository neg
 - Actions pinned to full commit SHAs.
 - No left accent bars in web styles.
 - Test files stay under 2,400 lines.
-- Tests that build session dependencies by hand choose their stop tail; fixture dependencies skip the real one.
+- Tests that build session dependencies by hand choose their stop tail; fixture dependencies skip the real one. This check and the log checks run in Node during local hygiene and CI. Their shared Git discovery reads NUL-delimited tracked/untracked paths, including spaces, Unicode and embedded newlines, and rejects malformed UTF-8 source.
 - Logs carry no dictated text: no value is logged as public, crash messages are plain literals, and only the MCP command prints, to stdout.
 - `.nvmrc` and `engines.node` agree.
 
