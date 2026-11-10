@@ -4,6 +4,8 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- ♻️ **Updates during dictation**: an accepted update's relaunch hook waits for dictation, clipboard cleanup, and pending history and statistics saves before continuing.
+
 - 🎙️ **Sleep during dictation**: cancel preparation and capture when the Mac sleeps, keep recognized words available to copy, and prevent those cancelled sessions from pasting later.
 
 - 🔎 **Search errors**: cancelled searches can be retried without a false error, and older searches no longer replace the latest error state.
