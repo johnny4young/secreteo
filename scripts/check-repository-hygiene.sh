@@ -162,7 +162,8 @@ done
 if [[ -d Tests/Tooling ]]; then
   bash Tests/Tooling/test_repository_hygiene.sh
   node --test Tests/Tooling/test_ui_shards.mjs Tests/Tooling/test_ui_results.mjs \
-    Tests/Tooling/test_build_cache.mjs Tests/Tooling/test_hygiene_coverage.mjs
+    Tests/Tooling/test_build_cache.mjs Tests/Tooling/test_hygiene_coverage.mjs \
+    Tests/Tooling/test_ci_decisions.mjs
 fi
 
 exit "$failures"
