@@ -29,6 +29,23 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         guard app.state == .runningForeground else { throw XCTSkip("The app is not in front") }
     }
 
+    private func assertControlsExist(
+        _ identifiers: [String], in app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line
+    ) {
+        // One tree read covers settled controls; missing ones retain their individual wait.
+        var nodes = (try? app.snapshot().children) ?? []
+        var present = Set<String>()
+        while let node = nodes.popLast() {
+            present.insert(node.identifier)
+            nodes.append(contentsOf: node.children)
+        }
+        for identifier in identifiers {
+            XCTAssertTrue(
+                present.contains(identifier) || app.control(withIdentifier: identifier).waitForExistence(timeout: 5),
+                identifier, file: file, line: line)
+        }
+    }
+
     func testTurningDictationOnMakesThisAppTheOwner() throws {
         let app = try launch()
         defer { finishUITestApplication(app) }
@@ -57,7 +74,7 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-model-progress").exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-model-failed").exists)
 
-        for identifier in [
+        assertControlsExist([
             "settings-dictation-practice-field", "settings-dictation-practice-start",
             "settings-dictation-mouse-recorder", "settings-dictation-modifier-key",
             "settings-dictation-paste-last-hotkey", "settings-dictation-rewrite-hotkey", "settings-dictation-sounds",
@@ -67,9 +84,7 @@ final class DictationSettingsUITests: SecreteoUITestCase {
             "settings-dictation-microphone-device", "settings-dictation-text-mode", "settings-dictation-filler",
             "settings-dictation-dict-trigger", "settings-dictation-dict-replacement", "settings-dictation-dict-add",
             "settings-dictation-vocabulary-field", "settings-dictation-vocabulary-add"
-        ] {
-            XCTAssertTrue(app.control(withIdentifier: identifier).waitForExistence(timeout: 5), identifier)
-        }
+        ], in: app)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-mouse-clear").exists, "No button is set")
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-paste-last-taken").exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-rewrite-taken").exists)

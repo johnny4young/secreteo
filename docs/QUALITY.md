@@ -16,6 +16,8 @@ The UI launcher uses Node from `.nvmrc` to select shards and process xcresult su
 
 The existing CI and nightly screenshot artifacts also retain `test-results.json` after successful and failed UI test executions. It records the checkout SHA at capture time, Actions run/attempt, exact selection arguments and test exit code, plus the xcresult summary and test tree in schema 0.1.0. Failed exports, invalid counts and malformed test trees remain explicit partial captures. A failed capture fails an otherwise successful lane; a nonzero test exit is preserved through capture. Capturing results does not certify a clean build tree, declare tests passed or prove the expected inventory was executed: reviewers reconcile the retained counts, skips and test identifiers with the selected plan.
 
+The settings activation smoke checks its required controls from one accessibility snapshot. Each identifier absent from that snapshot still gets its original five-second existence wait; a failed snapshot falls back to those individual waits. The identifier inventory, absence checks and interaction assertions are unchanged.
+
 ## Local gates
 
 Run in series.
