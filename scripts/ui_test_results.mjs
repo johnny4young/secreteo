@@ -55,7 +55,7 @@ export function attachments(source, target) {
 const testResults = new Set(['Passed', 'Failed', 'Skipped', 'Expected Failure', 'unknown']);
 const nodeTypes = new Set(['Test Plan', 'Unit test bundle', 'UI test bundle', 'Test Suite', 'Test Case',
   'Device', 'Test Plan Configuration', 'Arguments', 'Repetition', 'Test Case Run', 'Failure Message',
-  'Source Code Reference', 'Attachment', 'Expression', 'Test Value', 'Runtime Warning', 'Skip Message', 'Expected Failure']);
+  'Source Code Reference', 'Attachment', 'Expression', 'Test Value', 'Runtime Warning']);
 function testTree(nodes) {
   for (const node of list(nodes)) {
     object(node);
@@ -72,7 +72,7 @@ export function receipt(results, target, status, plan, shard, selection, run = e
       || !Array.isArray(selection) || selection.some(value => typeof value !== 'string')) {
     throw new Error('Invalid UI receipt arguments');
   }
-  const document = { schemaVersion: 1, xcresultSchemaVersion: '0.5.0', plan, shard: shard || null, selection,
+  const document = { schemaVersion: 1, xcresultSchemaVersion: '0.1.0', plan, shard: shard || null, selection,
     testExitCode: Number(status), checkoutSHA: null,
     ci: { runID: env.GITHUB_RUN_ID ?? null, attempt: env.GITHUB_RUN_ATTEMPT ?? null,
       event: env.GITHUB_EVENT_NAME ?? null, githubSHA: env.GITHUB_SHA ?? null },
@@ -90,7 +90,7 @@ export function receipt(results, target, status, plan, shard, selection, run = e
   for (const kind of ['summary', 'tests']) {
     try {
       const report = object(json(run('xcrun', [
-        'xcresulttool', 'get', 'test-results', kind, '--schema-version', '0.5.0', '--path', results, '--compact',
+        'xcresulttool', 'get', 'test-results', kind, '--schema-version', '0.1.0', '--path', results, '--compact',
       ], { stdio: ['ignore', 'pipe', 'pipe'], timeout: 30_000, maxBuffer: 4 * 1024 * 1024 })));
       if (kind === 'summary') {
         for (const key of ['totalTestCount', 'passedTests', 'failedTests', 'skippedTests', 'expectedFailures']) {

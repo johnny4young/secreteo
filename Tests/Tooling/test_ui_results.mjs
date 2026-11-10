@@ -81,7 +81,7 @@ function captured(overrides = {}) {
     assert.equal(command, 'xcrun');
     const kind = args[3];
     assert.deepEqual(args.slice(0, 4), ['xcresulttool', 'get', 'test-results', kind]);
-    assert.deepEqual(args.slice(4), ['--schema-version', '0.5.0', '--path', 'results with spaces', '--compact']);
+    assert.deepEqual(args.slice(4), ['--schema-version', '0.1.0', '--path', 'results with spaces', '--compact']);
     assert.ok(options.timeout > 0 && options.maxBuffer > 0);
     if (Object.hasOwn(overrides, kind)) {
       if (overrides[kind] instanceof Error) throw overrides[kind];
@@ -106,6 +106,16 @@ test('receipt retains raw counts, test tree, selection and explicit source ident
   assert.doesNotMatch(raw, /not-for-the-receipt|unowned/);
   assert.equal(runner.calls[0].options.env.GIT_DIR, undefined);
   assert.equal(statSync(join(f.target, 'test-results.json')).mode & 0o777, 0o600);
+});
+test('receipt uses the schema available in the pinned CI Xcode', () => {
+  const f = fixture([]);
+  const run = (command, args) => {
+    if (command === 'git') return Buffer.from('a'.repeat(40));
+    if (args[args.indexOf('--schema-version') + 1] !== '0.1.0') throw new Error('Unsupported schema version');
+    return Buffer.from(JSON.stringify(args[3] === 'summary' ? successfulSummary() : successfulTests()));
+  };
+  assert.equal(receipt('unused', f.target, '0', 'smoke', '', [], run, {}), 0);
+  assert.equal(JSON.parse(readFileSync(join(f.target, 'test-results.json'))).xcresultSchemaVersion, '0.1.0');
 });
 test('a complete capture retains failed, skipped and expected-failure outcomes without declaring tests passed', () => {
   const summary = { ...successfulSummary(), result: 'Failed', totalTestCount: 4,
