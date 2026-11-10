@@ -49,7 +49,7 @@ final class DictationOwnershipCoordinator {
         !usesTemporaryStore && shippedIdentifiers.contains(identifier)
     }
 
-    /// - Parameter missingForReadiness: names what is missing (microphone, Accessibility, engine),
+    /// - Parameter missingForReadiness: names what is missing (microphone, Accessibility, engine, practice),
     ///   or nil when ready. Ownership is offered and held only while this is nil.
     static func live(
         defaults: UserDefaults, usesTemporaryStore: Bool, missingForReadiness: @escaping @Sendable () -> String?,
