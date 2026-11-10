@@ -110,7 +110,7 @@ fi
 
 node_line="$(tr -d '[:space:]' < .nvmrc 2>/dev/null || true)"
 engines_line="$(
-  python3 -c 'import json,re; print(re.match(r">=(\d+)\.\d+\.\d+$", json.load(open("package.json"))["engines"]["node"]).group(1))' \
+  node -e 'const fs = require("node:fs"); const value = JSON.parse(fs.readFileSync("package.json", "utf8")).engines.node; const match = typeof value === "string" && /^>=([\p{Nd}]+)\.[\p{Nd}]+\.[\p{Nd}]+(?:\n)?$(?![\s\S])/u.exec(value); if (match) console.log(match[1]);' \
     2>/dev/null || true
 )"
 if [[ -z "$node_line" || "$node_line" != "$engines_line" ]]; then
@@ -154,8 +154,9 @@ for probe in "${ignore_probes[@]}"; do
 done
 
 if [[ -d Tests/Tooling ]]; then
-  node --test Tests/Tooling/test_ui_shards.mjs Tests/Tooling/test_ui_results.mjs Tests/Tooling/test_build_cache.mjs
-  python3 -I -m unittest discover -s Tests/Tooling -p 'test_*.py'
+  bash Tests/Tooling/test_repository_hygiene.sh
+  node --test Tests/Tooling/test_ui_shards.mjs Tests/Tooling/test_ui_results.mjs \
+    Tests/Tooling/test_build_cache.mjs Tests/Tooling/test_hygiene_coverage.mjs
 fi
 
 exit "$failures"

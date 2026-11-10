@@ -18,6 +18,8 @@ The UI launcher uses Node from `.nvmrc` to select shards and process xcresult su
 
 Run in series.
 
+Repository hygiene runs with Bash and Node, including its scratch-repository negative tests. The remaining legacy tooling suites still run through `python3 -I -m unittest discover -s Tests/Tooling -p 'test_*.py'` as a separate, mandatory step immediately after hygiene in both CI and release verification. A local hygiene pass does not claim those legacy suites ran; their hosted coverage remains required while they are migrated.
+
 | Gate | Command | When |
 |---|---|---|
 | Strict build | `swift build -Xswiftc -warnings-as-errors` | Any Swift change |

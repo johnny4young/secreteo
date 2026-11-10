@@ -339,7 +339,7 @@ Adapted from `johnny4young/portavoz@cffa87bb36f800108bd8e366bbaa153e2c9ec88f`.
 | `scripts/verify-ci-toolchain.sh` | `scripts/verify-ci-toolchain.sh` | None |
 | `scripts/run-ci-swiftlint.sh` | `scripts/run-ci-swiftlint.sh` | Scratch prefix |
 | `scripts/install-ci-xcodegen.sh` | `scripts/install-ci-xcodegen.sh` | None |
-| `scripts/check-repository-hygiene.sh` | `scripts/check-repository-hygiene.sh` | Keeps tracked-file, ticket and action-pin checks and the public dictation fixture checks; adds identifier ratchet, license, attribution, accent-bar and Node checks |
+| `scripts/check-repository-hygiene.sh` | `scripts/check-repository-hygiene.sh` | Keeps tracked-file, ticket and action-pin checks; adds identifier ratchet, license, attribution, accent-bar and Node checks. Legacy tooling, including public dictation fixture checks, runs explicitly in CI and release verification after the Bash/Node repository gate |
 
 ## Shell
 
