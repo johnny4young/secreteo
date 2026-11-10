@@ -110,7 +110,13 @@ fi
 
 node_line="$(tr -d '[:space:]' < .nvmrc 2>/dev/null || true)"
 engines_line="$(
-  node -e 'const fs = require("node:fs"); const value = JSON.parse(fs.readFileSync("package.json", "utf8")).engines.node; const match = typeof value === "string" && /^>=([\p{Nd}]+)\.[\p{Nd}]+\.[\p{Nd}]+(?:\n)?$(?![\s\S])/u.exec(value); if (match) console.log(match[1]);' \
+  node -e '
+    const fs = require("node:fs");
+    const input = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(fs.readFileSync("package.json"));
+    const value = JSON.parse(input).engines.node;
+    const match = typeof value === "string" && /^>=([\p{Nd}]+)\.[\p{Nd}]+\.[\p{Nd}]+(?:\n)?$(?![\s\S])/u.exec(value);
+    if (match) console.log(match[1]);
+  ' \
     2>/dev/null || true
 )"
 if [[ -z "$node_line" || "$node_line" != "$engines_line" ]]; then

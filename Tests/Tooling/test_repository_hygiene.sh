@@ -239,6 +239,10 @@ case "${2:-}" in
     done
     write_file package.json '{"engines":{"node":">=26.13.0\n"}}'
     assert_pass
+    printf '{"engines":{"node":">=26.13.0"},"unused":"\377"}' > "$FIXTURE/package.json"
+    assert_rejected 'engines.node'
+    printf '\357\273\277{"engines":{"node":">=26.13.0"}}' > "$FIXTURE/package.json"
+    assert_rejected 'engines.node'
     ;;
   *)
     printf 'Unknown test case: %s\n' "${2:-}" >&2
