@@ -27,6 +27,12 @@ jobs:
           check-latest: true
           package-manager-cache: false
       - run: scripts/check-repository-hygiene.sh
+
+  legacy-tooling:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Legacy tooling coverage
         run: python3 -I -m unittest discover -s Tests/Tooling -p 'test_*.py'
 
@@ -163,7 +169,7 @@ jobs:
 
   gate:
     if: always()
-    needs: [hygiene, lint, changes, unit, ui-smoke, signed-handoff, release-dryrun]
+    needs: [hygiene, legacy-tooling, lint, changes, unit, ui-smoke, signed-handoff, release-dryrun]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:

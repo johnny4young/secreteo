@@ -23,17 +23,30 @@ function validate(sources, script) {
   const consumers = Object.entries(sources).flatMap(([name, source]) =>
     [...source.matchAll(/scripts\/check-repository-hygiene\.sh/g)].map(() => name));
   assert.deepEqual(consumers.sort(), ['ci.yml', 'release.yml']);
-  for (const [file, name] of [['ci.yml', 'hygiene'], ['release.yml', 'verify']]) {
+  const hygiene = job(sources['ci.yml'], 'hygiene');
+  assert.ok(hygiene.includes(`      - run: ${command}\n`));
+  assert.doesNotMatch(hygiene, /^    (?:if|continue-on-error|needs):/m,
+    'CI hygiene must run independently and unconditionally');
+  assert.doesNotMatch(hygiene, /python3/, 'CI legacy coverage runs on an independent runner');
+  for (const [file, name] of [['ci.yml', 'legacy-tooling'], ['release.yml', 'verify']]) {
     const block = job(sources[file], name);
-    assert.ok(block.includes(pair), `${file}: keep repository and legacy checks adjacent`);
     assert.doesNotMatch(block, /^    (?:if|continue-on-error):/m, 'Verification jobs must be unconditional');
+    if (file === 'release.yml') {
+      assert.ok(block.includes(pair), 'Release keeps repository and legacy checks adjacent');
+    } else {
+      assert.doesNotMatch(block, /^    needs:/m, 'CI legacy coverage must run independently');
+      assert.match(block, /^    runs-on: ubuntu-latest$/m);
+      assert.match(block, /uses: actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1/);
+    }
     const tail = block.slice(block.indexOf('      - name: Legacy tooling coverage'));
     const step = tail.split(/\n      - /)[0].trimEnd();
     assert.equal(step, `      - name: Legacy tooling coverage\n        run: ${legacy}`,
       'Legacy checks cannot be conditional or allowed to fail');
   }
   const needs = /needs: \[([^\]]+)\]/.exec(job(sources['ci.yml'], 'gate'))?.[1];
-  assert.ok(needs?.split(',').map(name => name.trim()).includes('hygiene'));
+  for (const name of ['hygiene', 'legacy-tooling']) {
+    assert.ok(needs?.split(',').map(name => name.trim()).includes(name), `gate must require ${name}`);
+  }
   assert.match(job(sources['release.yml'], 'package'), /^    needs: verify$/m);
   assert.doesNotMatch(script, /\bpython[\d.]*\b/, 'Repository hygiene must not invoke Python');
   assert.ok(script.includes('  bash Tests/Tooling/test_repository_hygiene.sh\n'));
@@ -54,8 +67,14 @@ for (const [name, file, mutate] of [
   ['conditional legacy step', 'ci.yml', source => source.replace(`        run: ${legacy}`, `        run: ${legacy}\n        if: false`)],
   ['allowed legacy failure', 'release.yml', source => source.replace(`        run: ${legacy}`, `        run: ${legacy}\n        continue-on-error: true`)],
   ['conditional verification job', 'ci.yml', source => source.replace('  hygiene:\n', '  hygiene:\n    if: false\n')],
+  ['missing legacy job', 'ci.yml', source => source.replace('  legacy-tooling:\n', '  removed:\n')],
+  ['conditional legacy job', 'ci.yml', source => source.replace('  legacy-tooling:\n', '  legacy-tooling:\n    if: false\n')],
+  ['allowed legacy job failure', 'ci.yml', source => source.replace('  legacy-tooling:\n', '  legacy-tooling:\n    continue-on-error: true\n')],
+  ['serial CI legacy job', 'ci.yml', source => source.replace('  legacy-tooling:\n', '  legacy-tooling:\n    needs: hygiene\n')],
+  ['serial CI hygiene job', 'ci.yml', source => source.replace('  hygiene:\n', '  hygiene:\n    needs: legacy-tooling\n')],
   ['allowed verification failure', 'release.yml', source => source.replace('  verify:\n', '  verify:\n    continue-on-error: true\n')],
   ['missing required hygiene dependency', 'ci.yml', source => source.replace('needs: [hygiene, ', 'needs: [')],
+  ['missing required legacy dependency', 'ci.yml', source => source.replace('needs: [hygiene, legacy-tooling, ', 'needs: [hygiene, ')],
   ['release bypassing verification', 'release.yml', source => source.replace('    needs: verify', '    needs: []')],
 ]) {
   test(`rejects ${name}`, () => {

@@ -26,7 +26,7 @@ The Settings scroll helper ends each directional search when its control is hitt
 
 Run in series.
 
-Repository hygiene runs with Bash and Node, including its scratch-repository negative tests. The remaining legacy tooling suites still run through `python3 -I -m unittest discover -s Tests/Tooling -p 'test_*.py'` as a separate, mandatory step immediately after hygiene in both CI and release verification. A local hygiene pass does not claim those legacy suites ran; their hosted coverage remains required while they are migrated.
+Repository hygiene runs with Bash and Node, including its scratch-repository negative tests. In CI, `hygiene` and `legacy-tooling` run concurrently on separate Linux runners; `gate` requires both to succeed, including on docs-only changes. The legacy job retains the complete `python3 -I -m unittest discover -s Tests/Tooling -p 'test_*.py'` command. Release verification still runs that command immediately after hygiene in its mandatory `verify` job. A local hygiene pass does not claim those legacy suites ran; their hosted coverage remains required while they are migrated. Evaluate the combined hygiene budget using both branches, including runner setup, rather than the shorter job alone; parallel jobs may add total runner time.
 
 The serial legacy runner tests reuse a process-local synthetic 480-cell audio template and copy it into a new owned directory for each test. Copies preserve bytes and modes without hardlinks, so mutation/deletion tests remain isolated. The producer's own tests still materialize fresh corpora; this fixture reuse is not audio quality evidence.
 
@@ -36,6 +36,7 @@ The serial legacy runner tests reuse a process-local synthetic 480-cell audio te
 | Strict tests | `swift test --parallel -Xswiftc -warnings-as-errors` | Any Swift change |
 | Lint | `swiftlint lint --strict --no-cache` | Any Swift change |
 | Hygiene | `scripts/check-repository-hygiene.sh` | Always |
+| Legacy tooling | Complete Python unittest discovery in hosted verification | Always |
 | UI | Smoke plan | UI or its owners change |
 | Install | `make install`, to the Dev identity | UI changes |
 | Release | `make release-dryrun` | Packaging or the updater change |

@@ -10,7 +10,7 @@ import { failures } from '../../scripts/ci_gate.mjs';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const all = { code: true, delivery: true, release: true };
-const always = ['hygiene', 'lint', 'changes'];
+const always = ['hygiene', 'legacy-tooling', 'lint', 'changes'];
 const scoped = { unit: 'code', 'ui-smoke': 'code', 'signed-handoff': 'delivery', 'release-dryrun': 'release' };
 function needs(scope = {}, results = {}) {
   const payload = Object.fromEntries([...always, ...Object.keys(scoped)].map(name => [name, {
@@ -116,13 +116,24 @@ test('all 2048 combinations of scoped success, skip, failure and cancellation fo
   }
 });
 
-test('all 192 combinations keep unconditional jobs mandatory', () => {
+test('all 256 combinations keep unconditional jobs mandatory', () => {
   for (let mask = 0; mask < 8; mask++) for (const job of always) {
     for (const status of ['success', 'skipped', 'failure', 'cancelled', 'neutral', 'timed_out', null, undefined]) {
       const scope = Object.fromEntries(['code', 'delivery', 'release'].map((flag, index) =>
         [flag, mask & (1 << index) ? 'true' : 'false']));
       assert.equal(failures(needs(scope, { [job]: status })).length === 0, status === 'success');
     }
+  }
+});
+
+test('missing legacy tooling cannot pass the gate, including docs-only changes', () => {
+  for (const flag of ['true', 'false']) {
+    const payload = needs({ code: flag, delivery: flag, release: flag });
+    delete payload['legacy-tooling'];
+    assert.deepEqual(failures(payload), ['legacy-tooling: None']);
+    const result = run('ci_gate', [JSON.stringify(payload)]);
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, '::error::legacy-tooling: None\n');
   }
 });
 
