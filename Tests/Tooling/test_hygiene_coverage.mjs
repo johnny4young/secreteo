@@ -54,7 +54,7 @@ function validate(sources, script) {
   assert.doesNotMatch(script, /\bpython[\d.]*\b/, 'Repository hygiene must not invoke Python');
   assert.ok(script.includes('  bash Tests/Tooling/test_repository_hygiene.sh\n'));
   assert.ok(script.includes('Tests/Tooling/test_hygiene_coverage.mjs'));
-  for (const name of ['test_log_privacy', 'test_stop_tail_in_tests', 'test_swift_sources', 'test_ci_reuse', 'test_ui_inventory']) {
+  for (const name of ['test_log_privacy', 'test_stop_tail_in_tests', 'test_swift_sources', 'test_ci_reuse', 'test_ui_inventory', 'test_release_timings']) {
     assert.ok(script.includes(`Tests/Tooling/${name}.mjs`));
   }
 }
@@ -99,7 +99,7 @@ test('rejects restoring an implicit Python dependency in local hygiene', () => {
   assert.throws(() => validate(workflows, `${gate}\n${legacy}\n`));
 });
 
-for (const name of ['test_log_privacy', 'test_stop_tail_in_tests', 'test_swift_sources', 'test_ci_reuse', 'test_ui_inventory']) {
+for (const name of ['test_log_privacy', 'test_stop_tail_in_tests', 'test_swift_sources', 'test_ci_reuse', 'test_ui_inventory', 'test_release_timings']) {
   test(`rejects dropping ${name} from hygiene`, () => {
     assert.throws(() => validate(workflows, gate.replace(`Tests/Tooling/${name}.mjs`, '')));
   });
