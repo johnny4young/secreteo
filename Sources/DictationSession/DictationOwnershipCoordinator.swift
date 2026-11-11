@@ -15,8 +15,11 @@ final class DictationOwnershipCoordinator {
 
     @ObservationIgnored private let ownership: DictationOwnership
     @ObservationIgnored private let settle: () async -> Void
+    @ObservationIgnored private let pendingWrites: DictationPendingWrites
     @ObservationIgnored private var observer: OwnershipObserver?
     @ObservationIgnored private var held: SharedLease?
+    @ObservationIgnored private var updateRelaunchIsPending = false
+    @ObservationIgnored private var resumeUpdateRelaunch: (() -> Void)?
     @ObservationIgnored private var workspaceObservers: [any NSObjectProtocol] = []
     /// Step 5 of a handoff arms the triggers just before this app becomes the owner.
     @ObservationIgnored private var armsForHandoff = false
@@ -27,10 +30,15 @@ final class DictationOwnershipCoordinator {
 
     @ObservationIgnored private let turnOffRetry: Duration
 
-    init(ownership: DictationOwnership, turnOffRetry: Duration = .seconds(5), settle: @escaping () async -> Void) {
+    init(
+        ownership: DictationOwnership, turnOffRetry: Duration = .seconds(5),
+        pendingWrites: DictationPendingWrites? = nil, settle: @escaping () async -> Void
+    ) {
         self.ownership = ownership
         self.turnOffRetry = turnOffRetry
         self.settle = settle
+        self.pendingWrites = pendingWrites ?? DictationPendingWrites()
+        self.pendingWrites.onIdle = { [weak self] in self?.resumeUpdateIfReady() }
     }
 
     private static let shippedIdentifiers = ["com.johnny4young.secreteo", "com.johnny4young.secreteo.dev"]
@@ -41,11 +49,12 @@ final class DictationOwnershipCoordinator {
         !usesTemporaryStore && shippedIdentifiers.contains(identifier)
     }
 
-    /// - Parameter missingForReadiness: names what is missing (microphone, Accessibility, engine),
+    /// - Parameter missingForReadiness: names what is missing (microphone, Accessibility, engine, practice),
     ///   or nil when ready. Ownership is offered and held only while this is nil.
     static func live(
         defaults: UserDefaults, usesTemporaryStore: Bool, missingForReadiness: @escaping @Sendable () -> String?,
-        seedsLegacyPeer: Bool = false, seedsCorruptState: Bool = false
+        seedsLegacyPeer: Bool = false, seedsCorruptState: Bool = false,
+        pendingWrites: DictationPendingWrites? = nil
     ) -> DictationOwnershipCoordinator {
         let participant = Bundle.main.bundleIdentifier ?? "com.johnny4young.secreteo.unbundled"
         let isReal = usesRealOwner(identifier: participant, usesTemporaryStore: usesTemporaryStore)
@@ -74,7 +83,7 @@ final class DictationOwnershipCoordinator {
                 root: scratchRoot,
                 conditions: conditions,
                 notificationName: "com.johnny4young.secreteo.dictation-ownership.scratch.\(scratch)")
-        return DictationOwnershipCoordinator(ownership: ownership) {
+        return DictationOwnershipCoordinator(ownership: ownership, pendingWrites: pendingWrites) {
             _ = await DictationClipboard.shared.waitForRestoration(on: .general)
         }
     }
@@ -98,12 +107,35 @@ final class DictationOwnershipCoordinator {
     var admission: DictationAdmission {
         DictationAdmission(
             acquire: { [weak self] kind in self?.acquire(kind) ?? .failure(.dictationOff) },
-            isEligible: { [weak self] in self?.state.allowsPrewarm ?? false })
+            isEligible: { [weak self] in
+                guard let self else { return false }
+                return !updateRelaunchIsPending && state.allowsPrewarm
+            })
     }
 
     var armsTriggers: Bool { state.armsTriggers || armsForHandoff }
     /// Watching continues until the last release, whoever released first.
     var holdsLease: Bool { held != nil }
+
+    /// Sparkle offers this hook once, so admission stays closed after resuming too.
+    func postponeUpdateRelaunch(until resume: @escaping () -> Void) -> Bool {
+        updateRelaunchIsPending = true
+        guard held != nil || pendingWrites.hasPending else { return false }
+        resumeUpdateRelaunch = resume
+        return true
+    }
+
+    func finishUpdateCycle() {
+        resumeUpdateRelaunch = nil
+        updateRelaunchIsPending = false
+    }
+
+    private func resumeUpdateIfReady() {
+        guard updateRelaunchIsPending, held == nil, !pendingWrites.hasPending else { return }
+        let resume = resumeUpdateRelaunch
+        resumeUpdateRelaunch = nil
+        resume?()
+    }
 
     func start() {
         guard !hasStarted else { return }
@@ -203,6 +235,7 @@ final class DictationOwnershipCoordinator {
     }
 
     private func acquire(_ kind: DictationAdmissionKind) -> Result<DictationLease, DictationAdmissionRefusal> {
+        guard !updateRelaunchIsPending else { return .failure(.busy) }
         if let held {
             // A new session shares the lease only while the last one waits for the clipboard,
             // and repeats admission on the held lock, so sessions in a row cannot hold off a handoff.
@@ -239,6 +272,7 @@ final class DictationOwnershipCoordinator {
                 guard let self, self.held === shared else { return }
                 self.held = nil
                 self.reportHolding()
+                self.resumeUpdateIfReady()
             })
     }
 
