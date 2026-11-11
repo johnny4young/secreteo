@@ -29,6 +29,23 @@ struct DictationHybridSearchTests {
     }
 
     @Test
+    func wordMatchesDoNotUseUpTheMeaningLimit() {
+        let words = (0..<DictationHybridSearch.semanticLimit).map { _ in DictationRecordID() }
+        let paraphrase = DictationRecordID()
+        let candidates = words.map { DictationEmbedding(recordID: $0, vector: [1, 0]) }
+            + [DictationEmbedding(recordID: paraphrase, vector: [0.95, 0.312])]
+        let ranked = DictationHybridSearch.semanticRanking(query: [1, 0], candidates: candidates)
+        #expect(DictationHybridSearch.meaningOnly(ranked, after: words) == [paraphrase])
+    }
+
+    @Test
+    func meaningMatchesStopAtTheLimit() {
+        let semantic = (0...DictationHybridSearch.semanticLimit).map { _ in DictationRecordID() }
+        let added = DictationHybridSearch.meaningOnly(semantic, after: [])
+        #expect(added == Array(semantic.prefix(DictationHybridSearch.semanticLimit)))
+    }
+
+    @Test
     func punctuationAloneHasNothingToMean() {
         #expect(!DictationHybridSearch.isSearchable("?! --"))
         #expect(!DictationHybridSearch.isSearchable(""))
