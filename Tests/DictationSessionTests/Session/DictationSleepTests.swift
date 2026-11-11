@@ -18,14 +18,15 @@ final class DictationSleepTests: XCTestCase {
         let ready = await TestPolling.until { controller.partialText == harness.text }
         XCTAssertTrue(ready)
 
-        notifications.post(name: NSWorkspace.willSleepNotification, object: nil)
+        // Without the observer's trailing clear, so a renewed Paste last would show.
+        lastText.onSystemSleep?()
 
         XCTAssertFalse(controller.isActive)
         XCTAssertEqual(controller.recoveryText, harness.text)
+        XCTAssertNil(lastText.current, "Sleep must not renew Paste last")
         controller.copyPendingText()
         XCTAssertEqual(copied, [harness.text])
         XCTAssertEqual(controller.copyStatus, .copied)
-        XCTAssertNil(lastText.current, "Sleep must not renew Paste last")
         let drained = await TestPolling.until { harness.finishes == 1 }
         XCTAssertTrue(drained)
         XCTAssertTrue(harness.insertions.isEmpty)

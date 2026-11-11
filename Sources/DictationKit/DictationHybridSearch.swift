@@ -25,14 +25,14 @@ public enum DictationHybridSearch {
         return scored.sorted {
             $0.similarity != $1.similarity
                 ? $0.similarity > $1.similarity : $0.id.rawValue.uuidString < $1.id.rawValue.uuidString
-        }.prefix(semanticLimit).map(\.id)
+        }.map(\.id)
     }
 
-    /// The meaning matches the word search has not already listed, in their order.
+    /// The best meaning matches the word search has not already listed, in their order.
     public static func meaningOnly(
         _ semantic: [DictationRecordID], after shown: some Sequence<DictationRecordID>
     ) -> [DictationRecordID] {
         let listed = Set(shown)
-        return semantic.filter { !listed.contains($0) }
+        return Array(semantic.lazy.filter { !listed.contains($0) }.prefix(semanticLimit))
     }
 }

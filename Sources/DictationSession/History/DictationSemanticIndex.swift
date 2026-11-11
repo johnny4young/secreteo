@@ -52,8 +52,10 @@ actor DictationSemanticIndex {
         var candidates = try await currentLibrary()
         guard !candidates.isEmpty else { return [] }
         let vector = try await embedding.embed(query)
-        if filter.applicationName != nil || filter.onlyNotDelivered || filter.recordID != nil {
-            let allowed = try await store.dictationEmbeddingIDs(profile: embedding.profile, matching: filter)
+        var scope = filter
+        scope.query = ""
+        if !scope.isUnfiltered {
+            let allowed = try await store.dictationEmbeddingIDs(profile: embedding.profile, matching: scope)
             candidates = candidates.filter { allowed.contains($0.recordID) }
         }
         return DictationHybridSearch.semanticRanking(query: vector, candidates: candidates)

@@ -953,7 +953,9 @@ struct DictationOwnershipCoordinatorTests {
 
     @Test
     func theFeatureRoutesUpdateCallbacksToItsAdmissionCoordinator() async throws {
-        let defaults = try #require(UserDefaults(suiteName: "update-feature-\(UUID().uuidString)"))
+        let suite = "update-feature-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
         let feature = try disposableFeature(defaults)
         let admission = feature.dictationAdmission
         let lease = try admission.acquire(.practice).get()
