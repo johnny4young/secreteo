@@ -96,6 +96,11 @@ for (const [name, mutate] of [
     assert.equal(qualify(document, expected()).qualified, false);
   });
 }
+test('qualification names why evidence was rejected', () => {
+  const partial = receipt(); partial.captureComplete = false;
+  assert.deepEqual(qualify(partial, expected()).issues, ['Incomplete UI capture']);
+  assert.deepEqual(qualify({ ...receipt(), selection: [] }, expected()).issues, ['Receipt plan differs from the inventory']);
+});
 test('invalid and duplicated expected inventories cannot qualify', () => {
   assert.equal(qualify(receipt(), null).qualified, false);
   assert.equal(qualify(receipt(), { ...expected(), expectedTests: [] }).qualified, false);

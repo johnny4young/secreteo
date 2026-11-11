@@ -42,7 +42,7 @@ export function testClasses(directory = join(root, 'Tests/SecreteoUITests')) {
 export function testInventory(directory = join(root, 'Tests/SecreteoUITests')) {
   const found = new Map();
   for (const [name, tests] of catalog(directory)) {
-    if (found.has(name) || new Set(tests).size !== tests.length) throw new Error('Duplicate UI test declaration');
+    if (found.has(name) || new Set(tests).size !== tests.length) throw new Error(`Duplicate UI test declaration in ${name}`);
     found.set(name, tests);
   }
   return found;

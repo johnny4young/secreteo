@@ -227,6 +227,7 @@ test('a nonexistent smoke method fails before the native build', () => {
   const { result, path, buildInvoked } = launchDouble(0, false, {}, 'SecreteoUITests/Menu/testMissing\n');
   assert.equal(result.status, 1);
   assert.equal(buildInvoked, false);
+  assert.match(result.stderr, /Unknown smoke test: SecreteoUITests\/Menu\/testMissing/);
   assert.equal(existsSync(path), false);
 });
 
