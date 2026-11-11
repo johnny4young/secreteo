@@ -109,6 +109,30 @@ test('isolated Bash consumer propagates selector failure before selection', t =>
   assert.equal(result.stdout, '');
   assert.match(result.stderr, /keep one test class per file/);
 });
+
+function consumeSmoke(root, plan) {
+  mkdirSync(join(root, 'Tests/Plans'), { recursive: true });
+  writeFileSync(join(root, 'Tests/Plans/Smoke.txt'), plan);
+  return spawnSync('/bin/bash', ['-c', `set -euo pipefail\nplan=smoke\nshard=''\n${selectionBlock}\nprintf '%s\\n' "\${selection[@]}"`], {
+    cwd: root, encoding: 'utf8',
+  });
+}
+for (const ending of ['\n', '']) {
+  test(`smoke keeps the last selector with ${ending ? 'a' : 'no'} final newline`, t => {
+    const selectors = ['SecreteoUITests/Menu/testOne', 'SecreteoUITests/Menu/testTwo'];
+    const result = consumeSmoke(fixture(t), `${selectors[0]}\n\n${selectors[1]}${ending}`);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, selectors.map(value => `-only-testing:${value}\n`).join(''));
+  });
+}
+for (const contents of ['', '\n\n']) {
+  test(`an ${contents ? 'all-blank' : 'empty'} smoke plan cannot select the full suite`, t => {
+    const result = consumeSmoke(fixture(t), contents);
+    assert.equal(result.status, 64);
+    assert.equal(result.stdout, '');
+    assert.equal(result.stderr, 'Smoke plan has no tests.\n');
+  });
+}
 test('Unicode line separators do not become Python multiline class anchors', t => {
   const root = fixture(t, { 'Separator.swift': 'ignored\u2028class A: XCTestCase {\nfunc testA() {}\n}\n' });
   assert.throws(() => testClasses(join(root, 'Tests/SecreteoUITests')), /keep one test class per file/);

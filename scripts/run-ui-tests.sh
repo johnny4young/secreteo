@@ -20,9 +20,13 @@ mkdir -p build "$screenshots"
 
 selection=()
 if [[ "$plan" == "smoke" ]]; then
-  while IFS= read -r test; do
+  while IFS= read -r test || [[ -n "$test" ]]; do
     [[ -n "$test" ]] && selection+=("-only-testing:$test")
   done < Tests/Plans/Smoke.txt
+  if [[ ${#selection[@]} -eq 0 ]]; then
+    echo "Smoke plan has no tests." >&2
+    exit 64
+  fi
 elif [[ "$plan" == "full" && -n "$shard" ]]; then
   # A plain assignment, so a failing helper stops the run instead of leaving the selection empty.
   classes="$(node scripts/ui_test_shards.mjs "${shard%%/*}" "${shard##*/}")"
