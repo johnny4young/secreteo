@@ -52,6 +52,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+          package-manager-cache: false
       - id: scope
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
@@ -59,6 +64,7 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           # main requires up-to-date branches, so a merge lands the tree its pull request proved.
           if [ "$EVENT_NAME" = push ] && python3 scripts/ci_reuse_gate.py "$GITHUB_REPOSITORY" "$HEAD_SHA"; then
             printf 'code=false\ndelivery=false\nrelease=false\n' | tee -a "$GITHUB_OUTPUT"
@@ -70,7 +76,7 @@ jobs:
           else
             : > changed.txt
           fi
-          python3 scripts/ci_changes.py < changed.txt | tee -a "$GITHUB_OUTPUT"
+          node scripts/ci_changes.mjs < changed.txt | tee -a "$GITHUB_OUTPUT"
 
   unit:
     needs: changes
@@ -158,6 +164,11 @@ jobs:
     timeout-minutes: 2
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+          package-manager-cache: false
       - env:
           NEEDS: ${{ toJSON(needs) }}
-        run: python3 scripts/ci_gate.py "$NEEDS"
+        run: node scripts/ci_gate.mjs "$NEEDS"
