@@ -9,6 +9,9 @@ shard="${3:-}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# Requires the repository Node LTS runtime (.nvmrc / engines.node).
+command -v node >/dev/null 2>&1 || { echo "Node is required for UI result processing." >&2; exit 127; }
+
 scripts/fetch-sparkle.sh
 xcodegen generate --quiet
 results="build/ui-$plan${shard:+-${shard%%/*}}.xcresult"
@@ -22,7 +25,7 @@ if [[ "$plan" == "smoke" ]]; then
   done < Tests/Plans/Smoke.txt
 elif [[ "$plan" == "full" && -n "$shard" ]]; then
   # A plain assignment, so a failing helper stops the run instead of leaving the selection empty.
-  classes="$(python3 -I scripts/ui_test_shards.py "${shard%%/*}" "${shard##*/}")"
+  classes="$(node scripts/ui_test_shards.mjs "${shard%%/*}" "${shard##*/}")"
   while IFS= read -r test_class; do
     [[ -n "$test_class" ]] && selection+=("-only-testing:SecreteoUITests/$test_class")
   done <<< "$classes"
@@ -48,25 +51,12 @@ xcodebuild "${common[@]}" test-without-building -parallel-testing-enabled NO \
 # `-quiet` names failing tests but not why, so print the reasons.
 if [[ "$status" -ne 0 ]]; then
   xcrun xcresulttool get test-results summary --path "$results" --compact \
-    | python3 -c 'import json,sys
-for t in json.load(sys.stdin).get("testFailures", []): print(t["testName"] + ": " + t["failureText"])' || true
+    | node scripts/ui_test_results.mjs summary || true
 fi
 
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 if xcrun xcresulttool export attachments --path "$results" --output-path "$scratch" >/dev/null 2>&1; then
-  python3 - "$scratch" "$screenshots" <<'PY'
-import json
-import shutil
-import sys
-from pathlib import Path
-
-source, target = Path(sys.argv[1]), Path(sys.argv[2])
-for test in json.loads((source / "manifest.json").read_text()):
-    for attachment in test.get("attachments", []):
-        name = attachment.get("suggestedHumanReadableName", "")
-        if name.startswith("pr-"):
-            shutil.copy(source / attachment["exportedFileName"], target / f"{name.split('_')[0]}.png")
-PY
+  node scripts/ui_test_results.mjs attachments "$scratch" "$screenshots"
 fi
 exit "$status"
