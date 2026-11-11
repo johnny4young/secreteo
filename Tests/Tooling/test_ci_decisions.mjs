@@ -5,7 +5,7 @@ import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'n
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { classify, main as classifyInput } from '../../scripts/ci_changes.mjs';
+import { classify, glob, main as classifyInput } from '../../scripts/ci_changes.mjs';
 import { failures } from '../../scripts/ci_gate.mjs';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
@@ -164,6 +164,17 @@ test('malformed outputs cannot pass even when all jobs report success', () => {
   const missing = needs();
   delete missing.changes.outputs;
   assert.deepEqual(failures(missing), [], 'Missing scope is valid when every job succeeded');
+});
+
+test('malformed outputs still report every failed lane', () => {
+  const payload = needs({}, { unit: 'failure' });
+  payload.changes.outputs = [];
+  assert.deepEqual(failures(payload).filter(line => line.startsWith('unit:')), ['unit: failure']);
+});
+test('patterns keep fnmatch semantics for several wildcards and literal regex characters', () => {
+  assert.ok(glob('Sources/*/Delivery/*').test('Sources/X/Delivery/a.swift'));
+  assert.ok(glob('docs/?.md').test('docs/a.md'));
+  assert.ok(!glob('a.b').test('axb'));
 });
 
 test('the fixed glob policy includes nested files and exact literal paths', () => {

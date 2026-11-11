@@ -50,7 +50,9 @@ function validate(sources, script) {
   for (const name of ['hygiene', 'legacy-tooling']) {
     assert.ok(needs?.split(',').map(name => name.trim()).includes(name), `gate must require ${name}`);
   }
-  assert.match(job(sources['release.yml'], 'package'), /^    needs: verify$/m);
+  const packaging = job(sources['release.yml'], 'package');
+  assert.match(packaging, /^    needs: verify$/m);
+  assert.doesNotMatch(packaging, /^    if:/m, 'Packaging cannot run after a failed verification');
   assert.doesNotMatch(script, /\bpython[\d.]*\b/, 'Repository hygiene must not invoke Python');
   assert.ok(script.includes('  bash Tests/Tooling/test_repository_hygiene.sh\n'));
   assert.ok(script.includes('Tests/Tooling/test_hygiene_coverage.mjs'));
@@ -81,6 +83,7 @@ for (const [name, file, mutate] of [
   ['missing required hygiene dependency', 'ci.yml', source => source.replace('needs: [hygiene, ', 'needs: [')],
   ['missing required legacy dependency', 'ci.yml', source => source.replace('needs: [hygiene, legacy-tooling, ', 'needs: [hygiene, ')],
   ['release bypassing verification', 'release.yml', source => source.replace('    needs: verify', '    needs: []')],
+  ['release packaging after failed verification', 'release.yml', source => source.replace('    needs: verify\n', '    needs: verify\n    if: always()\n')],
 ]) {
   test(`rejects ${name}`, () => {
     assert.throws(() => validate({ ...workflows, [file]: mutate(workflows[file]) }, gate));
