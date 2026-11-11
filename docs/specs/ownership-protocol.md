@@ -4,7 +4,7 @@ Two apps that both listen for the same trigger would start two sessions and past
 
 It is cooperative and not a security boundary. Any process running as the user can ignore it or edit its files.
 
-**Status:** `Sources/DictationOwnership` is the reference implementation. `Tests/DictationOwnershipTests` proves the [acceptance matrix](#acceptance-matrix) in scratch folders, with a synthetic app standing in for sessions, triggers and delivery. No real app uses it yet, so it has not run against a real Portavoz, real triggers or a microphone, and each app still has to show that it keeps text and cancels as this document says. If the code and this document disagree, that is a bug in one of them. The locks and discovery come from a [spike](../spikes/ownership-lock-and-discovery.md).
+**Status:** `Sources/DictationOwnership` is the reference implementation. `Tests/DictationOwnershipTests` proves the [acceptance matrix](#acceptance-matrix) in scratch folders, with a synthetic app standing in for sessions, triggers and delivery. Secreteo composes it through `DictationOwnershipCoordinator`; the scratch acceptance suite does not qualify real Portavoz coexistence, real triggers or a microphone. Physical app acceptance remains pending. If the code and this document disagree, that is a bug in one of them. The locks and discovery come from a [spike](../spikes/ownership-lock-and-discovery.md).
 
 ## Terms
 
@@ -17,6 +17,8 @@ It is cooperative and not a security boundary. Any process running as the user c
 | Readiness | Microphone and Accessibility granted, engine installed (not necessarily loaded), practice done, and triggers able to arm, as the participant defines them locally |
 | Lease | The right to run one operation, which is the capture lock held for that operation. Operations in one process can [share](#admission) it during a pasteboard restore |
 | Intent | A published request to move ownership, with an expiry |
+
+Secreteo marks practice done only after nonempty words reach a still-visible practice field. It stores only `dictationPracticeCompleted` in its own preferences, independent of onboarding dismissal. Closing or clearing the field does not reset completion; an absent value requires practice, including for an existing owner. Practice admission stays available while global readiness is missing. Disposable launches retain their synthetic readiness override.
 
 Three things stay separate: the durable owner (a file), whether a process is running and ready (local), and the temporary right to run a session (a lease). Being one does not imply another.
 
