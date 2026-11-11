@@ -70,7 +70,6 @@ final class DictationController {
     private var polishRun = DictationPolishRun()
     @ObservationIgnored private var dispatched: (id: UUID, slept: Bool)?
 
-    var isActive: Bool { phase == .preparing || phase == .listening || phase == .delivering }
     /// The app that was frontmost when dictation started — where the text
     /// will land. The strip shows it so you never dictate "blind" (4b).
     private(set) var targetApp: String?
@@ -858,6 +857,7 @@ extension DictationController {
 
 // A session override changes text policy, never preferences or destination authority.
 extension DictationController {
+    var isActive: Bool { phase == .preparing || phase == .listening || phase == .delivering }
     /// When the first audio arrived, for the compact indicator's elapsed time.
     var captureStartedAt: Date? { microphoneReadiness?.firstFrameAt }
     static let unverifiedFeedbackDuration: Duration = .seconds(4)
