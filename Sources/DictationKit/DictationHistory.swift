@@ -112,7 +112,8 @@ public struct DictationHistoryPolicy: Equatable, Sendable {
 
 public enum DictationRecordOutcome: Equatable, Sendable {
     case saved
-    /// History was off, or its consent changed after the dictation started.
+    /// History was off, its consent changed after the dictation started, or the
+    /// user deleted this dictation.
     case refused
 }
 

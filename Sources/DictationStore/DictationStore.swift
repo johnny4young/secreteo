@@ -1,5 +1,7 @@
 import Foundation
 import GRDB
+import SpeechCore
+import Synchronization
 
 public enum DictationStoreError: Error, Equatable {
     /// A newer Secreteo wrote this database. This build neither migrates nor writes it.
@@ -18,6 +20,9 @@ public final class DictationStore: Sendable {
     public static let fileName = "Dictations.sqlite"
 
     let database: any DatabaseWriter
+    /// Dictations deleted one by one in this run, so a retry still on screen cannot save them again.
+    /// Changed only when a write commits; never on disk.
+    let deletedRecordIDs = Mutex<Set<DictationRecordID>>([])
 
     /// In the app's Application Support folder, which the cask's `zap` removes.
     public static func defaultURL(bundleIdentifier: String) -> URL {

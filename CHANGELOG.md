@@ -4,6 +4,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- 🔒 **Deleted dictations stay deleted**: pressing Retry on an undelivered dictation you already deleted from History no longer saves it again.
 - 🎙️ **First dictation**: complete a successful practice before taking ownership or dictating globally; completion survives relaunch without saving the practice words.
 
 - ♻️ **Updates with undelivered words**: an accepted update waits until words that were not pasted are copied or discarded, so they are not lost on relaunch.

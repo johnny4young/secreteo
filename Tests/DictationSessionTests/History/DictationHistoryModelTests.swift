@@ -32,6 +32,23 @@ final class DictationHistoryModelTests: XCTestCase {
         XCTAssertEqual(model.applications, [])
     }
 
+    func testARetryAfterTheUserDeletesTheDictationSavesNothing() async throws {
+        let store = try DictationStore.inMemory()
+        let model = DictationHistoryModel(store: store)
+        await model.load()
+        await model.update(isEnabled: true)
+        let write = try XCTUnwrap(model.admit())
+        let dictation = record("Texto que no debe volver.", app: "Notes").with(delivery: .notDelivered)
+        _ = await write(dictation)
+        await model.delete(dictation.id)
+
+        _ = await write(dictation.with(delivery: .verified))
+
+        let saved = try await store.dictationRecords(limit: 10)
+        XCTAssertEqual(model.records, [])
+        XCTAssertEqual(saved, [])
+    }
+
     func testApplyingAllBeforeLoadKeepsInitialRowsUnloaded() async throws {
         let store = try DictationStore.inMemory()
         let policy = try await store.setDictationHistoryPolicy(
