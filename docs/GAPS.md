@@ -28,7 +28,7 @@ Microphone and Accessibility grants, Shortcuts, MCP client configuration, and hi
 
 ## G7. Updates during a dictation
 
-A scheduled update shows as a menu row and never interrupts. Once dictation sessions exist, relaunching for an update the user accepted has to wait for the session to end, through Sparkle's `updater(_:shouldPostponeRelaunchForUpdate:untilInvokingBlock:)`.
+A scheduled update shows as a menu row. Sparkle's relaunch-postponement hook now closes new dictation admission and waits until every capture/delivery lease, native Stop, clipboard restore and pending history/statistics write attempt has finished. Write failures retain their existing handling. An aborted or finished update cycle clears the pending callback and reopens admission. Synthetic tests cover these boundaries; an actual signed update during dictation is still unqualified. [Sparkle documents](https://sparkle-project.org/documentation/api-reference/Protocols/SPUUpdaterDelegate.html) paths that omit this hook (including a prior update without relaunch), so this is not a general termination barrier.
 
 ## G8. Ownership on a network home
 
@@ -70,3 +70,7 @@ The watchdog's events cover both halves of its check: `isVisible` through key-va
 ## G14. Portavoz settings left out of the import
 
 The import copies only settings Secreteo's Settings can show and change. Activation and every trigger stay out, because the two apps must not answer the same keys. The microphone needs its own confirmation, since another input can change a Bluetooth profile. Polish's engine stays out because Portavoz's is its summary engine, which may be MLX. Portavoz Dev's settings are not read.
+
+## G18. Search by meaning has limits
+
+It reaches only the Dictation History window: the Shortcuts actions and the MCP server still match words. A Mac without the system's Latin embedding assets searches by words only, and Secreteo offers no way to fetch them. Questions in one language rarely find a dictation in the other, which the public corpus measures at zero.

@@ -22,11 +22,13 @@ final class DictationHistorySession {
     let sessionID: UUID
     private(set) var state = State.pending
     @ObservationIgnored private let write: DictationHistoryWriter
+    @ObservationIgnored private let pendingWrites: DictationPendingWrites?
     @ObservationIgnored private var draft: DictationRecord?
 
-    init(sessionID: UUID, write: @escaping DictationHistoryWriter) {
+    init(sessionID: UUID, write: @escaping DictationHistoryWriter, pendingWrites: DictationPendingWrites? = nil) {
         self.sessionID = sessionID
         self.write = write
+        self.pendingWrites = pendingWrites
     }
 
     func prepare(_ draft: DictationRecord) {
@@ -51,7 +53,9 @@ final class DictationHistorySession {
         }
         state = .saving
         let write = write
+        let finished = pendingWrites?.begin()
         Task { @MainActor [weak self] in
+            defer { finished?() }
             let saved = await write(draft.with(delivery: delivery))
             self?.state = saved ? .saved : .failed
         }

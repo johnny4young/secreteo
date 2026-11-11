@@ -10,9 +10,10 @@ export function failures(needs) {
   const result = job => needs?.[job]?.result;
   const describe = value => value == null ? 'None' : String(value);
   for (const job of ALWAYS) if (result(job) !== 'success') problems.push(`${job}: ${describe(result(job))}`);
-  const scope = needs?.changes?.outputs;
+  let scope = needs?.changes?.outputs;
   if (scope !== undefined && (scope === null || typeof scope !== 'object' || Array.isArray(scope))) {
-    return [...problems, 'changes: invalid outputs'];
+    problems.push('changes: invalid outputs');
+    scope = undefined;
   }
   for (const [flag, jobs] of SCOPED) {
     for (const job of jobs) {

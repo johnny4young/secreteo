@@ -79,6 +79,7 @@ struct DictationSessionDependencies {
     var makePauseDetector: (@escaping @Sendable () -> Void) -> DictationPauseDetector? = { _ in nil }
     /// Nil when history is off: read once when the session starts.
     var beginHistory: () -> DictationHistoryWriter? = { nil }
+    var pendingWrites: DictationPendingWrites?
     /// Counts a finished dictation when statistics are on; the store checks consent.
     var recordStats: (DictationStatsSample) -> Void = { _ in }
     /// A rewrite's spoken instruction: a fixed mode, and the text goes to its own destination
