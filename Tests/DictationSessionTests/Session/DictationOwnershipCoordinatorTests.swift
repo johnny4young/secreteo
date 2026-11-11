@@ -775,6 +775,39 @@ struct DictationOwnershipCoordinatorTests {
         try await eventually { !coordinator.holdsLease }
     }
 
+    @Test
+    func sleepKeepsTheLeaseUntilNativeStopDrains() async throws {
+        let scratch = Scratch()
+        let coordinator = scratch.coordinator()
+        let notifications = NotificationCenter()
+        let lastText = DictationLastText(
+            workspaceNotifications: notifications, distributedNotifications: NotificationCenter())
+        let controller = DictationController(presentsPanel: false, lastText: lastText)
+        let harness = DictationControllerHarness(text: "No borres estas notas.", controller: controller)
+        var dependencies = harness.dependencies
+        dependencies.admission = coordinator.admission
+        let stop = StopGate()
+        defer { stop.open(); controller.cancel() }
+        await harness.microphone.holdStop { await stop.wait() }
+        controller.toggle(using: dependencies)
+        try await eventually { controller.partialText == harness.text }
+        harness.now = harness.now.addingTimeInterval(1)
+        controller.toggle(using: dependencies)
+        let stopping = await TestPolling.untilAsync { await harness.microphone.stops > 0 }
+        #expect(stopping)
+
+        notifications.post(name: NSWorkspace.willSleepNotification, object: nil)
+
+        #expect(!controller.isActive)
+        #expect(controller.recoveryText == harness.text)
+        #expect(coordinator.holdsLease)
+        #expect(coordinator.admission.refusalNow() == .busy)
+        #expect(harness.insertions.isEmpty)
+        stop.open()
+        try await eventually { !coordinator.holdsLease }
+        #expect(harness.insertions.isEmpty)
+    }
+
     private final class StopGate: Sendable {
         private let opened = Mutex(false)
 

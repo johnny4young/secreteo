@@ -4,6 +4,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- 🎙️ **Sleep during dictation**: cancel preparation and capture when the Mac sleeps, keep recognized words available to copy, and prevent those cancelled sessions from pasting later.
 - 🔎 **Search errors**: cancelled searches can be retried without a false error, and older searches no longer replace the latest error state.
 - 🔎 **History search**: keep results ordered and up to date after saving or deleting, and continue indexing older dictations when some cannot be processed.
 - 🔎 **Search by meaning**: after the dictations that hold your words, Dictation History lists those that say the same thing in other words, in English or Spanish. It runs on this Mac and uses the language model macOS already has.

@@ -128,6 +128,7 @@ final class DictationController {
         self.lastText = lastText ?? DictationLastText(observesSystem: presentsPanel)
         practiceLastText = DictationLastText(observesSystem: presentsPanel)
         self.lastText.onClear = { [weak self] in self?.forgetDictatedText() }
+        self.lastText.onSystemSleep = { [weak self] in self?.systemWillSleep() }
     }
 
     private func showPanel() {
@@ -521,6 +522,20 @@ final class DictationController {
 }
 
 private extension DictationController {
+    func systemWillSleep() {
+        // A dispatched edit must finish its clipboard restore. Preparation and capture
+        // can still be cancelled without pasting, with Stop and the lease draining normally.
+        guard phase == .preparing || phase == .listening else { return }
+        let heard = heardWords()
+        let recoveryDependencies = heard == nil ? nil : dependencies
+        cancel()
+        // Copy uses the session's sink; its destination and retry token stay cancelled.
+        dependencies = recoveryDependencies
+        recoveryText = heard ?? ""
+        phase = .failed(DictationMicrophoneReadiness.Failure.interrupted.message)
+        showPanel()
+    }
+
     /// When Paste last ends, the same words leave the session's state too, unless a session is using them.
     func forgetDictatedText() {
         guard !isActive else { return }
