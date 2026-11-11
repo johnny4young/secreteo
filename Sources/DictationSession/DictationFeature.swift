@@ -538,7 +538,7 @@ enum DictationFeatureError: LocalizedError {
 extension DictationFeature {
     private func completePractice() {
         guard practiceIsShown else { return }
-        defaults.set(true, forKey: ReadinessGap.practiceCompletionKey)
+        store([ReadinessGap.practiceCompletionKey: true])
         readiness.practiceIsComplete.withLock { $0 = true }
         ownership.reevaluate()
         watchReadiness()

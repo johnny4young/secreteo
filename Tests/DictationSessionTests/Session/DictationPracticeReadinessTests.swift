@@ -89,6 +89,9 @@ struct DictationPracticeReadinessTests {
             #expect(!defaults.bool(forKey: ReadinessGap.practiceCompletionKey))
             #expect(feature.practice.receive("private fixture words") == .verified)
             #expect(defaults.bool(forKey: ReadinessGap.practiceCompletionKey))
+            let volatile = defaults.volatileDomain(forName: UserDefaults.argumentDomain)
+            #expect(
+                volatile[ReadinessGap.practiceCompletionKey] as? Bool == true, "Disposable launches never persist it")
             #expect(feature.readiness.practiceIsComplete.withLock { $0 })
             feature.practice.clear()
             feature.practice.hide(holder)
