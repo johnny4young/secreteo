@@ -15,28 +15,25 @@ const RELEASE = ['scripts/package-release.sh', 'scripts/sign-app.sh', 'scripts/r
   'Apps/Secreteo/Info.plist', 'Apps/Secreteo/Secreteo.entitlements',
   'Apps/Secreteo/SecreteoMain.swift', 'Apps/Secreteo/SparkleUpdater.swift', ...CI];
 
-function matches(path, patterns) {
-  // Current patterns have at most one *, which also matches separators and newlines.
-  return patterns.some(pattern => {
-    const star = pattern.indexOf('*');
-    if (star < 0) return path === pattern;
-    return path.length >= pattern.length - 1 && path.startsWith(pattern.slice(0, star))
-      && path.endsWith(pattern.slice(star + 1));
-  });
-}
+// fnmatch semantics: * and ? also match separators and newlines.
+export const glob = pattern => new RegExp(`^${pattern.replace(/[\\^$.|+()[\]{}]/g, '\\$&')
+  .replaceAll('*', '[\\s\\S]*').replaceAll('?', '[\\s\\S]')}$`);
+const [docsOnly, delivery, release] = [DOCS_ONLY, DELIVERY, RELEASE].map(patterns => patterns.map(glob));
+const matches = (path, patterns) => patterns.some(pattern => pattern.test(path));
+// Python's str.strip() set; BOM is not whitespace.
+const space = String.raw`[\t-\r\u001c-\u0020\u0085\p{Zs}\u2028\u2029]`;
+const whitespace = new RegExp(`^${space}+|${space}+$`, 'gu');
 
 export function classify(paths) {
   if (!paths.length) return { code: true, delivery: true, release: true };
   return {
-    code: !paths.every(path => matches(path, DOCS_ONLY)),
-    delivery: paths.some(path => matches(path, DELIVERY)),
-    release: paths.some(path => matches(path, RELEASE)),
+    code: !paths.every(path => matches(path, docsOnly)),
+    delivery: paths.some(path => matches(path, delivery)),
+    release: paths.some(path => matches(path, release)),
   };
 }
 
 export function main(args, input = '') {
-  // Preserve universal newlines and the existing strip set; BOM is not whitespace.
-  const whitespace = /^[\t-\r\u001c-\u0020\u0085\p{Zs}\u2028\u2029]+|[\t-\r\u001c-\u0020\u0085\p{Zs}\u2028\u2029]+$/gu;
   const paths = args.length ? args : input.split(/\r\n|\r|\n/).map(line => line.replace(whitespace, '')).filter(Boolean);
   return Object.entries(classify(paths)).map(([name, value]) => `${name}=${value}\n`).join('');
 }
