@@ -6,6 +6,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 - 🎙️ **First dictation**: complete a successful practice before taking ownership or dictating globally; completion survives relaunch without saving the practice words.
 
+- ♻️ **Updates with undelivered words**: an accepted update waits until words that were not pasted are copied or discarded, so they are not lost on relaunch.
 - ♻️ **Updates during dictation**: an accepted update's relaunch hook waits for dictation, clipboard cleanup, and pending history and statistics saves before continuing.
 
 - 🎙️ **Sleep during dictation**: cancel preparation and capture when the Mac sleeps, keep recognized words available to copy, and prevent those cancelled sessions from pasting later.
