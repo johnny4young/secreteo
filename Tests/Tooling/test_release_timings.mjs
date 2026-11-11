@@ -29,7 +29,7 @@ function run({ fail = '', retries = 0, version = '1.2.3', mode = 'dryrun' } = {}
     writeFileSync(join(root, 'bin', name), stub, { mode: 0o755 });
   }
   const result = spawnSync('/bin/bash', ['scripts/package-release.sh', version, mode], {
-    cwd: root, encoding: 'utf8', env: { PATH: `${join(root, 'bin')}:${process.env.PATH}`, LC_ALL: 'C',
+    cwd: root, encoding: 'utf8', timeout: 30_000, env: { PATH: `${join(root, 'bin')}:${process.env.PATH}`, LC_ALL: 'C',
       DRYRUN_SPARKLE_PUBLIC_KEY: 'synthetic-public-key', FAIL_STAGE: fail, DMG_RETRIES: String(retries),
       MACOS_CODE_SIGN_IDENTITY: 'synthetic-identity', MACOS_NOTARY_KEY_ID: 'synthetic-id',
       MACOS_NOTARY_KEY_ISSUER_ID: 'synthetic-issuer', MACOS_NOTARY_KEY_P8: 'synthetic-unused-key-path' },
@@ -47,7 +47,7 @@ function timings(result) {
 test('packaging reports every stage and total without changing build or verification inputs', () => {
   const result = run();
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(timings(result).map(row => row.phase).sort(), ['prepare', 'build', 'copy', 'sign', 'dmg', 'verify', 'total'].sort());
+  assert.deepEqual(timings(result).map(row => row.phase), ['prepare', 'build', 'copy', 'sign', 'dmg', 'verify', 'total']);
   assert.ok(timings(result).every(row => Number.isFinite(row.real) && row.real >= 0));
   assert.ok(timings(result).every(row => row.status === 0));
   assert.deepEqual(result.calls.map(row => row.name), ['fetch-sparkle.sh', 'xcodegen', 'xcodebuild', 'ditto', 'sign-app.sh', 'ditto', 'hdiutil', 'python3']);
@@ -115,7 +115,9 @@ test('an invalid version is rejected before tools or timing records run', () => 
 for (const signal of ['SIGINT', 'SIGTERM']) {
   test(`${signal} cannot publish successful timing for an interrupted active stage`, { timeout: 3000 }, async () => {
     const source = readFileSync(new URL('../../scripts/package-release.sh', import.meta.url), 'utf8');
-    const timing = source.slice(source.indexOf('package_started='), source.indexOf('\nproject_setting()'));
+    const start = source.indexOf('package_started='), end = source.indexOf('\nproject_setting()');
+    assert.ok(start >= 0 && end > start, 'timing helpers moved; update the extraction');
+    const timing = source.slice(start, end);
     const child = spawn('/bin/bash', ['-c', `set -euo pipefail\nversion=1.2.3\n${timing}\nbegin_phase build\nprintf 'ready\\n'\n/bin/sleep 1\nfinish_phase 0\necho unexpected-success`], { detached: true });
     let stdout = '', stderr = '', timer;
     child.stdout.on('data', bytes => {
@@ -128,6 +130,7 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
         child.once('error', reject);
         child.once('close', (code, endedBySignal) => resolve({ code, endedBySignal }));
       });
+      assert.match(stdout, /ready/, stderr);
       assert.ok(result.code !== 0 || result.endedBySignal !== null);
       assert.doesNotMatch(stdout, /unexpected-success/);
       assert.doesNotMatch(stderr, /phase=build real=\d+ status=0/);
