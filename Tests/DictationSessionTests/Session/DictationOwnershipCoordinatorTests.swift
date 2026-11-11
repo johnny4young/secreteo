@@ -775,6 +775,201 @@ struct DictationOwnershipCoordinatorTests {
         try await eventually { !coordinator.holdsLease }
     }
 
+    @Test
+    func sleepKeepsTheLeaseUntilNativeStopDrains() async throws {
+        let scratch = Scratch()
+        let coordinator = scratch.coordinator()
+        let notifications = NotificationCenter()
+        let lastText = DictationLastText(
+            workspaceNotifications: notifications, distributedNotifications: NotificationCenter())
+        let controller = DictationController(presentsPanel: false, lastText: lastText)
+        let harness = DictationControllerHarness(text: "No borres estas notas.", controller: controller)
+        var dependencies = harness.dependencies
+        dependencies.admission = coordinator.admission
+        let stop = StopGate()
+        defer { stop.open(); controller.cancel() }
+        await harness.microphone.holdStop { await stop.wait() }
+        controller.toggle(using: dependencies)
+        try await eventually { controller.partialText == harness.text }
+        harness.now = harness.now.addingTimeInterval(1)
+        controller.toggle(using: dependencies)
+        let stopping = await TestPolling.untilAsync { await harness.microphone.stops > 0 }
+        #expect(stopping)
+
+        notifications.post(name: NSWorkspace.willSleepNotification, object: nil)
+
+        #expect(!controller.isActive)
+        #expect(controller.recoveryText == harness.text)
+        #expect(coordinator.holdsLease)
+        #expect(coordinator.admission.refusalNow() == .busy)
+        #expect(harness.insertions.isEmpty)
+        stop.open()
+        try await eventually { !coordinator.holdsLease }
+        #expect(harness.insertions.isEmpty)
+    }
+
+    @Test
+    func anIdleUpdateBlocksNewWorkUntilItsCycleFinishes() throws {
+        let scratch = Scratch()
+        let coordinator = scratch.coordinator()
+        var resumed = 0
+
+        #expect(!coordinator.postponeUpdateRelaunch { resumed += 1 })
+
+        #expect(resumed == 0)
+        #expect(coordinator.admission.refusalNow() == .busy)
+        #expect(coordinator.admission.refusalNow(for: .practice) == .busy)
+        #expect(!coordinator.admission.isEligible())
+        coordinator.finishUpdateCycle()
+        coordinator.finishUpdateCycle()
+        #expect(coordinator.admission.isEligible())
+        let lease = try acquire(coordinator)
+        lease.release()
+    }
+
+    @Test
+    func anUpdateWaitsForClipboardRestorationAndKeepsAdmissionClosedWhileResuming() async throws {
+        let scratch = Scratch()
+        let coordinator = scratch.coordinator()
+        let lease = try acquire(coordinator)
+        let (gate, finished) = try await waitOnClipboard(lease, scratch: scratch)
+        defer { gate.release(); coordinator.finishUpdateCycle() }
+        var resumed = 0
+        var refusedDuringResume: DictationAdmissionRefusal?
+
+        #expect(coordinator.postponeUpdateRelaunch {
+            resumed += 1
+            refusedDuringResume = coordinator.admission.refusalNow()
+        })
+
+        #expect(lease.revalidate())
+        #expect(resumed == 0)
+        #expect(coordinator.admission.refusalNow() == .busy)
+        #expect(coordinator.admission.refusalNow(for: .practice) == .busy)
+        gate.release()
+        await finished.value
+        #expect(resumed == 1)
+        #expect(refusedDuringResume == .busy)
+        #expect(coordinator.admission.refusalNow() == .busy)
+        lease.release()
+        #expect(resumed == 1)
+        coordinator.finishUpdateCycle()
+        #expect(coordinator.admission.refusalNow() == nil)
+    }
+
+    @Test(arguments: [false, true])
+    func anUpdateWaitsForEverySharedHolder(newestFirst: Bool) async throws {
+        let scratch = Scratch()
+        let coordinator = scratch.coordinator()
+        let first = try acquire(coordinator)
+        let firstRestore = try await waitOnClipboard(first, scratch: scratch)
+        let second = try acquire(coordinator)
+        let secondRestore = try await waitOnClipboard(second, scratch: scratch)
+        defer {
+            firstRestore.gate.release()
+            secondRestore.gate.release()
+            coordinator.finishUpdateCycle()
+        }
+        var resumed = 0
+        #expect(coordinator.postponeUpdateRelaunch { resumed += 1 })
+
+        let earlier = newestFirst ? secondRestore : firstRestore
+        let later = newestFirst ? firstRestore : secondRestore
+        earlier.gate.release()
+        await earlier.finished.value
+
+        #expect(resumed == 0)
+        #expect(coordinator.holdsLease)
+        later.gate.release()
+        await later.finished.value
+        #expect(resumed == 1)
+        #expect(!coordinator.holdsLease)
+    }
+
+    @Test
+    func aFinishedUpdateCycleDropsItsCallbackBeforeANewCycle() async throws {
+        let scratch = Scratch()
+        let coordinator = scratch.coordinator()
+        let lease = try acquire(coordinator)
+        var obsolete = 0
+        var current = 0
+        #expect(coordinator.postponeUpdateRelaunch { obsolete += 1 })
+
+        coordinator.finishUpdateCycle()
+        coordinator.finishUpdateCycle()
+        #expect(coordinator.postponeUpdateRelaunch { current += 1 })
+        await lease.releaseAfterDelivery()
+
+        #expect(obsolete == 0)
+        #expect(current == 1)
+        coordinator.finishUpdateCycle()
+        #expect(coordinator.admission.refusalNow() == nil)
+    }
+
+    @Test
+    func abortingAnUpdateDoesNotResumeOnALateLeaseRelease() async throws {
+        let scratch = Scratch()
+        let coordinator = scratch.coordinator()
+        let lease = try acquire(coordinator)
+        var resumed = 0
+        #expect(coordinator.postponeUpdateRelaunch { resumed += 1 })
+
+        coordinator.finishUpdateCycle()
+        await lease.releaseAfterDelivery()
+
+        #expect(resumed == 0)
+        #expect(coordinator.admission.refusalNow() == nil)
+    }
+
+    @Test
+    func anUpdateLetsTheCurrentDictationFinishAndWaitsForItsNativeStop() async throws {
+        let scratch = Scratch()
+        let coordinator = scratch.coordinator()
+        let harness = DictationControllerHarness(text: "No borres estas notas.")
+        var dependencies = harness.dependencies
+        dependencies.admission = coordinator.admission
+        let stop = StopGate()
+        defer { stop.open(); harness.controller.cancel(); coordinator.finishUpdateCycle() }
+        await harness.microphone.holdStop { await stop.wait() }
+        harness.controller.toggle(using: dependencies)
+        try await eventually { harness.controller.partialText == harness.text }
+        var resumed = 0
+
+        #expect(coordinator.postponeUpdateRelaunch { resumed += 1 })
+        harness.now = harness.now.addingTimeInterval(1)
+        harness.controller.toggle(using: dependencies)
+
+        let stopping = await TestPolling.untilAsync { await harness.microphone.stops > 0 }
+        #expect(stopping)
+        #expect(resumed == 0)
+        #expect(coordinator.holdsLease)
+        #expect(harness.insertions.isEmpty)
+        stop.open()
+        try await eventually { resumed == 1 }
+        #expect(harness.insertions == [harness.text])
+        #expect(!coordinator.holdsLease)
+        #expect(coordinator.admission.refusalNow() == .busy)
+    }
+
+    @Test
+    func theFeatureRoutesUpdateCallbacksToItsAdmissionCoordinator() async throws {
+        let suite = "update-feature-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let feature = try disposableFeature(defaults)
+        let admission = feature.dictationAdmission
+        let lease = try admission.acquire(.practice).get()
+        var resumed = 0
+
+        #expect(feature.postponeUpdateRelaunch { resumed += 1 })
+        #expect(admission.refusalNow(for: .practice) == .busy)
+        await lease.releaseAfterDelivery()
+
+        #expect(resumed == 1)
+        feature.finishUpdateCycle()
+        #expect(admission.refusalNow(for: .practice) == nil)
+    }
+
     private final class StopGate: Sendable {
         private let opened = Mutex(false)
 

@@ -14,10 +14,15 @@ final class DictationStatsModel {
     private(set) var failure: String?
     @ObservationIgnored private let store: any DictationStatsStore
     @ObservationIgnored private let now: @Sendable () -> Date
+    @ObservationIgnored private let pendingWrites: DictationPendingWrites?
 
-    init(store: any DictationStatsStore, now: @escaping @Sendable () -> Date = Date.init) {
+    init(
+        store: any DictationStatsStore, now: @escaping @Sendable () -> Date = Date.init,
+        pendingWrites: DictationPendingWrites? = nil
+    ) {
         self.store = store
         self.now = now
+        self.pendingWrites = pendingWrites
     }
 
     func load() async {
@@ -61,7 +66,9 @@ final class DictationStatsModel {
         guard isEnabled else { return }
         let store = store
         let now = now
+        let finished = pendingWrites?.begin()
         Task { [weak self] in
+            defer { finished?() }
             _ = try? await RecordDictationStats(store: store, now: now).execute(sample)
             try? await self?.refresh()
         }

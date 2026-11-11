@@ -4,15 +4,27 @@ import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const WORKFLOW = '.github/workflows/ci.yml';
-const isSHA = value => typeof value === 'string' && value.length === 40 && /^[0-9a-f]{40}$/.test(value);
+const CALL_TIMEOUT_MS = 15_000;
+// The changes job has two minutes, so a slow API must fall back to a full run before it times out.
+const PROOF_BUDGET_MS = 45_000;
+const isSHA = value => typeof value === 'string' && /^[0-9a-f]{40}$/.test(value);
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const positiveInteger = value => Number.isSafeInteger(value) && value > 0;
 
-export function ghApi(path) {
+export function ghApi(path, timeout = CALL_TIMEOUT_MS) {
   const bytes = execFileSync('gh', ['api', path], {
-    stdio: ['ignore', 'pipe', 'pipe'], timeout: 15_000, maxBuffer: 4 * 1024 * 1024,
+    stdio: ['ignore', 'pipe', 'pipe'], timeout, maxBuffer: 4 * 1024 * 1024,
   });
   return JSON.parse(new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes));
+}
+
+export function withDeadline(api, budget = PROOF_BUDGET_MS, now = Date.now) {
+  const deadline = now() + budget;
+  return path => {
+    const left = deadline - now();
+    if (left <= 0) throw new Error('Reuse proof exceeded its time budget.');
+    return api(path, Math.min(CALL_TIMEOUT_MS, left));
+  };
 }
 
 function completePage(value, key) {
@@ -84,5 +96,5 @@ function isMain() {
 }
 
 if (isMain()) {
-  process.exitCode = process.argv.length === 4 ? main(ghApi, process.argv[2], process.argv[3]) : 1;
+  process.exitCode = process.argv.length === 4 ? main(withDeadline(ghApi), process.argv[2], process.argv[3]) : 1;
 }

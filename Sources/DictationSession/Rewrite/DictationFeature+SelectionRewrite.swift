@@ -18,7 +18,8 @@ extension DictationFeature {
 
     func makeDictationSessionDependencies(capturesInstruction: Bool) -> DictationSessionDependencies {
         let routed = practice.route(
-            unroutedDependencies(), appIsActive: NSApplication.shared.isActive && practiceIsShown)
+            unroutedDependencies(), appIsActive: NSApplication.shared.isActive && practiceIsShown,
+            isStillShown: { [weak self] in self?.practiceIsShown == true })
         // A rewrite waiting for "Say how" takes the next session's words as its instruction.
         return capturesInstruction && selectionRewrite.capturesInstruction
             ? selectionRewrite.instructionDependencies(routed) : routed

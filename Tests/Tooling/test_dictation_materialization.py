@@ -1,8 +1,8 @@
 """Exercise the real matrix producer with explicit speech doubles and bounded subprocesses."""
 
 from array import array
+import atexit
 import copy
-import functools
 import hashlib
 import json
 import os
@@ -61,33 +61,39 @@ def write_pcm(path, samples):
         target.writeframes(block.tobytes())
 
 
-@functools.cache
-def _synthetic_audio_template():
-    temporary = tempfile.TemporaryDirectory()
-    try:
-        producer.materialize(Path(temporary.name) / "audio", NAMES, SpeechDouble())
-    except BaseException:
-        temporary.cleanup()
-        raise
-    return temporary
+class SyntheticAudioTemplate:
+    """Generates one corpus per instance and only ever hands out independent copies."""
+
+    def __init__(self):
+        self.root = None
+
+    def copy_to(self, destination):
+        if self.root is None:
+            root = Path(tempfile.mkdtemp())
+            try:
+                producer.materialize(root / "audio", NAMES, SpeechDouble())
+            except BaseException:
+                shutil.rmtree(root)
+                raise
+            self.root = root
+        Path(destination).mkdir(mode=0o700)
+        shutil.copytree(self.root / "audio", destination, dirs_exist_ok=True)
+
+    def close(self):
+        if self.root is not None:
+            shutil.rmtree(self.root)
+            self.root = None
 
 
-def copy_synthetic_audio(destination):
-    """Reuse generation, never mutable files: each test owns a full independent copy."""
-    source = Path(_synthetic_audio_template().name) / "audio"
-    shutil.copytree(source, destination)
-
-
-def clear_synthetic_audio_template():
-    if _synthetic_audio_template.cache_info().currsize:
-        _synthetic_audio_template().cleanup()
-    _synthetic_audio_template.cache_clear()
+_shared_audio_template = SyntheticAudioTemplate()
+atexit.register(_shared_audio_template.close)
+copy_synthetic_audio = _shared_audio_template.copy_to
 
 
 class SyntheticAudioFixtureTests(unittest.TestCase):
     def setUp(self):
-        clear_synthetic_audio_template()
-        self.addCleanup(clear_synthetic_audio_template)
+        self.template = SyntheticAudioTemplate()
+        self.addCleanup(self.template.close)
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
@@ -98,12 +104,12 @@ class SyntheticAudioFixtureTests(unittest.TestCase):
                 for path in root.rglob("*") if path.is_file()}
 
     def test_copies_materialize_once_and_keep_the_full_admitted_corpus(self):
+        _, cells = corpus.read_public_corpus()
         with mock.patch.object(producer, "materialize", wraps=producer.materialize) as render:
             for name in ("first", "second"):
                 destination = self.root / name
-                copy_synthetic_audio(destination)
+                self.template.copy_to(destination)
                 manifest, _ = corpus.read_json(destination / "manifest.json")
-                _, cells = corpus.read_public_corpus()
                 corpus.validate_audio_manifest(manifest, cells, destination)
                 self.assertEqual(len(manifest["entries"]), 480)
                 self.assertEqual(stat.S_IMODE(destination.stat().st_mode), 0o700)
@@ -114,8 +120,8 @@ class SyntheticAudioFixtureTests(unittest.TestCase):
 
     def test_mutation_and_deletion_cannot_reach_another_copy_or_the_template(self):
         first, second, third = (self.root / name for name in ("first", "second", "third"))
-        copy_synthetic_audio(first)
-        copy_synthetic_audio(second)
+        self.template.copy_to(first)
+        self.template.copy_to(second)
         expected = self.inventory(second)
         wav = next(first.glob("*.wav"))
         self.assertNotEqual(wav.stat().st_ino, (second / wav.name).stat().st_ino)
@@ -123,18 +129,21 @@ class SyntheticAudioFixtureTests(unittest.TestCase):
         (first / "manifest.json").write_bytes(b"changed manifest")
         (first / "recipe.json").unlink()
         self.assertEqual(self.inventory(second), expected)
-        copy_synthetic_audio(third)
+        self.template.copy_to(third)
         self.assertEqual(self.inventory(third), expected)
 
-    def test_an_existing_destination_is_not_overwritten(self):
+    def test_an_existing_or_parentless_destination_is_refused(self):
         destination = self.root / "keep"
         destination.mkdir()
         sentinel = destination / "sentinel"
         sentinel.write_bytes(b"keep")
         with self.assertRaises(FileExistsError):
-            copy_synthetic_audio(destination)
+            self.template.copy_to(destination)
         self.assertEqual(list(destination.iterdir()), [sentinel])
         self.assertEqual(sentinel.read_bytes(), b"keep")
+        with self.assertRaises(FileNotFoundError):
+            self.template.copy_to(self.root / "missing/audio")
+        self.assertFalse((self.root / "missing").exists())
 
     def test_failed_generation_cleans_up_and_can_retry(self):
         attempted = []
@@ -147,22 +156,22 @@ class SyntheticAudioFixtureTests(unittest.TestCase):
 
         with mock.patch.object(producer, "materialize", side_effect=fail):
             with self.assertRaisesRegex(RuntimeError, "synthetic generation failed"):
-                copy_synthetic_audio(self.root / "failed")
+                self.template.copy_to(self.root / "failed")
         self.assertFalse(attempted[0].exists())
         self.assertFalse((self.root / "failed").exists())
-        copy_synthetic_audio(self.root / "retry")
+        self.assertIsNone(self.template.root)
+        self.template.copy_to(self.root / "retry")
         manifest, _ = corpus.read_json(self.root / "retry/manifest.json")
         self.assertEqual(len(manifest["entries"]), 480)
 
-
-    def test_reset_releases_the_template_even_if_a_reference_is_still_alive(self):
-        template = _synthetic_audio_template()
-        root = Path(template.name)
-        self.assertTrue(root.is_dir())
-        clear_synthetic_audio_template()
+    def test_close_removes_the_template_and_a_later_copy_regenerates(self):
+        self.template.copy_to(self.root / "first")
+        root = self.template.root
+        self.template.close()
         self.assertFalse(root.exists())
-        self.assertEqual(_synthetic_audio_template.cache_info().currsize, 0)
-        clear_synthetic_audio_template()
+        self.template.close()
+        self.template.copy_to(self.root / "second")
+        self.assertTrue((self.root / "second/manifest.json").is_file())
 
 
 class DictationMaterializationTests(unittest.TestCase):

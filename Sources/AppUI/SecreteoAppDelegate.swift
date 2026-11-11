@@ -127,7 +127,6 @@ public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
             ? InMemoryLaunchAtLogin(failure: options.failsLaunchAtLogin ? CocoaError(.featureUnsupported) : nil)
             : SystemLaunchAtLogin()
         let model = AppModel(launchController: controller)
-        model.updater = options.usesTemporaryStore ? InertUpdater() : makeUpdater(model)
         model.updateIsAvailable = options.reportsAvailableUpdate
         if DictationFeature.mayRunInThisBuild {
             do {
@@ -139,6 +138,8 @@ public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         if model.dictation == nil { DictationFeature.answerIntentsWithoutDictation() }
+        // Sparkle may resume an installation at launch; its delegate must already see dictation.
+        model.updater = options.usesTemporaryStore ? InertUpdater() : makeUpdater(model)
         let settings = SettingsWindowController(model: model)
         let statusItem = StatusItemController(model: model)
         model.openSettings = { [weak settings, weak statusItem] in

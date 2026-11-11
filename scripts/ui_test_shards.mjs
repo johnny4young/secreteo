@@ -49,10 +49,8 @@ export function shards(found, count) {
 
 export function main(args) {
   const parse = value => {
-    if (typeof value !== 'string' || !/^[+-]?[0-9](?:_?[0-9])*$/.test(value.trim())) {
-      throw new Error('index and count must be integers');
-    }
-    const number = Number(value.trim().replaceAll('_', ''));
+    if (typeof value !== 'string' || !/^[0-9]+$/.test(value)) throw new Error('index and count must be integers');
+    const number = Number(value);
     if (!Number.isSafeInteger(number)) throw new Error('index and count must be safe integers');
     return number;
   };
