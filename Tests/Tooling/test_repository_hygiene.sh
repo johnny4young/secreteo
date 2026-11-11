@@ -50,7 +50,8 @@ TEMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/repository-hygiene.XXXXXX")"
 trap 'rm -rf -- "$TEMP_ROOT"' EXIT
 FIXTURE="$TEMP_ROOT/repo"
 mkdir -p "$FIXTURE/scripts"
-NODE_DIR="$(dirname "$(command -v node)")"
+node_path="$(command -v node)" || { printf 'Node is required on PATH.\n' >&2; exit 1; }
+NODE_DIR="$(dirname "$node_path")"
 mkdir -p "$TEMP_ROOT/bin"
 cat > "$TEMP_ROOT/bin/python3" <<'STUB'
 #!/bin/bash
@@ -80,22 +81,26 @@ run_gate() {
     GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null \
     bash scripts/check-repository-hygiene.sh) > "$TEMP_ROOT/stdout" 2> "$TEMP_ROOT/stderr"
 }
+assert_no_python() {
+  if [[ -e "$TEMP_ROOT/python-invoked" ]]; then
+    printf 'The repository gate must not invoke Python.\n' >&2
+    return 1
+  fi
+}
 assert_pass() {
   if ! run_gate; then
     printf 'Expected the hygiene gate to pass.\n' >&2
     cat "$TEMP_ROOT/stderr" >&2
     return 1
   fi
-  if [[ -e "$TEMP_ROOT/python-invoked" ]]; then
-    printf 'The repository gate must not invoke Python.\n' >&2
-    return 1
-  fi
+  assert_no_python
 }
 assert_rejected() {
   if run_gate; then
     printf 'Expected rejection containing: %s\n' "$1" >&2
     return 1
   fi
+  assert_no_python || return 1
   if ! grep -Fq -- "$1" "$TEMP_ROOT/stderr"; then
     printf 'Missing expected rejection: %s\n' "$1" >&2
     cat "$TEMP_ROOT/stderr" >&2
