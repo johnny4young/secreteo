@@ -94,6 +94,33 @@ final class DictationHistoryStoreTests: XCTestCase {
         XCTAssertEqual(saved.map(\.text), ["Otra nota."])
     }
 
+    func testADeleteThatRollsBackLeavesRetriesAsTheyWere() async throws {
+        let store = try DictationStore.inMemory()
+        try await enable(store)
+        let gone = record(text: "Borrada.")
+        let kept = record(text: "Sigue aquí.")
+        _ = try await store.recordDictation(gone, admittedGeneration: 0, at: now)
+        _ = try await store.recordDictation(kept, admittedGeneration: 0, at: now)
+        _ = try await store.deleteDictationRecord(gone.id)
+        try await store.database.write { database in
+            try database.execute(
+                sql: "CREATE TABLE pin (recordID TEXT REFERENCES dictationRecord(id) DEFERRABLE INITIALLY DEFERRED)")
+            try database.execute(sql: "INSERT INTO pin VALUES (?)", arguments: [kept.id.rawValue.uuidString])
+        }
+
+        let deleteOne = try? await store.deleteDictationRecord(kept.id)
+        let keptRetry = try await store.recordDictation(kept.with(delivery: .verified), admittedGeneration: 0, at: now)
+        let deleteAll = try? await store.deleteAllDictationRecords()
+        let goneRetry = try await store.recordDictation(gone.with(delivery: .verified), admittedGeneration: 0, at: now)
+        let saved = try await store.dictationRecords(limit: 10)
+
+        XCTAssertNil(deleteOne)
+        XCTAssertNil(deleteAll)
+        XCTAssertEqual([keptRetry, goneRetry], [.saved, .refused])
+        XCTAssertEqual(saved.map(\.text), ["Sigue aquí."])
+        XCTAssertEqual(saved.map(\.delivery), [.verified])
+    }
+
     func testRetentionPurgesOldDictationsAndAShorterChoiceAppliesAtOnce() async throws {
         let store = try DictationStore.inMemory()
         try await enable(store)

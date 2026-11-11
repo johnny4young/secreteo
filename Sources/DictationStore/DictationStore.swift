@@ -1,5 +1,6 @@
 import Foundation
 import GRDB
+import SpeechCore
 import Synchronization
 
 public enum DictationStoreError: Error, Equatable {
@@ -20,8 +21,8 @@ public final class DictationStore: Sendable {
 
     let database: any DatabaseWriter
     /// Dictations deleted one by one in this run, so a retry still on screen cannot save them again.
-    /// Only touched inside writes; never on disk.
-    let deletedRecordIDs = Mutex<Set<String>>([])
+    /// Changed only when a write commits; never on disk.
+    let deletedRecordIDs = Mutex<Set<DictationRecordID>>([])
 
     /// In the app's Application Support folder, which the cask's `zap` removes.
     public static func defaultURL(bundleIdentifier: String) -> URL {

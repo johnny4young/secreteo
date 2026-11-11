@@ -45,8 +45,9 @@ extension DictationStore {
         guard record.isValid else { throw DictationStoreError.invalidDictationRecord("invalid input") }
         let (outcome, purged) = try await database.write { database -> (DictationRecordOutcome, Int) in
             let policy = try Self.dictationHistoryPolicy(in: database)
-            let wasDeleted = self.deletedRecordIDs.withLock { $0.contains(record.id.rawValue.uuidString) }
-            guard policy.isEnabled, policy.generation == admittedGeneration, !wasDeleted else { return (.refused, 0) }
+            guard policy.isEnabled, policy.generation == admittedGeneration,
+                !self.deletedRecordIDs.withLock({ $0.contains(record.id) })
+            else { return (.refused, 0) }
             try database.execute(
                 sql: """
                     INSERT INTO dictationRecord (
@@ -159,10 +160,10 @@ extension DictationStore {
 
     public func deleteDictationRecord(_ id: DictationRecordID) async throws -> Bool {
         let deleted = try await database.write { database in
-            let id = id.rawValue.uuidString
-            try database.execute(sql: "DELETE FROM dictationRecord WHERE id = ?", arguments: [id])
+            try database.execute(
+                sql: "DELETE FROM dictationRecord WHERE id = ?", arguments: [id.rawValue.uuidString])
             guard database.changesCount == 1 else { return false }
-            self.deletedRecordIDs.withLock { _ = $0.insert(id) }
+            database.afterNextTransaction { _ in self.deletedRecordIDs.withLock { _ = $0.insert(id) } }
             return true
         }
         if deleted { await checkpoint() }
@@ -173,7 +174,7 @@ extension DictationStore {
     @discardableResult
     public func deleteAllDictationRecords() async throws -> Int {
         let deleted = try await database.write { database in
-            self.deletedRecordIDs.withLock { $0.removeAll() }
+            database.afterNextTransaction { _ in self.deletedRecordIDs.withLock { $0.removeAll() } }
             try database.execute(sql: "DELETE FROM dictationRecord")
             let deleted = database.changesCount
             try database.execute(sql: "UPDATE dictationHistoryPolicy SET generation = generation + 1 WHERE id = 1")
