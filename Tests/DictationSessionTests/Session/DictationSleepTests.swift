@@ -1,4 +1,6 @@
 import AppKit
+import DictationKit
+import Testing
 import XCTest
 @testable import DictationSession
 
@@ -193,5 +195,44 @@ final class DictationSleepTests: XCTestCase {
         restore.release()
         let drained = await TestPolling.until { released }
         XCTAssertTrue(drained)
+    }
+}
+
+// Polish mode lives in the process-wide argument domain.
+@Suite(.serialized, .exclusiveArgumentDomain, .timeLimit(.minutes(1)))
+@MainActor
+struct DictationSleepBeforeInsertTests {
+    @Test
+    func sleepWhilePolishRunsCancelsWithoutPastingOrRenewingPasteLast() async {
+        let notifications = NotificationCenter()
+        let lastText = DictationLastText(
+            workspaceNotifications: notifications, distributedNotifications: NotificationCenter())
+        let controller = DictationController(presentsPanel: false, lastText: lastText)
+        let harness = DictationControllerHarness(text: "Synthetic words", controller: controller)
+        let polish = PreparationGate()
+        defer { controller.cancel(); polish.release() }
+        harness.set(DictationTextMode.polish.rawValue, forKey: DictationTextPreferences.modeKey)
+        var dependencies = harness.dependencies
+        dependencies.polishDictation = { _, _, _ in
+            await polish.wait()
+            return .polished("Polished synthetic words.")
+        }
+        controller.toggle(using: dependencies)
+        let ready = await TestPolling.until { controller.partialText == harness.text }
+        #expect(ready)
+        harness.now = harness.now.addingTimeInterval(1)
+        controller.toggle(using: dependencies)
+        let polishing = await TestPolling.until { polish.started && controller.phase == .delivering }
+        #expect(polishing)
+
+        notifications.post(name: NSWorkspace.willSleepNotification, object: nil)
+        polish.release()
+
+        let drained = await TestPolling.until { harness.finishes == 1 }
+        #expect(drained)
+        #expect(!controller.isActive)
+        #expect(controller.recoveryText == harness.text)
+        #expect(harness.insertions.isEmpty)
+        #expect(lastText.current == nil)
     }
 }

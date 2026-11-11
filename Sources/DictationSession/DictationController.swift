@@ -68,6 +68,7 @@ final class DictationController {
     @ObservationIgnored private var lastInsertion: DictationInsertion?
     /// Observed: the strip shows "Polishing…" while a rewrite is pending.
     private var polishRun = DictationPolishRun()
+    @ObservationIgnored private var dispatchedSessionID: UUID?
 
     var isActive: Bool { phase == .preparing || phase == .listening || phase == .delivering }
     /// The app that was frontmost when dictation started — where the text
@@ -480,7 +481,7 @@ final class DictationController {
         let delivered = delivery.text
         measurement?.record(.deliveryStarted)
         // Read again here: polish may have taken a while since the check above.
-        let stillOwner = !yieldsToHandoff && sessionLease?.revalidate() != false
+        let stillOwner = dispatchesInsert(sessionID: sessionID)
         let result = stillOwner ? await destination.insert(delivered) : .refused(.ownershipChanged)
         measurement?.finishDelivery(result)
         guard activeSessionID == sessionID else { return }
@@ -525,9 +526,10 @@ final class DictationController {
 
 private extension DictationController {
     func systemWillSleep() {
-        // A dispatched edit must finish its clipboard restore. Preparation and capture
-        // can still be cancelled without pasting, with Stop and the lease draining normally.
-        guard phase == .preparing || phase == .listening else { return }
+        // A dispatched edit must finish its clipboard restore. Anything before it, polish
+        // included, can still be cancelled without pasting, with Stop and the lease draining normally.
+        let undispatched = phase == .delivering && dispatchedSessionID != activeSessionID
+        guard phase == .preparing || phase == .listening || undispatched else { return }
         let heard = heardWords()
         let recoveryDependencies = heard == nil ? nil : dependencies
         cancel()
@@ -536,6 +538,12 @@ private extension DictationController {
         recoveryText = heard ?? ""
         phase = .failed(DictationMicrophoneReadiness.Failure.interrupted.message)
         showPanel()
+    }
+
+    /// From here sleep lets the delivery finish instead of cancelling it.
+    func dispatchesInsert(sessionID: UUID) -> Bool {
+        dispatchedSessionID = sessionID
+        return !yieldsToHandoff && sessionLease?.revalidate() != false
     }
 
     /// When Paste last ends, the same words leave the session's state too, unless a session is using them.
@@ -937,6 +945,7 @@ private extension DictationController {
                 "Secreteo can correct only its last insertion while it is unchanged in a field it can read."))
             return true
         }
+        dispatchedSessionID = sessionID
         guard let updated = await last.edit(edit.range, edit.replacement) else {
             guard activeSessionID == sessionID else { return true }
             failSession(id: sessionID, message: L10n.text("This field did not accept the correction. Nothing changed."))
