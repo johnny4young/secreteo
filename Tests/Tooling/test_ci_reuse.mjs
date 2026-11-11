@@ -5,7 +5,7 @@ import { copyFileSync, mkdirSync, mkdtempSync, writeFileSync, rmSync, existsSync
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { proof, main } from '../../scripts/ci_reuse_gate.mjs';
+import { proof, main, withDeadline } from '../../scripts/ci_reuse_gate.mjs';
 
 const REPO = 'owner/repo';
 const MERGED = 'a'.repeat(40), HEAD = 'b'.repeat(40), TREE = 'c'.repeat(40);
@@ -31,7 +31,6 @@ function world() {
 }
 const output = () => ({ lines: [], log(value) { this.lines.push(value); }, error(value) { this.lines.push(value); } });
 
-// The nine original cases retain their acceptance/refusal meaning.
 test('the tree a pull request proved reuses its gate', () => {
   const w = world();
   assert.equal(proof(w.api, REPO, MERGED), run().html_url);
@@ -205,4 +204,12 @@ test('an unproved push runs every job even when its diff would be docs-only',t=>
     EVENT_NAME:'push',BASE_SHA:'d'.repeat(40),HEAD_SHA:MERGED,GITHUB_REPOSITORY:REPO,GITHUB_OUTPUT:outputs},encoding:'utf8'});
   assert.equal(result.status,0,result.stderr);
   assert.equal(readFileSync(outputs,'utf8'),'code=true\ndelivery=true\nrelease=true\n');
+});
+
+test('a slow API exhausts the proof budget and runs everything', () => {
+  let clock = 0;
+  const timeouts = [];
+  const slow = (path, timeout) => { timeouts.push(timeout); clock += 20_000; return world().api(path); };
+  assert.equal(main(withDeadline(slow, 45_000, () => clock), REPO, MERGED, output()), 1);
+  assert.deepEqual(timeouts, [15_000, 15_000, 5_000]);
 });

@@ -51,9 +51,10 @@ for (const manifest of ['{', 'null', '{}', '[null]', '[{"attachments":null}]', '
 test('missing manifest fails', () => { const f = fixture([]); const r = invoke(['attachments', join(f.source, 'absent'), f.target]); assert.equal(r.status, 1); });
 test('missing source fails after keeping prior exports', () => { const f = fixture([{ attachments: [item('pr-ok'), item('pr-bad', 'missing')] }]); assert.equal(exportFiles(f).status, 1); assert.deepEqual(readdirSync(f.target), ['pr-ok.png']); });
 test('missing destination directory fails without creating it', () => { const f = fixture([{ attachments: [item()] }]); assert.equal(invoke(['attachments', f.source, join(f.target, 'absent')]).status, 1); assert.deepEqual(readdirSync(f.target), []); });
+test('attachment name cannot leave the target folder', () => { const f = fixture([{ attachments: [item('pr-/../../escaped_x')] }]); const shots = join(f.target, 'shots'); mkdirSync(shots); assert.equal(invoke(['attachments', f.source, shots]).status, 1); assert.deepEqual(readdirSync(f.target), ['shots']); });
 test('same-file hard link fails without truncation', () => { const f = fixture([{ attachments: [item('pr-same')] }]); linkSync(join(f.source, 'one.png'), join(f.target, 'pr-same.png')); assert.equal(exportFiles(f).status, 1); assert.equal(readFileSync(join(f.source, 'one.png'), 'utf8'), 'synthetic-one'); });
 test('existing destination directory receives source basename like shutil.copy', () => { const f = fixture([{ attachments: [item('pr-dir')] }]); mkdirSync(join(f.target, 'pr-dir.png')); assert.equal(exportFiles(f).status, 0); assert.equal(readFileSync(join(f.target, 'pr-dir.png/one.png'), 'utf8'), 'synthetic-one'); });
-for (const args of [[], ['unknown'], ['summary', 'extra'], ['attachments'], ['attachments', 'a']]) test(`invalid CLI ${JSON.stringify(args)} fails`, () => assert.equal(invoke(args).status, 1));
+for (const args of [[], ['unknown'], ['summary', 'extra'], ['attachments'], ['attachments', 'a'], ['receipt', 'a', 'b'], ['receipt', 'a', 'b', '0', 'smoke']]) test(`invalid CLI ${JSON.stringify(args)} fails`, () => assert.equal(invoke(args).status, 1));
 const consumer = readFileSync(new URL('../../scripts/run-ui-tests.sh', import.meta.url), 'utf8');
 const summaryBlock = consumer.slice(consumer.indexOf('if [[ "$status" -ne 0 ]]'), consumer.indexOf('\nreceipt_status='));
 const exportBlock = consumer.slice(consumer.indexOf('if xcrun xcresulttool export'), consumer.indexOf('\nexit "$status"'));
@@ -131,6 +132,7 @@ for (const [name, value] of [
   ['command failure', new Error('PRIVATE-SENTINEL')], ['invalid JSON', Buffer.from('{')],
   ['invalid UTF-8', Buffer.from([255])], ['empty object', Buffer.from('{}')],
   ['negative count', Buffer.from(JSON.stringify({ ...successfulSummary(), passedTests: -1 }))],
+  ['malformed failure', Buffer.from(JSON.stringify({ ...successfulSummary(), testFailures: [{ testName: 'testBad' }] }))],
 ]) {
   test(`receipt preserves partial evidence and fails for ${name}`, () => {
     const f = fixture([]), runner = captured({ summary: value });
@@ -227,6 +229,7 @@ test('a nonexistent smoke method fails before the native build', () => {
   const { result, path, buildInvoked } = launchDouble(0, false, {}, 'SecreteoUITests/Menu/testMissing\n');
   assert.equal(result.status, 1);
   assert.equal(buildInvoked, false);
+  assert.match(result.stderr, /Unknown smoke test: SecreteoUITests\/Menu\/testMissing/);
   assert.equal(existsSync(path), false);
 });
 
