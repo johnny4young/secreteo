@@ -30,7 +30,7 @@ function validate(unitJob, cacheJob) {
   assert.ok(cacheJob.includes('restore-keys: ${{ steps.key.outputs.graph }}\n'));
   assert.ok(cacheJob.includes('key: ${{ steps.key.outputs.prefix }}${{ github.run_id }}'));
   assert.ok(!unitJob.includes('actions/cache/save@'), 'PRs must not evict the main cache');
-  const commands = source => [...source.matchAll(/run: swift (.*)/g)].map(match => match[1]);
+  const commands = source => [...source.matchAll(/^\s*(?:- run: )?swift (.+)$/gm)].map(match => match[1]);
   assert.deepEqual(commands(unitJob), [
     'build -Xswiftc -warnings-as-errors',
     'test --parallel -Xswiftc -warnings-as-errors',
@@ -52,8 +52,9 @@ for (const [name, changeUnit, changeCache] of [
     /restore-keys: [^\n]+/, 'restore-keys: swiftpm-build-'), value => value],
   ['a cache key shared by different runs', value => value, value => value.replace('${{ github.run_id }}', 'shared')],
   ['redundant default-product build', value => value, value => value + '\n      - run: swift build -Xswiftc -warnings-as-errors'],
+  ['a build hidden in a script block', value => value, value => value + '\n      - run: |\n          swift build -Xswiftc -warnings-as-errors'],
 ]) {
   test(`rejects ${name}`, () => {
-    assert.throws(() => validate(changeUnit(unit), changeCache(cache)));
+    assert.throws(() => validate(changeUnit(unit), changeCache(cache)), assert.AssertionError);
   });
 }

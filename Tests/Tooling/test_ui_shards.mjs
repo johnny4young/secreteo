@@ -73,7 +73,7 @@ test('empty shard prints one newline, preserving consumer empty-selection guard'
   assert.equal(result.status, 0);
   assert.equal(result.stdout, '\n');
 });
-for (const args of [[], ['1'], ['0', '2'], ['3', '2'], ['1', '0'], ['-1', '2'], ['1.5', '2'], ['NaN', '2'], ['1', '2junk']]) {
+for (const args of [[], ['1'], ['0', '2'], ['3', '2'], ['1', '0'], ['-1', '2'], ['1.5', '2'], ['NaN', '2'], ['1', '2junk'], ['+1', '2'], [' 1', '2'], ['1_0', '20']]) {
   test(`invalid arguments ${JSON.stringify(args)} fail closed`, t => {
     const result = invoke(fixture(t), args);
     assert.equal(result.status, 1);

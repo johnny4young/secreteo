@@ -29,8 +29,13 @@ struct DictationHistoryErasureTests {
         let secret = record("Recuerda \(token) mañana.", original: "eh \(token)", at: expires ? old : now)
         _ = try await store.recordDictation(record("Esta nota se queda.", at: now), admittedGeneration: 0, at: old)
         _ = try await store.recordDictation(secret, admittedGeneration: 0, at: old)
+        // A vector is derived from the words, so it must go with them.
+        let vector = (0..<16).map { Float(9_001 + $0) + 0.123_45 }
+        #expect(try await store.saveDictationEmbedding(.init(recordID: secret.id, vector: vector), profile: "probe"))
+        let vectorBytes = DictationStore.encode(vector)
         #expect(await store.checkpoint())
         #expect(try bytes(near: url).contains(Data(token.utf8)), "the probe must reach the file first")
+        #expect(try bytes(near: url).contains(vectorBytes), "the vector probe must reach the file first")
 
         switch erase {
         case .one: _ = try await store.deleteDictationRecord(secret.id)
@@ -40,6 +45,7 @@ struct DictationHistoryErasureTests {
         }
 
         #expect(!(try bytes(near: url).contains(Data(token.utf8))))
+        #expect(!(try bytes(near: url).contains(vectorBytes)))
     }
 
     private func record(_ text: String, original: String? = nil, at createdAt: Date) -> DictationRecord {
