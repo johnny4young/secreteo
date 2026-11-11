@@ -22,6 +22,7 @@ By participating, you agree to the [Code of Conduct](CODE_OF_CONDUCT.md). Report
    swift test --parallel -Xswiftc -warnings-as-errors
    swiftlint lint --strict --no-cache
    scripts/check-repository-hygiene.sh
+   python3 -I -m unittest discover -s Tests/Tooling -p 'test_*.py'
    ```
 
 4. Fill in the PR template, including how to test the change.

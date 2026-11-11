@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, copyFileSync, chmodSync, statSync, realpathSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { resolve, basename, join } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 function text(input) {
@@ -40,6 +40,7 @@ export function attachments(source, target) {
       if (!name.startsWith('pr-')) continue;
       const from = resolve(source, string(attachment.exportedFileName));
       let to = resolve(target, `${name.split('_')[0]}.png`);
+      if (dirname(to) !== resolve(target)) throw new Error('Attachment name must stay in the target folder');
       let destination;
       try { destination = statSync(to); } catch (error) { if (error.code !== 'ENOENT') throw error; }
       if (destination?.isDirectory()) {

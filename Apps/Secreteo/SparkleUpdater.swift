@@ -6,7 +6,8 @@ import AppUI
 /// that could land in the middle of a dictation. Without a public key in the build,
 /// as in local and fork builds, it stays off and the controls stay hidden.
 @MainActor
-final class SparkleUpdater: NSObject, UpdateChecking, @preconcurrency SPUStandardUserDriverDelegate {
+final class SparkleUpdater: NSObject, UpdateChecking,
+    @preconcurrency SPUStandardUserDriverDelegate, SPUUpdaterDelegate {
     private weak var model: AppModel?
     private var controller: SPUStandardUpdaterController?
 
@@ -16,7 +17,7 @@ final class SparkleUpdater: NSObject, UpdateChecking, @preconcurrency SPUStandar
         let key = Bundle.main.object(forInfoDictionaryKey: "SUPublicEDKey") as? String ?? ""
         guard !key.isEmpty else { return }
         controller = SPUStandardUpdaterController(
-            startingUpdater: true, updaterDelegate: nil, userDriverDelegate: self)
+            startingUpdater: true, updaterDelegate: self, userDriverDelegate: self)
     }
 
     var canCheckForUpdates: Bool {
@@ -26,6 +27,21 @@ final class SparkleUpdater: NSObject, UpdateChecking, @preconcurrency SPUStandar
     func checkForUpdates() {
         NSApp.activate()
         controller?.checkForUpdates(nil)
+    }
+
+    func updater(
+        _ updater: SPUUpdater, shouldPostponeRelaunchForUpdate item: SUAppcastItem,
+        untilInvokingBlock installHandler: @escaping () -> Void
+    ) -> Bool {
+        model?.dictation?.postponeUpdateRelaunch(until: installHandler) ?? false
+    }
+
+    func updater(_ updater: SPUUpdater, didAbortWithError error: Error) {
+        model?.dictation?.finishUpdateCycle()
+    }
+
+    func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: Error?) {
+        model?.dictation?.finishUpdateCycle()
     }
 
     var supportsGentleScheduledUpdateReminders: Bool {
