@@ -1220,6 +1220,7 @@ private extension DictationController {
         cancelFeedbackDismissal()
         copyStatus = .idle
         recoveryText = text
+        holdRecoveryForUpdate()
         sessionLastText.remember(text)
         phase = .noSpeech
         showPanel()

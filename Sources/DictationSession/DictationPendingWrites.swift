@@ -1,6 +1,6 @@
 import Foundation
 
-/// Registers durable writes before their tasks start, so relaunch cannot overtake a queued save.
+/// Registers durable writes before their tasks start, and words held only in memory, so relaunch cannot overtake them.
 @MainActor
 final class DictationPendingWrites {
     private var pending: Set<UUID> = []

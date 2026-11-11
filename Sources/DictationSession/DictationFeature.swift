@@ -247,7 +247,7 @@ public final class DictationFeature: AppServices {
 
     public var isActive: Bool { controller.isActive }
 
-    /// Includes Stop, clipboard restoration and saves that can outlive the visible session.
+    /// Includes Stop, clipboard restoration, saves and undelivered words that can outlive the visible session.
     public func postponeUpdateRelaunch(until resume: @escaping () -> Void) -> Bool {
         ownership.postponeUpdateRelaunch(until: resume)
     }
