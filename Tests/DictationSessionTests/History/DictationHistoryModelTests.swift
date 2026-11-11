@@ -32,6 +32,25 @@ final class DictationHistoryModelTests: XCTestCase {
         XCTAssertEqual(model.applications, [])
     }
 
+    func testApplyingAllBeforeLoadKeepsInitialRowsUnloaded() async throws {
+        let store = try DictationStore.inMemory()
+        let policy = try await store.setDictationHistoryPolicy(
+            isEnabled: true, keepsOriginal: false, retentionDays: 30, at: Date())
+        let existing = record("An existing dictation.", app: "Notes")
+        let saved = try await store.recordDictation(
+            existing, admittedGeneration: policy.generation, at: Date())
+        XCTAssertEqual(saved, .saved)
+        let model = DictationHistoryModel(store: store)
+
+        await model.apply(.all)
+
+        XCTAssertFalse(model.isLoaded)
+        XCTAssertTrue(model.records.isEmpty)
+        await model.load()
+        XCTAssertTrue(model.isLoaded)
+        XCTAssertEqual(model.records.map(\.id), [existing.id])
+    }
+
     private func record(_ text: String, app: String) -> DictationRecord {
         DictationRecord(
             id: DictationRecordID(), createdAt: Date(), duration: 1, text: text, originalText: nil,

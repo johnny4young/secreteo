@@ -22,16 +22,20 @@ final class DictationLastText {
     var hasStoredText: Bool { text != nil }
     /// Runs on every clear, so the words can leave wherever else they are held.
     @ObservationIgnored var onClear: (() -> Void)?
+    /// System sleep ends capture; display sleep and ordinary expiry only forget Paste last.
+    @ObservationIgnored var onSystemSleep: (() -> Void)?
 
     init(
         now: @escaping () -> Date = Date.init, observesSystem: Bool = true,
-        waitForExpiry: @escaping @MainActor (Duration) async -> Void = { try? await Task.sleep(for: $0) }
+        waitForExpiry: @escaping @MainActor (Duration) async -> Void = { try? await Task.sleep(for: $0) },
+        workspaceNotifications: NotificationCenter? = nil,
+        distributedNotifications: NotificationCenter? = nil
     ) {
         self.now = now
         self.waitForExpiry = waitForExpiry
         guard observesSystem else { return }
-        let workspace = NSWorkspace.shared.notificationCenter
-        let distributed = DistributedNotificationCenter.default()
+        let workspace = workspaceNotifications ?? NSWorkspace.shared.notificationCenter
+        let distributed = distributedNotifications ?? DistributedNotificationCenter.default()
         let events: [(NotificationCenter, Notification.Name)] = [
             (workspace, NSWorkspace.willSleepNotification),
             (workspace, NSWorkspace.screensDidSleepNotification),
@@ -40,7 +44,10 @@ final class DictationLastText {
         ]
         for (center, name) in events {
             let token = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated { self?.clear() }
+                MainActor.assumeIsolated {
+                    if name == NSWorkspace.willSleepNotification { self?.onSystemSleep?() }
+                    self?.clear()
+                }
             }
             observers.append(token)
         }

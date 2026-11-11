@@ -11,8 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.append(str(ROOT / 'scripts'))
 import dictation_corpus as corpus
 import run_dictation_model_comparison as comparison
-from test_dictation_materialization import NAMES, SpeechDouble
-from materialize_dictation_corpus import materialize
+from test_dictation_materialization import copy_synthetic_audio
 
 
 class DictationModelComparisonTests(unittest.TestCase):
@@ -20,7 +19,7 @@ class DictationModelComparisonTests(unittest.TestCase):
     def setUpClass(cls):
         cls.shared = tempfile.TemporaryDirectory()
         cls.audio = Path(cls.shared.name) / 'audio'
-        materialize(cls.audio, NAMES, SpeechDouble())
+        copy_synthetic_audio(cls.audio)
         cls.digest = corpus.read_json(cls.audio / 'manifest.json')[1]
         cls.families = {family['id']: family for family in corpus.read_public_corpus()[0]['families']}
 
