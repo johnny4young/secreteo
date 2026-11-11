@@ -92,9 +92,10 @@ mkdir -p "$output"
 rm -rf "$stage" "$dmg" "$dmg.sha256"
 mkdir -p "$stage"
 begin_phase build
+# Project-level ARCHS does not constrain the package targets.
 xcodebuild -project Secreteo.xcodeproj -scheme Secreteo -configuration Release \
   -destination 'platform=macOS,arch=arm64' -derivedDataPath "$derived" \
-  -skipPackagePluginValidation "${build_output[@]}" "${settings[@]}" build
+  -skipPackagePluginValidation "${build_output[@]}" ARCHS=arm64 "${settings[@]}" build
 finish_phase 0
 begin_phase copy
 ditto "$derived/Build/Products/Release/Secreteo.app" "$app"
