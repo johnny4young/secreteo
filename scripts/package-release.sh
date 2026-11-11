@@ -11,12 +11,32 @@ cd "$ROOT"
 
 # It names paths that get deleted, and CFBundleVersion takes only three integers.
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "error: $version is not x.y.z" >&2; exit 64; }
+package_started=$SECONDS
+
+begin_phase() {
+  current_phase="$1"
+  phase_started=$SECONDS
+}
+
+report_timing() {
+  printf 'PackageTiming version=%s phase=%s real=%d status=%d\n' "$version" "$1" "$((SECONDS - $2))" "$3" >&2
+}
+
+finish_phase() {
+  [[ -n "${current_phase:-}" ]] || return 0
+  report_timing "$current_phase" "$phase_started" "$1"
+  current_phase=""
+}
+
+# Report a failed stage without changing errexit or running the next command.
+trap 'status=$?; if [[ "$status" -ne 0 ]]; then finish_phase "$status"; fi; exit "$status"' EXIT
 
 project_setting() {
   sed -nE "s/^[[:space:]]*$1:[[:space:]]*\"?([^\"]*)\"?[[:space:]]*$/\1/p" project.yml | head -1
 }
 
 settings=("MARKETING_VERSION=$version")
+build_output=(-quiet)
 case "$mode" in
   production)
     identity="${MACOS_CODE_SIGN_IDENTITY:?MACOS_CODE_SIGN_IDENTITY is required}"
@@ -32,6 +52,8 @@ case "$mode" in
   dryrun)
     identity="-"
     settings+=("SPARKLE_PUBLIC_ED_KEY=${DRYRUN_SPARKLE_PUBLIC_KEY:?DRYRUN_SPARKLE_PUBLIC_KEY is required}")
+    # Quiet output also suppresses Xcode's timing summary.
+    build_output=(-showBuildTimingSummary)
     ;;
   *)
     echo "Unknown mode: $mode" >&2
@@ -61,18 +83,26 @@ notarize() {
   xcrun stapler staple "$staple"
 }
 
+begin_phase prepare
 scripts/fetch-sparkle.sh
 xcodegen generate --quiet
+finish_phase 0
 
 mkdir -p "$output"
 rm -rf "$stage" "$dmg" "$dmg.sha256"
 mkdir -p "$stage"
+begin_phase build
 xcodebuild -project Secreteo.xcodeproj -scheme Secreteo -configuration Release \
   -destination 'platform=macOS,arch=arm64' -derivedDataPath "$derived" \
-  -skipPackagePluginValidation -quiet "${settings[@]}" build
+  -skipPackagePluginValidation "${build_output[@]}" "${settings[@]}" build
+finish_phase 0
+begin_phase copy
 ditto "$derived/Build/Products/Release/Secreteo.app" "$app"
+finish_phase 0
 
+begin_phase sign
 scripts/sign-app.sh "$app" "$identity"
+finish_phase 0
 
 if [[ "$mode" == "production" ]]; then
   archive="$stage/Secreteo.zip"
@@ -81,6 +111,7 @@ if [[ "$mode" == "production" ]]; then
   rm -f "$archive"
 fi
 
+begin_phase dmg
 volume="$stage/volume"
 mkdir -p "$volume"
 ditto "$app" "$volume/Secreteo.app"
@@ -94,12 +125,16 @@ for attempt in 1 2 3; do
   sleep 10
 done
 rm -rf "$volume"
+finish_phase 0
 
 if [[ "$mode" == "production" ]]; then
   codesign --force --timestamp --sign "$identity" "$dmg"
   notarize "$dmg" "$dmg"
 fi
 
+begin_phase verify
 python3 scripts/verify_release.py "$dmg" "$version" "$mode"
+finish_phase 0
 (cd "$output" && shasum -a 256 "Secreteo-$version.dmg" > "Secreteo-$version.dmg.sha256")
 echo "Packaged $dmg"
+report_timing total "$package_started" 0
