@@ -12,17 +12,19 @@ cd "$ROOT"
 # Requires the repository Node LTS runtime (.nvmrc / engines.node).
 command -v node >/dev/null 2>&1 || { echo "Node is required for UI result processing." >&2; exit 127; }
 
-scripts/fetch-sparkle.sh
-xcodegen generate --quiet
 results="build/ui-$plan${shard:+-${shard%%/*}}.xcresult"
 rm -rf "$results" "$screenshots"
 mkdir -p build "$screenshots"
 
 selection=()
 if [[ "$plan" == "smoke" ]]; then
-  while IFS= read -r test; do
+  while IFS= read -r test || [[ -n "$test" ]]; do
     [[ -n "$test" ]] && selection+=("-only-testing:$test")
   done < Tests/Plans/Smoke.txt
+  if [[ ${#selection[@]} -eq 0 ]]; then
+    echo "Smoke plan has no tests." >&2
+    exit 64
+  fi
 elif [[ "$plan" == "full" && -n "$shard" ]]; then
   # A plain assignment, so a failing helper stops the run instead of leaving the selection empty.
   classes="$(node scripts/ui_test_shards.mjs "${shard%%/*}" "${shard##*/}")"
@@ -41,6 +43,9 @@ fi
 
 common=(-project Secreteo.xcodeproj -scheme Secreteo -destination 'platform=macOS,arch=arm64'
   -derivedDataPath build/ui -skipPackagePluginValidation)
+node scripts/ui_test_inventory.mjs plan "$screenshots" "$plan" "$shard" ${selection[@]+"${selection[@]}"}
+scripts/fetch-sparkle.sh
+xcodegen generate --quiet
 xcodebuild "${common[@]}" build-for-testing -quiet
 
 status=0
@@ -54,9 +59,21 @@ if [[ "$status" -ne 0 ]]; then
     | node scripts/ui_test_results.mjs summary || true
 fi
 
+receipt_status=0
+node scripts/ui_test_results.mjs receipt "$results" "$screenshots" "$status" "$plan" "$shard" \
+  ${selection[@]+"${selection[@]}"} || receipt_status=$?
+inventory_status=0
+node scripts/ui_test_inventory.mjs qualify "$screenshots" || inventory_status=$?
+
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 if xcrun xcresulttool export attachments --path "$results" --output-path "$scratch" >/dev/null 2>&1; then
   node scripts/ui_test_results.mjs attachments "$scratch" "$screenshots"
+fi
+if [[ "$status" -eq 0 && "$receipt_status" -ne 0 ]]; then
+  exit "$receipt_status"
+fi
+if [[ "$status" -eq 0 && "$inventory_status" -ne 0 ]]; then
+  exit "$inventory_status"
 fi
 exit "$status"

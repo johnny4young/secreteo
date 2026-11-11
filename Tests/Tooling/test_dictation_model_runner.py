@@ -17,8 +17,7 @@ sys.path.append(str(ROOT / 'scripts'))
 import dictation_corpus as corpus
 import dictation_model_receipt as receipt
 import run_dictation_model_baseline as runner
-from test_dictation_materialization import NAMES, SpeechDouble
-from materialize_dictation_corpus import materialize
+from test_dictation_materialization import copy_synthetic_audio
 
 
 class DictationModelRunnerTests(unittest.TestCase):
@@ -27,7 +26,7 @@ class DictationModelRunnerTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         self.audio = self.root / 'audio'
-        materialize(self.audio, NAMES, SpeechDouble())
+        copy_synthetic_audio(self.audio)
         self.bundle = self.root / 'tests.xctest'
         executable = self.bundle / 'Contents/MacOS/SecreteoPackageTests'
         executable.parent.mkdir(parents=True)

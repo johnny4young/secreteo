@@ -27,6 +27,12 @@ jobs:
           check-latest: true
           package-manager-cache: false
       - run: scripts/check-repository-hygiene.sh
+
+  legacy-tooling:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Legacy tooling coverage
         run: python3 -I -m unittest discover -s Tests/Tooling -p 'test_*.py'
 
@@ -65,9 +71,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          # main requires up-to-date branches, so a merge lands the tree its pull request proved.
-          if [ "$EVENT_NAME" = push ] && python3 scripts/ci_reuse_gate.py "$GITHUB_REPOSITORY" "$HEAD_SHA"; then
-            printf 'code=false\ndelivery=false\nrelease=false\n' | tee -a "$GITHUB_OUTPUT"
+          # Reuse only a proven exact tree and a stable, completed CI attempt.
+          if [ "$EVENT_NAME" = push ]; then
+            run_jobs=true
+            if node scripts/ci_reuse_gate.mjs "$GITHUB_REPOSITORY" "$HEAD_SHA"; then
+              run_jobs=false
+            fi
+            printf 'code=%s\ndelivery=%s\nrelease=%s\n' "$run_jobs" "$run_jobs" "$run_jobs" | tee -a "$GITHUB_OUTPUT"
             exit 0
           fi
           # A manual run has no diff, and an empty list runs everything.
@@ -159,7 +169,7 @@ jobs:
 
   gate:
     if: always()
-    needs: [hygiene, lint, changes, unit, ui-smoke, signed-handoff, release-dryrun]
+    needs: [hygiene, legacy-tooling, lint, changes, unit, ui-smoke, signed-handoff, release-dryrun]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
