@@ -16,7 +16,7 @@ The shell and dictation:
 - Models live in the shared store ([D9](DECISIONS.md#d9-shared-model-folder)). Before downloading, an install clones the files Portavoz already has in `Portavoz/Models`, keeps only those that hash right, and never writes there. Parakeet takes a store lease before loading and keeps it while an engine, observer wrapper or transcription job still uses the weights, so another app defers removal until they unload.
 - Silero leases its verified installation before Core ML loads it and keeps the lease through detector and inference lifetimes, including cancellation while inference is still returning.
 - `Tests/Plans/Smoke.txt` lists the PR tests, and `scripts/run-ui-tests.sh full` runs everything.
-- `Fixtures/` holds the public synthetic dictation corpus and search fixture. The `scripts/dictation_*.py` tools admit, render and score them offline under `python3 -I`, and hygiene runs their tests ([quality protocol](DICTATION-QUALITY.md)).
+- `Fixtures/` holds the public synthetic dictation corpus and search fixture. The `scripts/dictation_*.py` tools admit, render and score them offline under `python3 -I`, and the legacy tooling step runs their tests ([quality protocol](DICTATION-QUALITY.md)).
 
 ## Target module graph
 

@@ -26,6 +26,7 @@ Repository hygiene runs with Bash and Node, including its scratch-repository neg
 | Strict tests | `swift test --parallel -Xswiftc -warnings-as-errors` | Any Swift change |
 | Lint | `swiftlint lint --strict --no-cache` | Any Swift change |
 | Hygiene | `scripts/check-repository-hygiene.sh` | Always |
+| Legacy tooling | `python3 -I -m unittest discover -s Tests/Tooling -p 'test_*.py'` | Swift, script or tooling changes |
 | UI | Smoke plan | UI or its owners change |
 | Install | `make install`, to the Dev identity | UI changes |
 | Release | `make release-dryrun` | Packaging or the updater change |
@@ -43,9 +44,12 @@ Repository hygiene runs with Bash and Node, including its scratch-repository neg
 - Actions pinned to full commit SHAs.
 - No left accent bars in web styles.
 - Test files stay under 2,400 lines.
+- `.nvmrc` and `engines.node` agree.
+
+The legacy tooling step also enforces:
+
 - Tests that build session dependencies by hand choose their stop tail; fixture dependencies skip the real one.
 - Logs carry no dictated text: no value is logged as public, crash messages are plain literals, and only the MCP command prints, to stdout.
-- `.nvmrc` and `engines.node` agree.
 
 ## Ported code
 
