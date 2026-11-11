@@ -1,7 +1,7 @@
 import test, { after } from 'node:test';
 import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, statSync, linkSync, symlinkSync, copyFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, statSync, linkSync, symlinkSync, copyFileSync, rmSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -59,7 +59,7 @@ const consumer = readFileSync(new URL('../../scripts/run-ui-tests.sh', import.me
 const summaryBlock = consumer.slice(consumer.indexOf('if [[ "$status" -ne 0 ]]'), consumer.indexOf('\nreceipt_status='));
 const exportBlock = consumer.slice(consumer.indexOf('if xcrun xcresulttool export'), consumer.indexOf('\nexit "$status"'));
 function bashBlock(block, f, status) {
-  return spawnSync('/bin/bash', ['-c', `set -euo pipefail\nstatus="$1"; receipt_status=0; results=unused; scratch="$2"; screenshots="$3"\nxcrun() { printf '{'; }\n${block}\nexit "$status"`, 'fixture', String(status), f.source, f.target], { cwd: fileURLToPath(new URL('../../', import.meta.url)), encoding: 'utf8' });
+  return spawnSync('/bin/bash', ['-c', `set -euo pipefail\nstatus="$1"; receipt_status=0; inventory_status=0; results=unused; scratch="$2"; screenshots="$3"\nxcrun() { printf '{'; }\n${block}\nexit "$status"`, 'fixture', String(status), f.source, f.target], { cwd: fileURLToPath(new URL('../../', import.meta.url)), encoding: 'utf8' });
 }
 test('isolated summary error preserves test exit 65', () => { const r = bashBlock(summaryBlock, fixture([]), 65); assert.equal(r.status, 65); assert.notEqual(r.stderr, ''); });
 test('isolated export error is fatal even after successful tests', () => { const r = bashBlock(exportBlock, fixture('{'), 0); assert.equal(r.status, 1); assert.notEqual(r.stderr, ''); });
@@ -198,24 +198,57 @@ test('invalid receipt arguments never invoke tools or write files', () => {
   assert.deepEqual(readdirSync(f.target), []);
 });
 
-function launchDouble(status, badReport = false) {
+function launchDouble(status, badReport = false, reports = {}, smoke = 'SecreteoUITests/Menu/testOne\n') {
   const f = fixture([]), bin = join(f.root, 'bin'), scripts = join(f.root, 'scripts');
   mkdirSync(bin); mkdirSync(scripts); mkdirSync(join(f.root, 'Tests/Plans'), { recursive: true });
   writeFileSync(join(scripts, 'run-ui-tests.sh'), consumer);
   copyFileSync(helper, join(scripts, 'ui_test_results.mjs'));
+  for (const name of ['ui_test_inventory.mjs', 'ui_test_shards.mjs']) {
+    copyFileSync(new URL(`../../scripts/${name}`, import.meta.url), join(scripts, name));
+  }
+  mkdirSync(join(f.root, 'Tests/SecreteoUITests'));
+  writeFileSync(join(f.root, 'Tests/SecreteoUITests/Menu.swift'), 'final class Menu: XCTestCase {\n func testOne() {}\n}\n');
   writeFileSync(join(scripts, 'fetch-sparkle.sh'), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
-  writeFileSync(join(f.root, 'Tests/Plans/Smoke.txt'), 'SecreteoUITests/Menu/testOne\n');
+  writeFileSync(join(f.root, 'Tests/Plans/Smoke.txt'), smoke);
   symlinkSync(process.execPath, join(bin, 'node'));
   writeFileSync(join(bin, 'xcodegen'), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
   writeFileSync(join(bin, 'git'), `#!/bin/sh\nprintf '%s\\n' '${'a'.repeat(40)}'\n`, { mode: 0o755 });
-  writeFileSync(join(bin, 'xcodebuild'), '#!/bin/sh\ncase " $* " in *" test-without-building "*) exit "$UI_TEST_EXIT";; esac\nexit 0\n', { mode: 0o755 });
-  const summaryJSON = badReport ? '{' : JSON.stringify(successfulSummary());
-  writeFileSync(join(bin, 'xcrun'), `#!/bin/sh\ncase "$4" in\nsummary) printf '%s' '${summaryJSON}';;\ntests) printf '%s' '${JSON.stringify(successfulTests())}';;\n*) exit 1;;\nesac\n`, { mode: 0o755 });
+  writeFileSync(join(bin, 'xcodebuild'), '#!/bin/sh\n: > "$TMPDIR/build-invoked"\ncase " $* " in *" test-without-building "*) exit "$UI_TEST_EXIT";; esac\nexit 0\n', { mode: 0o755 });
+  const summaryJSON = badReport ? '{' : JSON.stringify(reports.summary ?? successfulSummary());
+  writeFileSync(join(f.root, 'fixture-summary.json'), summaryJSON);
+  writeFileSync(join(f.root, 'fixture-tests.json'), JSON.stringify(reports.tests ?? successfulTests()));
+  writeFileSync(join(bin, 'xcrun'), '#!/bin/sh\ncase "$4" in\nsummary) cat "$TMPDIR/fixture-summary.json";;\ntests) cat "$TMPDIR/fixture-tests.json";;\n*) exit 1;;\nesac\n', { mode: 0o755 });
   const result = spawnSync('/bin/bash', [join(scripts, 'run-ui-tests.sh'), 'smoke', f.target], {
     cwd: f.root, env: { PATH: `${bin}:/usr/bin:/bin`, TMPDIR: f.root, UI_TEST_EXIT: String(status),
       GITHUB_RUN_ID: '7', GITHUB_RUN_ATTEMPT: '2' }, encoding: 'utf8',
   });
-  return { result, path: join(f.target, 'test-results.json') };
+  return { result, path: join(f.target, 'test-results.json'), buildInvoked: existsSync(join(f.root, 'build-invoked')) };
+}
+
+test('a nonexistent smoke method fails before the native build', () => {
+  const { result, path, buildInvoked } = launchDouble(0, false, {}, 'SecreteoUITests/Menu/testMissing\n');
+  assert.equal(result.status, 1);
+  assert.equal(buildInvoked, false);
+  assert.match(result.stderr, /Unknown smoke test: SecreteoUITests\/Menu\/testMissing/);
+  assert.equal(existsSync(path), false);
+});
+
+for (const [name, reports] of [
+  ['missing selected case', { summary: { ...successfulSummary(), totalTestCount: 0, passedTests: 0 },
+    tests: { ...successfulTests(), testNodes: [] } }],
+  ['skipped selected case', { summary: { ...successfulSummary(), passedTests: 0, skippedTests: 1 },
+    tests: { ...successfulTests(), testNodes: [{ ...successfulTests().testNodes[0], result: 'Skipped' }] } }],
+  ['unexpected passing case', { tests: { ...successfulTests(), testNodes: [
+    { ...successfulTests().testNodes[0], nodeIdentifier: 'Menu/testOther()' },
+  ] } }],
+  ['duplicate passing case', { summary: { ...successfulSummary(), totalTestCount: 2, passedTests: 2 },
+    tests: { ...successfulTests(), testNodes: [...successfulTests().testNodes, ...successfulTests().testNodes] } }],
+]) {
+  test(`launcher rejects a successful exit with ${name} and retains the receipt`, () => {
+    const { result, path } = launchDouble(0, false, reports);
+    assert.equal(result.status, 1, result.stderr);
+    assert.equal(JSON.parse(readFileSync(path)).captureComplete, true);
+  });
 }
 for (const status of [0, 65]) {
   test(`launcher retains a receipt after ${status === 0 ? 'a successful' : 'a failed'} run`, () => {
@@ -225,6 +258,8 @@ for (const status of [0, 65]) {
     assert.equal(saved.captureComplete, true);
     assert.equal(saved.testExitCode, status);
     assert.deepEqual(saved.selection, ['-only-testing:SecreteoUITests/Menu/testOne']);
+    assert.deepEqual(JSON.parse(readFileSync(join(path, '..', 'test-inventory.json'))).expectedTests, ['Menu/testOne()']);
+    assert.equal(JSON.parse(readFileSync(join(path, '..', 'test-validation.json'))).qualified, status === 0);
   });
   test(`launcher export failure preserves the test outcome ${status}`, () => {
     const { result, path } = launchDouble(status, true);

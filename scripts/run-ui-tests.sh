@@ -12,8 +12,6 @@ cd "$ROOT"
 # Requires the repository Node LTS runtime (.nvmrc / engines.node).
 command -v node >/dev/null 2>&1 || { echo "Node is required for UI result processing." >&2; exit 127; }
 
-scripts/fetch-sparkle.sh
-xcodegen generate --quiet
 results="build/ui-$plan${shard:+-${shard%%/*}}.xcresult"
 rm -rf "$results" "$screenshots"
 mkdir -p build "$screenshots"
@@ -45,6 +43,9 @@ fi
 
 common=(-project Secreteo.xcodeproj -scheme Secreteo -destination 'platform=macOS,arch=arm64'
   -derivedDataPath build/ui -skipPackagePluginValidation)
+node scripts/ui_test_inventory.mjs plan "$screenshots" "$plan" "$shard" ${selection[@]+"${selection[@]}"}
+scripts/fetch-sparkle.sh
+xcodegen generate --quiet
 xcodebuild "${common[@]}" build-for-testing -quiet
 
 status=0
@@ -61,6 +62,8 @@ fi
 receipt_status=0
 node scripts/ui_test_results.mjs receipt "$results" "$screenshots" "$status" "$plan" "$shard" \
   ${selection[@]+"${selection[@]}"} || receipt_status=$?
+inventory_status=0
+node scripts/ui_test_inventory.mjs qualify "$screenshots" || inventory_status=$?
 
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
@@ -69,5 +72,8 @@ if xcrun xcresulttool export attachments --path "$results" --output-path "$scrat
 fi
 if [[ "$status" -eq 0 && "$receipt_status" -ne 0 ]]; then
   exit "$receipt_status"
+fi
+if [[ "$status" -eq 0 && "$inventory_status" -ne 0 ]]; then
+  exit "$inventory_status"
 fi
 exit "$status"
