@@ -47,7 +47,7 @@ test('delivery and triggers select the signed lane', () => {
 });
 test('ci machinery runs every lane', () => {
   for (const path of ['.github/workflows/ci.yml', 'scripts/ci_changes.mjs', 'scripts/ci_gate.mjs',
-    'scripts/ci_changes.py', 'scripts/ci_gate.py', 'scripts/ci_reuse_gate.py']) assert.deepEqual(classify([path]), all, path);
+    'scripts/ci_changes.py', 'scripts/ci_gate.py', 'scripts/ci_reuse_gate.py', 'scripts/ci_reuse_gate.mjs']) assert.deepEqual(classify([path]), all, path);
 });
 test('packaging selects the release dry run', () => {
   for (const path of ['scripts/package-release.sh', 'project.yml', 'Apps/Secreteo/SparkleUpdater.swift']) {
@@ -283,9 +283,9 @@ function validateWiring(source, repositoryGate) {
   assert.match(job(source, 'gate'), /run: node scripts\/ci_gate\.mjs "\$NEEDS"/);
   assert.match(job(source, 'gate'), /if: always\(\)/);
   assert.match(job(source, 'changes'), /set -euo pipefail/);
-  assert.match(job(source, 'changes'), /python3 scripts\/ci_reuse_gate\.py "\$GITHUB_REPOSITORY" "\$HEAD_SHA"/);
+  assert.match(job(source, 'changes'), /node scripts\/ci_reuse_gate\.mjs "\$GITHUB_REPOSITORY" "\$HEAD_SHA"/);
   assert.ok(repositoryGate.includes('Tests/Tooling/test_ci_decisions.mjs'));
-  assert.doesNotMatch(source, /python3 scripts\/ci_(?:changes|gate)\.py/);
+  assert.doesNotMatch(source, /python3 scripts\/ci_(?:changes|gate|reuse_gate)\.py/);
 }
 
 test('workflow provisions the pinned Node runtime and keeps hosted reuse proof explicit', () => {
