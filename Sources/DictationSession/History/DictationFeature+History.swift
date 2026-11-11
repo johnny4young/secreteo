@@ -9,7 +9,7 @@ extension DictationFeature {
     /// cannot open leaves history unavailable and dictation working.
     static func openDictationStore(
         usesTemporaryStore: Bool, bundleIdentifier: String
-    ) -> any DictationHistoryStore & DictationStatsStore {
+    ) -> any DictationHistoryStore & DictationStatsStore & DictationEmbeddingStore {
         let url = usesTemporaryStore
             ? FileManager.default.temporaryDirectory
                 .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -65,7 +65,7 @@ extension DictationFeature {
 }
 
 /// Stands in when the database cannot be opened, such as one a newer Secreteo wrote.
-struct UnavailableDictationStore: DictationHistoryStore, DictationStatsStore {
+struct UnavailableDictationStore: DictationHistoryStore, DictationStatsStore, DictationEmbeddingStore {
     let error: any Error
 
     func dictationHistoryPolicy() async throws -> DictationHistoryPolicy { throw error }
@@ -92,4 +92,15 @@ struct UnavailableDictationStore: DictationHistoryStore, DictationStatsStore {
     func dictationRecordsForAgents(
         matching filter: DictationRecordFilter, offset: Int, limit: Int
     ) async throws -> DictationAgentRead<DictationRecordPage> { throw error }
+    func saveDictationEmbedding(_ embedding: DictationEmbedding, profile: String) async throws -> Bool { throw error }
+    func dictationEmbeddings(
+        profile: String, matching filter: DictationRecordFilter
+    ) async throws -> [DictationEmbedding] { throw error }
+    func dictationEmbeddingIDs(
+        profile: String, matching filter: DictationRecordFilter
+    ) async throws -> Set<DictationRecordID> { throw error }
+    func dictationRecordsMissingEmbedding(
+        profile: String, before cursor: DictationRecord?, limit: Int
+    ) async throws -> [DictationRecord] { throw error }
+    func dictationRecords(ids: [DictationRecordID]) async throws -> [DictationRecord] { throw error }
 }
