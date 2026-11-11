@@ -10,7 +10,7 @@ import { failures } from '../../scripts/ci_gate.mjs';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const all = { code: true, delivery: true, release: true };
-const always = ['hygiene', 'lint', 'changes'];
+const always = ['hygiene', 'legacy-tooling', 'lint', 'changes'];
 const scoped = { unit: 'code', 'ui-smoke': 'code', 'signed-handoff': 'delivery', 'release-dryrun': 'release' };
 function needs(scope = {}, results = {}) {
   const payload = Object.fromEntries([...always, ...Object.keys(scoped)].map(name => [name, {
@@ -47,7 +47,7 @@ test('delivery and triggers select the signed lane', () => {
 });
 test('ci machinery runs every lane', () => {
   for (const path of ['.github/workflows/ci.yml', 'scripts/ci_changes.mjs', 'scripts/ci_gate.mjs',
-    'scripts/ci_changes.py', 'scripts/ci_gate.py', 'scripts/ci_reuse_gate.py']) assert.deepEqual(classify([path]), all, path);
+    'scripts/ci_changes.py', 'scripts/ci_gate.py', 'scripts/ci_reuse_gate.py', 'scripts/ci_reuse_gate.mjs']) assert.deepEqual(classify([path]), all, path);
 });
 test('packaging selects the release dry run', () => {
   for (const path of ['scripts/package-release.sh', 'project.yml', 'Apps/Secreteo/SparkleUpdater.swift']) {
@@ -116,13 +116,24 @@ test('all 2048 combinations of scoped success, skip, failure and cancellation fo
   }
 });
 
-test('all 192 combinations keep unconditional jobs mandatory', () => {
+test('all 256 combinations keep unconditional jobs mandatory', () => {
   for (let mask = 0; mask < 8; mask++) for (const job of always) {
     for (const status of ['success', 'skipped', 'failure', 'cancelled', 'neutral', 'timed_out', null, undefined]) {
       const scope = Object.fromEntries(['code', 'delivery', 'release'].map((flag, index) =>
         [flag, mask & (1 << index) ? 'true' : 'false']));
       assert.equal(failures(needs(scope, { [job]: status })).length === 0, status === 'success');
     }
+  }
+});
+
+test('missing legacy tooling cannot pass the gate, including docs-only changes', () => {
+  for (const flag of ['true', 'false']) {
+    const payload = needs({ code: flag, delivery: flag, release: flag });
+    delete payload['legacy-tooling'];
+    assert.deepEqual(failures(payload), ['legacy-tooling: None']);
+    const result = run('ci_gate', [JSON.stringify(payload)]);
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, '::error::legacy-tooling: None\n');
   }
 });
 
@@ -283,9 +294,9 @@ function validateWiring(source, repositoryGate) {
   assert.match(job(source, 'gate'), /run: node scripts\/ci_gate\.mjs "\$NEEDS"/);
   assert.match(job(source, 'gate'), /if: always\(\)/);
   assert.match(job(source, 'changes'), /set -euo pipefail/);
-  assert.match(job(source, 'changes'), /python3 scripts\/ci_reuse_gate\.py "\$GITHUB_REPOSITORY" "\$HEAD_SHA"/);
+  assert.match(job(source, 'changes'), /node scripts\/ci_reuse_gate\.mjs "\$GITHUB_REPOSITORY" "\$HEAD_SHA"/);
   assert.ok(repositoryGate.includes('Tests/Tooling/test_ci_decisions.mjs'));
-  assert.doesNotMatch(source, /python3 scripts\/ci_(?:changes|gate)\.py/);
+  assert.doesNotMatch(source, /python3 scripts\/ci_(?:changes|gate|reuse_gate)\.py/);
 }
 
 test('workflow provisions the pinned Node runtime and keeps hosted reuse proof explicit', () => {

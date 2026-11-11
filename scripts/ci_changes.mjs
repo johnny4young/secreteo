@@ -3,7 +3,7 @@ import { readFileSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const DOCS_ONLY = ['docs/*', '*.md', 'LICENSE', 'site/*', '.github/ISSUE_TEMPLATE/*'];
-const CI = ['.github/workflows/ci.yml', 'scripts/ci_changes.mjs', 'scripts/ci_gate.mjs', 'scripts/ci_reuse_gate.py',
+const CI = ['.github/workflows/ci.yml', 'scripts/ci_changes.mjs', 'scripts/ci_gate.mjs', 'scripts/ci_reuse_gate.mjs', 'scripts/ci_reuse_gate.py',
   'scripts/ci_changes.py', 'scripts/ci_gate.py'];
 const DELIVERY = ['Sources/DictationSession/Delivery/*', 'Sources/DictationSession/Triggers/*',
   'Tests/DictationSessionTests/Delivery/*', 'Tests/DictationSessionTests/Triggers/*',

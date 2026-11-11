@@ -79,10 +79,19 @@ extension XCUIApplication {
         let form = control(withIdentifier: "settings-root")
         // A row still in the tree says which way it is.
         if element.exists, !element.isHittable, element.frame.midY < form.frame.minY {
-            for _ in 0..<12 where !element.isHittable { form.scroll(byDeltaX: 0, deltaY: 400) }
+            for _ in 0..<12 {
+                if element.isHittable { break }
+                form.scroll(byDeltaX: 0, deltaY: 400)
+            }
         }
-        for _ in 0..<8 where !(element.exists && element.isHittable) { form.scroll(byDeltaX: 0, deltaY: -400) }
-        for _ in 0..<16 where !(element.exists && element.isHittable) { form.scroll(byDeltaX: 0, deltaY: 400) }
+        for _ in 0..<8 {
+            if element.exists && element.isHittable { break }
+            form.scroll(byDeltaX: 0, deltaY: -400)
+        }
+        for _ in 0..<16 {
+            if element.exists && element.isHittable { break }
+            form.scroll(byDeltaX: 0, deltaY: 400)
+        }
         return element.waitForStableFrame(timeout: 5)
     }
 }
