@@ -195,38 +195,49 @@ final class DictationSleepTests: XCTestCase {
         restore.release()
         let drained = await TestPolling.until { released }
         XCTAssertTrue(drained)
+        XCTAssertNil(lastText.current, "A delivery sleep let finish must not renew Paste last")
     }
 }
 
-// Polish mode lives in the process-wide argument domain.
+// Text modes live in the process-wide argument domain.
 @Suite(.serialized, .exclusiveArgumentDomain, .timeLimit(.minutes(1)))
 @MainActor
 struct DictationSleepBeforeInsertTests {
-    @Test
-    func sleepWhilePolishRunsCancelsWithoutPastingOrRenewingPasteLast() async {
+    @Test(arguments: [DictationTransformKind.polish, .translate])
+    func sleepWhileATransformRunsCancelsWithoutPastingOrRenewingPasteLast(_ kind: DictationTransformKind) async {
         let notifications = NotificationCenter()
         let lastText = DictationLastText(
             workspaceNotifications: notifications, distributedNotifications: NotificationCenter())
         let controller = DictationController(presentsPanel: false, lastText: lastText)
         let harness = DictationControllerHarness(text: "Synthetic words", controller: controller)
-        let polish = PreparationGate()
-        defer { controller.cancel(); polish.release() }
-        harness.set(DictationTextMode.polish.rawValue, forKey: DictationTextPreferences.modeKey)
+        let transform = PreparationGate()
+        defer { controller.cancel(); transform.release() }
         var dependencies = harness.dependencies
-        dependencies.polishDictation = { _, _, _ in
-            await polish.wait()
-            return .polished("Polished synthetic words.")
+        switch kind {
+        case .polish:
+            harness.set(DictationTextMode.polish.rawValue, forKey: DictationTextPreferences.modeKey)
+            dependencies.polishDictation = { _, _, _ in
+                await transform.wait()
+                return .polished("Polished synthetic words.")
+            }
+        case .translate:
+            harness.set(DictationTranslationTarget.spanish.rawValue, forKey: DictationTextPreferences.translationKey)
+            harness.set("en", forKey: DictationController.languageKey)
+            dependencies.translateDictation = { _, _, _ in
+                await transform.wait()
+                return .translated("Palabras sintéticas")
+            }
         }
         controller.toggle(using: dependencies)
         let ready = await TestPolling.until { controller.partialText == harness.text }
         #expect(ready)
         harness.now = harness.now.addingTimeInterval(1)
         controller.toggle(using: dependencies)
-        let polishing = await TestPolling.until { polish.started && controller.phase == .delivering }
-        #expect(polishing)
+        let transforming = await TestPolling.until { transform.started && controller.phase == .delivering }
+        #expect(transforming)
 
         notifications.post(name: NSWorkspace.willSleepNotification, object: nil)
-        polish.release()
+        transform.release()
 
         let drained = await TestPolling.until { harness.finishes == 1 }
         #expect(drained)

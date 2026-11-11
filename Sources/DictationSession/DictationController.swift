@@ -68,7 +68,7 @@ final class DictationController {
     @ObservationIgnored private var lastInsertion: DictationInsertion?
     /// Observed: the strip shows "Polishing…" while a rewrite is pending.
     private var polishRun = DictationPolishRun()
-    @ObservationIgnored private var dispatchedSessionID: UUID?
+    @ObservationIgnored private var dispatched: (id: UUID, slept: Bool)?
 
     var isActive: Bool { phase == .preparing || phase == .listening || phase == .delivering }
     /// The app that was frontmost when dictation started — where the text
@@ -528,8 +528,11 @@ private extension DictationController {
     func systemWillSleep() {
         // A dispatched edit must finish its clipboard restore. Anything before it, polish
         // included, can still be cancelled without pasting, with Stop and the lease draining normally.
-        let undispatched = phase == .delivering && dispatchedSessionID != activeSessionID
-        guard phase == .preparing || phase == .listening || undispatched else { return }
+        if phase == .delivering, dispatched?.id == activeSessionID {
+            dispatched?.slept = true
+            return
+        }
+        guard phase == .preparing || phase == .listening || phase == .delivering else { return }
         let heard = heardWords()
         let recoveryDependencies = heard == nil ? nil : dependencies
         cancel()
@@ -542,8 +545,13 @@ private extension DictationController {
 
     /// From here sleep lets the delivery finish instead of cancelling it.
     func dispatchesInsert(sessionID: UUID) -> Bool {
-        dispatchedSessionID = sessionID
+        dispatched = (sessionID, false)
         return !yieldsToHandoff && sessionLease?.revalidate() != false
+    }
+
+    /// Sleep already ended Paste last; a delivery it let finish must not bring it back.
+    func renewsPasteLast(_ id: UUID) -> Bool {
+        dispatched?.id != id || dispatched?.slept != true
     }
 
     /// When Paste last ends, the same words leave the session's state too, unless a session is using them.
@@ -812,8 +820,10 @@ extension DictationController {
         lastInsertion = result == .verified ? destination?.lastInsertion() : nil
         cancelFeedbackDismissal()
         copyStatus = .idle
-        sessionLastText.remember(
-            text, alternate: alternate?.alternate, isOriginal: alternate?.alternateIsOriginal == true)
+        if renewsPasteLast(id) {
+            sessionLastText.remember(
+                text, alternate: alternate?.alternate, isOriginal: alternate?.alternateIsOriginal == true)
+        }
         recordHistory(result, id: id)
         if case .refused(let failure) = result {
             recoveryText = text
@@ -945,7 +955,7 @@ private extension DictationController {
                 "Secreteo can correct only its last insertion while it is unchanged in a field it can read."))
             return true
         }
-        dispatchedSessionID = sessionID
+        dispatched = (sessionID, false)
         guard let updated = await last.edit(edit.range, edit.replacement) else {
             guard activeSessionID == sessionID else { return true }
             failSession(id: sessionID, message: L10n.text("This field did not accept the correction. Nothing changed."))
@@ -953,7 +963,7 @@ private extension DictationController {
         }
         guard activeSessionID == sessionID else { return true }
         lastInsertion = updated
-        lastText.remember(updated.text)
+        if renewsPasteLast(sessionID) { lastText.remember(updated.text) }
         correctionSummary = Self.correctionSummary(for: command, edit: edit, in: reference)
         learnableCorrection = DictationLearnableCorrection(
             command, edit: edit, in: reference, dependencies: dependencies)
