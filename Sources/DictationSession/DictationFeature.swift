@@ -120,7 +120,7 @@ public final class DictationFeature: AppServices {
         microphoneIsAuthorized = environment.microphoneState() == .authorized
         accessibilityIsGranted = environment.accessibilityIsGranted()
         let seedsLegacyPeer = usesTemporaryStore && arguments.contains("-seed-dictation-legacy-peer")
-        let readiness = ReadinessGap(isDisposable: usesTemporaryStore, microphone: MicrophonePermissionClient())
+        let readiness = ReadinessGap(isDisposable: usesTemporaryStore, defaults: defaults)
         self.readiness = readiness
         let ownership = DictationOwnershipCoordinator.live(
             defaults: defaults, usesTemporaryStore: usesTemporaryStore,
@@ -139,6 +139,7 @@ public final class DictationFeature: AppServices {
             load: { try await Self.loadSpeechModel(store: modelStore, defaults: engineDefaults) })
         controller = DictationController()
         practice.onForget = { [controller] in controller.practiceLastText.clear() }
+        practice.onVerifiedDelivery = { [weak self] in self?.completePractice() }
         fixedShortcutRegistrar = usesTemporaryStore ? nil : DictationShortcut.liveRegistrar
         // A learned correction writes here directly, and an open Settings window must show it.
         preferencesObserver = NotificationCenter.default.addObserver(
@@ -474,13 +475,6 @@ public final class DictationFeature: AppServices {
         await models.remember(.speechDetector, detector)
     }
 
-    /// A permission changed in System Settings may never activate this agent app, so look again:
-    /// soon while one is missing, and now and then otherwise. A damaged model is hashed in full
-    /// on each look, so a missing one never sets the fast pace.
-    static func readinessPollDelay(missing: String?) -> Duration {
-        missing == nil || missing == ReadinessGap.missingModel ? .seconds(30) : .seconds(2)
-    }
-
     private func watchReadiness() {
         readinessPoll?.cancel()
         readinessPoll = nil
@@ -495,16 +489,32 @@ public final class DictationFeature: AppServices {
 }
 
 /// What the protocol reads off the main actor. Permissions are read live, so every admission
-/// sees the truth; only the model's state is cached, because reading it can touch the disk.
+/// sees permission changes. Model readiness and this app's persisted practice completion are synchronized.
 final class ReadinessGap: Sendable {
     static let missingModel = "model"
+    static let missingPractice = "practice"
+    static let practiceCompletionKey = "dictationPracticeCompleted"
     let modelIsReady = Mutex(false)
+    let practiceIsComplete: Mutex<Bool>
     private let isDisposable: Bool
     private let microphone: MicrophonePermissionClient
+    private let accessibilityIsGranted: @Sendable () -> Bool
 
-    init(isDisposable: Bool, microphone: MicrophonePermissionClient) {
+    init(
+        isDisposable: Bool, microphone: MicrophonePermissionClient, practiceIsComplete: Bool = false,
+        accessibilityIsGranted: @escaping @Sendable () -> Bool = { AXIsProcessTrusted() }
+    ) {
         self.isDisposable = isDisposable
         self.microphone = microphone
+        self.practiceIsComplete = Mutex(practiceIsComplete)
+        self.accessibilityIsGranted = accessibilityIsGranted
+    }
+
+    @MainActor
+    convenience init(isDisposable: Bool, defaults: UserDefaults) {
+        self.init(
+            isDisposable: isDisposable, microphone: MicrophonePermissionClient(),
+            practiceIsComplete: defaults.bool(forKey: Self.practiceCompletionKey))
     }
 
     func current() -> String? {
@@ -512,7 +522,8 @@ final class ReadinessGap: Sendable {
         if isDisposable { return nil }
         if !modelIsReady.withLock({ $0 }) { return Self.missingModel }
         if microphone.state() != .authorized { return "microphone" }
-        return AXIsProcessTrusted() ? nil : "accessibility"
+        if !accessibilityIsGranted() { return "accessibility" }
+        return practiceIsComplete.withLock { $0 } ? nil : Self.missingPractice
     }
 }
 
@@ -525,6 +536,24 @@ enum DictationFeatureError: LocalizedError {
 }
 
 extension DictationFeature {
+    private func completePractice() {
+        guard practiceIsShown else { return }
+        store([ReadinessGap.practiceCompletionKey: true])
+        readiness.practiceIsComplete.withLock { $0 = true }
+        ownership.reevaluate()
+        watchReadiness()
+    }
+
+    /// A permission changed in System Settings may never activate this agent app, so look again:
+    /// soon while one is missing, and now and then otherwise. A damaged model is hashed in full
+    /// on each look, so a missing one never sets the fast pace.
+    static func readinessPollDelay(missing: String?) -> Duration {
+        switch missing {
+        case nil, ReadinessGap.missingModel, ReadinessGap.missingPractice: .seconds(30)
+        default: .seconds(2)
+        }
+    }
+
     /// A model hashed on an earlier launch and unchanged since need not read as missing during
     /// this launch's first hash, which still runs and takes this back if the files are bad.
     fileprivate func showRememberedModels() async {
