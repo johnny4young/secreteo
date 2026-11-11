@@ -33,12 +33,14 @@ struct DictationOwnershipCoordinatorTests {
         }
 
         /// Secreteo as the owner.
-        func coordinator() -> DictationOwnershipCoordinator {
+        func coordinator(pendingWrites: DictationPendingWrites? = nil) -> DictationOwnershipCoordinator {
             let ownership = participant(DictationOwnershipCoordinatorTests.secreteo)
             lastOwnership = ownership
             // Secreteo never claims on its own, so these tests set up the owner themselves.
             _ = ownership.claimAtFirstRun()
-            let coordinator = DictationOwnershipCoordinator(ownership: ownership) { [self] in await settle() }
+            let coordinator = DictationOwnershipCoordinator(ownership: ownership, pendingWrites: pendingWrites) {
+                [self] in await settle()
+            }
             coordinator.start()
             return coordinator
         }
@@ -949,6 +951,46 @@ struct DictationOwnershipCoordinatorTests {
         #expect(harness.insertions == [harness.text])
         #expect(!coordinator.holdsLease)
         #expect(coordinator.admission.refusalNow() == .busy)
+    }
+
+    enum RecoveryResolution: CaseIterable { case copy, discard }
+
+    @Test(arguments: RecoveryResolution.allCases)
+    func anUpdateWaitsUntilUndeliveredWordsAreResolved(_ resolution: RecoveryResolution) async throws {
+        let scratch = Scratch()
+        let pendingWrites = DictationPendingWrites()
+        let coordinator = scratch.coordinator(pendingWrites: pendingWrites)
+        let harness = DictationControllerHarness(text: "No borres estas notas.")
+        var dependencies = harness.dependencies
+        dependencies.admission = coordinator.admission
+        dependencies.pendingWrites = pendingWrites
+        dependencies.captureDestination = { .unavailable(name: nil, result: .targetChanged) }
+        dependencies.copyText = { _ in true }
+        defer { harness.controller.cancel(); coordinator.finishUpdateCycle() }
+        harness.controller.toggle(using: dependencies)
+        try await eventually { harness.controller.partialText == harness.text }
+        var resumed = 0
+
+        #expect(coordinator.postponeUpdateRelaunch { resumed += 1 })
+        harness.now = harness.now.addingTimeInterval(1)
+        harness.controller.toggle(using: dependencies)
+
+        try await eventually { harness.controller.phase == .recovery(.targetChanged) && !coordinator.holdsLease }
+        await Task.yield()
+        #expect(resumed == 0)
+        #expect(harness.controller.recoveryText == harness.text)
+        harness.controller.retryUndeliveredText()
+        #expect(resumed == 0)
+        switch resolution {
+        case .copy:
+            harness.controller.copyPendingText()
+            #expect(harness.controller.copyStatus == .copied)
+        case .discard:
+            harness.controller.cancel()
+        }
+        try await eventually { resumed == 1 }
+        harness.controller.cancel()
+        #expect(resumed == 1)
     }
 
     @Test
