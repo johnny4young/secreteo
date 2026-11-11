@@ -9,6 +9,7 @@ const workflows = Object.fromEntries(readdirSync(directory)
 const gate = readFileSync(new URL('../../scripts/check-repository-hygiene.sh', import.meta.url), 'utf8');
 const command = 'scripts/check-repository-hygiene.sh';
 const legacy = "python3 -I -m unittest discover -s Tests/Tooling -p 'test_*.py'";
+const nodeSuites = ['test_log_privacy', 'test_stop_tail_in_tests', 'test_swift_sources', 'test_ci_reuse', 'test_ui_inventory', 'test_release_timings'];
 const pair = `      - run: ${command}\n      - name: Legacy tooling coverage\n        run: ${legacy}\n`;
 
 function job(source, name) {
@@ -50,11 +51,13 @@ function validate(sources, script) {
   for (const name of ['hygiene', 'legacy-tooling']) {
     assert.ok(needs?.split(',').map(name => name.trim()).includes(name), `gate must require ${name}`);
   }
-  assert.match(job(sources['release.yml'], 'package'), /^    needs: verify$/m);
+  const packaging = job(sources['release.yml'], 'package');
+  assert.match(packaging, /^    needs: verify$/m);
+  assert.doesNotMatch(packaging, /^    if:/m, 'Packaging cannot run after a failed verification');
   assert.doesNotMatch(script, /\bpython[\d.]*\b/, 'Repository hygiene must not invoke Python');
   assert.ok(script.includes('  bash Tests/Tooling/test_repository_hygiene.sh\n'));
   assert.ok(script.includes('Tests/Tooling/test_hygiene_coverage.mjs'));
-  for (const name of ['test_log_privacy', 'test_stop_tail_in_tests', 'test_swift_sources', 'test_ci_reuse', 'test_ui_inventory', 'test_release_timings']) {
+  for (const name of nodeSuites) {
     assert.ok(script.includes(`Tests/Tooling/${name}.mjs`));
   }
 }
@@ -81,6 +84,7 @@ for (const [name, file, mutate] of [
   ['missing required hygiene dependency', 'ci.yml', source => source.replace('needs: [hygiene, ', 'needs: [')],
   ['missing required legacy dependency', 'ci.yml', source => source.replace('needs: [hygiene, legacy-tooling, ', 'needs: [hygiene, ')],
   ['release bypassing verification', 'release.yml', source => source.replace('    needs: verify', '    needs: []')],
+  ['release packaging after failed verification', 'release.yml', source => source.replace('    needs: verify\n', '    needs: verify\n    if: always()\n')],
 ]) {
   test(`rejects ${name}`, () => {
     assert.throws(() => validate({ ...workflows, [file]: mutate(workflows[file]) }, gate));
@@ -99,7 +103,7 @@ test('rejects restoring an implicit Python dependency in local hygiene', () => {
   assert.throws(() => validate(workflows, `${gate}\n${legacy}\n`));
 });
 
-for (const name of ['test_log_privacy', 'test_stop_tail_in_tests', 'test_swift_sources', 'test_ci_reuse', 'test_ui_inventory', 'test_release_timings']) {
+for (const name of nodeSuites) {
   test(`rejects dropping ${name} from hygiene`, () => {
     assert.throws(() => validate(workflows, gate.replace(`Tests/Tooling/${name}.mjs`, '')));
   });

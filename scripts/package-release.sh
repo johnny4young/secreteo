@@ -18,11 +18,13 @@ begin_phase() {
   phase_started=$SECONDS
 }
 
+report_timing() {
+  printf 'PackageTiming version=%s phase=%s real=%d status=%d\n' "$version" "$1" "$((SECONDS - $2))" "$3" >&2
+}
+
 finish_phase() {
-  local status="$1"
   [[ -n "${current_phase:-}" ]] || return 0
-  printf 'PackageTiming version=%s phase=%s real=%d status=%d\n' \
-    "$version" "$current_phase" "$((SECONDS - phase_started))" "$status" >&2
+  report_timing "$current_phase" "$phase_started" "$1"
   current_phase=""
 }
 
@@ -136,4 +138,4 @@ python3 scripts/verify_release.py "$dmg" "$version" "$mode"
 finish_phase 0
 (cd "$output" && shasum -a 256 "Secreteo-$version.dmg" > "Secreteo-$version.dmg.sha256")
 echo "Packaged $dmg"
-printf 'PackageTiming version=%s phase=total real=%d status=0\n' "$version" "$((SECONDS - package_started))" >&2
+report_timing total "$package_started" 0

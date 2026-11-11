@@ -4,7 +4,7 @@ import { copyFileSync, readFileSync, mkdirSync, mkdtempSync, rmSync, unlinkSync,
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
-import { gitEnvironment, readSwiftSources } from './swift_sources.mjs';
+import { gitEnvironment, readSwiftSources, readText } from './swift_sources.mjs';
 
 function fixture(t) {
   const root = mkdtempSync(path.join(os.tmpdir(), 'swift-source-contract-'));
@@ -31,6 +31,11 @@ test('discovery includes tracked and untracked Swift paths without splitting or 
   write('Sources/ignored.swift', 'print("not in the source set")');
   write('Sources/readme.txt', 'not Swift');
   assert.deepEqual(readSwiftSources(root, ['Sources', 'Apps']).map(([name]) => name), names.sort());
+});
+
+test('Swift reads are strict UTF-8 and keep a BOM', () => {
+  assert.throws(() => readText(Buffer.from([0xc3, 0x28])));
+  assert.equal(readText(Buffer.from([0xef, 0xbb, 0xbf, 0x61])), '\ufeffa');
 });
 
 test('malformed UTF-8 source fails the check rather than disappearing', t => {

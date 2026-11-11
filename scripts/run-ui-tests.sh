@@ -12,8 +12,6 @@ cd "$ROOT"
 # Requires the repository Node LTS runtime (.nvmrc / engines.node).
 command -v node >/dev/null 2>&1 || { echo "Node is required for UI result processing." >&2; exit 127; }
 
-scripts/fetch-sparkle.sh
-xcodegen generate --quiet
 results="build/ui-$plan${shard:+-${shard%%/*}}.xcresult"
 rm -rf "$results" "$screenshots"
 mkdir -p build "$screenshots"
@@ -46,6 +44,8 @@ fi
 common=(-project Secreteo.xcodeproj -scheme Secreteo -destination 'platform=macOS,arch=arm64'
   -derivedDataPath build/ui -skipPackagePluginValidation)
 node scripts/ui_test_inventory.mjs plan "$screenshots" "$plan" "$shard" ${selection[@]+"${selection[@]}"}
+scripts/fetch-sparkle.sh
+xcodegen generate --quiet
 xcodebuild "${common[@]}" build-for-testing -quiet
 
 status=0

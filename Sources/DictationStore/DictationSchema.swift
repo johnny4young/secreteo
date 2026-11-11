@@ -11,7 +11,24 @@ enum DictationSchema {
             try createSearch(in: database)
             try createStats(in: database)
         }
+        migrator.registerMigration("v2") { database in
+            try createEmbeddings(in: database)
+        }
         return migrator
+    }
+
+    /// One sentence vector per saved dictation, for search by meaning. It goes with its
+    /// dictation on every delete, and `profile` names the model, so another model's vectors are never compared.
+    private static func createEmbeddings(in database: Database) throws {
+        try database.create(table: "dictationEmbedding") { table in
+            table.primaryKey("recordID", .text)
+                .references("dictationRecord", column: "id", onDelete: .cascade)
+            table.column("profile", .text).notNull()
+                .check(sql: "length(profile) BETWEEN 1 AND \(DictationEmbedding.maximumProfileLength)")
+            table.column("vector", .blob).notNull().check(
+                sql: "length(vector) BETWEEN 4 AND \(DictationEmbedding.maximumDimension * 4) AND length(vector) % 4 = 0")
+        }
+        try database.create(index: "dictationEmbedding_on_profile", on: "dictationEmbedding", columns: ["profile"])
     }
 
     /// One consent row and the saved dictations. No audio, window titles or surrounding text.

@@ -62,6 +62,24 @@ final class DictationHistoryUITests: SecreteoUITestCase {
         XCTAssertFalse(app.buttons["dictation-history-delete-all"].exists)
     }
 
+    func testSearchFindsADictationByMeaning() throws {
+        let app = try launchHistory("-seed-dictation-history", "-seed-dictation-history-records")
+        defer { finishUITestApplication(app) }
+        let first = app.control(withIdentifier: text(0))
+        let second = app.control(withIdentifier: text(1))
+        XCTAssertTrue(second.waitForExistence(timeout: 5))
+
+        let search = app.control(withIdentifier: "dictation-history-search")
+        search.click()
+        search.typeText("elimina las notas")
+
+        // No saved dictation holds these words; the note about not deleting means the same.
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) {
+            renderedText(of: first) == "No borres estas notas." && !second.exists
+        })
+        attachScreenshot(named: "pr-dictation-history-meaning")
+    }
+
     func testSearchAndFiltersNarrowTheHistory() throws {
         let app = try launchHistory("-seed-dictation-history", "-seed-dictation-history-records")
         defer { finishUITestApplication(app) }

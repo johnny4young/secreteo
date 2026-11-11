@@ -14,6 +14,9 @@ final class DictationPracticeField {
     /// Runs when the words go, so they leave wherever else they are held.
     @ObservationIgnored var onForget: (() -> Void)?
 
+    /// Completion is a local boolean; the delivered words never enter preferences.
+    @ObservationIgnored var onVerifiedDelivery: (() -> Void)?
+
     var isArmed: Bool { holders.values.contains(true) }
 
     func show(_ holder: UUID, isKey: Bool) {
@@ -36,13 +39,15 @@ final class DictationPracticeField {
         guard !words.isEmpty else { return .refused(.emptyText) }
         guard !holders.isEmpty else { return .refused(.targetChanged) }
         text = text.isEmpty ? words : text + " " + words
+        onVerifiedDelivery?()
         return .verified
     }
 
     /// The destination is chosen when a session starts, so a session begun in
     /// another app keeps that app's field even if the practice field appears later.
     func route(
-        _ dependencies: DictationSessionDependencies, appIsActive: Bool
+        _ dependencies: DictationSessionDependencies, appIsActive: Bool,
+        isStillShown: @escaping () -> Bool = { true }
     ) -> DictationSessionDependencies {
         guard isArmed, appIsActive else { return dependencies }
         var routed = dependencies
@@ -53,7 +58,8 @@ final class DictationPracticeField {
         routed.locatePanelAnchor = { Self.panelAnchor(around: NSEvent.mouseLocation) }
         routed.captureDestination = { [weak self] in
             CapturedDictationDestination(name: L10n.text("the practice field"), canRetry: false) { text in
-                self?.receive(text) ?? .refused(.targetChanged)
+                guard isStillShown() else { return .refused(.targetChanged) }
+                return self?.receive(text) ?? .refused(.targetChanged)
             }
         }
         return routed
