@@ -77,6 +77,23 @@ final class DictationHistoryStoreTests: XCTestCase {
         XCTAssertEqual(remaining, [])
     }
 
+    func testARetryAfterADeleteNeverBringsTheDictationBack() async throws {
+        let store = try DictationStore.inMemory()
+        try await enable(store)
+        let dictation = record()
+        let first = try await store.recordDictation(dictation, admittedGeneration: 0, at: now)
+        let deleted = try await store.deleteDictationRecord(dictation.id)
+        let retry = try await store.recordDictation(dictation.with(delivery: .verified), admittedGeneration: 0, at: now)
+        let vector = try await store.saveDictationEmbedding(.init(recordID: dictation.id, vector: [1, 0]), profile: "p")
+        let other = try await store.recordDictation(record(text: "Otra nota."), admittedGeneration: 0, at: now)
+        let saved = try await store.dictationRecords(limit: 10)
+
+        XCTAssertEqual([first, retry, other], [.saved, .refused, .saved])
+        XCTAssertTrue(deleted)
+        XCTAssertFalse(vector)
+        XCTAssertEqual(saved.map(\.text), ["Otra nota."])
+    }
+
     func testRetentionPurgesOldDictationsAndAShorterChoiceAppliesAtOnce() async throws {
         let store = try DictationStore.inMemory()
         try await enable(store)

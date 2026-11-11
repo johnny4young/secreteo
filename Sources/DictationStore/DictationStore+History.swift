@@ -38,14 +38,17 @@ extension DictationStore {
     }
 
     /// Saves one dictation, or updates the delivery of the same dictation after
-    /// a retry. Consent is revalidated in the write transaction.
+    /// a retry. Consent and deletion are revalidated in the write transaction.
     public func recordDictation(
         _ record: DictationRecord, admittedGeneration: Int, at now: Date = Date()
     ) async throws -> DictationRecordOutcome {
         guard record.isValid else { throw DictationStoreError.invalidDictationRecord("invalid input") }
         let (outcome, purged) = try await database.write { database -> (DictationRecordOutcome, Int) in
             let policy = try Self.dictationHistoryPolicy(in: database)
-            guard policy.isEnabled, policy.generation == admittedGeneration else { return (.refused, 0) }
+            let wasDeleted = try Bool.fetchOne(
+                database, sql: "SELECT EXISTS (SELECT 1 FROM dictationRecordDeleted WHERE id = ?)",
+                arguments: [record.id.rawValue.uuidString]) == true
+            guard policy.isEnabled, policy.generation == admittedGeneration, !wasDeleted else { return (.refused, 0) }
             try database.execute(
                 sql: """
                     INSERT INTO dictationRecord (
@@ -156,10 +159,17 @@ extension DictationStore {
         return (terms.dropLast() + [last + "*"]).joined(separator: " ")
     }
 
+    /// Leaves the ID behind, so a retry still in flight cannot save it again.
     public func deleteDictationRecord(_ id: DictationRecordID) async throws -> Bool {
         let deleted = try await database.write { database in
+            let id = id.rawValue.uuidString
             try database.execute(
-                sql: "DELETE FROM dictationRecord WHERE id = ?", arguments: [id.rawValue.uuidString])
+                sql: """
+                    INSERT OR IGNORE INTO dictationRecordDeleted (id, createdAt)
+                    SELECT id, createdAt FROM dictationRecord WHERE id = ?
+                    """,
+                arguments: [id])
+            try database.execute(sql: "DELETE FROM dictationRecord WHERE id = ?", arguments: [id])
             return database.changesCount == 1
         }
         if deleted { await checkpoint() }
@@ -172,6 +182,7 @@ extension DictationStore {
         let deleted = try await database.write { database in
             try database.execute(sql: "DELETE FROM dictationRecord")
             let deleted = database.changesCount
+            try database.execute(sql: "DELETE FROM dictationRecordDeleted")
             try database.execute(sql: "UPDATE dictationHistoryPolicy SET generation = generation + 1 WHERE id = 1")
             return deleted
         }
@@ -193,7 +204,13 @@ extension DictationStore {
     private static func purgeExpiredDictations(in database: Database, retentionDays: Int, now: Date) throws -> Int {
         let cutoff = now.addingTimeInterval(-Double(retentionDays) * 86_400)
         try database.execute(sql: "DELETE FROM dictationRecord WHERE createdAt < ?", arguments: [cutoff])
-        return database.changesCount
+        let purged = database.changesCount
+        // Past the longest retention, a dictation saved again is purged in the same write.
+        let longest = DictationHistoryPolicy.retentionChoices.max() ?? retentionDays
+        try database.execute(
+            sql: "DELETE FROM dictationRecordDeleted WHERE createdAt < ?",
+            arguments: [now.addingTimeInterval(-Double(longest) * 86_400)])
+        return purged
     }
 
     static func dictationHistoryPolicy(in database: Database) throws -> DictationHistoryPolicy {

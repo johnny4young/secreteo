@@ -14,6 +14,9 @@ enum DictationSchema {
         migrator.registerMigration("v2") { database in
             try createEmbeddings(in: database)
         }
+        migrator.registerMigration("v3") { database in
+            try createDeletedRecords(in: database)
+        }
         return migrator
     }
 
@@ -29,6 +32,15 @@ enum DictationSchema {
                 sql: "length(vector) BETWEEN 4 AND \(DictationEmbedding.maximumDimension * 4) AND length(vector) % 4 = 0")
         }
         try database.create(index: "dictationEmbedding_on_profile", on: "dictationEmbedding", columns: ["profile"])
+    }
+
+    /// The IDs the user deleted, so a retry of the same dictation cannot save it again.
+    /// No text; each goes once no retention could still keep its dictation.
+    private static func createDeletedRecords(in database: Database) throws {
+        try database.create(table: "dictationRecordDeleted") { table in
+            table.primaryKey("id", .text).check(sql: "length(id) = 36")
+            table.column("createdAt", .datetime).notNull()
+        }
     }
 
     /// One consent row and the saved dictations. No audio, window titles or surrounding text.
