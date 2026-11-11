@@ -20,7 +20,7 @@ Run in series.
 
 Repository hygiene runs with Bash and Node, including its scratch-repository negative tests. The remaining legacy tooling suites still run through `python3 -I -m unittest discover -s Tests/Tooling -p 'test_*.py'` as a separate, mandatory step immediately after hygiene in both CI and release verification. A local hygiene pass does not claim those legacy suites ran; their hosted coverage remains required while they are migrated.
 
-The serial legacy runner tests reuse a process-local synthetic 480-cell audio template and copy it into a new owned directory for each test. Copies preserve bytes and modes without hardlinks, so mutation/deletion tests remain isolated. The producer's own tests still materialize fresh corpora; this fixture reuse is not audio quality evidence.
+The serial legacy runner, controller and comparison tests generate one process-local synthetic 480-cell audio template and copy it into a new owned directory for each fixture. Copies preserve bytes and modes without hardlinks, so mutation/deletion tests remain isolated, and the template is removed explicitly at exit. The producer's own tests still materialize fresh corpora; this fixture reuse is not audio quality evidence.
 
 | Gate | Command | When |
 |---|---|---|
