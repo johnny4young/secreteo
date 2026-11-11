@@ -10,7 +10,7 @@ struct DictationStoreSchemaTests {
     func aNewStoreHasEveryTableWithEveryConsentOff() async throws {
         let store = try DictationStore.inMemory()
         try await store.database.read { database in
-            #expect(try String.fetchAll(database, sql: "SELECT identifier FROM grdb_migrations") == ["v1", "v2", "v3"])
+            #expect(try String.fetchAll(database, sql: "SELECT identifier FROM grdb_migrations") == ["v1", "v2"])
             let history = try #require(try Row.fetchOne(database, sql: "SELECT * FROM dictationHistoryPolicy"))
             #expect(history["isEnabled"] == false)
             #expect(history["keepsOriginal"] == false)
@@ -21,7 +21,7 @@ struct DictationStoreSchemaTests {
                 "id", "createdAt", "durationMs", "text", "originalText", "mode", "language",
                 "engine", "applicationName", "applicationBundleID", "delivery"
             ])
-            for table in ["dictationRecordSearch", "dictationStatsDay", "dictationStatsCounted", "dictationEmbedding", "dictationRecordDeleted"] {
+            for table in ["dictationRecordSearch", "dictationStatsDay", "dictationStatsCounted", "dictationEmbedding"] {
                 #expect(try database.tableExists(table), "\(table)")
             }
         }
@@ -45,7 +45,7 @@ struct DictationStoreSchemaTests {
             try old.close()
 
             let upgraded = try DictationStore(databaseURL: url)
-            #expect(try await strings(upgraded, "SELECT identifier FROM grdb_migrations") == ["v1", "v2", "v3"])
+            #expect(try await strings(upgraded, "SELECT identifier FROM grdb_migrations") == ["v1", "v2"])
             #expect(try await strings(upgraded, "SELECT text FROM dictationRecord") == ["De la versión uno."])
             #expect(try await strings(upgraded, "SELECT name FROM sqlite_master WHERE name = 'dictationEmbedding'")
                 == ["dictationEmbedding"])
@@ -60,7 +60,7 @@ struct DictationStoreSchemaTests {
             try first.database.close()
 
             let upgraded = try DictationStore(databaseURL: url, migrator: Self.migrator(addingNext: true))
-            #expect(try await strings(upgraded, "SELECT identifier FROM grdb_migrations") == ["v1", "v2", "v3", "v4"])
+            #expect(try await strings(upgraded, "SELECT identifier FROM grdb_migrations") == ["v1", "v2", "v3"])
             #expect(try await strings(upgraded, "SELECT text FROM dictationRecord") == ["Una nota de prueba."])
             #expect(try await strings(upgraded, "SELECT name FROM pragma_table_info('dictationRecord')")
                 .contains("testColumn"))
@@ -75,14 +75,14 @@ struct DictationStoreSchemaTests {
             try first.database.close()
 
             var failing = DictationSchema.migrator()
-            failing.registerMigration("v4") { database in
+            failing.registerMigration("v3") { database in
                 try database.execute(sql: "DELETE FROM dictationRecord")
                 throw DatabaseError(resultCode: .SQLITE_ABORT, message: "synthetic failure")
             }
             #expect(throws: DatabaseError.self) { try DictationStore(databaseURL: url, migrator: failing) }
 
             let reopened = try DictationStore(databaseURL: url)
-            #expect(try await strings(reopened, "SELECT identifier FROM grdb_migrations") == ["v1", "v2", "v3"])
+            #expect(try await strings(reopened, "SELECT identifier FROM grdb_migrations") == ["v1", "v2"])
             #expect(try await strings(reopened, "SELECT text FROM dictationRecord") == ["Sigue aquí."])
         }
     }
@@ -101,7 +101,7 @@ struct DictationStoreSchemaTests {
             #expect(try Data(contentsOf: url) == before, "a reader never writes")
 
             let again = try DictationStore(databaseURL: url, migrator: Self.migrator(addingNext: true))
-            #expect(try await strings(again, "SELECT identifier FROM grdb_migrations") == ["v1", "v2", "v3", "v4"])
+            #expect(try await strings(again, "SELECT identifier FROM grdb_migrations") == ["v1", "v2", "v3"])
             #expect(try await strings(again, "SELECT text FROM dictationRecord") == ["Escrito por una versión nueva."])
         }
     }
@@ -185,7 +185,7 @@ struct DictationStoreSchemaTests {
     private static func migrator(addingNext: Bool) -> DatabaseMigrator {
         var migrator = DictationSchema.migrator()
         if addingNext {
-            migrator.registerMigration("v4") { database in
+            migrator.registerMigration("v3") { database in
                 try database.alter(table: "dictationRecord") { $0.add(column: "testColumn", .text) }
             }
         }

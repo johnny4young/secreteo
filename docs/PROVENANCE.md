@@ -8,7 +8,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 
 **Frozen commit:** `a957253b0a54eb385a400bed0e80d853a8e8b41a`.
 
-`Sources/DictationStore/DictationSchema.swift` is written anew as one v1 ([D3](DECISIONS.md#d3-history-stats-and-search-are-included)). Its tables follow `Sources/StorageKit/Schema+DictationHistory.swift`, `Schema+DictationSearch.swift`, `Schema+DictationAgentAccess.swift` and `Schema+DictationStats.swift`, with no meeting-note link, and add secure delete. Its v2 vector table and v3 deleted-ID table are Secreteo's own.
+`Sources/DictationStore/DictationSchema.swift` is written anew as one v1 ([D3](DECISIONS.md#d3-history-stats-and-search-are-included)). Its tables follow `Sources/StorageKit/Schema+DictationHistory.swift`, `Schema+DictationSearch.swift`, `Schema+DictationAgentAccess.swift` and `Schema+DictationStats.swift`, with no meeting-note link, and add secure delete. Its v2 vector table is Secreteo's own.
 
 `scripts/port_diff.py <export>` compares each row with an unpacked export of that commit. `Renames` must match after the renames in that script, and any other row prints its differences for review.
 
