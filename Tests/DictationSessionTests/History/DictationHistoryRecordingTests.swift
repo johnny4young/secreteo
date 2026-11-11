@@ -17,6 +17,9 @@ final class DictationHistoryRecordingTests: XCTestCase {
 
         XCTAssertTrue(saved)
         let record = try XCTUnwrap(feature.history.records.first)
+        let persisted = try await feature.dictationStore.dictationRecords(
+            matching: .init(recordID: record.id), before: nil, limit: 1)
+        XCTAssertEqual(persisted.map(\.id), [record.id], "the fixture must survive the real retention clock")
         XCTAssertEqual(record.text, "No borres estas notas.")
         XCTAssertEqual(record.delivery, .verified)
         XCTAssertEqual(record.applicationName, "Dictation test receiver")

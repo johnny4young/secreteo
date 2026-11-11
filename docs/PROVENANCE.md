@@ -8,7 +8,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 
 **Frozen commit:** `a957253b0a54eb385a400bed0e80d853a8e8b41a`.
 
-`Sources/DictationStore/DictationSchema.swift` is written anew as one v1 ([D3](DECISIONS.md#d3-history-stats-and-search-are-included)). Its tables follow `Sources/StorageKit/Schema+DictationHistory.swift`, `Schema+DictationSearch.swift`, `Schema+DictationAgentAccess.swift` and `Schema+DictationStats.swift`, with no meeting-note link, and add secure delete.
+`Sources/DictationStore/DictationSchema.swift` is written anew as one v1 ([D3](DECISIONS.md#d3-history-stats-and-search-are-included)). Its tables follow `Sources/StorageKit/Schema+DictationHistory.swift`, `Schema+DictationSearch.swift`, `Schema+DictationAgentAccess.swift` and `Schema+DictationStats.swift`, with no meeting-note link, and add secure delete. Its v2 vector table is Secreteo's own.
 
 `scripts/port_diff.py <export>` compares each row with an unpacked export of that commit. `Renames` must match after the renames in that script, and any other row prints its differences for review.
 
@@ -182,7 +182,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationSession/Settings/DictationFeature+TextProfiles.swift` | `Sources/portavoz-app/AppServices+DictationTextProfiles.swift` | Seam: the feature instead of the app's services, and no message in the chooser |
 | `Sources/DictationSession/Settings/DictationProfileSettings.swift` | `Sources/portavoz-app/DictationTextSettingsSection.swift` | Extract: the application profiles, without the privacy note, labels in title case, and row identifiers joined from a prefix |
 | `Sources/DictationSession/Fixtures/DictationProfilePickerUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationTextProfileUITestFixture.swift` | Renames |
-| `Sources/DictationSession/Fixtures/DictationUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationUITestFixture.swift` | Extract: without the composition extension |
+| `Sources/DictationSession/Fixtures/DictationUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationUITestFixture.swift` | Extract: without the composition extension, and the ticking clock starts at the current date so retention keeps its records |
 | `Sources/DictationSession/Fixtures/DictationNativeUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationNativeUITestFixture.swift` | Seam: a line wrapped for the longer identifier |
 | `Sources/DictationSession/Fixtures/DictationNativeControllerUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationNativeControllerUITestFixture.swift` | Renames |
 | `Tests/DictationSessionTests/Session/DictationControllerTests.swift` | `Tests/PortavozAppTests/DictationControllerTests.swift` | Seam: imports the split targets |
@@ -257,8 +257,8 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationStore/DictationStore+History.swift` | `Sources/StorageKit/MeetingStore+DictationHistory.swift` | Seam: imports `DictationKit` and `SpeechCore`, and deleting, retention, a save that expires rows and a policy change end with a truncating checkpoint |
 | `Sources/DictationSession/History/ApplicationUseCase.swift` | `Sources/ApplicationKit/ApplicationUseCase.swift` | Renames |
 | `Sources/DictationSession/History/DictationHistoryUseCases.swift` | `Sources/ApplicationKit/DictationHistory.swift` | Seam: imports `SpeechCore` |
-| `Sources/DictationSession/History/DictationHistoryModel.swift` | `Sources/portavoz-app/DictationHistoryModel.swift` | Seam: imports `SpeechCore`, with no meeting links or Ask focus ([D2](DECISIONS.md#d2-scope-and-approved-losses)), a change that succeeds clears the last failure, and a search from a Shortcut reloads rows already shown |
-| `Sources/DictationSession/History/DictationFeature+History.swift` | `Sources/portavoz-app/AppServices+DictationSetup.swift` | Extract: the history seed, plus opening the store, and a logged stand-in when it cannot open. The statistics seed comes from `DictationStatsModel.swift` |
+| `Sources/DictationSession/History/DictationHistoryModel.swift` | `Sources/portavoz-app/DictationHistoryModel.swift` | Seam: imports `SpeechCore`, with no meeting links or Ask focus ([D2](DECISIONS.md#d2-scope-and-approved-losses)), a change that succeeds clears the last failure, a search from a Shortcut reloads rows already shown, and a search adds dictations close in meaning after every word match ([D25](DECISIONS.md#d25-history-search-adds-meaning-to-words-on-this-mac-and-never-downloads-for-it)) |
+| `Sources/DictationSession/History/DictationFeature+History.swift` | `Sources/portavoz-app/AppServices+DictationSetup.swift` | Extract: the history seed, plus opening the store, and a logged stand-in, which also refuses vector reads and writes, when it cannot open. The statistics seed comes from `DictationStatsModel.swift` |
 | `Sources/DictationSession/History/DictationHistoryView.swift` | `Sources/portavoz-app/DictationHistoryView.swift` | Seam: reads the feature in its own window, title case, no helper text, and no meetings or Ask focus |
 | `Sources/DictationSession/Settings/DictationHistorySettingsSection.swift` | `Sources/portavoz-app/DictationHistorySettingsSection.swift` | Seam: reads the feature, title case, no helper text, shows a failure, and the agents switch arrives with the MCP server |
 | `Sources/DictationStore/DictationStore+Stats.swift` | `Sources/StorageKit/MeetingStore+DictationStats.swift` | Seam: imports `DictationKit` and `SpeechCore`, and deleting ends with a truncating checkpoint |

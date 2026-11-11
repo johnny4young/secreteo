@@ -2,6 +2,8 @@
 
 One row per capability and trigger. A row is `Ported` only when a test in this repository proves it, and removing a test from Portavoz never proves anything arrived here. [PROVENANCE](PROVENANCE.md) records the copied files.
 
+Disposable UI journeys and injected unit fixtures prove the paths they exercise; they do not close physical delivery, TCC, coexistence, microphone or model-quality acceptance. Those limits remain in [GAPS](GAPS.md) and the [release contract](QUALITY.md#release-contract).
+
 ## Domain and text
 
 | Capability or case | Portavoz source | Portavoz test | Secreteo test | State |
@@ -39,21 +41,21 @@ One row per capability and trigger. A row is `Ported` only when a test in this r
 | App Intents | `AppServices+DictationIntents` | `DictationIntentTests` | `DictationIntentTests` | Ported: Dictate and Paste last through the shortcut's admission, and Search and Open dictations behind the agent consent |
 | Paste last | `DictationController+PasteLast`, `AppServices+PasteLastDictation` | `DictationPasteLastTests` | The same tests | In the menu, and with an optional shortcut |
 | Selection Rewrite | `SelectionRewriteController`, `SelectionCapture` | `SelectionRewriteTests`, `SelectionRewriteUITests` | The same tests, and the Rewrite cases of `DictationAdmissionTests` and `DictationOwnershipCoordinatorTests` | Ported, in the menu and with an optional ⌃⌥⌘R. A real selection in another app still has to be checked |
-| Practice | `DictationPracticeField`, `DictationPracticeView` | `DictationPracticeFieldTests`, `DictationPracticeUITests` | The same tests, with the onboarding journey in `OnboardingUITests` | In Settings and in onboarding, each window holding the field |
+| Practice | `DictationPracticeField`, `DictationPracticeView` | `DictationPracticeFieldTests`, `DictationPracticeUITests` | The same tests, with the onboarding journey in `OnboardingUITests` and readiness cases in `DictationPracticeReadinessTests` | In Settings and onboarding. Verified delivery to a visible practice field records completion before global readiness; late delivery to a hidden field is rejected. Disposable UI fixtures retain their synthetic readiness override |
 | One owner per Mac | `DictationOwnershipCoordinator`, `DictationAdmission` | `DictationOwnershipCoordinatorTests`, `DictationAdmissionTests` | The same tests, with the composition's, among them `onlyTheOwnerArmsTheShortcut`, `aHeldTriggerKeepsItsWordsWhenAHandoffDisarmsIt` and `compositionReadsOwnershipForPrewarmAndAdmission`, plus `KnownDictationPeersTests` and the reference tests | Ported. `DictationFeature.start()` runs the coordinator. It has not run against a real Portavoz |
 
 ## Sessions and delivery
 
 | Capability or case | Portavoz source | Portavoz test | Secreteo test | State |
 |---|---|---|---|---|
-| Retry with no double paste | `DictationController`, `DictationInsertion` | `DictationDeliveryPhaseTests`, `DictationDeliveryOutcomeTests` | The same tests | Logic ported. The app does not run a session yet |
-| Cancel during prepare and during Stop | `DictationController` | `DictationSessionLifecycleTests` | The same tests | Logic ported. The app does not run a session yet |
-| Text recovery | `DictationRecoveryView`, `CapturedDictationDestination` | `DictationDestinationRecoveryTests`, `DictationRecoveryCopyTests` | `DictationDestinationRecoveryTests`, `DictationSessionFixesTests` | Logic ported, and a capture failure now keeps the words too. The recovery view arrives with the panel |
+| Retry with no double paste | `DictationController`, `DictationInsertion` | `DictationDeliveryPhaseTests`, `DictationDeliveryOutcomeTests` | The same tests, plus `testUndeliveredTextCanBeCopiedAndExplicitlyRetried` in `DictationUITests` | Wired into app sessions and exercised with disposable recovery/delivery fixtures. Real delivery into another app remains open |
+| Cancel during prepare and during Stop | `DictationController` | `DictationSessionLifecycleTests` | The same tests, plus `testPreparingDictationCanCancelWithoutAListeningClaim` and `testDictationPanelCancelsAndRestartsWithoutGlobalInput` in `DictationUITests` | Wired into app sessions. Synthetic tests cover cancellation, restart and native Stop ordering; a real capture still has to be checked |
+| Text recovery | `DictationRecoveryView`, `CapturedDictationDestination` | `DictationDestinationRecoveryTests`, `DictationRecoveryCopyTests` | `DictationDestinationRecoveryTests`, `DictationSessionFixesTests`, `DictationUITests` | Recovery is present in the panel. Fixtures cover copy, explicit retry, retention across another trigger and capture failure with words. Physical clipboard behavior remains open |
 | Permissions revoked | `DictationMicrophoneReadiness`, `DictationController` | `DictationReadinessTests`, `DictationSessionLifecycleTests` | The same tests, with `testFixtureRecoverySurvivesFreshDependenciesForEachMenuInvocation` | Logic ported. A real revoked permission still has to be checked |
 | Clipboard restored | `DictationClipboard`, `PasteboardSnapshot` | `DictationClipboardInsertionTests`, `DictationClipboardBoundaryTests` | The same tests | Logic ported. The real paste into another app still has to be checked |
 | Capitals and spacing from the caret | `DictationCaretCase`, `DictationCaretJoin` | `DictationCaretCaseTests`, `DictationCaretJoinTests` | The same tests | Logic ported. A real caret in another app still has to be checked |
 | Readback and verified delivery | `DictationTextReadback`, `TextInserter` | `TextInsertionReadbackTests`, `TextInsertionTargetTests` | The same tests | Logic ported. Real Accessibility readback still has to be checked |
-| Speech gate and auto stop | `DictationSpeechGate`, `DictationAutoStop` | `DictationSpeechGateTests`, `DictationPauseDetectorTests` | The same tests, with `testDisposableCompositionNeverDownloadsTheDetector`, and `testTurningOnDictationDownloadsNoModelWhateverTheGate` rewritten, because the detector comes with the speech model | Detector and pause logic ported. Session wiring arrives with the controller |
+| Speech gate and auto stop | `DictationSpeechGate`, `DictationAutoStop` | `DictationSpeechGateTests`, `DictationPauseDetectorTests` | The same tests, with `testDisposableCompositionNeverDownloadsTheDetector`, and `testTurningOnDictationDownloadsNoModelWhateverTheGate` rewritten, because the detector comes with the speech model | Detector and pause logic are wired through live session dependencies. Disposable tests do not download the detector; real speech/model acceptance remains separate |
 | Spoken correction in delivery | `DictationCorrections` | `DictationCorrectionTests` | The same tests, without the practice test | Logic ported. A real field still has to be checked |
 | Panel, compact indicator and waveform | `DictationPanel`, `DictationCompactIndicator` | `DictationPanelAnchorTests`, `DictationCompactIndicatorTests` | `DictationUITests` | Ported. Its unit tests are still to come |
 | Sounds and prewarm | `DictationSoundCue`, `AppServices+DictationPrewarm` | `DictationColdStartTests` | The same tests | Ported. Prewarm is off by default and never downloads |
