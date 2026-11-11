@@ -14,6 +14,8 @@ A push to `main` skips macOS jobs only when `scripts/ci_reuse_gate.mjs` proves t
 
 The UI launcher uses Node from `.nvmrc` to select shards and process xcresult summaries and screenshot attachments. `node --test Tests/Tooling/test_ui_shards.mjs Tests/Tooling/test_ui_results.mjs Tests/Tooling/test_build_cache.mjs` runs in hygiene; CI, nightly and release verification provision that runtime explicitly. The shard CLI accepts safe ASCII decimal integers for the internal `index/count` arguments. Smoke selection preserves its final line without a newline and rejects an empty plan instead of running the full suite. Other tooling still uses Python.
 
+The existing CI and nightly screenshot artifacts also retain `test-results.json` after successful and failed UI test executions. It records the checkout SHA at capture time, Actions run/attempt, exact selection arguments and test exit code, plus the xcresult summary and test tree in schema 0.1.0. Failed exports, invalid counts and malformed test trees remain explicit partial captures. A failed capture fails an otherwise successful lane; a nonzero test exit is preserved through capture. Capturing results does not certify a clean build tree, declare tests passed or prove the expected inventory was executed: reviewers reconcile the retained counts, skips and test identifiers with the selected plan.
+
 ## Local gates
 
 Run in series.

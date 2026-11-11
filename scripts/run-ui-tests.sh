@@ -58,9 +58,16 @@ if [[ "$status" -ne 0 ]]; then
     | node scripts/ui_test_results.mjs summary || true
 fi
 
+receipt_status=0
+node scripts/ui_test_results.mjs receipt "$results" "$screenshots" "$status" "$plan" "$shard" \
+  ${selection[@]+"${selection[@]}"} || receipt_status=$?
+
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 if xcrun xcresulttool export attachments --path "$results" --output-path "$scratch" >/dev/null 2>&1; then
   node scripts/ui_test_results.mjs attachments "$scratch" "$screenshots"
+fi
+if [[ "$status" -eq 0 && "$receipt_status" -ne 0 ]]; then
+  exit "$receipt_status"
 fi
 exit "$status"
