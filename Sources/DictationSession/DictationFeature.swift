@@ -56,6 +56,7 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored let dictationStore: any DictationHistoryStore & DictationStatsStore & DictationEmbeddingStore
     @ObservationIgnored let history: DictationHistoryModel
     @ObservationIgnored let stats: DictationStatsModel
+    @ObservationIgnored private let pendingWrites: DictationPendingWrites
     @ObservationIgnored private let settingsWindowHolder = UUID()
 
     /// Created on first use, because creating it writes the initial text mode.
@@ -103,7 +104,9 @@ public final class DictationFeature: AppServices {
         history = DictationHistoryModel(
             store: dictationStore,
             semantic: embedding.map { DictationSemanticIndex(store: dictationStore, embedding: $0) })
-        stats = DictationStatsModel(store: dictationStore)
+        let pendingWrites = DictationPendingWrites()
+        self.pendingWrites = pendingWrites
+        stats = DictationStatsModel(store: dictationStore, pendingWrites: pendingWrites)
         fixture = DictationUITestFixture(arguments: arguments, usesTemporaryStore: usesTemporaryStore)
         launchArguments = arguments
         let environment = environment ?? (usesTemporaryStore
@@ -122,7 +125,8 @@ public final class DictationFeature: AppServices {
         let ownership = DictationOwnershipCoordinator.live(
             defaults: defaults, usesTemporaryStore: usesTemporaryStore,
             missingForReadiness: { readiness.current() }, seedsLegacyPeer: seedsLegacyPeer,
-            seedsCorruptState: usesTemporaryStore && arguments.contains("-seed-dictation-corrupt-ownership"))
+            seedsCorruptState: usesTemporaryStore && arguments.contains("-seed-dictation-corrupt-ownership"),
+            pendingWrites: pendingWrites)
         self.ownership = ownership
         // Two apps must not each keep a model warm.
         // UserDefaults is thread-safe.
@@ -241,6 +245,15 @@ public final class DictationFeature: AppServices {
     }
 
     public var isActive: Bool { controller.isActive }
+
+    /// Includes Stop, clipboard restoration and saves that can outlive the visible session.
+    public func postponeUpdateRelaunch(until resume: @escaping () -> Void) -> Bool {
+        ownership.postponeUpdateRelaunch(until: resume)
+    }
+
+    public func finishUpdateCycle() {
+        ownership.finishUpdateCycle()
+    }
     /// A disposable launch has its own fixtures, so it needs no model.
     var canPractice: Bool { environment.models == nil || speechModelIsInstalled || !speechModelIsRequired }
     var practiceIsShown: Bool { isEnabled && canPractice }
@@ -308,6 +321,7 @@ public final class DictationFeature: AppServices {
         var dependencies = usesTemporaryMeetingStore
             ? fixtureDependencies() : .live(services: self, beginCapture: { {} })
         dependencies.beginHistory = { [weak self] in self?.history.admit() }
+        dependencies.pendingWrites = pendingWrites
         dependencies.recordStats = { [weak self] sample in self?.stats.record(sample) }
         return dependencies
     }

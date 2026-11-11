@@ -279,7 +279,9 @@ final class DictationController {
         stopTask?.cancel()
         stopTask = nil
         let sessionID = UUID()
-        history = dependencies.beginHistory().map { DictationHistorySession(sessionID: sessionID, write: $0) }
+        history = dependencies.beginHistory().map {
+            DictationHistorySession(sessionID: sessionID, write: $0, pendingWrites: dependencies.pendingWrites)
+        }
         activeSessionID = sessionID
         sessionClock = dependencies.now
         armCancelKey(dependencies, sessionID: sessionID)

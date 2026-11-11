@@ -28,7 +28,7 @@ Microphone and Accessibility grants, Shortcuts, MCP client configuration, and hi
 
 ## G7. Updates during a dictation
 
-A scheduled update shows as a menu row and never interrupts. Once dictation sessions exist, relaunching for an update the user accepted has to wait for the session to end, through Sparkle's `updater(_:shouldPostponeRelaunchForUpdate:untilInvokingBlock:)`.
+A scheduled update shows as a menu row. Sparkle's relaunch-postponement hook now closes new dictation admission and waits until every capture/delivery lease, native Stop, clipboard restore and pending history/statistics write attempt has finished. Write failures retain their existing handling. An aborted or finished update cycle clears the pending callback and reopens admission. Synthetic tests cover these boundaries; an actual signed update during dictation is still unqualified. [Sparkle documents](https://sparkle-project.org/documentation/api-reference/Protocols/SPUUpdaterDelegate.html) paths that omit this hook (including a prior update without relaunch), so this is not a general termination barrier.
 
 ## G8. Ownership on a network home
 
