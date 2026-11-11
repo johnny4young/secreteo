@@ -79,9 +79,10 @@ final class DictationController {
 
     enum CopyStatus: Equatable { case idle, copied, failed }
     private(set) var recoveryText = ""
+    /// Unresolved recovery words hold an accepted update's relaunch, since memory is their only copy.
+    @ObservationIgnored private var releaseRecoveryHold: (@MainActor () -> Void)?
     private(set) var copyStatus: CopyStatus = .idle
     private(set) var isRetryingDelivery = false
-    var canRetryDelivery: Bool { destination?.canRetry == true }
     private(set) var destination: CapturedDictationDestination?
     private var dependencies: DictationSessionDependencies?
     private(set) var deliveryID: UUID?
@@ -400,6 +401,7 @@ final class DictationController {
         destination = nil
         dependencies = nil
         recoveryText = ""
+        endRecoveryHold()
         targetApp = nil
         copyStatus = .idle
         isRetryingDelivery = false
@@ -539,6 +541,7 @@ private extension DictationController {
         // Copy uses the session's sink; its destination and retry token stay cancelled.
         dependencies = recoveryDependencies
         recoveryText = heard ?? ""
+        holdRecoveryForUpdate()
         phase = .failed(DictationMicrophoneReadiness.Failure.interrupted.message)
         showPanel()
     }
@@ -578,6 +581,7 @@ private extension DictationController {
         }
         sessionLastText.remember(heard)
         recoveryText = heard
+        holdRecoveryForUpdate()
         copyStatus = .idle
     }
 }
@@ -749,6 +753,7 @@ extension DictationController {
     func copyPendingText() {
         guard hasPendingOutput, !isRetryingDelivery, let dependencies else { return }
         copyStatus = dependencies.copyText(recoveryText) ? .copied : .failed
+        if copyStatus == .copied { endRecoveryHold() }
         // Someone using the panel decides when it closes; Escape returns to the destination.
         if case .dispatched = phase {
             cancelFeedbackDismissal()
@@ -765,10 +770,14 @@ extension DictationController {
         }
     }
 
+    var canRetryDelivery: Bool { destination?.canRetry == true }
+
     func retryUndeliveredText() {
         guard case .recovery = phase, !isRetryingDelivery,
               let id = deliveryID, let destination, destination.canRetry,
               case .success(let lease) = dependencies?.admission.acquire(.global) else { return }
+        // The lease holds the relaunch from here; another refusal holds it again.
+        endRecoveryHold()
         replay(recoveryText, into: destination, id: id, lease: lease)
     }
 
@@ -827,11 +836,13 @@ extension DictationController {
         recordHistory(result, id: id)
         if case .refused(let failure) = result {
             recoveryText = text
+            holdRecoveryForUpdate()
             phase = .recovery(failure)
             showPanel()
             return
         }
         destination = nil
+        endRecoveryHold()
         let words = text.split(whereSeparator: \.isWhitespace).count
         phase = result == .verified ? .verified(words) : .dispatched(words)
         // A posted event may arrive late; retained output never authorizes replay.
@@ -1228,6 +1239,7 @@ private extension DictationController {
         cancelFeedbackDismissal()
         copyStatus = .idle
         recoveryText = text
+        holdRecoveryForUpdate()
         sessionLastText.remember(text)
         phase = .noSpeech
         showPanel()
@@ -1266,6 +1278,7 @@ private extension DictationController {
         destination = nil
         dependencies = nil
         recoveryText = ""
+        endRecoveryHold()
         copyStatus = .idle
         phase = .idle
         panel.close()
@@ -1368,7 +1381,19 @@ extension DictationController {
         deliveryID = nil
         destination = nil
         recoveryText = ""
+        endRecoveryHold()
         copyStatus = .idle
+    }
+
+    fileprivate func holdRecoveryForUpdate() {
+        guard releaseRecoveryHold == nil, !recoveryText.isEmpty else { return }
+        releaseRecoveryHold = dependencies?.pendingWrites?.begin()
+    }
+
+    fileprivate func endRecoveryHold() {
+        let release = releaseRecoveryHold
+        releaseRecoveryHold = nil
+        release?()
     }
 
     fileprivate func refuseDelivery(_ text: String, sessionID: UUID) {
