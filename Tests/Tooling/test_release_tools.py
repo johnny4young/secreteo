@@ -186,6 +186,15 @@ class CheckReleaseTests(unittest.TestCase):
         install = (ROOT / "Makefile").read_text().split("\ninstall:", 1)[1].split("\n\n", 1)[0]
         self.assertIn("SPARKLE_PUBLIC_ED_KEY= ", install)
 
+    def test_the_dev_install_renames_only_the_app(self):
+        install = (ROOT / "Makefile").read_text().split("\ninstall:", 1)[1].split("\n\n", 1)[0]
+        # A command-line PRODUCT_NAME reaches every target, and they all collide on one module.
+        self.assertNotRegex(install, r"(?<![A-Z_])PRODUCT_(NAME|BUNDLE_IDENTIFIER)=")
+        self.assertIn('APP_PRODUCT_NAME="Secreteo Dev"', install)
+        project = (ROOT / "project.yml").read_text()
+        self.assertIn("PRODUCT_NAME: $(APP_PRODUCT_NAME)", project)
+        self.assertIn("PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_IDENTIFIER)", project)
+
     def test_a_correct_tag_passes(self):
         self.assertEqual(release_problems(), [])
 
