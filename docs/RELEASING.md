@@ -104,6 +104,19 @@ Same tap as the other apps, with its own deploy key. `packaging/Casks/secreteo.r
 | VoiceOver checklist | Each minor release |
 | Controller matrix and field corpus | Model or FluidAudio changes |
 
+## Model gate
+
+`make test-model-gated` builds the test bundle in Release and runs three lanes against a scratch store you name: Parakeet v3 and Ultra on four public cells, and Silero's speech gate on every cell. It exits nonzero unless each lane leaves a valid observation, and refuses any path inside an installed app's store or cache. It never downloads. Fill the store once with direct runs that set `SECRETEO_DICTATION_BASELINE_INSTALL=1`, `SECRETEO_ASR_COMPARE_INSTALL=1` and `SECRETEO_SPEECH_GATE_INSTALL=1`, as in [the corpus README](../Fixtures/DictationValidation/README.md#observe-the-installed-parakeet-adapter).
+
+```sh
+SECRETEO_MODEL_GATED_AUDIO=/absolute/scratch/dictation-audio \
+SECRETEO_MODEL_GATED_MODELS=/absolute/scratch/models \
+SECRETEO_MODEL_GATED_OUTPUT=/absolute/scratch/new-model-gate \
+make test-model-gated
+```
+
+`summary.json` in the output says which lane failed. `observed` means a lane completed, not that a quality threshold passed.
+
 ## Rollback
 
 Delete the release and its tag, then revert the tap commit. With a `latest` feed, deleting the release restores the previous feed.

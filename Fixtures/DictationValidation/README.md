@@ -413,7 +413,7 @@ the receipt measures the decision and its cost, not live timing.
 `DictationModelComparisonTests` runs v3 and the opt-in Ultra checkpoint over the
 same admitted cells, with the same real-time 100 ms feed and scoring as the
 installed-model lane. Both models come from one explicit scratch store that already
-holds verified copies; the lane never downloads. Release only:
+holds verified copies. Release only:
 
 ```sh
 SECRETEO_ASR_COMPARE_AUDIO=/absolute/scratch/new-dictation-audio \
@@ -423,6 +423,8 @@ SECRETEO_ASR_COMPARE_OUTPUT=/absolute/scratch/compare.json \
 ```
 
 `SECRETEO_ASR_COMPARE_CASES` limits the run to a comma-separated list of cells.
+A direct run with `SECRETEO_ASR_COMPARE_INSTALL=1` first fills the scratch store
+with both models; the launchers never set it.
 A cell that fails records only the error type, never provider text.
 
 Set `SECRETEO_ASR_COMPARE_MODEL=v3` or `ultra` to measure one model in its own
