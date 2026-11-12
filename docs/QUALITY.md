@@ -83,7 +83,7 @@ No 1.0 without all of these, even if smoke is green:
 | Strict unit tests in full | `unit` on every PR that touches Swift |
 | Full UI plan in English, Spanish catalogs complete | The two `ui-full` halves of `nightly.yml`, and `Tests/Tooling/test_ui_contract.py` in `legacy-tooling` |
 | Physical delivery and TCC | `scripts/run-signed-handoff.sh` in `signed-handoff`, then the [manual gates](RELEASING.md#manual-gates-on-the-release-mac) |
-| Total memory within budget | The [manual gates](RELEASING.md#manual-gates-on-the-release-mac), on the release Mac |
+| Total memory within budget | [D26](DECISIONS.md#d26-total-memory-has-a-budget-written-before-it-was-measured), in the `memory` lane of `make test-model-gated` on the release Mac |
 | No audio or dictated text in logs | `Tests/Tooling/test_log_privacy.mjs` in hygiene |
 | Database upgrade and rollback in scratch | `Tests/DictationStoreTests/DictationStoreSchemaTests.swift` in `unit` |
 | A real Sparkle update | `scripts/release-dryrun.sh` with a throwaway key, then a real update from the previous version on the release Mac |
