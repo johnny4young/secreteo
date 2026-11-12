@@ -58,3 +58,53 @@ for (const [name, changeUnit, changeCache] of [
     assert.throws(() => validate(changeUnit(unit), changeCache(cache)), assert.AssertionError);
   });
 }
+
+const dryrun = job(workflow('ci.yml'), 'release-dryrun');
+const releaseCache = job(workflow('build-cache.yml'), 'release-build');
+
+function validateRelease(dryrunJob, cacheJob) {
+  const prefix = source => {
+    const image = /runs-on: (\S+)/.exec(source)?.[1];
+    const xcode = /Xcode_([\d.]+)\.app/.exec(source)?.[1];
+    assert.ok(image && xcode, 'Both jobs must declare their toolchain');
+    return `release-derived-${image}-xcode-${xcode}-`;
+  };
+  const key = prefix(dryrunJob);
+  assert.equal(prefix(cacheJob), key);
+  const graph = "${{ hashFiles('Package.swift', 'project.yml') }}";
+  assert.ok(dryrunJob.includes(`key: ${key}${graph}-\${{ hashFiles('Package.resolved') }}-\n`));
+  assert.ok(dryrunJob.includes(`restore-keys: ${key}${graph}-\n`));
+  assert.ok(cacheJob.includes(`GRAPH: ${graph}\n`));
+  assert.ok(cacheJob.includes(`graph=${key}$GRAPH-"`));
+  assert.ok(cacheJob.includes(`prefix=${key}$GRAPH-$RESOLVED-"`));
+  assert.ok(cacheJob.includes('key: ${{ steps.key.outputs.prefix }}${{ github.run_id }}'));
+  assert.ok(!dryrunJob.includes('actions/cache/save@'), 'PRs must not evict the main cache');
+  for (const source of [dryrunJob, cacheJob]) assert.match(source, /path: build\/release\n/);
+  assert.match(cacheJob, /- run: scripts\/release-dryrun\.sh package\n/);
+  assert.match(cacheJob, /if: github\.ref == 'refs\/heads\/main'/);
+  // The cache must restore before the build that uses it.
+  assert.ok(dryrunJob.indexOf('actions/cache/restore@') < dryrunJob.indexOf('scripts/release-dryrun.sh'));
+}
+
+test('the dry run restores the derived data main saves, under the same key', () => {
+  validateRelease(dryrun, releaseCache);
+});
+
+test('real releases never restore a cache', () => {
+  assert.doesNotMatch(workflow('release.yml'), /actions\/cache/);
+});
+
+for (const [name, changeDryrun, changeCache] of [
+  ['different Xcode', value => value, value => value.replace(/Xcode_[\d.]+\.app/, 'Xcode_0.0.app')],
+  ['a cache saved by a PR', value => value + '\n      - uses: actions/cache/save@abc', value => value],
+  ['a changed project restoring old products', value => value.replace(/restore-keys: [^\n]+/, 'restore-keys: release-derived-'),
+    value => value],
+  ['a graph without project.yml', value => value.replaceAll(", 'project.yml'", ''), value => value],
+  ['a cache key shared by different runs', value => value, value => value.replace('${{ github.run_id }}', 'shared')],
+  ['a cache saved off main', value => value, value => value.replace("if: github.ref == 'refs/heads/main'", 'if: always()')],
+  ['a different derived data path', value => value, value => value.replaceAll('path: build/release', 'path: build/other')],
+]) {
+  test(`release cache rejects ${name}`, () => {
+    assert.throws(() => validateRelease(changeDryrun(dryrun), changeCache(releaseCache)), assert.AssertionError);
+  });
+}
