@@ -6,8 +6,8 @@ import XCTest
 @testable import LiveSpeech
 
 /// Explicit local lane: v3 and Ultra over the same cells and feed. Both models come
-/// from a selected scratch store; nothing here downloads. Selecting one model per
-/// process keeps each footprint free of the other model's allocations.
+/// from a selected scratch store, filled only by a direct run that asks to install.
+/// Selecting one model per process keeps each footprint free of the other model's allocations.
 final class DictationModelComparisonTests: XCTestCase {
     private struct CellReceipt: Encodable {
         let model: String
@@ -80,6 +80,9 @@ final class DictationModelComparisonTests: XCTestCase {
                 }
             }
             for (descriptor, checkpoint) in compared {
+                if environment["SECRETEO_ASR_COMPARE_INSTALL"] == "1" {
+                    _ = try await store.ensureAvailable(descriptor)
+                }
                 guard let installation = await store.verifiedInstallation(descriptor) else {
                     XCTFail("a compared model did not pass pinned verification; nothing downloaded")
                     return

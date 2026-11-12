@@ -44,6 +44,7 @@ class DictationModelComparisonTests(unittest.TestCase):
 
     def invoke(self, arguments, **options):
         env = options['env']
+        self.assertNotIn('SECRETEO_ASR_COMPARE_INSTALL', env)
         model = env['SECRETEO_ASR_COMPARE_MODEL']
         cells = []
         for case in env['SECRETEO_ASR_COMPARE_CASES'].split(','):
