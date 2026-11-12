@@ -402,6 +402,22 @@
         }
       }
     },
+    "Also used by %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Also used by %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "También lo usa %@"
+          }
+        }
+      }
+    },
     "Always write “%@”" : {
       "localizations" : {
         "en" : {
@@ -1166,6 +1182,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No se pudo mover Secreteo."
+          }
+        }
+      }
+    },
+    "Could not remove the model." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not remove the model."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo quitar el modelo."
           }
         }
       }
@@ -3810,6 +3842,22 @@
         }
       }
     },
+    "Remove %@?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove %@?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Quitar %@?"
+          }
+        }
+      }
+    },
     "Remove Application Profile" : {
       "localizations" : {
         "en" : {
@@ -4654,6 +4702,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Modelo de voz"
+          }
+        }
+      }
+    },
+    "Speech Models" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speech Models"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modelos de voz"
           }
         }
       }
