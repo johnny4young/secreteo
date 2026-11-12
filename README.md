@@ -4,15 +4,13 @@ Global, local, private dictation from your Mac's menu bar.
 
 Hold a key, speak, and the text lands in whatever app you are using. Speech recognition runs on your Mac.
 
-> **Status:** in development. There is no release yet.
-
 ## Install
-
-Available after the first release:
 
 ```sh
 brew install --cask johnny4young/tap/secreteo
 ```
+
+Or download the disk image from [the latest release](https://github.com/johnny4young/secreteo/releases/latest). Updates arrive through the app.
 
 ## Requirements
 

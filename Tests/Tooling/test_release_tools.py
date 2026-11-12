@@ -161,7 +161,8 @@ class CheckReleaseTests(unittest.TestCase):
         self.assertTrue(check_release.arms_global_dictation("        SECRETEO_GLOBAL_DICTATION: YES\n"))
         self.assertTrue(check_release.arms_global_dictation("        OTHER: NO\n"))
         repository = Path(__file__).resolve().parents[2]
-        self.assertFalse(check_release.arms_global_dictation((repository / "project.yml").read_text()))
+        # D27: release builds dictate, so every release needs GLOBAL_DICTATION_CLEARED.
+        self.assertTrue(check_release.arms_global_dictation((repository / "project.yml").read_text()))
 
     def test_only_a_debug_config_may_turn_dictation_on(self):
         base = "settings:\n  base:\n    SECRETEO_GLOBAL_DICTATION: NO\n  configs:\n"

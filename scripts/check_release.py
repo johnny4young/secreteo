@@ -65,7 +65,7 @@ def problems(tag: str, project_yml: str, changelog: str, on_main: bool, arms_dic
     if not on_main:
         found.append("the tagged commit is not on main")
     if arms_dictation and not portavoz_released:
-        found.append("this build arms global dictation, and Portavoz 1.4 is not out yet")
+        found.append("this build arms global dictation, and GLOBAL_DICTATION_CLEARED is not true")
     return found
 
 

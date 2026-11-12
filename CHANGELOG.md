@@ -2,7 +2,9 @@
 
 User-visible changes, newest first. Dictation history before Secreteo is in [Portavoz's changelog](https://github.com/johnny4young/portavoz/blob/main/CHANGELOG.md).
 
-## Unreleased
+## 0.1.0
+
+- 🎙️ **First release**: dictate anywhere on your Mac with a shortcut, Fn or a mouse button. Speech recognition runs on this Mac.
 
 - 🔒 **Deleted dictations stay deleted**: pressing Retry on an undelivered dictation you already deleted from History no longer saves it again.
 - 🎙️ **First dictation**: complete a successful practice before taking ownership or dictating globally; completion survives relaunch without saving the practice words.

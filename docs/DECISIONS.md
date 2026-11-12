@@ -88,6 +88,8 @@ The [ownership protocol](specs/ownership-protocol.md) requires a shortcut other 
 
 ## D20. Release builds do not run global dictation yet
 
+Superseded by [D27](#d27-release-builds-run-global-dictation-from-010).
+
 `SECRETEO_GLOBAL_DICTATION` is off in Release and on in Debug and `make install`. With it off the app does not create `DictationFeature`, so no trigger, event tap or lease can exist. A binary must not arm global dictation before Portavoz's cooperating version ships, and this makes that true of any tag. Turning it on is one line in `project.yml`, after that release.
 
 ## D21. A remembered model shows as ready while its hash runs
@@ -109,3 +111,7 @@ Polish and Rewrite use Apple Foundation Models or Ollama at a loopback address, 
 ## D25. History search adds meaning to words, on this Mac, and never downloads for it
 
 Typing in Dictation History lists the dictations that hold the words first, in their usual order and pages, then the dictations close in meaning that hold none of them: Apple's Latin-script contextual embedding (`NaturalLanguage`), mean-pooled, plain cosine with a 0.9 floor, best first. On the public search corpus this keeps every exact match first and finds English and Spanish paraphrases the word search misses, measuring the same as rank fusion without ever placing a paraphrase above a word match, within 10 ms at 10,000 dictations in Release (`Fixtures/DictationSearch/README.md`). Centering on the library's mean measured slightly better, but it is unstable while a library is small, so it is not used. Each saved dictation gets a vector right after it is saved, and older ones get theirs in the background; a search on screen adds what new vectors find, and a vector goes with its dictation ([D23](#d23-the-dictation-database-moves-forward-only-and-an-older-build-leaves-a-newer-one-alone)). Secreteo never requests the model's assets: without them search matches words, as before. Shortcuts and agents still search by words.
+
+## D27. Release builds run global dictation from 0.1.0
+
+Portavoz 1.4.0 shipped the cooperating side of the [ownership protocol](specs/ownership-protocol.md), and later versions keep it, so `SECRETEO_GLOBAL_DICTATION` is on in every configuration. `scripts/check_release.py` still refuses an armed tag unless the repository variable `GLOBAL_DICTATION_CLEARED` is `true`, which only the owner sets. The first signed release is 0.1.0 with dictation, and 0.1.1 is the real Sparkle update from it, instead of two releases without dictation first.

@@ -4,7 +4,7 @@ A `v*` tag runs `release.yml`. The owner approves the `release` Environment, rev
 
 ## Flow
 
-1. `scripts/check_release.py` refuses a tag that differs from `MARKETING_VERSION`, has no `## <version>` section in `CHANGELOG.md`, is not on `main`, or has no Sparkle key. It also refuses a build whose Release setting `SECRETEO_GLOBAL_DICTATION` is not `NO` ([D20](DECISIONS.md#d20-release-builds-do-not-run-global-dictation-yet)), unless `GLOBAL_DICTATION_CLEARED` is set after Portavoz 1.4 ships.
+1. `scripts/check_release.py` refuses a tag that differs from `MARKETING_VERSION`, has no `## <version>` section in `CHANGELOG.md`, is not on `main`, or has no Sparkle key. Release builds dictate ([D27](DECISIONS.md#d27-release-builds-run-global-dictation-from-010)), so it also refuses any tag unless the repository variable `GLOBAL_DICTATION_CLEARED` is `true`.
 2. Hygiene and tests.
 3. Release build with the pinned toolchain: `macos-26`, Xcode 26.6.
 4. Sign nested helpers and the app with no ignored failures.
