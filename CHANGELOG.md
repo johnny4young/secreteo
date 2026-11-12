@@ -4,6 +4,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- ℹ️ **About in Settings**: version, license, the authors of the speech models and a link to the source code, next to the third-party notices.
 - 🔒 **Deleted dictations stay deleted**: pressing Retry on an undelivered dictation you already deleted from History no longer saves it again.
 - 🎙️ **First dictation**: complete a successful practice before taking ownership or dictating globally; completion survives relaunch without saving the practice words.
 

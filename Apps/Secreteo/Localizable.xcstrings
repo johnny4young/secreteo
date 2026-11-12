@@ -162,6 +162,22 @@
         }
       }
     },
+    "About" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acerca de"
+          }
+        }
+      }
+    },
     "Accessibility" : {
       "localizations" : {
         "en" : {
@@ -2338,6 +2354,22 @@
         }
       }
     },
+    "License" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "License"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licencia"
+          }
+        }
+      }
+    },
     "Limit" : {
       "localizations" : {
         "en" : {
@@ -3022,6 +3054,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Parakeet Ultra"
+          }
+        }
+      }
+    },
+    "Parakeet by NVIDIA, CC BY 4.0" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parakeet by NVIDIA, CC BY 4.0"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parakeet de NVIDIA, CC BY 4.0"
           }
         }
       }
@@ -4466,6 +4514,22 @@
         }
       }
     },
+    "Silero VAD by Silero Team, MIT" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Silero VAD by Silero Team, MIT"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Silero VAD de Silero Team, MIT"
+          }
+        }
+      }
+    },
     "Skip" : {
       "localizations" : {
         "en" : {
@@ -4510,6 +4574,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Para que macOS no reaccione también, elige “No hacer nada” en “Al pulsar la tecla 🌐” en Ajustes del Sistema › Teclado."
+          }
+        }
+      }
+    },
+    "Source Code" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source Code"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Código fuente"
           }
         }
       }
@@ -4574,6 +4654,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Modelo de voz"
+          }
+        }
+      }
+    },
+    "Speech Recognition" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speech Recognition"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reconocimiento de voz"
           }
         }
       }
@@ -5470,6 +5566,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vocabulario"
+          }
+        }
+      }
+    },
+    "Voice Detection" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voice Detection"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detección de voz"
           }
         }
       }
