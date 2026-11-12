@@ -29,8 +29,8 @@ settings:
     DEVELOPMENT_TEAM: ""
     ENABLE_HARDENED_RUNTIME: NO
     SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
-    # Empty until the release key exists. scripts/package-release.sh refuses to ship without it.
-    SPARKLE_PUBLIC_ED_KEY: ""
+    # Public half of the release key. Debug and `make install` blank it so they never update from the real feed.
+    SPARKLE_PUBLIC_ED_KEY: "EeV4sayKF73E5D+0Z3BYN7VEmATa60KYuiyD1E/aIVs="
 
 packages:
   Secreteo:
@@ -68,6 +68,9 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # On since Portavoz's cooperating version shipped; each release still needs its own GLOBAL_DICTATION_CLEARED.
         SECRETEO_GLOBAL_DICTATION: YES
+      configs:
+        Debug:
+          SPARKLE_PUBLIC_ED_KEY: ""
     info:
       path: Apps/Secreteo/Info.plist
       properties:
