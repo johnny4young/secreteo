@@ -113,3 +113,7 @@ Typing in Dictation History lists the dictations that hold the words first, in t
 ## D26. Total memory has a budget, written before it was measured
 
 With Parakeet v3 loaded and no dictation running, the process stays at or under 450 MiB (471,859,200 bytes) of physical footprint. The controller lane measures it as the footprint after each attempt has released its runtime, with the model still resident, and the highest of those readings across a run is what counts. Footprint excludes the Core ML weights the system maps from disk, so this covers what Secreteo itself holds. The number was chosen from Portavoz's earlier whole-process peak of 515 MiB in the same lane, before any Secreteo measurement, and only the owner may change it.
+
+## D27. Swift on the Mac; Windows and Linux wait for demand
+
+Secreteo stays Swift and SwiftUI on the Mac (the maintainer's decision of 2026-11-05). Windows and Linux are considered only when users ask for them, and that question is reopened once Secreteo is a strong product with satisfied users, not before. The review behind it measured six desktop stacks on Apple Silicon and built the shared Swift core on Linux; its report is in the maintainer's private research notes, not in this repository. Portavoz records the same choice as Portavoz D639.

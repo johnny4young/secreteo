@@ -93,6 +93,8 @@ Same tap as the other apps, with its own deploy key. `packaging/Casks/secreteo.r
 
 ## Manual gates on the release Mac
 
+The exact steps and what each should show are in the [runbook](RUNBOOK.md).
+
 | Gate | When |
 |---|---|
 | `make test-model-gated` | Each release |

@@ -11,7 +11,7 @@ final class SpeechUltraDownload {
     @ObservationIgnored private(set) var generation = 0
 
     /// Hashes the files, after showing what an earlier launch remembered.
-    func refresh(_ models: DictationModels) async {
+    func refresh(_ models: DictationModels, adopts: Bool = false) async {
         guard state != .downloading else { return }
         if await models.wasVerified(.speechUltra) { state = .ready }
         let verified = await models.isVerified(.speechUltra)
@@ -19,6 +19,7 @@ final class SpeechUltraDownload {
         guard !Task.isCancelled, state != .downloading else { return }
         state = verified ? .ready : state == .failed ? .failed : .missing
         await models.remember(.speechUltra, verified)
+        if verified, adopts { await models.adopt(.speechUltra) }
     }
 
     /// `installed` runs once Ultra verifies, so a warm v3 model can make way.
