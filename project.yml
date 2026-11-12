@@ -29,8 +29,8 @@ settings:
     DEVELOPMENT_TEAM: ""
     ENABLE_HARDENED_RUNTIME: NO
     SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
-    # Empty until the release key exists. scripts/package-release.sh refuses to ship without it.
-    SPARKLE_PUBLIC_ED_KEY: ""
+    # Public half of the release key. Debug and `make install` blank it so they never update from the real feed.
+    SPARKLE_PUBLIC_ED_KEY: "EeV4sayKF73E5D+0Z3BYN7VEmATa60KYuiyD1E/aIVs="
 
 packages:
   Secreteo:
@@ -71,6 +71,7 @@ targets:
       configs:
         Debug:
           SECRETEO_GLOBAL_DICTATION: YES
+          SPARKLE_PUBLIC_ED_KEY: ""
     info:
       path: Apps/Secreteo/Info.plist
       properties:

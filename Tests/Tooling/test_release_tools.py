@@ -178,6 +178,14 @@ class CheckReleaseTests(unittest.TestCase):
         self.assertTrue(check_release.arms_global_dictation(
             base + "    Debug:\n      SECRETEO_GLOBAL_DICTATION: YES\n    Release:\n      SECRETEO_GLOBAL_DICTATION: YES\n"))
 
+    def test_only_a_release_build_carries_the_update_key(self):
+        project = (ROOT / "project.yml").read_text()
+        self.assertRegex(check_release.project_setting(project, "SPARKLE_PUBLIC_ED_KEY"), r"^[A-Za-z0-9+/]{43}=$")
+        debug = project.split("        Debug:\n", 1)[1].split("    info:", 1)[0]
+        self.assertIn('SPARKLE_PUBLIC_ED_KEY: ""', debug)
+        install = (ROOT / "Makefile").read_text().split("\ninstall:", 1)[1].split("\n\n", 1)[0]
+        self.assertIn("SPARKLE_PUBLIC_ED_KEY= ", install)
+
     def test_a_correct_tag_passes(self):
         self.assertEqual(release_problems(), [])
 
