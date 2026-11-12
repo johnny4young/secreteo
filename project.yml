@@ -65,6 +65,7 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         ENABLE_APP_SANDBOX: NO
         SWIFT_EMIT_LOC_STRINGS: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # On since Portavoz's cooperating version shipped; check_release.py still asks for GLOBAL_DICTATION_CLEARED.
         SECRETEO_GLOBAL_DICTATION: YES
     info:
