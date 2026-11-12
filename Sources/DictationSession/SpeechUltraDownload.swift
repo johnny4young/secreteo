@@ -19,6 +19,7 @@ final class SpeechUltraDownload {
         guard !Task.isCancelled, state != .downloading else { return }
         state = verified ? .ready : state == .failed ? .failed : .missing
         await models.remember(.speechUltra, verified)
+        if verified { await models.adopt(.speechUltra) }
     }
 
     /// `installed` runs once Ultra verifies, so a warm v3 model can make way.

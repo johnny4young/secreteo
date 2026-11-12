@@ -66,6 +66,7 @@ public final class DictationFeature: AppServices {
     /// Nil until the store reports bytes, so the bar starts indeterminate.
     private(set) var modelDownloadFraction: Double?
     let ultra = SpeechUltraDownload()
+    let modelList = DictationModelList()
     private var speechModelIsInstalled = false
     private var detectorIsInstalled = false
     public private(set) var isEnabled: Bool
@@ -89,10 +90,9 @@ public final class DictationFeature: AppServices {
         usesTemporaryMeetingStore = usesTemporaryStore
         isEnabled = defaults.bool(forKey: DictationController.defaultsKey)
         let identifier = Bundle.main.bundleIdentifier ?? "com.johnny4young.secreteo.unbundled"
+        let scratchModels = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let modelStore = try LocalModelStore(
-            location: usesTemporaryStore
-                ? .directory(FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
-                : .userLibrary,
+            location: usesTemporaryStore ? .directory(scratchModels) : .userLibrary,
             consumer: StoreConsumer(bundleID: identifier, displayName: "Secreteo"))
         self.modelStore = modelStore
         let dictationStore = Self.openDictationStore(
@@ -113,7 +113,8 @@ public final class DictationFeature: AppServices {
             ? .disposable(
                 permissionsAreMissing: arguments.contains("-seed-dictation-permissions-missing"),
                 seedsPortavozPreferences: arguments.contains("-seed-portavoz-preferences"),
-                models: arguments.contains("-seed-model-download-held") ? .heldDownload : nil)
+                models: arguments.contains("-seed-model-download-held") ? .heldDownload
+                    : arguments.contains("-seed-model-shelf") ? .shelf(store: modelStore, root: scratchModels) : nil)
             : .live(microphone: microphonePermissions, models: .live(
                 store: modelStore, defaults: defaults, seedRoot: DictationModels.portavozModels)))
         self.environment = environment
@@ -473,6 +474,9 @@ public final class DictationFeature: AppServices {
         watchReadiness()
         if let speech { await models.remember(.speech, speech) }
         await models.remember(.speechDetector, detector)
+        // Another app's install, or a crash before this app's claim, leaves files nobody here keeps.
+        if speech == true { await models.adopt(.speech) }
+        if detector { await models.adopt(.speechDetector) }
     }
 
     private func watchReadiness() {

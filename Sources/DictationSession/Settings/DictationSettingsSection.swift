@@ -78,6 +78,7 @@ public struct DictationSettingsSection: View {
         if dictation.isEnabled {
             DictationSettingsControls(dictation: dictation)
         }
+        DictationModelListSection(dictation: dictation)
         DictationHistorySettingsSection(dictation: dictation)
         DictationStatsSettingsSection(dictation: dictation)
     }
