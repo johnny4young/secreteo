@@ -78,12 +78,18 @@ function validateRelease(dryrunJob, cacheJob) {
   assert.ok(cacheJob.includes(`graph=${key}$GRAPH-"`));
   assert.ok(cacheJob.includes(`prefix=${key}$GRAPH-$RESOLVED-"`));
   assert.ok(cacheJob.includes('key: ${{ steps.key.outputs.prefix }}${{ github.run_id }}'));
-  assert.ok(!dryrunJob.includes('actions/cache/save@'), 'PRs must not evict the main cache');
+  assert.ok(cacheJob.includes('restore-keys: ${{ steps.key.outputs.graph }}\n'), 'main never crosses a graph change');
+  const actions = source => [...source.matchAll(/uses: (actions\/cache[^@]*)@/g)].map(match => match[1]);
+  assert.deepEqual(actions(dryrunJob), ['actions/cache/restore'], 'PRs only restore, never the saving action');
+  assert.deepEqual(actions(cacheJob), ['actions/cache/restore', 'actions/cache/save']);
+  const save = cacheJob.slice(cacheJob.indexOf('actions/cache/save@'));
+  assert.doesNotMatch(save, /^\s+if:/m, 'only a successful build is saved');
   for (const source of [dryrunJob, cacheJob]) assert.match(source, /path: build\/release\n/);
   assert.match(cacheJob, /- run: scripts\/release-dryrun\.sh package\n/);
-  assert.match(cacheJob, /if: github\.ref == 'refs\/heads\/main'/);
+  assert.match(cacheJob, /^    if: github\.ref == 'refs\/heads\/main'$/m);
   // The cache must restore before the build that uses it.
-  assert.ok(dryrunJob.indexOf('actions/cache/restore@') < dryrunJob.indexOf('scripts/release-dryrun.sh'));
+  const restore = dryrunJob.indexOf('actions/cache/restore@');
+  assert.ok(restore >= 0 && restore < dryrunJob.indexOf('scripts/release-dryrun.sh'));
 }
 
 test('the dry run restores the derived data main saves, under the same key', () => {
@@ -103,6 +109,13 @@ for (const [name, changeDryrun, changeCache] of [
   ['a cache key shared by different runs', value => value, value => value.replace('${{ github.run_id }}', 'shared')],
   ['a cache saved off main', value => value, value => value.replace("if: github.ref == 'refs/heads/main'", 'if: always()')],
   ['a different derived data path', value => value, value => value.replaceAll('path: build/release', 'path: build/other')],
+  ['a PR using the saving cache action', value => value.replace('actions/cache/restore@', 'actions/cache@'), value => value],
+  ['a dry run without a restore', value => value.replace(/      - uses: actions\/cache\/restore@[\s\S]*?(?=      - run: scripts\/release-dryrun)/, ''),
+    value => value],
+  ['main crossing a graph change', value => value, value => value.replace(
+    'restore-keys: ${{ steps.key.outputs.graph }}', 'restore-keys: release-derived-')],
+  ['saving a failed build', value => value, value => value.replace(
+    /(      - uses: actions\/cache\/save@[^\n]*\n)/, '$1        if: always()\n')],
 ]) {
   test(`release cache rejects ${name}`, () => {
     assert.throws(() => validateRelease(changeDryrun(dryrun), changeCache(releaseCache)), assert.AssertionError);

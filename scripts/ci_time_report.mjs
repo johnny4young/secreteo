@@ -21,7 +21,8 @@ export function measureRun(run) {
   const byName = new Map(run.jobs.map(job => [job.name, job]));
   const gate = byName.get('gate');
   const changes = byName.get('changes');
-  const created = time(run.created_at);
+  // A rerun's clock starts at its own attempt, not at the first one.
+  const created = time(run.run_started_at ?? run.created_at);
   if (!ran(gate) || !ran(changes) || created === null) return null;
   // Execution is the dependency path changes → slowest macOS job → gate, so runner waits between jobs
   // count as queue, not as the work this repository asks for.
@@ -80,7 +81,7 @@ if (isMain()) {
   const repo = 'repos/johnny4young/secreteo';
   const runs = gh(`${repo}/actions/workflows/ci.yml/runs?event=pull_request&status=success&per_page=${count}`).workflow_runs;
   const measured = runs.map(run => measureRun({
-    created_at: run.created_at,
+    created_at: run.created_at, run_started_at: run.run_started_at,
     jobs: gh(`${repo}/actions/runs/${run.id}/attempts/${run.run_attempt}/jobs?per_page=50`).jobs,
   }));
   const first = runs.at(-1)?.created_at ?? '-';

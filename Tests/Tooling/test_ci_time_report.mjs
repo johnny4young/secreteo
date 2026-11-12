@@ -20,6 +20,11 @@ test('execution follows the slowest macOS job and leaves runner waits out', () =
   assert.equal(measured.wall, 12.25);
 });
 
+test('a rerun counts its queue from its own attempt', () => {
+  const rerun = measureRun({ ...run([job('changes', 30, 31), job('unit', 31, 34), job('gate', 34, 35)]), run_started_at: at(29) });
+  assert.equal(rerun.wall, 6);
+});
+
 test('cohorts separate packaging, code and docs-only runs', () => {
   const docs = measureRun(run([job('changes', 0, 1), job('unit', 0, 0, 'skipped'), job('gate', 1, 1.5)]));
   const packaging = measureRun(run([job('changes', 0, 1), job('unit', 1, 4), job('release-dryrun', 1, 10), job('gate', 10, 10.5)]));

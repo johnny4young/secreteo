@@ -22,7 +22,7 @@ The settings activation smoke checks its required controls from one accessibilit
 
 The Settings scroll helper ends each directional search when its control is hittable, rather than querying it for the rest of that loop's iterations. It retains the foreground guard, directional scroll limits and final existence/hittability wait. This does not change the selected tests or their assertions.
 
-The release dry run restores the Release derived data that `build-cache.yml` saves on `main`, under a key that never crosses a change to `Package.swift` or `project.yml`, so a pull request compiles only what it changed. Pull requests only restore, and `release.yml` always builds cold. `Tests/Tooling/test_build_cache.mjs` checks both jobs agree.
+The release dry run restores the Release derived data that `build-cache.yml` saves on `main`, under a key that never crosses a change to `Package.swift` or `project.yml`, so a pull request reuses the built packages and compiles only this repository's code, and the app bundle is assembled fresh so deleted resources never survive. Pull requests only restore, and `release.yml` always builds cold. `Tests/Tooling/test_build_cache.mjs` checks both jobs agree.
 
 The PR budget is 8 minutes of execution at p95: the path from `changes` through the slowest macOS job to `gate`, with runner waits counted as queue. `node scripts/ci_time_report.mjs [count]` reports p50 and p95 by cohort (docs, code, packaging) from GitHub's job records.
 
