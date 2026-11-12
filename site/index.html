@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Secreteo</title>
+  <meta name="description" content="Global, local, private dictation from your Mac's menu bar.">
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="alternate" hreflang="es" href="es/">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <a class="brand" href="./"><img src="icon.png" alt="">Secreteo</a>
+    <nav><a href="es/" hreflang="es" lang="es">Español</a></nav>
+  </header>
+  <main>
+    <section class="hero">
+      <img src="icon.png" alt="Secreteo icon">
+      <h1>Global, local, private dictation</h1>
+      <p>Hold a key, speak, and the text lands in whatever app you are using. Speech recognition runs on your Mac.</p>
+    </section>
+
+    <h2>Install</h2>
+    <pre><code>brew install --cask johnny4young/tap/secreteo</code></pre>
+    <a class="download" href="https://github.com/johnny4young/secreteo/releases/latest">Download the latest release</a>
+
+    <h2>Requirements</h2>
+    <ul>
+      <li>macOS 26 or later</li>
+      <li>Apple silicon, with 16 GB of memory recommended</li>
+    </ul>
+
+    <h2>Permissions</h2>
+    <table>
+      <tr><th scope="col">Permission</th><th scope="col">Why</th></tr>
+      <tr><td>Microphone</td><td>To hear you while you dictate</td></tr>
+      <tr><td>Accessibility</td><td>To detect the trigger key and place text in the active app</td></tr>
+    </table>
+
+    <h2>What leaves your Mac</h2>
+    <p>Nothing by default. Audio and text stay on the device.</p>
+    <table>
+      <tr><th scope="col">Network use</th><th scope="col">When</th></tr>
+      <tr><td>Speech model download from Hugging Face</td><td>Once per model, after you agree</td></tr>
+      <tr><td>Update check</td><td>On schedule or when you ask</td></tr>
+      <tr><td>Polish through Ollama</td><td>Only if you set it up, to the address you choose</td></tr>
+    </table>
+  </main>
+  <footer>
+    <a href="https://github.com/johnny4young/secreteo">Source code</a>
+    <a href="https://github.com/johnny4young/secreteo/blob/main/LICENSE">MIT license</a>
+    <a href="https://github.com/johnny4young/secreteo/blob/main/THIRD-PARTY-NOTICES.md">Third-party notices</a>
+  </footer>
+</body>
+</html>

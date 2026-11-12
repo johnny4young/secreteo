@@ -31,6 +31,7 @@ def info_problems(info: dict, version: str) -> list[str]:
         "LSUIElement": True,
         "SUFeedURL": FEED,
         "SUEnableAutomaticChecks": True,
+        "CFBundleIconName": "AppIcon",
     }
     problems = [f"{key} is {info.get(key)!r}, expected {value!r}"
                 for key, value in expected.items() if info.get(key) != value]
@@ -52,6 +53,9 @@ def payload_problems(relative_paths: list[str], sparkle_version: str, pinned_spa
         problems.append(f"unexpected frameworks: {sorted(frameworks)}")
     if "Contents/Resources/THIRD-PARTY-NOTICES.md" not in relative_paths:
         problems.append("THIRD-PARTY-NOTICES.md is missing")
+    for icon in ("Contents/Resources/AppIcon.icns", "Contents/Resources/Assets.car"):
+        if icon not in relative_paths:
+            problems.append(f"{icon} is missing, so Finder and the DMG show a blank icon")
     if sparkle_version != pinned_sparkle:
         problems.append(f"Sparkle is {sparkle_version}, pinned {pinned_sparkle}")
     return problems

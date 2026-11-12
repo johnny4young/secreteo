@@ -11,6 +11,7 @@ Secreteo: a menu bar app for global, local, private dictation on macOS, built wi
 | Known limits and unresolved work | [docs/GAPS.md](docs/GAPS.md) |
 | Gates and the definition of a finished PR | [docs/QUALITY.md](docs/QUALITY.md) |
 | Release recipe | [docs/RELEASING.md](docs/RELEASING.md) |
+| Manual release gates, step by step | [docs/RUNBOOK.md](docs/RUNBOOK.md) |
 | Runtime contracts | [docs/specs/](docs/specs/README.md) |
 | Origin of copied code | [docs/PROVENANCE.md](docs/PROVENANCE.md) |
 | What has arrived from Portavoz | [docs/PARITY.md](docs/PARITY.md) |

@@ -165,7 +165,8 @@ if [[ -d Tests/Tooling ]]; then
     Tests/Tooling/test_build_cache.mjs Tests/Tooling/test_hygiene_coverage.mjs \
     Tests/Tooling/test_ci_decisions.mjs Tests/Tooling/test_ci_reuse.mjs \
     Tests/Tooling/test_log_privacy.mjs Tests/Tooling/test_stop_tail_in_tests.mjs \
-    Tests/Tooling/test_swift_sources.mjs Tests/Tooling/test_release_timings.mjs Tests/Tooling/test_model_gated.mjs
+    Tests/Tooling/test_swift_sources.mjs Tests/Tooling/test_release_timings.mjs Tests/Tooling/test_model_gated.mjs \
+    Tests/Tooling/test_notices.mjs Tests/Tooling/test_ci_time_report.mjs
 fi
 
 exit "$failures"
