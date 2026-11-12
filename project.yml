@@ -60,8 +60,11 @@ targets:
         codeSign: true
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.johnny4young.secreteo
-        PRODUCT_NAME: Secreteo
+        # Scoped to the app, so `make install` can rename it without renaming every package target.
+        APP_BUNDLE_IDENTIFIER: com.johnny4young.secreteo
+        APP_PRODUCT_NAME: Secreteo
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_IDENTIFIER)
+        PRODUCT_NAME: $(APP_PRODUCT_NAME)
         GENERATE_INFOPLIST_FILE: NO
         ENABLE_APP_SANDBOX: NO
         SWIFT_EMIT_LOC_STRINGS: YES
