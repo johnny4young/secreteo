@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Secreteo</title>
+  <meta name="description" content="Dictado global, local y privado desde la barra de menú de tu Mac.">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="alternate" hreflang="en" href="../">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <header>
+    <a class="brand" href="./"><img src="../icon.png" alt="">Secreteo</a>
+    <nav><a href="../" hreflang="en" lang="en">English</a></nav>
+  </header>
+  <main>
+    <section class="hero">
+      <img src="../icon.png" alt="Ícono de Secreteo">
+      <h1>Dictado global, local y privado</h1>
+      <p>Mantén una tecla, habla, y el texto llega a la app que estés usando. El reconocimiento de voz corre en tu Mac.</p>
+    </section>
+
+    <h2>Instalación</h2>
+    <pre><code>brew install --cask johnny4young/tap/secreteo</code></pre>
+    <a class="download" href="https://github.com/johnny4young/secreteo/releases/latest">Descargar la última versión</a>
+
+    <h2>Requisitos</h2>
+    <ul>
+      <li>macOS 26 o posterior</li>
+      <li>Apple silicon, con 16 GB de memoria recomendados</li>
+    </ul>
+
+    <h2>Permisos</h2>
+    <table>
+      <tr><th>Permiso</th><th>Para qué</th></tr>
+      <tr><td>Micrófono</td><td>Para oírte mientras dictas</td></tr>
+      <tr><td>Accesibilidad</td><td>Para detectar la tecla de activación y escribir el texto en la app activa</td></tr>
+    </table>
+
+    <h2>Qué sale de tu Mac</h2>
+    <p>Nada por defecto. El audio y el texto se quedan en el equipo.</p>
+    <table>
+      <tr><th>Uso de red</th><th>Cuándo</th></tr>
+      <tr><td>Descarga del modelo de voz desde Hugging Face</td><td>Una vez por modelo, cuando aceptas</td></tr>
+      <tr><td>Búsqueda de actualizaciones</td><td>Según el calendario o cuando lo pides</td></tr>
+      <tr><td>Polish con Ollama</td><td>Solo si lo configuras, a la dirección que elijas</td></tr>
+    </table>
+  </main>
+  <footer>
+    <a href="https://github.com/johnny4young/secreteo">Código fuente</a>
+    <a href="https://github.com/johnny4young/secreteo/blob/main/LICENSE">Licencia MIT</a>
+    <a href="https://github.com/johnny4young/secreteo/blob/main/THIRD-PARTY-NOTICES.md">Avisos de terceros</a>
+  </footer>
+</body>
+</html>

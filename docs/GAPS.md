@@ -8,7 +8,7 @@ The cost of running Secreteo and Portavoz together is not measured yet: caption 
 
 ## G2. 8 and 16 GB Macs
 
-Measurements so far come from one 36 GB machine, which does not prove smaller Macs. Before 1.0, measure on target hardware or declare a minimum.
+Measurements so far come from one 36 GB machine, which does not prove smaller Macs. The declared minimum is Apple silicon with 16 GB recommended, in the README and on the site; 8 GB is unmeasured.
 
 ## G3. Core ML compiles per app
 

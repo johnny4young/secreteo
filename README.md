@@ -17,7 +17,7 @@ brew install --cask johnny4young/tap/secreteo
 ## Requirements
 
 - macOS 26 or later
-- Apple silicon
+- Apple silicon, with 16 GB of memory recommended. 8 GB has not been measured.
 
 ## What leaves your Mac
 
