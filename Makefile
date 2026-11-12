@@ -2,7 +2,7 @@
 SIGN_IDENTITY ?= Developer ID Application: Johnny IV Young (JGWX5ZT2N2)
 DEV_APP := /Applications/Secreteo Dev.app
 
-.PHONY: project build test lint hygiene test-ui-smoke test-ui-full release-dryrun install
+.PHONY: project build test lint hygiene test-ui-smoke test-ui-full test-model-gated release-dryrun install
 
 project:
 	scripts/fetch-sparkle.sh
@@ -25,6 +25,10 @@ test-ui-smoke:
 
 test-ui-full:
 	scripts/run-ui-tests.sh full
+
+# Real models from a named scratch store, never an installed app's. See docs/RELEASING.md.
+test-model-gated:
+	node scripts/model_gated.mjs
 
 # Packages two versions and a feed with a throwaway key. The update itself runs in CI.
 release-dryrun:
