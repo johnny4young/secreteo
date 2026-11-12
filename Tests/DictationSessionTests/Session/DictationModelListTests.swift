@@ -30,7 +30,7 @@ final class DictationModelListTests: XCTestCase {
         let digest = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
         return ModelManifest(
             id: "sample", displayName: "Sample", resolveBase: URL(string: "https://example.invalid")!,
-            revision: "a", artifacts: [ModelArtifact(path: "model.bin", sha256: digest, sizeBytes: bytes.count)],
+            revision: "0123456789abcdef0123456789abcdef01234567", artifacts: [ModelArtifact(path: "model.bin", sha256: digest, sizeBytes: bytes.count)],
             minimumRAMGB: 1, license: "MIT")
     }
 
@@ -93,7 +93,7 @@ final class DictationModelListTests: XCTestCase {
         let store = try store(try makeScratch(), secreteo)
         let manifest = manifest
         let result = await Task { try await store.ensureAvailableWithoutDownloading(manifest) }.result
-        XCTAssertThrowsError(try result.get())
+        XCTAssertThrowsError(try result.get()) { XCTAssertTrue($0 is CancellationError, "\($0)") }
         XCTAssertEqual(CountingURLProtocol.requests.withLock { $0 }, 0)
         let inventory = await store.inventory()
         XCTAssertTrue(inventory.isEmpty)
@@ -124,7 +124,9 @@ final class DictationModelListTests: XCTestCase {
         try await install(mine)
         let models = try models(mine)
         let entry = try await first(models)
-        XCTAssertEqual(entry.id, manifest.shelfKey, "The key format matches the store's")
+        let installed = try await mine.directory(for: manifest).deletingLastPathComponent().lastPathComponent
+        XCTAssertEqual(entry.id, installed, "The store names the folder by this key")
+        XCTAssertEqual(manifest.shelfKey, installed)
         XCTAssertEqual(entry.bytes, bytes.count)
 
         let outcome = try await models.release(entry.id)
@@ -154,7 +156,7 @@ final class DictationModelListTests: XCTestCase {
         XCTAssertEqual(entry.sharedWith, ["Secreteo"], "Claims list names, and only one of them is this app's")
     }
 
-    func testAFailedRemovalSaysSoAndKeepsTheRow() async {
+    func testAFailedRemovalSaysSo() async {
         let entry = DictationModelEntry(id: "k", name: "K", bytes: 1, sharedWith: [], isClaimedByThisApp: true)
         var models = DictationModels.heldDownload
         models.inventory = { [entry] }

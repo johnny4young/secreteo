@@ -58,7 +58,7 @@ Dictate and the paste rows give focus back to the app that was frontmost when th
 
 ## G12. A model Secreteo did not install
 
-- When a readiness check verifies a model this app has no claim on, because another app installed it or a crash came before the claim, Secreteo writes its claim then. Until that check runs, another app's collection can still delete the model, which costs one more download.
+- While dictation is on, a readiness check that verifies a model dictation uses but this app has no claim on, because another app installed it or a crash came before the claim, writes Secreteo's claim. Until that check runs, and while dictation is off, another app's collection can still delete the model, which costs one more download. Settings removes only models dictation is not using.
 - Parakeet and Silero hold a store lease while loaded, except on a volume with no `flock`, where only claims protect them.
 
 ## G13. An icon loss no event announces

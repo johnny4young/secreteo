@@ -36,6 +36,8 @@ struct DictationModels: Sendable {
     var release: @Sendable (_ key: String) async throws -> DictationModelRemoval = { _ in .removed }
     /// Fires when any process changes the shared folder.
     var changes: @Sendable () -> AsyncStream<Void> = { AsyncStream { $0.finish() } }
+    /// The folder name the store gives a part, to match it with a listed model.
+    var key: @Sendable (Part) -> String = { _ in "" }
 
     /// Throws the first failure, so the caller can say what went wrong.
     /// `progress` gets the share of the missing bytes in place, from 0 to 1, once per whole percent:
@@ -119,10 +121,12 @@ struct DictationModels: Sendable {
                 guard let part = Part.allCases.first(where: { manifests($0).shelfKey == key }) else {
                     throw DictationModelRemoval.Failure.notThisAppsModel
                 }
+                let outcome = DictationModelRemoval(try await store.remove(manifests(part)))
                 defaults.set(nil, forKey: part.recordKey)
-                return DictationModelRemoval(try await store.remove(manifests(part)))
+                return outcome
             },
-            changes: { store.changes() })
+            changes: { store.changes() },
+            key: { manifests($0).shelfKey })
     }
 }
 

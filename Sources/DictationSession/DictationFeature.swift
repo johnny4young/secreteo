@@ -475,8 +475,9 @@ public final class DictationFeature: AppServices {
         if let speech { await models.remember(.speech, speech) }
         await models.remember(.speechDetector, detector)
         // Another app's install, or a crash before this app's claim, leaves files nobody here keeps.
-        if speech == true { await models.adopt(.speech) }
-        if detector { await models.adopt(.speechDetector) }
+        // Only while dictation uses them, so a model the person removed stays removed.
+        if speech == true, modelsInUse.contains(.speech) { await models.adopt(.speech) }
+        if detector, modelsInUse.contains(.speechDetector) { await models.adopt(.speechDetector) }
     }
 
     private func watchReadiness() {

@@ -57,7 +57,9 @@ extension ModelManifest {
 extension LocalModelStore {
     /// Claims files that are already verified through the normal install path. If they turn out
     /// to be gone under the install lock, the first download event cancels the install before
-    /// it sends a request, so adopting never downloads without the person asking.
+    /// it sends a request, so adopting never downloads without the person asking. That relies on
+    /// the store reporting `.downloading` on the install's own task before its first request, as
+    /// the exactly pinned 0.1.3 does; `DictationModelListTests` proves it with a request counter.
     func ensureAvailableWithoutDownloading(_ manifest: ModelManifest) async throws {
         try await ensureAvailable(manifest) { event in
             // Reported on the install's own task, before its first request.

@@ -24,7 +24,14 @@ extension DictationModels {
                 }
                 return DictationModelRemoval(try await store.remove(manifest))
             },
-            changes: { store.changes() })
+            changes: { store.changes() },
+            key: { part in
+                switch part {
+                case .speech: ShelfFixture.manifests[0].shelfKey
+                case .speechDetector: ShelfFixture.manifests[1].shelfKey
+                case .speechUltra: "sample-ultra"
+                }
+            })
     }
 }
 
