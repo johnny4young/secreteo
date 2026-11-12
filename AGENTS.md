@@ -35,7 +35,8 @@ make install        # installs the Dev identity to /Applications/Secreteo Dev.ap
 
 - **Privacy:** audio and text stay on the device unless the user explicitly opts in. No audio or dictated text in logs.
 - **Swift 6 strict concurrency**, warnings as errors. No `@unchecked Sendable` without a comment saying why it is safe.
-- **License:** MIT. Never copy code from GPL projects. Mechanisms are fine, code is not. MIT and Apache sources need attribution in `THIRD-PARTY-NOTICES.md`.
+- **License:** MIT. Never copy code from GPL or AGPL projects, FluidVoice and TypeWhisper (GPL-3.0) included. Mechanisms are fine, code is not. Check the license before bringing in any third-party code or dependency; MIT and Apache sources need attribution in `THIRD-PARTY-NOTICES.md`. If a Rust UI ever uses GPUI (Apache-2.0), never depend on or copy Zed's GPL-3.0 crates `ui`, `theme`, `editor`, `component`, `terminal` or `terminal_view`.
+- **Probes share five macOS runners with every repository on the account.** A temporary or diagnostic workflow, or a dispatch used as one, always sets `timeout-minutes`; one that fans out (a matrix, repeated runs) also sets `strategy.max-parallel: 2`. Run it between 07:00 and 11:00 UTC when it can wait. Nightly, release and full-suite runs are not probes.
 - **Ported code:** copy from an export of the frozen source commit, rename, and record every file in `docs/PROVENANCE.md`. Refactors go in a separate PR so the diff stays comparable.
 - **Commits:** Conventional Commits in English. Never add AI co-authorship or generated-by lines to commits, PRs, tags or releases.
 - **Comments:** short, and only for the why. No ticket keys, PR numbers or incident stories in source.
