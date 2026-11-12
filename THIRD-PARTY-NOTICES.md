@@ -7,6 +7,7 @@ Secreteo is MIT licensed. It builds on the components below, whose licenses appl
 | [FluidAudio](https://github.com/FluidInference/FluidAudio) | Speech recognition runtime | Apache-2.0 |
 | [fastcluster](https://github.com/fastcluster/fastcluster), through FluidAudio's `FastClusterWrapper` | Compiled as part of FluidAudio | BSD-2-Clause |
 | [GRDB.swift](https://github.com/groue/GRDB.swift) | History database | MIT |
+| [local-model-store](https://github.com/johnny4young/local-model-store) | Shared model folder | MIT |
 | [Sparkle](https://github.com/sparkle-project/Sparkle) | Updates | MIT, with the external licenses listed below |
 | [Parakeet TDT 0.6B v3 and Parakeet Ultra](https://huggingface.co/FluidInference) | Speech models, downloaded on request | CC-BY-4.0 |
 | [Silero VAD](https://github.com/snakers4/silero-vad) | Voice activity model, downloaded on request | MIT |
@@ -259,6 +260,30 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+```
+
+## local-model-store
+
+```
+Copyright (c) 2026 Johnny Young
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ```
 
 ## Sparkle

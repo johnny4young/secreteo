@@ -4,6 +4,9 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- ℹ️ **About in Settings**: version, license, the authors of the speech models and a link to the source code, next to the third-party notices.
+- 🗂️ **Speech models in Settings**: see each model on this Mac, its size and which other apps use it. Remove, for a model dictation is not using, drops Secreteo's copy only; another app keeps its own.
+- ♻️ **Models another app installed**: while dictation uses them, Secreteo keeps its own claim, so that app removing its copy no longer deletes them from under Secreteo.
 - 🔒 **Deleted dictations stay deleted**: pressing Retry on an undelivered dictation you already deleted from History no longer saves it again.
 - 🎙️ **First dictation**: complete a successful practice before taking ownership or dictating globally; completion survives relaunch without saving the practice words.
 
