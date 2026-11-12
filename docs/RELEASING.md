@@ -106,7 +106,7 @@ Same tap as the other apps, with its own deploy key. `packaging/Casks/secreteo.r
 
 ## Model gate
 
-`make test-model-gated` builds the test bundle in Release and runs three lanes against a scratch store you name: Parakeet v3 and Ultra on four public cells, and Silero's speech gate on every cell. It exits nonzero unless each lane leaves a valid observation, and refuses any path inside an installed app's store or cache. It never downloads. Fill the store once with direct runs that set `SECRETEO_DICTATION_BASELINE_INSTALL=1`, `SECRETEO_ASR_COMPARE_INSTALL=1` and `SECRETEO_SPEECH_GATE_INSTALL=1`, as in [the corpus README](../Fixtures/DictationValidation/README.md#observe-the-installed-parakeet-adapter).
+`make test-model-gated` builds the test bundle in Release and runs four lanes against a scratch store you name: Parakeet v3 and Ultra on four public cells, Silero's speech gate on every cell, and the controller on the same four cells, whose resting footprint must stay within the [memory budget](DECISIONS.md#d26-total-memory-has-a-budget-written-before-it-was-measured). It exits nonzero unless each lane leaves a valid observation, and refuses any path inside an installed app's store or cache. It never downloads. Fill the store once with direct runs that set `SECRETEO_DICTATION_BASELINE_INSTALL=1`, `SECRETEO_ASR_COMPARE_INSTALL=1` and `SECRETEO_SPEECH_GATE_INSTALL=1`, as in [the corpus README](../Fixtures/DictationValidation/README.md#observe-the-installed-parakeet-adapter).
 
 ```sh
 SECRETEO_MODEL_GATED_AUDIO=/absolute/scratch/dictation-audio \

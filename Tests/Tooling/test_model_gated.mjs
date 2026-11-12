@@ -6,10 +6,11 @@ import { tmpdir, userInfo } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { CASES, GateInputError, admit, lanes, runGate } from '../../scripts/model_gated.mjs';
+import { CASES, GateInputError, MEMORY_BUDGET_BYTES, admit, lanes, runGate } from '../../scripts/model_gated.mjs';
 
 const script = fileURLToPath(new URL('../../scripts/model_gated.mjs', import.meta.url));
 const makefile = readFileSync(new URL('../../Makefile', import.meta.url), 'utf8');
+const decisions = readFileSync(new URL('../../docs/DECISIONS.md', import.meta.url), 'utf8');
 const cells = ['en-payment-negation.clean', 'non-speech-silence.clean'];
 
 function scratch(t) {
@@ -33,7 +34,9 @@ function goodReceipt(audio) {
     modelRevision: 'pinned', cells: cells.map(caseID => ({ caseID })) };
 }
 
-function fakeSpawn({ outcome = 'observed', status = 0, receipt } = {}) {
+const footprint = (endingBytes, peakObservedBytes = endingBytes + 1) => ({ footprint: { endingBytes, peakObservedBytes } });
+
+function fakeSpawn({ outcome = 'observed', status = 0, receipt, resting = [300_000_000, 310_000_000] } = {}) {
   const calls = [];
   const spawn = (command, args, options) => {
     calls.push({ command, args, options });
@@ -44,6 +47,11 @@ function fakeSpawn({ outcome = 'observed', status = 0, receipt } = {}) {
         writeFileSync(output, JSON.stringify(value ?? goodReceipt(options.env.SECRETEO_SPEECH_GATE_AUDIO)));
       }
       return { status };
+    }
+    if (args.includes('--controller')) {
+      const output = args[args.indexOf('--output') + 1];
+      mkdirSync(output);
+      writeFileSync(join(output, 'model.json'), JSON.stringify({ cells: resting.map(bytes => footprint(bytes)) }));
     }
     return { status, stdout: JSON.stringify({ outcome }) };
   };
@@ -58,8 +66,10 @@ test('every lane passing makes the gate pass and writes a summary', t => {
   const { spawn, calls } = fakeSpawn();
   const results = runGate(admitted, tools(spawn));
   assert.deepEqual(results.map(result => [result.lane, result.passed]),
-    [['parakeet-v3', true], ['parakeet-ultra', true], ['silero', true]]);
-  assert.equal(JSON.parse(readFileSync(join(admitted.output, 'summary.json'), 'utf8')).lanes.length, 3);
+    [['parakeet-v3', true], ['parakeet-ultra', true], ['silero', true], ['memory', true]]);
+  assert.equal(JSON.parse(readFileSync(join(admitted.output, 'summary.json'), 'utf8')).lanes.length, 4);
+  assert.deepEqual(results.at(-1).memory, { budgetBytes: MEMORY_BUDGET_BYTES, highestRestingBytes: 310_000_000,
+    restingBytes: [300_000_000, 310_000_000], highestPeakBytes: 310_000_001 });
   const launchers = ['HOME', 'LANG', 'PATH'];
   const speechGate = [...launchers, 'SECRETEO_SPEECH_GATE_AUDIO', 'SECRETEO_SPEECH_GATE_MODELS', 'SECRETEO_SPEECH_GATE_OUTPUT'].sort();
   for (const call of calls) {
@@ -72,7 +82,7 @@ test('every lane passing makes the gate pass and writes a summary', t => {
 test('a launcher that exits zero without an observation fails its lane', t => {
   const { environment, home } = scratch(t);
   const results = runGate(admit(environment, home), tools(fakeSpawn({ outcome: 'failed' }).spawn));
-  assert.deepEqual(results.filter(result => !result.passed).map(result => result.lane), ['parakeet-v3', 'parakeet-ultra']);
+  assert.deepEqual(results.filter(result => !result.passed).map(result => result.lane), ['parakeet-v3', 'parakeet-ultra', 'memory']);
 });
 
 test('a nonzero exit fails every lane', t => {
@@ -83,7 +93,7 @@ test('a nonzero exit fails every lane', t => {
 
 test('a speech gate that skipped leaves no receipt and fails', t => {
   const { environment, home } = scratch(t);
-  const silero = runGate(admit(environment, home), tools(fakeSpawn({ receipt: null }).spawn)).at(-1);
+  const silero = runGate(admit(environment, home), tools(fakeSpawn({ receipt: null }).spawn)).find(result => result.lane === 'silero');
   assert.equal(silero.passed, false);
   assert.match(silero.failure, /no receipt/);
 });
@@ -97,7 +107,7 @@ for (const [name, receipt, reason] of [
 ]) {
   test(`the speech gate refuses ${name}`, t => {
     const { environment, home } = scratch(t);
-    const silero = runGate(admit(environment, home), tools(fakeSpawn({ receipt }).spawn)).at(-1);
+    const silero = runGate(admit(environment, home), tools(fakeSpawn({ receipt }).spawn)).find(result => result.lane === 'silero');
     assert.equal(silero.passed, false);
     assert.match(silero.failure, reason);
   });
@@ -171,8 +181,9 @@ test('the lanes cover v3, Ultra and Silero on the store they were given', t => {
   const admitted = admit(environment, home);
   const { models } = admitted;
   const selected = lanes(admitted, '/b', '/x');
-  assert.deepEqual(selected.map(lane => lane.name), ['parakeet-v3', 'parakeet-ultra', 'silero']);
-  for (const lane of selected.slice(0, 2)) {
+  assert.deepEqual(selected.map(lane => lane.name), ['parakeet-v3', 'parakeet-ultra', 'silero', 'memory']);
+  assert.ok(selected[3].command.includes('--controller'), 'memory comes from the controller lane');
+  for (const lane of [...selected.slice(0, 2), selected[3]]) {
     assert.equal(lane.command[lane.command.indexOf('--models') + 1], models);
     assert.deepEqual(lane.command.filter((_, index) => lane.command[index - 1] === '--case'), CASES);
   }
@@ -193,4 +204,31 @@ test('make test-model-gated runs this gate and keeps its exit code', () => {
   assert.equal(result.status, 2, 'make reports a failed recipe');
   assert.match(result.stderr, /SECRETEO_MODEL_GATED_AUDIO/);
   assert.match(result.stderr, /Error 64/, 'the gate exits 64 for missing input');
+});
+
+test('a resting footprint over the budget fails the memory lane', t => {
+  const { environment, home } = scratch(t);
+  const memory = runGate(admit(environment, home), tools(fakeSpawn({ resting: [300_000_000, MEMORY_BUDGET_BYTES + 1] }).spawn)).at(-1);
+  assert.equal(memory.passed, false);
+  assert.match(memory.failure, /over the 471859200-byte budget/);
+  assert.equal(memory.memory.highestRestingBytes, MEMORY_BUDGET_BYTES + 1);
+});
+
+test('the memory lane accepts a reading exactly at the budget', t => {
+  const { environment, home } = scratch(t);
+  const memory = runGate(admit(environment, home), tools(fakeSpawn({ resting: [MEMORY_BUDGET_BYTES, 1] }).spawn)).at(-1);
+  assert.equal(memory.passed, true);
+});
+
+test('one footprint reading is not a measurement', t => {
+  const { environment, home } = scratch(t);
+  const memory = runGate(admit(environment, home), tools(fakeSpawn({ resting: [300_000_000] }).spawn)).at(-1);
+  assert.equal(memory.passed, false);
+  assert.match(memory.failure, /fewer than two/);
+});
+
+test('the budget is the number written in D26', () => {
+  const section = decisions.slice(decisions.indexOf('## D26.'));
+  const written = Number(/\(([\d,]+) bytes\)/.exec(section)?.[1].replaceAll(',', ''));
+  assert.equal(written, MEMORY_BUDGET_BYTES);
 });
