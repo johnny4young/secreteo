@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { createHash } from 'node:crypto';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir, userInfo } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -26,15 +27,21 @@ function scratch(t) {
   return { root, home, audio, models, environment };
 }
 
+function goodReceipt(audio) {
+  const manifestSHA256 = createHash('sha256').update(readFileSync(join(audio, 'manifest.json'))).digest('hex');
+  return { kind: 'dictation-speech-gate-observation', schemaVersion: 1, optimized: true, manifestSHA256,
+    modelRevision: 'pinned', cells: cells.map(caseID => ({ caseID })) };
+}
+
 function fakeSpawn({ outcome = 'observed', status = 0, receipt } = {}) {
   const calls = [];
   const spawn = (command, args, options) => {
     calls.push({ command, args, options });
     if (command.endsWith('xctest')) {
       const output = options.env.SECRETEO_SPEECH_GATE_OUTPUT;
-      if (receipt !== null) {
-        writeFileSync(output, JSON.stringify(receipt ?? { kind: 'dictation-speech-gate-observation', schemaVersion: 1,
-          optimized: true, cells: cells.map(caseID => ({ caseID })) }));
+      const value = typeof receipt === 'function' ? receipt(goodReceipt(options.env.SECRETEO_SPEECH_GATE_AUDIO)) : receipt;
+      if (value !== null) {
+        writeFileSync(output, JSON.stringify(value ?? goodReceipt(options.env.SECRETEO_SPEECH_GATE_AUDIO)));
       }
       return { status };
     }
@@ -53,9 +60,11 @@ test('every lane passing makes the gate pass and writes a summary', t => {
   assert.deepEqual(results.map(result => [result.lane, result.passed]),
     [['parakeet-v3', true], ['parakeet-ultra', true], ['silero', true]]);
   assert.equal(JSON.parse(readFileSync(join(admitted.output, 'summary.json'), 'utf8')).lanes.length, 3);
+  const launchers = ['HOME', 'LANG', 'PATH'];
+  const speechGate = [...launchers, 'SECRETEO_SPEECH_GATE_AUDIO', 'SECRETEO_SPEECH_GATE_MODELS', 'SECRETEO_SPEECH_GATE_OUTPUT'].sort();
   for (const call of calls) {
-    assert.deepEqual(Object.keys(call.options.env).filter(key => !key.startsWith('SECRETEO_SPEECH_GATE_')).sort(),
-      ['HOME', 'LANG', 'PATH'], 'children get a minimal environment');
+    assert.deepEqual(Object.keys(call.options.env).sort(), call.command.endsWith('xctest') ? speechGate : launchers,
+      'children get a minimal environment, and never an install switch');
     assert.equal(call.options.stdio[2], 'ignore', 'child diagnostics are never kept');
   }
 });
@@ -80,9 +89,11 @@ test('a speech gate that skipped leaves no receipt and fails', t => {
 });
 
 for (const [name, receipt, reason] of [
-  ['a Debug receipt', { kind: 'dictation-speech-gate-observation', schemaVersion: 1, optimized: false, cells: cells.map(caseID => ({ caseID })) }, /Debug/],
-  ['a partial receipt', { kind: 'dictation-speech-gate-observation', schemaVersion: 1, optimized: true, cells: [{ caseID: cells[0] }] }, /every cell/],
-  ['another kind', { kind: 'other', schemaVersion: 1, optimized: true, cells: [] }, /wrong kind/],
+  ['a Debug receipt', good => ({ ...good, optimized: false }), /Debug/],
+  ['a partial receipt', good => ({ ...good, cells: [{ caseID: cells[0] }] }), /every cell/],
+  ['another kind', good => ({ ...good, kind: 'other' }), /wrong kind/],
+  ['another manifest', good => ({ ...good, manifestSHA256: '0'.repeat(64) }), /another audio manifest/],
+  ['no model revision', good => ({ ...good, modelRevision: '' }), /model revision/],
 ]) {
   test(`the speech gate refuses ${name}`, t => {
     const { environment, home } = scratch(t);
@@ -102,6 +113,8 @@ test('the gate refuses missing, relative and reused paths', t => {
   assert.throws(() => admit(environment, home), /must not exist/);
   assert.throws(() => admit({ ...environment, SECRETEO_MODEL_GATED_OUTPUT: join(environment.SECRETEO_MODEL_GATED_MODELS, 'out') }, home),
     /separate/);
+  assert.throws(() => admit({ ...environment, SECRETEO_MODEL_GATED_OUTPUT: join(environment.SECRETEO_MODEL_GATED_AUDIO, 'out') }, home),
+    /separate/);
 });
 
 test('the gate never opens an installed app store', t => {
@@ -112,6 +125,45 @@ test('the gate never opens an installed app store', t => {
     assert.throws(() => admit({ ...environment, SECRETEO_MODEL_GATED_MODELS: join(support, store) }, home), /installed app/);
   }
   assert.throws(() => admit({ ...environment, SECRETEO_MODEL_GATED_MODELS: support }, home), /installed app/);
+  assert.throws(() => admit({ ...environment, SECRETEO_MODEL_GATED_MODELS: '/' }, home), /installed app/);
+  const shared = join(support, 'com.johnny4young.local-models');
+  assert.throws(() => admit({ ...environment, SECRETEO_MODEL_GATED_OUTPUT: join(shared, 'out') }, home), /installed app/);
+  assert.throws(() => admit({ ...environment, SECRETEO_MODEL_GATED_MODELS: shared.toUpperCase() }, home), /installed app/);
+  const link = join(environment.SECRETEO_MODEL_GATED_AUDIO, '..', 'link');
+  symlinkSync(shared, link);
+  assert.throws(() => admit({ ...environment, SECRETEO_MODEL_GATED_MODELS: link }, home), /installed app/);
+  mkdirSync(join(home, 'Library', 'Containers', 'some.app'), { recursive: true });
+  assert.throws(() => admit({ ...environment, SECRETEO_MODEL_GATED_MODELS: join(home, 'Library', 'Containers', 'some.app') }, home),
+    /installed app/);
+});
+
+test('an overridden HOME does not move the guard off the real stores', t => {
+  const { environment, home } = scratch(t);
+  // Only resolves the path; nothing in the real store is read.
+  const real = join(userInfo().homedir, 'Library', 'Application Support', 'com.johnny4young.local-models', 'never-created');
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e',
+    `import { admit } from ${JSON.stringify(script)};
+     try { admit(${JSON.stringify({ ...environment, SECRETEO_MODEL_GATED_MODELS: real })}); process.exit(0); }
+     catch (error) { console.error(error.message); process.exit(3); }`], { env: { PATH: process.env.PATH, HOME: home }, encoding: 'utf8' });
+  assert.equal(result.status, 3);
+  assert.match(result.stderr, /installed app/);
+});
+
+test('launchers get room for a full report on stdout', t => {
+  const { environment, home } = scratch(t);
+  const spawn = fakeSpawn().spawn;
+  const results = runGate(admit(environment, home), tools((command, args, options) => {
+    const result = spawn(command, args, options);
+    assert.ok(options.maxBuffer >= 16 * 1024 * 1024);
+    return result;
+  }));
+  assert.ok(results.every(result => result.passed));
+});
+
+test('a launcher that cannot start fails with its error code', t => {
+  const { environment, home } = scratch(t);
+  const results = runGate(admit(environment, home), tools(() => ({ status: null, signal: null, error: { code: 'ENOENT' } })));
+  assert.ok(results.every(result => result.failure === 'exit ENOENT'));
 });
 
 test('the lanes cover v3, Ultra and Silero on the store they were given', t => {
@@ -134,7 +186,11 @@ test('the command refuses to run without a named scratch store', () => {
   assert.match(result.stderr, /SECRETEO_MODEL_GATED_AUDIO/);
 });
 
-test('make test-model-gated runs this gate', () => {
-  assert.match(makefile, /^test-model-gated:\n\tnode scripts\/model_gated\.mjs$/m);
+test('make test-model-gated runs this gate and keeps its exit code', () => {
   assert.match(makefile, /^\.PHONY:.*\btest-model-gated\b/m);
+  const result = spawnSync('make', ['-s', 'test-model-gated'], {
+    cwd: fileURLToPath(new URL('../..', import.meta.url)), env: { PATH: process.env.PATH }, encoding: 'utf8' });
+  assert.equal(result.status, 2, 'make reports a failed recipe');
+  assert.match(result.stderr, /SECRETEO_MODEL_GATED_AUDIO/);
+  assert.match(result.stderr, /Error 64/, 'the gate exits 64 for missing input');
 });

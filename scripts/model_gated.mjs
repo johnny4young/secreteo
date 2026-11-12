@@ -2,9 +2,10 @@
 // Runs the real-model lanes against a named scratch store and fails unless each one
 // produces a valid observation. Child output is discarded: XCTest can dump its environment.
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { dirname, isAbsolute, join, resolve, sep } from 'node:path';
+import { userInfo } from 'node:os';
+import { basename, dirname, isAbsolute, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -18,24 +19,31 @@ const realish = path => {
   let current = resolve(path);
   const rest = [];
   while (!existsSync(current)) {
-    rest.unshift(current.slice(dirname(current).length + 1));
+    rest.unshift(basename(current));
     const parent = dirname(current);
     if (parent === current) break;
     current = parent;
   }
-  return join(realpathSync(current), ...rest);
+  return join(realpathSync.native(current), ...rest);
 };
-const inside = (path, root) => path === root || path.startsWith(root + sep);
+// APFS is case-insensitive by default, so a case variant names the same folder.
+const inside = (path, root) => {
+  const [p, r] = [path.toLowerCase(), root.toLowerCase()];
+  return p === r || r === sep || p.startsWith(r + sep);
+};
 
-// Stores and caches that belong to installed apps; the gate must never open them.
+// Stores and caches that belong to installed apps, sandboxed copies included; the gate must never open them.
 export function protectedRoots(home) {
-  const support = join(home, 'Library', 'Application Support');
+  const library = join(home, 'Library');
+  const support = join(library, 'Application Support');
   return [join(support, 'com.johnny4young.local-models'), join(support, 'Portavoz'),
     join(support, 'Portavoz Release'), join(support, 'FluidAudio'), join(support, 'com.johnny4young.secreteo'),
-    join(support, 'com.johnny4young.secreteo.dev')].map(realish);
+    join(support, 'com.johnny4young.secreteo.dev'), join(library, 'Containers'), join(library, 'Group Containers')]
+    .map(realish);
 }
 
-export function admit(environment, home = homedir()) {
+// The account's home, not $HOME, so an overridden HOME cannot move the guard away from the real stores.
+export function admit(environment, home = userInfo().homedir) {
   const named = key => {
     const value = environment[key];
     if (typeof value !== 'string' || !isAbsolute(value)) throw new GateInputError(`${key} must be an absolute path`);
@@ -62,19 +70,24 @@ function parsed(stdout) {
   try { return JSON.parse(stdout); } catch { return null; }
 }
 
+const exitReason = result => `exit ${result.status ?? result.signal ?? result.error?.code}`;
+
 export function launcherVerdict(result) {
-  if (result.status !== 0) return `exit ${result.status ?? result.signal}`;
+  if (result.status !== 0) return exitReason(result);
   const outcome = parsed(result.stdout)?.outcome;
   return outcome === 'observed' ? null : `outcome ${JSON.stringify(outcome ?? null)}`;
 }
 
 export function speechGateVerdict(result, receiptPath, manifestPath) {
-  if (result.status !== 0) return `exit ${result.status ?? result.signal}`;
+  if (result.status !== 0) return exitReason(result);
   if (!existsSync(receiptPath)) return 'no receipt: the lane skipped or never finished';
   const receipt = parsed(readFileSync(receiptPath, 'utf8'));
-  const entries = parsed(readFileSync(manifestPath, 'utf8'))?.entries;
+  const manifest = readFileSync(manifestPath);
+  const entries = parsed(manifest.toString('utf8'))?.entries;
   if (receipt?.kind !== SPEECH_GATE_KIND || receipt.schemaVersion !== 1) return 'receipt has the wrong kind';
   if (receipt.optimized !== true) return 'receipt came from a Debug build';
+  if (receipt.manifestSHA256 !== createHash('sha256').update(manifest).digest('hex')) return 'receipt is for another audio manifest';
+  if (typeof receipt.modelRevision !== 'string' || !receipt.modelRevision) return 'receipt names no model revision';
   const expected = Array.isArray(entries) ? entries.map(entry => entry?.caseID).sort() : null;
   const observed = Array.isArray(receipt.cells) ? receipt.cells.map(cell => cell?.caseID).sort() : null;
   if (!expected?.length || JSON.stringify(expected) !== JSON.stringify(observed)) return 'receipt does not cover every cell';
@@ -98,7 +111,7 @@ export function lanes({ audio, models, output }, bundle, xctest) {
   ];
 }
 
-const minimalEnvironment = extra => ({ HOME: homedir(), PATH: '/usr/bin:/bin:/usr/sbin:/sbin', LANG: 'en_US.UTF-8', ...extra });
+const minimalEnvironment = extra => ({ HOME: userInfo().homedir, PATH: '/usr/bin:/bin:/usr/sbin:/sbin', LANG: 'en_US.UTF-8', ...extra });
 
 export function runGate(admitted, { bundle, xctest, spawn = spawnSync }) {
   mkdirSync(admitted.output, { recursive: false, mode: 0o700 });
@@ -108,6 +121,7 @@ export function runGate(admitted, { bundle, xctest, spawn = spawnSync }) {
     const result = spawn(command, args, {
       cwd: ROOT, env: minimalEnvironment(lane.environment), encoding: 'utf8',
       stdio: ['ignore', lane.kind === 'launcher' ? 'pipe' : 'ignore', 'ignore'], timeout: 4 * 3600 * 1000,
+      maxBuffer: 64 * 1024 * 1024,
     });
     const failure = lane.kind === 'launcher' ? launcherVerdict(result)
       : speechGateVerdict(result, lane.receipt, join(admitted.audio, 'manifest.json'));
