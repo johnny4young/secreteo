@@ -29,13 +29,22 @@ public struct SettingsView: View {
                         .accessibilityIdentifier("settings-launch-at-login-error")
                 }
             }
-            Section {
+            Section("About") {
                 LabeledContent("Version", value: model.versionDescription)
                     .accessibilityIdentifier("settings-version")
                 if model.canCheckForUpdates {
                     Button("Check for Updates…") { model.checkForUpdates() }
                         .accessibilityIdentifier("settings-check-updates")
                 }
+                LabeledContent("License") { Text(verbatim: "MIT") }
+                    .accessibilityIdentifier("settings-license")
+                // CC BY 4.0 requires naming the authors wherever the models are used.
+                LabeledContent("Speech Recognition") { Text("Parakeet by NVIDIA, CC BY 4.0") }
+                    .accessibilityIdentifier("settings-credit-parakeet")
+                LabeledContent("Voice Detection") { Text("Silero VAD by Silero Team, MIT") }
+                    .accessibilityIdentifier("settings-credit-silero")
+                Link(destination: AppModel.sourceCode) { Text("Source Code") }
+                    .accessibilityIdentifier("settings-source-code")
                 Button("Third-Party Notices") { model.openNotices() }
                     .accessibilityIdentifier("settings-open-notices")
             }

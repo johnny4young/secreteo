@@ -24,6 +24,12 @@ extension DictationFeature {
         speechModelIsRequired ? DictationModels.Part.required : [.speechDetector]
     }
 
+    /// What dictation keeps a claim on: nothing while it is off, so a removal stays removed.
+    var modelsInUse: [DictationModels.Part] {
+        guard isEnabled else { return [] }
+        return requiredModels + (speechEngine == .parakeetUltra ? [.speechUltra] : [])
+    }
+
     /// The warm model may be the other checkpoint, so the next dictation loads afresh.
     /// A failure belonged to the other engine's parts, and Parakeet may not have been hashed.
     func speechEngineChanged() {
@@ -37,7 +43,7 @@ extension DictationFeature {
     /// Settings asks only while Ultra is chosen, so nobody else hashes 632 MB they never use.
     func refreshUltra() async {
         guard speechEngine == .parakeetUltra, let models = environment.models else { return }
-        await ultra.refresh(models)
+        await ultra.refresh(models, adopts: isEnabled)
     }
 
     func downloadUltra() {

@@ -28,6 +28,16 @@ struct DictationModels: Sendable {
     /// Retires this app's claims on models it no longer pins and clears what nobody needs.
     /// `Part` is that list, so every model this app installs must be a case of it.
     var collectUnused: @Sendable () async -> Void
+    /// Writes this app's claim on verified files another app installed. Never downloads.
+    var adopt: @Sendable (Part) async -> Void = { _ in }
+    /// Every model in the shared folder and the apps that keep it.
+    var inventory: @Sendable () async -> [DictationModelEntry] = { [] }
+    /// Drops only this app's claim. The files stay while another app keeps them.
+    var release: @Sendable (_ key: String) async throws -> DictationModelRemoval = { _ in .removed }
+    /// Fires when any process changes the shared folder.
+    var changes: @Sendable () -> AsyncStream<Void> = { AsyncStream { $0.finish() } }
+    /// The folder name the store gives a part, to match it with a listed model.
+    var key: @Sendable (Part) -> String = { _ in "" }
 
     /// Throws the first failure, so the caller can say what went wrong.
     /// `progress` gets the share of the missing bytes in place, from 0 to 1, once per whole percent:
@@ -98,7 +108,25 @@ struct DictationModels: Sendable {
             collectUnused: {
                 try? await store.reconcileClaims(keeping: Part.allCases.map(manifests))
                 _ = try? await store.collectGarbage()
-            })
+            },
+            adopt: { part in
+                guard await store.verifiedInstallation(manifests(part)) != nil else { return }
+                // Its own task, because a vetoed download cancels the task it runs on.
+                _ = await Task { try await store.ensureAvailableWithoutDownloading(manifests(part)) }.result
+            },
+            inventory: {
+                await store.inventory().map { DictationModelEntry($0, ownName: store.consumer.displayName) }
+            },
+            release: { key in
+                guard let part = Part.allCases.first(where: { manifests($0).shelfKey == key }) else {
+                    throw DictationModelRemoval.Failure.notThisAppsModel
+                }
+                let outcome = DictationModelRemoval(try await store.remove(manifests(part)))
+                defaults.set(nil, forKey: part.recordKey)
+                return outcome
+            },
+            changes: { store.changes() },
+            key: { manifests($0).shelfKey })
     }
 }
 

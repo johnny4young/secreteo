@@ -33,9 +33,11 @@ GOOD_INFO = {
     "SUFeedURL": verify_release.FEED,
     "SUEnableAutomaticChecks": True,
     "SUPublicEDKey": KEY,
+    "CFBundleIconName": "AppIcon",
 }
 GOOD_PATHS = ["Contents/Frameworks/Sparkle.framework", "Contents/Frameworks/Sparkle.framework/Sparkle",
-              "Contents/MacOS/Secreteo", "Contents/Resources/THIRD-PARTY-NOTICES.md"]
+              "Contents/MacOS/Secreteo", "Contents/Resources/THIRD-PARTY-NOTICES.md",
+              "Contents/Resources/AppIcon.icns", "Contents/Resources/Assets.car"]
 GOOD_SIGNATURE = (f"Authority=Developer ID Application: Someone\nTeamIdentifier={verify_release.TEAM_ID}\n"
                   "Timestamp=Nov 2, 2026\nCodeDirectory v=20500 size=1 flags=0x10000(runtime) hashes=1\n")
 PREFIX = "https://example.test/download/v1.2.3/"
@@ -65,7 +67,8 @@ class InfoTests(unittest.TestCase):
     def test_each_wrong_value_fails(self):
         wrong = {"CFBundleIdentifier": "com.johnny4young.secreteo.dev", "CFBundleShortVersionString": "1.2.2",
                  "CFBundleVersion": "1", "LSMinimumSystemVersion": "15.0", "LSUIElement": False,
-                 "SUFeedURL": "http://example.test/appcast.xml", "SUEnableAutomaticChecks": False}
+                 "SUFeedURL": "http://example.test/appcast.xml", "SUEnableAutomaticChecks": False,
+                 "CFBundleIconName": None}
         for key, value in wrong.items():
             self.assertTrue(verify_release.info_problems(GOOD_INFO | {key: value}, VERSION), key)
 
@@ -92,6 +95,11 @@ class PayloadTests(unittest.TestCase):
 
     def test_missing_notices_fail(self):
         self.assertTrue(self.problems([p for p in GOOD_PATHS if "NOTICES" not in p]))
+
+    def test_a_missing_icon_fails(self):
+        for icon in ("AppIcon.icns", "Assets.car"):
+            problems = self.problems([p for p in GOOD_PATHS if not p.endswith(icon)])
+            self.assertTrue(any(icon in problem for problem in problems), icon)
 
     def test_a_drifted_sparkle_fails(self):
         self.assertTrue(self.problems(GOOD_PATHS, sparkle="2.10.0"))
