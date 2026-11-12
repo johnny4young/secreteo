@@ -50,7 +50,7 @@ def arms_global_dictation(project_yml: str) -> bool:
 
 
 def problems(tag: str, project_yml: str, changelog: str, on_main: bool, arms_dictation: bool,
-             portavoz_released: bool) -> list[str]:
+             dictation_cleared: bool) -> list[str]:
     if not re.fullmatch(r"v\d+\.\d+\.\d+", tag):
         return [f"{tag} is not vX.Y.Z"]
     version = tag[1:]
@@ -64,7 +64,7 @@ def problems(tag: str, project_yml: str, changelog: str, on_main: bool, arms_dic
         found.append(f"CHANGELOG.md has no entries under ## {version}")
     if not on_main:
         found.append("the tagged commit is not on main")
-    if arms_dictation and not portavoz_released:
+    if arms_dictation and not dictation_cleared:
         found.append("this build arms global dictation, and GLOBAL_DICTATION_CLEARED is not true")
     return found
 

@@ -34,6 +34,8 @@ GOOD_INFO = {
     "SUEnableAutomaticChecks": True,
     "SUPublicEDKey": KEY,
     "CFBundleIconName": "AppIcon",
+    "SecreteoGlobalDictation": "YES",
+    "DictationOwnershipProtocol": 1,
 }
 GOOD_PATHS = ["Contents/Frameworks/Sparkle.framework", "Contents/Frameworks/Sparkle.framework/Sparkle",
               "Contents/MacOS/Secreteo", "Contents/Resources/THIRD-PARTY-NOTICES.md",
@@ -68,7 +70,7 @@ class InfoTests(unittest.TestCase):
         wrong = {"CFBundleIdentifier": "com.johnny4young.secreteo.dev", "CFBundleShortVersionString": "1.2.2",
                  "CFBundleVersion": "1", "LSMinimumSystemVersion": "15.0", "LSUIElement": False,
                  "SUFeedURL": "http://example.test/appcast.xml", "SUEnableAutomaticChecks": False,
-                 "CFBundleIconName": None}
+                 "CFBundleIconName": None, "SecreteoGlobalDictation": "NO", "DictationOwnershipProtocol": None}
         for key, value in wrong.items():
             self.assertTrue(verify_release.info_problems(GOOD_INFO | {key: value}, VERSION), key)
 

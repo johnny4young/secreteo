@@ -61,6 +61,8 @@ With the disposable Portavoz build of Spike 1:
 | Turn on dictation in both apps | Only one owns the shortcut; the other says who does | One owner per Mac |
 | Take ownership in the other app | The handoff completes within 2 s and the first app stops answering | One owner per Mac |
 | Quit the owner with Activity Monitor's Force Quit | The other app can take ownership after its recovery | One owner per Mac |
+| With Portavoz 1.3 and its dictation on, turn on dictation in Secreteo | Secreteo refuses and names Portavoz; nothing is armed | One owner per Mac |
+| With Secreteo armed, turn on Portavoz 1.3's dictation, then press Fn | Write down whether both apps answer: the protocol only promises best effort here | One owner per Mac |
 
 ## 6. Updates and install, **release build**
 
