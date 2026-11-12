@@ -3,7 +3,7 @@
 
 Usage: check_release.py check <tag>
        check_release.py notes <version>
-`check` reads GLOBAL_DICTATION_CLEARED from the environment and expects `origin/main` to be fetched.
+`check` reads GLOBAL_DICTATION_CLEARED (the one version the owner cleared) from the environment and expects `origin/main` to be fetched.
 """
 import os
 import re
@@ -50,7 +50,7 @@ def arms_global_dictation(project_yml: str) -> bool:
 
 
 def problems(tag: str, project_yml: str, changelog: str, on_main: bool, arms_dictation: bool,
-             dictation_cleared: bool) -> list[str]:
+             cleared_version: str) -> list[str]:
     if not re.fullmatch(r"v\d+\.\d+\.\d+", tag):
         return [f"{tag} is not vX.Y.Z"]
     version = tag[1:]
@@ -64,8 +64,8 @@ def problems(tag: str, project_yml: str, changelog: str, on_main: bool, arms_dic
         found.append(f"CHANGELOG.md has no entries under ## {version}")
     if not on_main:
         found.append("the tagged commit is not on main")
-    if arms_dictation and not dictation_cleared:
-        found.append("this build arms global dictation, and GLOBAL_DICTATION_CLEARED is not true")
+    if arms_dictation and cleared_version != version:
+        found.append(f"this build arms global dictation, and GLOBAL_DICTATION_CLEARED is not {version}")
     return found
 
 
@@ -84,7 +84,7 @@ def main() -> None:
                              check=False).returncode == 0
     project_yml = (ROOT / "project.yml").read_text()
     found = problems(argument, project_yml, changelog, on_main,
-                     arms_global_dictation(project_yml), os.environ.get("GLOBAL_DICTATION_CLEARED") == "true")
+                     arms_global_dictation(project_yml), os.environ.get("GLOBAL_DICTATION_CLEARED", "").strip())
     for problem in found:
         print(f"::error::{problem}")
     if found:
