@@ -54,7 +54,7 @@ Run these once, in this order.
    Vendor/bin/generate_keys --account com.johnny4young.secreteo -x ~/secreteo-sparkle.key
    ```
 
-2. Open a PR that sets the printed public key in `SPARKLE_PUBLIC_ED_KEY` in `project.yml`.
+2. Open a PR that sets the printed public key in `SPARKLE_PUBLIC_ED_KEY` in `project.yml`. Done for 0.1.0.
 3. Set the secrets. The P12 and the App Store Connect key go in as base64:
 
    ```sh
@@ -85,7 +85,7 @@ Delete the local copies of the private keys once they are stored safely.
 
 - The EdDSA key belongs to this app. Back it up with `generate_keys -x` before the first public build. Losing it leaves users without automatic updates.
 - Framework and tools come from one checksum-pinned fetch at one version.
-- The public key goes in `SPARKLE_PUBLIC_ED_KEY` in `project.yml`. With it empty, the updater stays off.
+- The public key is `SPARKLE_PUBLIC_ED_KEY` in `project.yml`. Debug builds and `make install` blank it, so only a release build checks the real feed. With it empty, the updater stays off.
 
 ## Homebrew
 
