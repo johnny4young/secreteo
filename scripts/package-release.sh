@@ -92,6 +92,8 @@ mkdir -p "$output"
 rm -rf "$stage" "$dmg" "$dmg.sha256"
 mkdir -p "$stage"
 begin_phase build
+# A restored build would otherwise keep resources this commit deleted.
+rm -rf "$derived/Build/Products/Release/Secreteo.app"
 # Project-level ARCHS does not constrain the package targets.
 xcodebuild -project Secreteo.xcodeproj -scheme Secreteo -configuration Release \
   -destination 'platform=macOS,arch=arm64' -derivedDataPath "$derived" \

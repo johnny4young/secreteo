@@ -3,7 +3,8 @@ name: Build cache
 on:
   push:
     branches: [main]
-    paths: [Sources/**, Tests/**, Package.swift, Package.resolved, .github/workflows/build-cache.yml]
+    paths: [Sources/**, Tests/**, Apps/**, Package.swift, Package.resolved, project.yml, scripts/package-release.sh,
+      .github/workflows/build-cache.yml]
   schedule:
     - cron: "41 5 * * *"
   workflow_dispatch:
@@ -46,4 +47,35 @@ jobs:
       - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .build
+          key: ${{ steps.key.outputs.prefix }}${{ github.run_id }}
+
+  release-build:
+    # The packaging dry run restores this on pull requests; real releases always build cold.
+    if: github.ref == 'refs/heads/main'
+    runs-on: macos-26
+    timeout-minutes: 20
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: scripts/verify-ci-toolchain.sh 26 26.6
+      - run: scripts/install-ci-xcodegen.sh "$RUNNER_TEMP/xcodegen"
+      - id: key
+        env:
+          GRAPH: ${{ hashFiles('Package.swift', 'project.yml') }}
+          RESOLVED: ${{ hashFiles('Package.resolved') }}
+        run: |
+          echo "graph=release-derived-macos-26-xcode-26.6-$GRAPH-" >> "$GITHUB_OUTPUT"
+          echo "prefix=release-derived-macos-26-xcode-26.6-$GRAPH-$RESOLVED-" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
+        with:
+          path: build/release
+          key: ${{ steps.key.outputs.prefix }}
+          restore-keys: ${{ steps.key.outputs.graph }}
+      - run: scripts/release-dryrun.sh package
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: build/release
           key: ${{ steps.key.outputs.prefix }}${{ github.run_id }}

@@ -165,6 +165,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: scripts/verify-ci-toolchain.sh 26 26.6
       - run: scripts/install-ci-xcodegen.sh "$RUNNER_TEMP/xcodegen"
+      # build-cache.yml saves main's derived data, so packages come built and only this repository's
+      # code compiles again. A changed Package.swift or project.yml never restores: stale products remain.
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
+        with:
+          path: build/release
+          key: release-derived-macos-26-xcode-26.6-${{ hashFiles('Package.swift', 'project.yml') }}-${{ hashFiles('Package.resolved') }}-
+          restore-keys: release-derived-macos-26-xcode-26.6-${{ hashFiles('Package.swift', 'project.yml') }}-
       - run: scripts/release-dryrun.sh
 
   gate:
