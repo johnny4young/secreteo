@@ -12,6 +12,8 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const CASES = ['en-payment-negation.clean', 'es-payment-negation.clean', 'mixed-review.clean', 'non-speech-silence.clean'];
 const SPEECH_GATE = 'DictationSessionTests.DictationSpeechGateCorpusTests/testSpeechGateOverEveryPublicCell';
 const SPEECH_GATE_KIND = 'dictation-speech-gate-observation';
+// D26 in docs/DECISIONS.md: footprint with Parakeet v3 resident and no dictation running.
+export const MEMORY_BUDGET_BYTES = 471_859_200;
 
 export class GateInputError extends Error {}
 
@@ -94,6 +96,19 @@ export function speechGateVerdict(result, receiptPath, manifestPath) {
   return null;
 }
 
+export function memoryVerdict(result, receiptPath) {
+  const launcher = launcherVerdict(result);
+  if (launcher) return { failure: launcher };
+  const cells = existsSync(receiptPath) ? parsed(readFileSync(receiptPath, 'utf8'))?.cells : null;
+  const resting = Array.isArray(cells) ? cells.map(cell => cell?.footprint?.endingBytes) : [];
+  if (resting.length < 2 || !resting.every(Number.isSafeInteger)) return { failure: 'fewer than two footprint samples' };
+  const memory = { budgetBytes: MEMORY_BUDGET_BYTES, highestRestingBytes: Math.max(...resting), restingBytes: resting,
+    highestPeakBytes: Math.max(...cells.map(cell => cell.footprint.peakObservedBytes)) };
+  return memory.highestRestingBytes > MEMORY_BUDGET_BYTES
+    ? { failure: `resting footprint ${memory.highestRestingBytes} bytes is over the ${MEMORY_BUDGET_BYTES}-byte budget`, memory }
+    : { memory };
+}
+
 export function lanes({ audio, models, output }, bundle, xctest) {
   const shared = ['--audio-root', audio, '--models', models, '--test-bundle', bundle, '--xctest', xctest];
   const cases = CASES.flatMap(id => ['--case', id]);
@@ -108,6 +123,9 @@ export function lanes({ audio, models, output }, bundle, xctest) {
       command: [xctest, '-XCTest', SPEECH_GATE, bundle],
       environment: { SECRETEO_SPEECH_GATE_AUDIO: audio, SECRETEO_SPEECH_GATE_MODELS: models,
         SECRETEO_SPEECH_GATE_OUTPUT: join(output, 'silero.json') } },
+    { name: 'memory', kind: 'memory', receipt: join(output, 'controller', 'model.json'),
+      command: ['python3', '-I', join(ROOT, 'scripts/run_dictation_model_baseline.py'), '--controller', ...shared, ...cases,
+        '--output', join(output, 'controller')] },
   ];
 }
 
@@ -120,12 +138,13 @@ export function runGate(admitted, { bundle, xctest, spawn = spawnSync }) {
     const [command, ...args] = lane.command;
     const result = spawn(command, args, {
       cwd: ROOT, env: minimalEnvironment(lane.environment), encoding: 'utf8',
-      stdio: ['ignore', lane.kind === 'launcher' ? 'pipe' : 'ignore', 'ignore'], timeout: 4 * 3600 * 1000,
+      stdio: ['ignore', lane.kind === 'speech-gate' ? 'ignore' : 'pipe', 'ignore'], timeout: 4 * 3600 * 1000,
       maxBuffer: 64 * 1024 * 1024,
     });
-    const failure = lane.kind === 'launcher' ? launcherVerdict(result)
-      : speechGateVerdict(result, lane.receipt, join(admitted.audio, 'manifest.json'));
-    results.push({ lane: lane.name, passed: failure === null, ...(failure ? { failure } : {}) });
+    const { failure = null, memory } = lane.kind === 'memory' ? memoryVerdict(result, lane.receipt)
+      : { failure: lane.kind === 'launcher' ? launcherVerdict(result)
+        : speechGateVerdict(result, lane.receipt, join(admitted.audio, 'manifest.json')) };
+    results.push({ lane: lane.name, passed: failure === null, ...(failure ? { failure } : {}), ...(memory ? { memory } : {}) });
   }
   writeFileSync(join(admitted.output, 'summary.json'), `${JSON.stringify({ lanes: results }, null, 2)}\n`, { mode: 0o600 });
   return results;
@@ -152,7 +171,10 @@ if (isMain()) {
   try {
     const admitted = admit(process.env);
     const results = runGate(admitted, build());
-    for (const { lane, passed, failure } of results) console.log(`${passed ? 'PASS' : 'FAIL'} ${lane}${failure ? `: ${failure}` : ''}`);
+    for (const { lane, passed, failure, memory } of results) {
+      const detail = failure ?? (memory ? `highest resting ${memory.highestRestingBytes} of ${memory.budgetBytes} bytes` : '');
+      console.log(`${passed ? 'PASS' : 'FAIL'} ${lane}${detail ? `: ${detail}` : ''}`);
+    }
     console.log(`Receipts in ${admitted.output}`);
     if (!results.every(result => result.passed)) process.exitCode = 1;
   } catch (error) {

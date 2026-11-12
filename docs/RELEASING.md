@@ -4,7 +4,7 @@ A `v*` tag runs `release.yml`. The owner approves the `release` Environment, rev
 
 ## Flow
 
-1. `scripts/check_release.py` refuses a tag that differs from `MARKETING_VERSION`, has no `## <version>` section in `CHANGELOG.md`, is not on `main`, or has no Sparkle key. Release builds dictate ([D27](DECISIONS.md#d27-release-builds-run-global-dictation-from-010)), so it also refuses any tag unless the repository variable `GLOBAL_DICTATION_CLEARED` is `true`.
+1. `scripts/check_release.py` refuses a tag that differs from `MARKETING_VERSION`, has no `## <version>` section in `CHANGELOG.md`, is not on `main`, or has no Sparkle key. Release builds dictate ([D28](DECISIONS.md#d28-release-builds-run-global-dictation-from-010)), so it also refuses any tag unless the repository variable `GLOBAL_DICTATION_CLEARED` is `true`.
 2. Hygiene and tests.
 3. Release build with the pinned toolchain: `macos-26`, Xcode 26.6.
 4. Sign nested helpers and the app with no ignored failures.
@@ -108,7 +108,7 @@ The exact steps and what each should show are in the [runbook](RUNBOOK.md).
 
 ## Model gate
 
-`make test-model-gated` builds the test bundle in Release and runs three lanes against a scratch store you name: Parakeet v3 and Ultra on four public cells, and Silero's speech gate on every cell. It exits nonzero unless each lane leaves a valid observation, and refuses any path inside an installed app's store or cache. It never downloads. Fill the store once with direct runs that set `SECRETEO_DICTATION_BASELINE_INSTALL=1`, `SECRETEO_ASR_COMPARE_INSTALL=1` and `SECRETEO_SPEECH_GATE_INSTALL=1`, as in [the corpus README](../Fixtures/DictationValidation/README.md#observe-the-installed-parakeet-adapter).
+`make test-model-gated` builds the test bundle in Release and runs four lanes against a scratch store you name: Parakeet v3 and Ultra on four public cells, Silero's speech gate on every cell, and the controller on the same four cells, whose resting footprint must stay within the [memory budget](DECISIONS.md#d26-total-memory-has-a-budget-written-before-it-was-measured). It exits nonzero unless each lane leaves a valid observation, and refuses any path inside an installed app's store or cache. It never downloads. Fill the store once with direct runs that set `SECRETEO_DICTATION_BASELINE_INSTALL=1`, `SECRETEO_ASR_COMPARE_INSTALL=1` and `SECRETEO_SPEECH_GATE_INSTALL=1`, as in [the corpus README](../Fixtures/DictationValidation/README.md#observe-the-installed-parakeet-adapter).
 
 ```sh
 SECRETEO_MODEL_GATED_AUDIO=/absolute/scratch/dictation-audio \

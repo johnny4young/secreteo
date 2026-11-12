@@ -32,7 +32,7 @@ def info_problems(info: dict, version: str) -> list[str]:
         "SUFeedURL": FEED,
         "SUEnableAutomaticChecks": True,
         "CFBundleIconName": "AppIcon",
-        # D27: the shipped binary dictates and declares the ownership protocol peers look for.
+        # D28: the shipped binary dictates and declares the ownership protocol peers look for.
         "SecreteoGlobalDictation": "YES",
         "DictationOwnershipProtocol": 1,
     }
