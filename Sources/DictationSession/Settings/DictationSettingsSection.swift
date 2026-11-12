@@ -51,6 +51,7 @@ public struct DictationSettingsSection: View {
                     .accessibilityIdentifier("settings-dictation-handoff-failed")
             }
         }
+        .modifier(DictationModelListHost(dictation: dictation))
         // On the section that always shows, so the sheet outlives the row an import removes.
         .sheet(isPresented: $showsPortavozImport) {
             PortavozImportSheet(changes: dictation.portavozImport?.changes ?? []) {
@@ -78,6 +79,7 @@ public struct DictationSettingsSection: View {
         if dictation.isEnabled {
             DictationSettingsControls(dictation: dictation)
         }
+        DictationModelListSection(dictation: dictation)
         DictationHistorySettingsSection(dictation: dictation)
         DictationStatsSettingsSection(dictation: dictation)
     }
