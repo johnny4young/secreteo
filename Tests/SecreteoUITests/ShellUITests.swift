@@ -95,6 +95,30 @@ final class ShellUITests: XCTestCase {
         XCTAssertFalse(element("menu-update-available").exists)
     }
 
+    func testAboutNamesTheLicenseAndTheModelAuthors() {
+        launchInFront()
+        XCTAssertTrue(element("menu-settings").waitForExistence(timeout: 30))
+        element("menu-settings").click()
+        let notices = element("settings-open-notices")
+        XCTAssertTrue(element("settings-root").waitForExistence(timeout: 10))
+        for _ in 0..<12 where !notices.isHittable {
+            element("settings-root").scroll(byDeltaX: 0, deltaY: -600)
+        }
+        XCTAssertTrue(notices.isHittable)
+        XCTAssertTrue(element("settings-version").exists)
+        XCTAssertTrue(text(of: element("settings-license")).contains("MIT"))
+        XCTAssertTrue(text(of: element("settings-credit-parakeet")).contains("NVIDIA"))
+        XCTAssertTrue(text(of: element("settings-credit-silero")).contains("Silero"))
+        XCTAssertTrue(element("settings-source-code").exists)
+        screenshot("pr-settings-about")
+    }
+
+    /// A labeled row reads its value from its children, not its own label.
+    private func text(of row: XCUIElement) -> String {
+        ([row.label, row.value as? String ?? ""] + row.staticTexts.allElementsBoundByIndex.map(\.label))
+            .joined(separator: " ")
+    }
+
     func testQuitEndsTheApp() {
         launchInFront()
         XCTAssertTrue(element("menu-quit").waitForExistence(timeout: 30))

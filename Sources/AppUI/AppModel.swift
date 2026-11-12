@@ -26,6 +26,7 @@ public final class AppModel {
     public var dictationFailedToStart = false
 
     public let versionDescription: String
+    public static let sourceCode = URL(string: "https://github.com/johnny4young/secreteo")!
     public var openSettings: () -> Void = {}
     public var openHistory: () -> Void = {}
 
