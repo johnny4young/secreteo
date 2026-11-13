@@ -4,6 +4,9 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+## 0.1.0
+
+- 🎙️ **First release**: dictate anywhere on your Mac with a shortcut, Fn or a mouse button. Speech recognition runs on this Mac.
 - 🎙️ **Take dictation from the menu**: when no app owns dictation, the menu offers Use Secreteo for Dictation instead of sending you to Settings.
 - 🎨 **App icon**: Secreteo has its own icon in Finder, the Dock and the installer.
 - ℹ️ **About in Settings**: version, license, the authors of the speech models and a link to the source code, next to the third-party notices.
@@ -11,10 +14,8 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 - ♻️ **Models another app installed**: while dictation uses them, Secreteo keeps its own claim, so that app removing its copy no longer deletes them from under Secreteo.
 - 🔒 **Deleted dictations stay deleted**: pressing Retry on an undelivered dictation you already deleted from History no longer saves it again.
 - 🎙️ **First dictation**: complete a successful practice before taking ownership or dictating globally; completion survives relaunch without saving the practice words.
-
 - ♻️ **Updates with undelivered words**: an accepted update waits until words that were not pasted are copied or discarded, so they are not lost on relaunch.
 - ♻️ **Updates during dictation**: an accepted update's relaunch hook waits for dictation, clipboard cleanup, and pending history and statistics saves before continuing.
-
 - 🎙️ **Sleep while polishing**: a dictation still being polished or translated when the Mac sleeps is cancelled instead of pasting after wake, and its words stay available to copy.
 - 🎙️ **Sleep during dictation**: cancel preparation and capture when the Mac sleeps, keep recognized words available to copy, and prevent those cancelled sessions from pasting later.
 - 🔎 **Search errors**: cancelled searches can be retried without a false error, and older searches no longer replace the latest error state.

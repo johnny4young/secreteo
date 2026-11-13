@@ -20,7 +20,7 @@ public final class DictationFeature: AppServices {
         case failed
     }
 
-    /// Off in a Release build until the other app's cooperating version has shipped.
+    /// On in every build since 0.1.0 (D28); a project setting can still turn it off.
     public static var mayRunInThisBuild: Bool {
         Bundle.main.object(forInfoDictionaryKey: "SecreteoGlobalDictation") as? String == "YES"
     }

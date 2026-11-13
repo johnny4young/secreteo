@@ -34,9 +34,9 @@ Disposable UI journeys and injected unit fixtures prove the paths they exercise;
 
 | Capability or case | Portavoz source | Portavoz test | Secreteo test | State |
 |---|---|---|---|---|
-| Global shortcut | `GlobalHotkey`, `DictationController+Hotkey` | `GlobalHotkeyRoutingTests`, `DictationShortcutTests`, `HotkeySettingTests` | The same tests. `testNoRegistrarKeepsTemporaryCompositionInert` checks the disposable feature instead of a shortcut fixture | Armed in Debug and `make install`. A real shortcut still has to be checked |
-| Push to talk, Fn and modifiers | `ModifierKeyPTT`, `DictationController+ModifierKey` | `ModifierKeyGestureTests`, `DictationModifierOwnershipTests` | `ModifierKeyGestureTests` | Armed in Debug and `make install` when configured, with its control in Settings |
-| Push to talk, mouse | `MouseButtonPTT`, `MousePTTGesture` | `MousePTTGestureTests` | The same tests | Armed in Debug and `make install` when configured, with its control in Settings |
+| Global shortcut | `GlobalHotkey`, `DictationController+Hotkey` | `GlobalHotkeyRoutingTests`, `DictationShortcutTests`, `HotkeySettingTests` | The same tests. `testNoRegistrarKeepsTemporaryCompositionInert` checks the disposable feature instead of a shortcut fixture | Armed in every build since 0.1.0 ([D28](DECISIONS.md#d28-release-builds-run-global-dictation-from-010)). A real shortcut still has to be checked |
+| Push to talk, Fn and modifiers | `ModifierKeyPTT`, `DictationController+ModifierKey` | `ModifierKeyGestureTests`, `DictationModifierOwnershipTests` | `ModifierKeyGestureTests` | Armed in every build since 0.1.0 ([D28](DECISIONS.md#d28-release-builds-run-global-dictation-from-010)) when configured, with its control in Settings |
+| Push to talk, mouse | `MouseButtonPTT`, `MousePTTGesture` | `MousePTTGestureTests` | The same tests | Armed in every build since 0.1.0 ([D28](DECISIONS.md#d28-release-builds-run-global-dictation-from-010)) when configured, with its control in Settings |
 | Menu | `MenuBarView`, `MenuBarModel` | `MenuBarModelTests`, `DictationUITests` | `DictationUITests` | Dictate and Paste last in the menu |
 | App Intents | `AppServices+DictationIntents` | `DictationIntentTests` | `DictationIntentTests` | Ported: Dictate and Paste last through the shortcut's admission, and Search and Open dictations behind the agent consent |
 | Paste last | `DictationController+PasteLast`, `AppServices+PasteLastDictation` | `DictationPasteLastTests` | The same tests | In the menu, and with an optional shortcut |

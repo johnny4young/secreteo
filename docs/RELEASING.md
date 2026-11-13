@@ -4,7 +4,7 @@ A `v*` tag runs `release.yml`. The owner approves the `release` Environment, rev
 
 ## Flow
 
-1. `scripts/check_release.py` refuses a tag that differs from `MARKETING_VERSION`, has no `## <version>` section in `CHANGELOG.md`, is not on `main`, or has no Sparkle key. It also refuses a build whose Release setting `SECRETEO_GLOBAL_DICTATION` is not `NO` ([D20](DECISIONS.md#d20-release-builds-do-not-run-global-dictation-yet)), unless `GLOBAL_DICTATION_CLEARED` is set after Portavoz 1.4 ships.
+1. `scripts/check_release.py` refuses a tag that differs from `MARKETING_VERSION`, has no `## <version>` section in `CHANGELOG.md`, is not on `main`, or has no Sparkle key. Release builds dictate ([D28](DECISIONS.md#d28-release-builds-run-global-dictation-from-010)), so it also refuses any tag unless the repository variable `GLOBAL_DICTATION_CLEARED` names that exact version, such as `0.1.0`. The owner sets it again for every release, so a clearance never carries over to the next tag.
 2. Hygiene and tests.
 3. Release build with the pinned toolchain: `macos-26`, Xcode 26.6.
 4. Sign nested helpers and the app with no ignored failures.
@@ -18,6 +18,14 @@ A `v*` tag runs `release.yml`. The owner approves the `release` Environment, rev
 12. The owner publishes the draft, which runs `update-cask.yml`.
 
 The feed stays at `releases/latest/download/appcast.xml`. Enclosures are versioned.
+
+## Each release
+
+After checking the release against the current Portavoz, and before pushing the tag, clear that version and no other:
+
+```sh
+gh variable set GLOBAL_DICTATION_CLEARED --body 0.1.0
+```
 
 ## Dry run
 
@@ -93,7 +101,7 @@ Same tap as the other apps, with its own deploy key. `packaging/Casks/secreteo.r
 
 ## Manual gates on the release Mac
 
-The exact steps and what each should show are in the [runbook](RUNBOOK.md).
+None of these blocks a tag yet ([D29](DECISIONS.md#d29-manual-gates-do-not-block-a-release-yet)). The exact steps and what each should show are in the [runbook](RUNBOOK.md).
 
 | Gate | When |
 |---|---|

@@ -15,7 +15,7 @@ options:
 
 settings:
   base:
-    MARKETING_VERSION: "0.0.1"
+    MARKETING_VERSION: "0.1.0"
     # One source for the version, so the number Sparkle compares can never be forgotten.
     CURRENT_PROJECT_VERSION: $(MARKETING_VERSION)
     SWIFT_VERSION: "6.0"
@@ -69,11 +69,10 @@ targets:
         ENABLE_APP_SANDBOX: NO
         SWIFT_EMIT_LOC_STRINGS: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        # Global dictation stays off in Release until the other app's cooperating version ships.
-        SECRETEO_GLOBAL_DICTATION: NO
+        # On since Portavoz's cooperating version shipped; each release still needs its own GLOBAL_DICTATION_CLEARED.
+        SECRETEO_GLOBAL_DICTATION: YES
       configs:
         Debug:
-          SECRETEO_GLOBAL_DICTATION: YES
           SPARKLE_PUBLIC_ED_KEY: ""
     info:
       path: Apps/Secreteo/Info.plist

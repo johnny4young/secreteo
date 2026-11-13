@@ -32,6 +32,9 @@ def info_problems(info: dict, version: str) -> list[str]:
         "SUFeedURL": FEED,
         "SUEnableAutomaticChecks": True,
         "CFBundleIconName": "AppIcon",
+        # D28: the shipped binary dictates and declares the ownership protocol peers look for.
+        "SecreteoGlobalDictation": "YES",
+        "DictationOwnershipProtocol": 1,
     }
     problems = [f"{key} is {info.get(key)!r}, expected {value!r}"
                 for key, value in expected.items() if info.get(key) != value]

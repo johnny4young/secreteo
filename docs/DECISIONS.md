@@ -88,6 +88,8 @@ The [ownership protocol](specs/ownership-protocol.md) requires a shortcut other 
 
 ## D20. Release builds do not run global dictation yet
 
+Superseded by [D28](#d28-release-builds-run-global-dictation-from-010).
+
 `SECRETEO_GLOBAL_DICTATION` is off in Release and on in Debug and `make install`. With it off the app does not create `DictationFeature`, so no trigger, event tap or lease can exist. A binary must not arm global dictation before Portavoz's cooperating version ships, and this makes that true of any tag. Turning it on is one line in `project.yml`, after that release.
 
 ## D21. A remembered model shows as ready while its hash runs
@@ -117,3 +119,11 @@ With Parakeet v3 loaded and no dictation running, the process stays at or under 
 ## D27. Swift on the Mac; Windows and Linux wait for demand
 
 Secreteo stays Swift and SwiftUI on the Mac (the maintainer's decision of 2026-11-05). Windows and Linux are considered only when users ask for them, and that question is reopened once Secreteo is a strong product with satisfied users, not before. The review behind it measured six desktop stacks on Apple Silicon and built the shared Swift core on Linux; its report is in the maintainer's private research notes, not in this repository. Portavoz records the same choice as Portavoz D639.
+
+## D28. Release builds run global dictation from 0.1.0
+
+Portavoz 1.4.0 shipped the cooperating side of the [ownership protocol](specs/ownership-protocol.md), and later versions keep it, so `SECRETEO_GLOBAL_DICTATION` is on in every configuration. `scripts/check_release.py` still refuses an armed tag unless the repository variable `GLOBAL_DICTATION_CLEARED` names that exact version. Only the owner sets it, once per release, after checking that release against the current Portavoz. The first signed release is 0.1.0 with dictation, and 0.1.1 is the real Sparkle update from it, instead of two releases without dictation first. It ships before [Spike 1](spikes/two-apps-at-once.md) is measured ([D29](#d29-manual-gates-do-not-block-a-release-yet)), so [G1](GAPS.md#g1-two-apps-at-once) stays open. A Portavoz older than 1.4 does not declare the protocol; with its dictation on, Secreteo refuses to dictate.
+
+## D29. Manual gates do not block a release yet
+
+While Secreteo is being built, getting a working product to users comes first (the owner's decision of 2026-11-13). Only the automated gates block a tag: CI, `scripts/check_release.py`, `scripts/verify_release.py` and the release workflow's own checks. The [manual gates](RELEASING.md#manual-gates-on-the-release-mac), the [runbook](RUNBOOK.md) and the spikes are optional until Secreteo has customers, when they come back as release gates. The Spike 1 harness stays for that phase, and the gaps it would close stay open in [GAPS](GAPS.md).

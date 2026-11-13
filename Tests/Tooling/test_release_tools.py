@@ -34,6 +34,8 @@ GOOD_INFO = {
     "SUEnableAutomaticChecks": True,
     "SUPublicEDKey": KEY,
     "CFBundleIconName": "AppIcon",
+    "SecreteoGlobalDictation": "YES",
+    "DictationOwnershipProtocol": 1,
 }
 GOOD_PATHS = ["Contents/Frameworks/Sparkle.framework", "Contents/Frameworks/Sparkle.framework/Sparkle",
               "Contents/MacOS/Secreteo", "Contents/Resources/THIRD-PARTY-NOTICES.md",
@@ -68,7 +70,7 @@ class InfoTests(unittest.TestCase):
         wrong = {"CFBundleIdentifier": "com.johnny4young.secreteo.dev", "CFBundleShortVersionString": "1.2.2",
                  "CFBundleVersion": "1", "LSMinimumSystemVersion": "15.0", "LSUIElement": False,
                  "SUFeedURL": "http://example.test/appcast.xml", "SUEnableAutomaticChecks": False,
-                 "CFBundleIconName": None}
+                 "CFBundleIconName": None, "SecreteoGlobalDictation": "NO", "DictationOwnershipProtocol": None}
         for key, value in wrong.items():
             self.assertTrue(verify_release.info_problems(GOOD_INFO | {key: value}, VERSION), key)
 
@@ -150,8 +152,8 @@ PROJECT = 'settings:\n  base:\n    MARKETING_VERSION: "1.2.3"\n    SPARKLE_PUBLI
 CHANGELOG = "# Changelog\n\n## Unreleased\n\n- Soon.\n\n## 1.2.3\n\n- Added this.\n- And that.\n\n## 1.2.2\n\n- Older.\n"
 
 
-def release_problems(tag="v1.2.3", project=PROJECT, changelog=CHANGELOG, on_main=True, arms=False, released=False):
-    return check_release.problems(tag, project, changelog, on_main, arms, released)
+def release_problems(tag="v1.2.3", project=PROJECT, changelog=CHANGELOG, on_main=True, arms=False, cleared=""):
+    return check_release.problems(tag, project, changelog, on_main, arms, cleared)
 
 
 class CheckReleaseTests(unittest.TestCase):
@@ -169,7 +171,8 @@ class CheckReleaseTests(unittest.TestCase):
         self.assertTrue(check_release.arms_global_dictation("        SECRETEO_GLOBAL_DICTATION: YES\n"))
         self.assertTrue(check_release.arms_global_dictation("        OTHER: NO\n"))
         repository = Path(__file__).resolve().parents[2]
-        self.assertFalse(check_release.arms_global_dictation((repository / "project.yml").read_text()))
+        # D28: release builds dictate, so every release needs GLOBAL_DICTATION_CLEARED.
+        self.assertTrue(check_release.arms_global_dictation((repository / "project.yml").read_text()))
 
     def test_only_a_debug_config_may_turn_dictation_on(self):
         base = "settings:\n  base:\n    SECRETEO_GLOBAL_DICTATION: NO\n  configs:\n"
@@ -210,9 +213,12 @@ class CheckReleaseTests(unittest.TestCase):
         for name, values in cases.items():
             self.assertTrue(release_problems(**values), name)
 
-    def test_arming_dictation_waits_for_portavoz(self):
-        self.assertTrue(release_problems(arms=True, released=False))
-        self.assertEqual(release_problems(arms=True, released=True), [])
+    def test_an_armed_release_needs_its_own_clearance(self):
+        self.assertTrue(release_problems(arms=True))
+        self.assertEqual(release_problems(arms=True, cleared="1.2.3"), [])
+        for stale in ("true", "1.2.2", "v1.2.3", "1.2.3.0"):
+            self.assertTrue(release_problems(arms=True, cleared=stale), stale)
+        self.assertEqual(release_problems(arms=False, cleared="1.2.2"), [])
 
 
 class CaskTests(unittest.TestCase):
