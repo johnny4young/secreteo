@@ -25,6 +25,10 @@ public struct MenuContentView: View {
                     MenuRow(title: "Dictate", identifier: "menu-bar-dictate") {
                         inTargetApp { dictation.toggleDictation() }
                     }
+                } else if dictation.isEnabled, dictation.canTakeOwnership {
+                    MenuRow(title: "Use Secreteo for Dictation", identifier: "menu-bar-take-ownership") {
+                        dictation.takeOwnership()
+                    }
                 } else {
                     MenuRow(title: "Set Up Dictation…", identifier: "menu-bar-set-up-dictation") {
                         model.openSettings()
