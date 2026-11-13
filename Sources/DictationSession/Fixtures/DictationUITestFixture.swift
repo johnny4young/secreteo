@@ -73,9 +73,18 @@ final class DictationUITestFixture {
         try Task.checkCancellation()
     }
 
-    /// UI journeys inspect unverified notices; unit tests own their expiry.
-    static func waitHoldingUnverifiedNotices(_ delay: Duration) async throws {
-        try await Task.sleep(for: delay == DictationController.unverifiedFeedbackDuration ? .seconds(3_600) : delay)
+    /// UI journeys inspect unverified notices, and a loaded runner can miss the verified
+    /// confirmation's real window; unit tests own both expiries.
+    static func waitHoldingFeedback(_ delay: Duration) async throws {
+        try await Task.sleep(for: heldFeedback(delay))
+    }
+
+    static func heldFeedback(_ delay: Duration) -> Duration {
+        switch delay {
+        case DictationController.unverifiedFeedbackDuration: .seconds(3_600)
+        case DictationController.verifiedFeedbackDuration: .seconds(3)
+        default: delay
+        }
     }
 
     /// False once a held load is cancelled.

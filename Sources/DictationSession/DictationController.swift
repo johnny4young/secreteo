@@ -852,7 +852,8 @@ extension DictationController {
         showPanel()
         // Unverified output closes too; Paste last still holds it for 15 minutes.
         scheduleFeedbackDismiss(
-            after: result == .verified && polishNotice == nil ? .milliseconds(1600) : Self.unverifiedFeedbackDuration,
+            after: result == .verified && polishNotice == nil
+                ? Self.verifiedFeedbackDuration : Self.unverifiedFeedbackDuration,
             wait: dependencies.waitForFeedbackDismissal)
         if result == .dispatched { armFeedbackDismissKey(dependencies) }
     }
@@ -864,6 +865,7 @@ extension DictationController {
     /// When the first audio arrived, for the compact indicator's elapsed time.
     var captureStartedAt: Date? { microphoneReadiness?.firstFrameAt }
     static let unverifiedFeedbackDuration: Duration = .seconds(4)
+    static let verifiedFeedbackDuration: Duration = .milliseconds(1600)
     /// Listening while the model still loads; the relay holds the speech.
     var isLoadingModel: Bool { loadingModelSessionID != nil && loadingModelSessionID == activeSessionID }
     var textMode: DictationTextMode { textPolicy.mode }
@@ -990,7 +992,7 @@ private extension DictationController {
         showPanel()
         // Long enough to choose "Always write"; nothing is learned unless it is pressed.
         scheduleFeedbackDismiss(
-            after: learnableCorrection == nil ? .milliseconds(1600) : .seconds(6),
+            after: learnableCorrection == nil ? Self.verifiedFeedbackDuration : .seconds(6),
             wait: dependencies.waitForFeedbackDismissal)
         return true
     }

@@ -123,6 +123,21 @@ func renderedText(of element: XCUIElement) -> String {
     [element.value as? String, element.label].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
 }
 
+/// Reads every identified element in one tree pass, for UI that closes on its own.
+@MainActor
+func renderedTexts(in app: XCUIApplication) -> [String: String] {
+    var nodes = (try? app.snapshot().children) ?? []
+    var texts: [String: String] = [:]
+    while let node = nodes.popLast() {
+        if !node.identifier.isEmpty {
+            texts[node.identifier] = [node.value as? String, node.label].compactMap { $0 }
+                .filter { !$0.isEmpty }.joined(separator: " ")
+        }
+        nodes.append(contentsOf: node.children)
+    }
+    return texts
+}
+
 @MainActor
 func waitForUITestCondition(timeout: TimeInterval, _ condition: @MainActor () -> Bool) -> Bool {
     let deadline = Date().addingTimeInterval(timeout)

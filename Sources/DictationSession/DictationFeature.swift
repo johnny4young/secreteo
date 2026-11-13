@@ -334,7 +334,7 @@ public final class DictationFeature: AppServices {
     private func fixtureDependencies() -> DictationSessionDependencies {
         var dependencies = DictationUITestFixture.dependencies(
             fixture: fixture, admission: dictationAdmission, beginCapture: { {} })
-        dependencies.waitForFeedbackDismissal = DictationUITestFixture.waitHoldingUnverifiedNotices
+        dependencies.waitForFeedbackDismissal = DictationUITestFixture.waitHoldingFeedback
         dependencies.storesPreferencesTemporarily = true
         dependencies.polishDictation = DictationUITestFixture.polishing(fixture)
         dependencies.translateDictation = DictationUITestFixture.translating(fixture)
