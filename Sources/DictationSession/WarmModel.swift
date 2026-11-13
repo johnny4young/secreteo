@@ -6,6 +6,7 @@ final class WarmModel<Model: Sendable> {
     private let idleLimit: @MainActor () -> Duration
     private let mayKeep: @MainActor () -> Bool
     private let load: @Sendable () async throws -> Model
+    private let sleep: @Sendable (Duration) async throws -> Void
     private var model: Model?
     private var loading: Task<Model, Error>?
     private var idleRelease: Task<Void, Never>?
@@ -18,11 +19,13 @@ final class WarmModel<Model: Sendable> {
 
     init(
         idleLimit: @escaping @MainActor () -> Duration = { .seconds(600) }, mayKeep: @escaping @MainActor () -> Bool,
-        load: @escaping @Sendable () async throws -> Model
+        load: @escaping @Sendable () async throws -> Model,
+        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) {
         self.idleLimit = idleLimit
         self.mayKeep = mayKeep
         self.load = load
+        self.sleep = sleep
     }
 
     func acquire() async throws -> Model {
@@ -66,8 +69,8 @@ final class WarmModel<Model: Sendable> {
         idleRelease = nil
         guard users == 0, model != nil else { return }
         let limit = idleLimit()
-        idleRelease = Task { [weak self] in
-            try? await Task.sleep(for: limit)
+        idleRelease = Task { [weak self, sleep] in
+            try? await sleep(limit)
             guard !Task.isCancelled else { return }
             self?.model = nil
         }

@@ -59,7 +59,7 @@ Disposable UI journeys and injected unit fixtures prove the paths they exercise;
 | Spoken correction in delivery | `DictationCorrections` | `DictationCorrectionTests` | The same tests, without the practice test | Logic ported. A real field still has to be checked |
 | Panel, compact indicator and waveform | `DictationPanel`, `DictationCompactIndicator` | `DictationPanelAnchorTests`, `DictationCompactIndicatorTests` | `DictationUITests` | Ported. Its unit tests are still to come |
 | Sounds and prewarm | `DictationSoundCue`, `AppServices+DictationPrewarm` | `DictationColdStartTests` | The same tests | Ported. Prewarm is off by default and never downloads |
-| Memory: model residency | `AppModelResidencyLedger`, `AppModelIdleReleaseScheduler` | `DictationResourceOwnershipTests`, which asserts sharing in one process and has to be rewritten | | A loaded model is released after 10 idle minutes, or one with the lightweight profile, and under memory pressure |
+| Memory: model residency | `AppModelResidencyLedger`, `AppModelIdleReleaseScheduler` | `DictationResourceOwnershipTests`, which asserts sharing in one process and has to be rewritten | `DictationModelResidencyTests`, rewritten for one app with a synthetic loader and a held clock, and `WarmModelTests` | Ported. A loaded model is released after 10 idle minutes, after one with the lightweight profile, and at once under memory pressure. A model in use has no idle clock, and pressure never takes it from a session. The next use loads it again |
 
 ## Text features and data
 
