@@ -33,6 +33,8 @@ final class DictationAgentSearchStoreTests: XCTestCase {
         let past = try await search(store, "report", offset: 3, limit: 2)
         XCTAssertEqual(past.page.records, [])
         XCTAssertEqual(past.page.total, 3)
+        let farPast = try await search(store, "report", offset: .max, limit: 50)
+        XCTAssertEqual(farPast.page.records, [], "a client's huge offset reads nothing instead of trapping")
     }
 
     func testNothingIsReadUntilTheHistoryIsShared() async throws {

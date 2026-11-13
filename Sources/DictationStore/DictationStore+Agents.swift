@@ -75,8 +75,9 @@ extension DictationStore {
                 let ranking = DictationHybridSearch.semanticRanking(query: meaning.vector, candidates: candidates)
                 meaningIDs = try Self.meaningOnly(in: database, ranking: ranking, wordFilter: filtered)
             }
+            let end = start > Int.max - size ? Int.max : start + size
             let meaningStart = max(start, wordTotal) - wordTotal
-            let meaningEnd = min(start + size - wordTotal, meaningIDs.count)
+            let meaningEnd = min(end - wordTotal, meaningIDs.count)
             if meaningStart < meaningEnd {
                 records += try Self.dictationRecords(in: database, ids: Array(meaningIDs[meaningStart..<meaningEnd]))
             }
