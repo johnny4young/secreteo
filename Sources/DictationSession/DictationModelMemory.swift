@@ -20,6 +20,12 @@ enum DictationModelMemory: String {
     static func current(in defaults: UserDefaults) -> Self {
         defaults.string(forKey: key).flatMap(Self.init(rawValue:)) ?? .balanced
     }
+
+    /// Read each time the warm model goes idle, so a changed profile or pressure applies to the next wait.
+    @MainActor
+    static func idleLimit(in defaults: UserDefaults, pressure: DictationMemoryPressure) -> Duration {
+        current(in: defaults).idleLimit(underPressure: pressure.isActive)
+    }
 }
 
 /// The system's last word on memory, which `WarmModel` reads before the feature exists.
