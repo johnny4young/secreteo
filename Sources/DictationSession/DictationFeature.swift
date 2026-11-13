@@ -135,9 +135,7 @@ public final class DictationFeature: AppServices {
         // UserDefaults is thread-safe.
         nonisolated(unsafe) let engineDefaults = defaults
         warmEngine = WarmModel(
-            idleLimit: { [pressure] in
-                DictationModelMemory.current(in: defaults).idleLimit(underPressure: pressure.isActive)
-            },
+            idleLimit: { [pressure] in DictationModelMemory.idleLimit(in: defaults, pressure: pressure) },
             mayKeep: { ownership.state == .owned },
             load: { try await Self.loadSpeechModel(store: modelStore, defaults: engineDefaults) })
         controller = DictationController()
