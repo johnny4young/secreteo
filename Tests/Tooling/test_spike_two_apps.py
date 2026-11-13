@@ -48,6 +48,11 @@ class PlanTests(unittest.TestCase):
             self.assertFalse(control["companion"])
             self.assertEqual(control["background"], "idle")
 
+    def test_fewer_manual_runs_than_the_owner_chose_need_the_dry_run(self):
+        with tempfile.TemporaryDirectory() as folder:
+            code = spike.main(["run", "--manual-trials", "3", "--output", folder + "/out", "--corpus", folder])
+        self.assertEqual(code, 2)
+
     def test_manual_cells_are_the_owner_run_events_only(self):
         manual = [cell for cell in self.cells if cell["manual"]]
         self.assertEqual(sorted({cell["event"] for cell in manual}), ["bluetooth", "sleep"])
@@ -94,7 +99,9 @@ class MeasureTests(unittest.TestCase):
 
     def observation(self, **values):
         base = {"triggerAt": 100.0, "playbackStartedAt": 100.5, "stopAt": 106.0, "settled": True,
-                "panel": [{"t": 100.1, "words": 0}, {"t": 100.9, "words": 2}, {"t": 103.8, "words": 8}],
+                "panel": [{"t": 100.1, "words": 0, "revision": 0, "panel": True},
+                          {"t": 100.9, "words": 2, "revision": 1, "panel": True},
+                          {"t": 103.8, "words": 8, "revision": 2, "panel": True}],
                 "insertions": [{"t": 106.6, "characters": 40, "words": 8}],
                 "timing": [{"startedAt": 100.02, "engine": "parakeet", "audio": {
                     "paddingFrames": 0, "rejectedFrames": 0, "relayDroppedFrames": 0},
@@ -112,8 +119,25 @@ class MeasureTests(unittest.TestCase):
         self.assertFalse(measured["doubleDelivery"] or measured["missingDelivery"] or measured["crashed"])
 
     def test_captions_that_settle_before_speech_ends_count_as_no_lag(self):
-        early = self.observation(panel=[{"t": 100.9, "words": 8}])
+        early = self.observation(panel=[{"t": 100.9, "words": 8, "revision": 1, "panel": True}])
         self.assertEqual(spike.measure(early, self.stop, case())["captionLatency"], 0.0)
+
+    def test_a_revision_that_keeps_the_word_count_still_moves_the_last_change(self):
+        panel = self.observation()["panel"] + [{"t": 104.4, "words": 8, "revision": 3, "panel": True}]
+        self.assertAlmostEqual(spike.measure(self.observation(panel=panel), self.stop, case())["captionLatency"], 0.9)
+
+    def test_trials_that_measured_nothing_become_errors(self):
+        quiet = spike.measure(self.observation(panel=[], insertions=[]), self.stop, case())
+        self.assertIn("panel never appeared", spike.trial_problem(quiet, self.stop))
+        unlogged = spike.measure(self.observation(timing=[]), self.stop, case())
+        self.assertIn("timing log", spike.trial_problem(unlogged, self.stop))
+        timing = self.observation()["timing"]
+        timing[0]["engine"] = "parakeet"
+        ultra = spike.build_cells()
+        ultra = cell_named(ultra, "secreteo-both-warm-parakeetUltra-idle-stop")
+        fallback = spike.measure(self.observation(timing=timing), ultra, case())
+        self.assertIn("instead of parakeetUltra", spike.trial_problem(fallback, ultra))
+        self.assertIsNone(spike.trial_problem(spike.measure(self.observation(), self.stop, case()), self.stop))
 
     def test_two_separate_pastes_are_a_double_delivery_and_one_split_paste_is_not(self):
         split = [{"t": 106.60, "characters": 20, "words": 4}, {"t": 106.63, "characters": 20, "words": 4}]
@@ -143,6 +167,8 @@ class MeasureTests(unittest.TestCase):
         measured = spike.measure(observation, self.portavoz, case())
         self.assertIsNone(measured["lostFrames"])
         self.assertTrue(measured["crashed"])
+        between = self.observation(aliveAtStart={"secreteo": False}, alive={"secreteo": True})
+        self.assertTrue(spike.measure(between, self.stop, case())["crashed"], "it died between trials")
 
 
 class EvaluateTests(unittest.TestCase):
@@ -192,6 +218,41 @@ class EvaluateTests(unittest.TestCase):
     def test_too_few_trials_or_unknown_frames_leave_it_incomplete(self):
         self.assertEqual(self.score(trials=29)["verdict"], "incomplete")
         self.assertEqual(self.score(treatment={"lostFrames": None})["verdict"], "incomplete")
+
+    def test_a_crash_fails_even_before_thirty_trials(self):
+        self.assertEqual(self.score(treatment={"crashed": True}, trials=3)["verdict"], "fail")
+
+    def test_dictations_that_never_showed_text_count_as_slower_than_any(self):
+        rows = [row(self.control["id"]) for _ in range(30)]
+        rows += [row(self.treatment["id"]) for _ in range(28)]
+        rows += [row(self.treatment["id"], timeToFirstText=None, captionLatency=None) for _ in range(2)]
+        result = spike.evaluate(self.cells, rows)
+        self.assertEqual(result["cells"][self.treatment["id"]]["timeToFirstTextP95"], "never")
+        failing = self.failing(result)
+        for name in ("timeToFirstTextCeiling", "timeToFirstTextRatio", "captionLatencyRise"):
+            self.assertIn((self.treatment["id"], name), failing)
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        report = Path(folder.name)
+        spike.write_report(report, self.cells, rows, {})
+        self.assertIn("| never |", (report / "report.md").read_text())
+
+    def test_a_stop_that_typed_nothing_fails_secreteo(self):
+        self.assertIn((self.treatment["id"], "delivery"), self.failing(self.score(treatment={"missingDelivery": True})))
+
+    def test_a_crash_report_found_after_the_block_counts(self):
+        rows = [row(self.control["id"]) for _ in range(30)] + [row(self.treatment["id"]) for _ in range(30)]
+        rows.append({"cell": self.treatment["id"], "trial": None, "lateCrash": True, "crashes": ["Secreteo Dev.ips"]})
+        summary = spike.evaluate(self.cells, rows)["cells"][self.treatment["id"]]
+        self.assertEqual((summary["trials"], summary["crashes"]), (30, 1))
+
+    def test_manual_cells_need_the_five_runs_the_owner_chose(self):
+        cells = spike.build_cells()
+        sleep = cell_named(cells, "secreteo-both-warm-parakeetUltra-idle-stop-sleep")
+        rows = [row(sleep["id"], captionLatency=None) for _ in range(4)]
+        self.assertEqual(spike.evaluate([sleep], rows)["verdict"], "incomplete")
+        rows.append(row(sleep["id"], captionLatency=None))
+        self.assertEqual(spike.evaluate([sleep], rows)["verdict"], "pass")
 
     def test_errors_and_warmups_never_count_as_trials(self):
         rows = [row(self.control["id"], warmup=True), row(self.control["id"], error="boom")]
@@ -245,6 +306,19 @@ class RunTests(unittest.TestCase):
         spike.main(["run", "--dry-run", "--automated-only", "--output", str(self.output)])
         self.assertEqual(spike.main(["run", "--dry-run", "--block", "5", "--output", str(self.output)]), 2)
 
+    def test_a_dry_run_folder_never_takes_real_rows(self):
+        class OtherBuild(spike.SimulatedDriver):
+            def identity(self):
+                return {"apps": {"secreteo": {"version": "0.1.0"}}}
+        cells = spike.build_cells()
+        blocks = spike.schedule(cells)
+        self.output.mkdir()
+        spike.execute(self.output, cells, blocks, [case()], spike.SimulatedDriver(), dry_run=True, log=lambda _: None)
+        with self.assertRaises(spike.SpikeError):
+            spike.execute(self.output, cells, blocks, [case()], spike.SimulatedDriver(), dry_run=False, log=lambda _: None)
+        with self.assertRaises(spike.SpikeError):
+            spike.execute(self.output, cells, blocks, [case()], OtherBuild(), dry_run=True, log=lambda _: None)
+
     def test_results_stay_outside_the_repository_and_need_an_absolute_path(self):
         with self.assertRaises(spike.SpikeError):
             spike.prepare_output("relative/folder")
@@ -255,7 +329,7 @@ class RunTests(unittest.TestCase):
     def test_a_trial_that_keeps_failing_stops_the_run(self):
         class Broken(spike.SimulatedDriver):
             def trial(self, cell, case):
-                raise spike.SpikeError("no panel")
+                raise NameError("an unexpected bug is recorded, not fatal at once")
         cells = spike.build_cells()
         self.output.mkdir()
         with self.assertRaises(spike.SpikeError):
@@ -268,11 +342,11 @@ class RunTests(unittest.TestCase):
         with (app / "Info.plist").open("wb") as stream:
             plistlib.dump({"CFBundleIdentifier": "com.example.fake", "CFBundleExecutable": "Fake",
                            "CFBundleShortVersionString": "1.5.1"}, stream)
-        identity = spike.RealDriver.identity(str(app.parent))
+        identity = spike.RealDriver.identity_of(str(app.parent))
         self.assertEqual((identity["bundleID"], identity["executable"], identity["version"]),
                          ("com.example.fake", "Fake", "1.5.1"))
         with self.assertRaises(spike.SpikeError):
-            spike.RealDriver.identity(self.folder.name + "/Missing.app")
+            spike.RealDriver.identity_of(self.folder.name + "/Missing.app")
 
 
 if __name__ == "__main__":

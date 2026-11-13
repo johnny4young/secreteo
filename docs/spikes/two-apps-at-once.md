@@ -46,16 +46,18 @@ How each one is measured:
 | Measure | How |
 |---|---|
 | Time to first text | From the trigger key to the first word in the dictating app's panel, read over Accessibility every 30 ms |
-| Caption latency | From the end of speech in the played file to the last caption change before Stop. Stop comes once captions have been still for 1.5 s, at most 6 s after speech; a trial that hit the cap is flagged |
+| Caption latency | From the end of speech in the played file to the last caption change before Stop, a same-length revision included. Stop comes once captions have been still for 1.5 s, at most 6 s after speech; a trial that hit the cap is flagged |
 | Lost audio | Secreteo: its [timing log](../specs/dictation-timing-log.md), padding plus rejected plus relay-dropped frames. Portavoz 1.5.1 reports no frames, so a Stop that typed nothing counts instead, marked indirect |
-| Double delivery | Separate pastes in the harness's receiver window; insertions within 50 ms are one paste |
-| Crashes | A new crash report for either app, or its process gone |
+| Double delivery | Separate pastes in the harness's receiver window; insertions within 50 ms are one paste. A cancel that still typed fails too |
+| Crashes | A new crash report for either app, including one written after its block, or its process gone during or between trials |
+
+A trial that never showed text counts as slower than any other in both p95s, and a Stop that typed nothing fails the cell. A trial that measured nothing (no panel, no timing line, or the wrong model because one was not downloaded) is an error, not a trial, and three in a row stop the run. Before each run of trials the harness turns off auto-stop, the compact indicator, spoken corrections and translation in both apps, and sets the text mode to Clean.
 
 Cold means the dictating app relaunched before each trial. The disk cache is not purged, so it stands in for the first load after login.
 
 ## How to run
 
-The harness is `scripts/spike_two_apps.py`. It compiles `scripts/spike-agent.swift`, which posts the trigger keys, reads the panels, plays the corpus into the loopback and keeps the receiver window. Rows and the report hold times and counts, never audio or words.
+The harness is `scripts/spike_two_apps.py`. It compiles `scripts/spike-agent.swift`, which posts the trigger keys only while the receiver window is in front, reads the panels, plays the corpus into the loopback and keeps the receiver window. Rows and the report hold times and counts, never audio or words.
 
 Once, as an administrator:
 

@@ -136,8 +136,14 @@ let keyCodes: [String: Int] = [
     "y": kVK_ANSI_Y, "z": kVK_ANSI_Z, "space": kVK_Space, "esc": kVK_Escape, "return": kVK_Return,
 ]
 
+func frontmostPID() -> pid_t { NSWorkspace.shared.frontmostApplication?.processIdentifier ?? -1 }
+
 func key(_ arguments: [String]) {
     guard let combo = option("--combo", in: arguments) else { fail("key needs --combo") }
+    // A trigger with the wrong app in front would paste the corpus there.
+    if let wanted = option("--require-front", in: arguments).flatMap({ pid_t($0) }), frontmostPID() != wanted {
+        fail("pid \(wanted) is not in front")
+    }
     var flags = CGEventFlags()
     var code: Int?
     for part in combo.lowercased().split(separator: "+").map(String.init) {
@@ -170,11 +176,11 @@ func attribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? {
     return AXUIElementCopyAttributeValue(element, name as CFString, &value) == .success ? value : nil
 }
 
+/// The longest of value, label and title: a strip may show only its tail while the label holds everything.
 func text(of element: AXUIElement) -> String {
-    for name in [kAXValueAttribute, kAXDescriptionAttribute, kAXTitleAttribute] {
-        if let value = attribute(element, name as String) as? String, !value.isEmpty { return value }
-    }
-    return ""
+    [kAXValueAttribute, kAXDescriptionAttribute, kAXTitleAttribute]
+        .compactMap { attribute(element, $0 as String) as? String }
+        .max(by: { $0.count < $1.count }) ?? ""
 }
 
 /// Panel elements by identifier, searched breadth-first with a bound so a large window cannot stall a poll.
@@ -183,7 +189,7 @@ func panelElements(pid: pid_t) -> [String: AXUIElement] {
     var queue = (attribute(app, kAXWindowsAttribute as String) as? [AXUIElement]) ?? []
     var found: [String: AXUIElement] = [:]
     var visited = 0
-    while !queue.isEmpty, visited < 2_000 {
+    while !queue.isEmpty, visited < 600 {
         let element = queue.removeFirst()
         visited += 1
         if let identifier = attribute(element, "AXIdentifier") as? String,
@@ -195,27 +201,37 @@ func panelElements(pid: pid_t) -> [String: AXUIElement] {
     return found
 }
 
+/// Emits counts only. The transcript stays in memory, where a same-length revision still bumps `revision`.
 func watch(_ arguments: [String]) {
-    guard let pidText = option("--pid", in: arguments), let pid = pid_t(pidText),
-          let path = option("--out", in: arguments) else { fail("watch needs --pid and --out") }
+    guard let pidText = option("--pid", in: arguments), let pid = pid_t(pidText) else { fail("watch needs --pid") }
+    if arguments.contains("--once") {
+        emit(["panel": !panelElements(pid: pid).isEmpty])
+        return
+    }
+    guard let path = option("--out", in: arguments) else { fail("watch needs --out") }
     let interval = Double(option("--interval", in: arguments) ?? "0.03") ?? 0.03
     FileManager.default.createFile(atPath: path, contents: nil, attributes: [.posixPermissions: 0o600])
     guard let handle = FileHandle(forWritingAtPath: path) else { fail("cannot write \(path)") }
     signal(SIGTERM) { _ in exit(0) }
     var last: [String: AnyHashable] = [:]
+    var transcript = ""
+    var revision = 0
     while true {
+        let polled = Date().timeIntervalSince1970
         let elements = panelElements(pid: pid)
-        var sample: [String: AnyHashable] = [
-            "panel": !elements.isEmpty,
-            "words": elements["dictation-panel-transcript"].map { wordCount(text(of: $0)) } ?? 0,
+        let current = elements["dictation-panel-transcript"].map(text(of:)) ?? ""
+        if current != transcript {
+            transcript = current
+            revision += 1
+        }
+        let sample: [String: AnyHashable] = [
+            "panel": !elements.isEmpty, "words": wordCount(current), "revision": revision,
             "delivered": elements["dictation-panel-delivery-status"] != nil,
         ]
-        // The state line is the app's own fixed copy, never dictated words.
-        if let state = elements["dictation-panel-state"] { sample["state"] = text(of: state) }
         if sample != last {
             last = sample
             var line: [String: Any] = sample
-            line["t"] = Date().timeIntervalSince1970
+            line["t"] = polled
             emit(line, to: handle)
         }
         Thread.sleep(forTimeInterval: interval)
@@ -226,13 +242,17 @@ func watch(_ arguments: [String]) {
 
 final class Receiver: NSObject, NSApplicationDelegate, NSTextStorageDelegate {
     let output: FileHandle
+    let readyPath: String
     let window = NSWindow(
         contentRect: NSRect(x: 200, y: 200, width: 520, height: 260),
         styleMask: [.titled], backing: .buffered, defer: false)
     let view = NSTextView(frame: NSRect(x: 0, y: 0, width: 520, height: 260))
     var signals: [DispatchSourceSignal] = []
 
-    init(output: FileHandle) { self.output = output }
+    init(output: FileHandle, readyPath: String) {
+        self.output = output
+        self.readyPath = readyPath
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         window.title = "Spike receiver"
@@ -245,14 +265,25 @@ final class Receiver: NSObject, NSApplicationDelegate, NSTextStorageDelegate {
         front.resume()
         signals.append(front)
         bringForward(clearing: true)
-        emit(["ready": true, "pid": ProcessInfo.processInfo.processIdentifier])
+        let ready = ["ready": true, "pid": ProcessInfo.processInfo.processIdentifier] as [String: Any]
+        emit(ready)
+        // `open` drops stdout, so the harness reads readiness from this file.
+        if let data = try? JSONSerialization.data(withJSONObject: ready) {
+            FileManager.default.createFile(atPath: readyPath, contents: data, attributes: [.posixPermissions: 0o600])
+        }
+    }
+
+    /// A second `open` of the bundle lands here: it is the activation macOS always honors.
+    func applicationDidBecomeActive(_ notification: Notification) {
+        window.makeKeyAndOrderFront(nil)
+        window.makeFirstResponder(view)
     }
 
     func bringForward(clearing: Bool) {
         if clearing { view.textStorage?.setAttributedString(NSAttributedString()) }
         window.makeKeyAndOrderFront(nil)
         window.makeFirstResponder(view)
-        NSApp.activate(ignoringOtherApps: true)
+        if #available(macOS 14, *) { NSApp.activate() } else { NSApp.activate(ignoringOtherApps: true) }
     }
 
     func textStorage(
@@ -271,7 +302,7 @@ func receive(_ arguments: [String]) {
     guard let handle = FileHandle(forWritingAtPath: path) else { fail("cannot write \(path)") }
     handle.seekToEndOfFile()
     let app = NSApplication.shared
-    let delegate = Receiver(output: handle)
+    let delegate = Receiver(output: handle, readyPath: path + ".ready")
     app.delegate = delegate
     app.setActivationPolicy(.regular)
     app.run()
@@ -283,6 +314,7 @@ case "check": check(arguments)
 case "play": play(arguments)
 case "key": key(arguments)
 case "watch": watch(arguments)
+case "front": emit(["pid": frontmostPID()])
 case "receiver": receive(arguments)
-default: fail("usage: spike-agent check|play|key|watch|receiver")
+default: fail("usage: spike-agent check|play|key|watch|front|receiver")
 }
