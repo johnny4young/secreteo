@@ -41,6 +41,34 @@ final class DictationMCPCommandTests: XCTestCase {
         XCTAssertTrue(answer.contains("Envía el informe."))
     }
 
+    func testTheHelperSearchesByMeaningOnlyWithVectorsTheAppSaved() async throws {
+        let url = try scratch().appendingPathComponent(DictationStore.fileName)
+        let embedding = KeywordEmbedding()
+        let store = try DictationStore(databaseURL: url)
+        let policy = try await store.setDictationHistoryPolicy(
+            isEnabled: true, keepsOriginal: false, retentionDays: 30, exposesToAgents: true)
+        for text in ["Revisa la acción pendiente.", "No borres estas notas.", "Toma más notas."] {
+            let record = DictationRecord(
+                id: DictationRecordID(), createdAt: Date(), duration: 1, text: text, originalText: nil,
+                mode: .literal, language: nil, engine: "parakeet", applicationName: "Mail",
+                applicationBundleID: nil, delivery: .verified)
+            _ = try await store.recordDictation(record, admittedGeneration: policy.generation)
+            if text.hasPrefix("No borres") {
+                _ = try await store.saveDictationEmbedding(
+                    .init(recordID: record.id, vector: try await embedding.embed(text)), profile: embedding.profile)
+            }
+        }
+        let tool = try XCTUnwrap(
+            DictationToolbox.tools(reader: .opening(url, embedding: embedding)).first { $0.name == "search_dictations" })
+
+        let answer = try await tool.handler(Data(#"{"query":"pendiente"}"#.utf8))
+        XCTAssertTrue(answer.hasPrefix("secreteo-dictations/1 total=2 range=1-2 next_offset=none by_meaning=1"), answer)
+        XCTAssertTrue(answer.contains("No borres estas notas."))
+        XCTAssertFalse(answer.contains("Toma más notas."), "a dictation with no saved vector matches by words only")
+        let saved = try await store.dictationEmbeddings(profile: embedding.profile)
+        XCTAssertEqual(saved.count, 1, "the helper never writes a vector")
+    }
+
     func testTheDatabaseIsTheEnclosingAppsUnlessOneIsNamed() throws {
         let app = try scratch().appendingPathComponent("Secreteo Dev.app", isDirectory: true)
         let helpers = app.appendingPathComponent("Contents/Helpers", isDirectory: true)

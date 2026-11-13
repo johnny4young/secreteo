@@ -13,6 +13,7 @@ public protocol DictationAgentStore: Sendable {
     func searchDictationsForAgents(
         matching filter: DictationRecordFilter, meaning: DictationMeaningQuery?, offset: Int, limit: Int
     ) async throws -> DictationAgentRead<DictationSearchPage>
+    func dictationHistoryPolicy() async throws -> DictationHistoryPolicy
 }
 
 extension DictationStore: DictationAgentStore {}
@@ -56,6 +57,8 @@ public struct SearchDictationsForAgents {
     public func execute(
         _ request: ReadDictationsForAgents.Request
     ) async throws -> DictationAgentRead<DictationSearchPage> {
+        // The model never sees a query the user has not shared; the read below checks again.
+        guard try await store.dictationHistoryPolicy().agentsCanRead else { return .notAllowed }
         let meaning = await DictationMeaningQuery.make(for: request.filter.query, using: embedding)
         return try await store.searchDictationsForAgents(
             matching: request.filter, meaning: meaning, offset: request.offset, limit: request.limit)

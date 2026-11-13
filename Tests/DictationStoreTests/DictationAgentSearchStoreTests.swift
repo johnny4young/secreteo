@@ -64,6 +64,28 @@ final class DictationAgentSearchStoreTests: XCTestCase {
         XCTAssertEqual(oneApp.meaningMatches, 1)
     }
 
+    func testMeaningKeepsTheUndeliveredFilterAndSkipsWordMatchesBeyondThePage() async throws {
+        let store = try DictationStore.inMemory()
+        let generation = try await sharing(store, true).generation
+        for index in 0..<150 {
+            _ = try await save(store, "Report \(index)", age: Double(index), vector: near, generation: generation)
+        }
+        let undelivered = try await save(
+            store, "Mail the summary", age: 200, vector: near, delivery: .notDelivered, generation: generation)
+        _ = try await save(store, "Write the summary", age: 201, vector: near, generation: generation)
+
+        let all = try await search(store, "report", offset: 148, limit: 10)
+        XCTAssertEqual(all.page.total, 152)
+        XCTAssertEqual(all.meaningMatches, 2, "word matches past the first page are never listed again")
+        XCTAssertEqual(all.page.records.map(\.text), ["Report 148", "Report 149", "Mail the summary", "Write the summary"])
+
+        let read = try await store.searchDictationsForAgents(
+            matching: .init(query: "report", onlyNotDelivered: true),
+            meaning: .init(profile: profile, vector: near), offset: 0, limit: 10)
+        guard case .allowed(let filtered) = read else { return XCTFail("sharing is on") }
+        XCTAssertEqual(filtered.page.records.map(\.id), [undelivered.id])
+    }
+
     func testMeaningListsAtMostTheHistoryWindowsLimit() async throws {
         let store = try DictationStore.inMemory()
         let generation = try await sharing(store, true).generation
@@ -99,12 +121,12 @@ final class DictationAgentSearchStoreTests: XCTestCase {
 
     private func save(
         _ store: DictationStore, _ text: String, age: Double, vector: [Float], application: String = "Notes",
-        generation: Int
+        delivery: DictationRecordDelivery = .verified, generation: Int
     ) async throws -> DictationRecord {
         let record = DictationRecord(
             id: DictationRecordID(), createdAt: now.addingTimeInterval(-age), duration: 2, text: text,
             originalText: nil, mode: .literal, language: nil, engine: "parakeet", applicationName: application,
-            applicationBundleID: nil, delivery: .verified)
+            applicationBundleID: nil, delivery: delivery)
         _ = try await store.recordDictation(record, admittedGeneration: generation, at: now)
         let saved = try await store.saveDictationEmbedding(.init(recordID: record.id, vector: vector), profile: profile)
         XCTAssertTrue(saved)

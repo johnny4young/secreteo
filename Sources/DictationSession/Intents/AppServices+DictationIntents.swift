@@ -10,6 +10,8 @@ struct AppDictationIntentReader: SecreteoDictationReader {
     func dictationTexts(matching words: String, limit: Int) async throws -> [String]? {
         let read: DictationAgentRead<DictationSearchPage>
         do {
+            // The model never sees a query the user has not shared; the read below checks again.
+            guard try await store.dictationHistoryPolicy().agentsCanRead else { return nil }
             read = try await store.searchDictationsForAgents(
                 matching: DictationRecordFilter(query: words),
                 meaning: await DictationMeaningQuery.make(for: words, using: embedding), offset: 0, limit: limit)

@@ -212,7 +212,8 @@ final class DictationIntentTests: XCTestCase {
                     applicationName: "Slack", applicationBundleID: nil, delivery: .verified),
                 admittedGeneration: policy.generation, at: now)
         }
-        let reader = AppDictationIntentReader(store: store)
+        let embedding = CountingEmbedding()
+        let reader = AppDictationIntentReader(store: store, embedding: embedding)
 
         do {
             _ = try await SecreteoDictationSearchAction.search("report", limit: 10, reader: reader)
@@ -220,6 +221,8 @@ final class DictationIntentTests: XCTestCase {
         } catch {
             XCTAssertEqual(error as? SecreteoDictationIntentError, .notShared)
         }
+        let unsharedCalls = await embedding.calls
+        XCTAssertEqual(unsharedCalls, 0, "an unshared search never reaches the model")
 
         _ = try await store.setDictationHistoryPolicy(
             isEnabled: true, keepsOriginal: false, retentionDays: 30, exposesToAgents: true, at: now)
@@ -291,5 +294,17 @@ final class DictationIntentTests: XCTestCase {
         }
         XCTAssertTrue(reloaded, "an open window reloads with the new search")
         XCTAssertEqual(opened, 2)
+    }
+}
+
+private actor CountingEmbedding: DictationTextEmbedding {
+    nonisolated let profile = "counting"
+    private(set) var calls = 0
+
+    func isReady() -> Bool { true }
+
+    func embed(_ text: String) throws -> [Float] {
+        calls += 1
+        return [1, 0]
     }
 }

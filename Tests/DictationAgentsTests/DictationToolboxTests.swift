@@ -103,6 +103,17 @@ final class DictationToolboxTests: XCTestCase {
         XCTAssertTrue(plain.hasPrefix("secreteo-dictations/1 total=1 range=1-1 next_offset=none by_meaning=0"))
     }
 
+    func testASearchTheUserHasNotSharedNeverReachesTheModel() async throws {
+        let store = try await populatedStore(sharing: false)
+        let embedding = KeywordEmbedding()
+        let tools = DictationToolbox.tools(reader: .local(store: store, embedding: embedding))
+
+        let answer = try await call(tools, "search_dictations", #"{"query":"pendiente"}"#)
+        XCTAssertEqual(answer, DictationToolbox.notAllowed)
+        let calls = await embedding.calls
+        XCTAssertEqual(calls, 0, "an unshared search never reaches the model")
+    }
+
     func testGetDictationReturnsTheFullTextAndTheKeptOriginal() async throws {
         let store = try await populatedStore(sharing: true)
         let tools = DictationToolbox.tools(reader: .local(store: store))
@@ -169,12 +180,14 @@ final class DictationToolboxTests: XCTestCase {
 }
 
 /// Texts about pending work or notes point one way, everything else another.
-private struct KeywordEmbedding: DictationTextEmbedding {
-    var profile: String { "keyword-test-v1" }
+actor KeywordEmbedding: DictationTextEmbedding {
+    nonisolated let profile = "keyword-test-v1"
+    private(set) var calls = 0
 
-    func isReady() async -> Bool { true }
+    func isReady() -> Bool { true }
 
-    func embed(_ text: String) async throws -> [Float] {
+    func embed(_ text: String) throws -> [Float] {
+        calls += 1
         let lowered = text.lowercased()
         return ["pendiente", "notas"].contains(where: lowered.contains) ? [1, 0] : [0, 1]
     }

@@ -50,6 +50,7 @@ public struct DictationMeaningQuery: Equatable, Sendable {
     /// Nil when the words have nothing to mean, the model is not on this Mac, or it fails:
     /// the search then matches words only, and nothing is downloaded.
     public static func make(for query: String, using embedding: (any DictationTextEmbedding)?) async -> Self? {
+        let query = String(query.prefix(DictationRecordFilter.maximumQueryLength))
         guard let embedding, DictationHybridSearch.isSearchable(query), await embedding.isReady(),
               let vector = try? await embedding.embed(query)
         else { return nil }
