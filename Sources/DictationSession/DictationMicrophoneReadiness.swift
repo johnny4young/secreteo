@@ -120,8 +120,7 @@ final class DictationMicrophoneReadiness {
                     guard await accept(arrivedAt: arrivedAt), !Task.isCancelled else { break }
                     let relayed = feed.yield(chunk)
                     guard DictationRelayPolicy.admits(relayed, chunk: chunk) else {
-                        // A finished relay means the session already ended; nothing it needed was lost.
-                        if case .terminated = relayed {} else { await onRelayDrop(chunk.samples.count) }
+                        if let lost = DictationRelayPolicy.lostFrames(relayed, chunk: chunk) { await onRelayDrop(lost) }
                         if !Task.isCancelled { await failCapture() }
                         feed.finish()
                         return

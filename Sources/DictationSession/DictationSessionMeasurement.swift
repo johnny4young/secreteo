@@ -43,7 +43,7 @@ struct DictationSessionAudioCounts: Codable, Equatable, Sendable {
     /// Silence the capture inserted over a device gap: audio that never arrived.
     var paddingFrames: Int64?
     var rejectedFrames: Int64?
-    /// Audio the relay to the model could not keep, which also fails the session.
+    /// Audio the relay evicted, or queued past its backlog limit; either fails the session.
     var relayDroppedChunks = 0
     var relayDroppedFrames: Int64 = 0
     var captureFailure: CaptureFailure?
@@ -141,6 +141,8 @@ final class DictationSessionMeasurementRecorder {
         sink?(measurement)
         guard let recordSink else { return }
         var audio = audio
+        // Reading once lets the finished capture go; the recorder outlives the session.
+        defer { captureReport = nil }
         if let report = captureReport?() {
             audio.acceptedFrames = report.acceptedFrames
             audio.paddingFrames = report.paddingFrames

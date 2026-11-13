@@ -37,6 +37,18 @@ enum DictationRelayPolicy {
         let queued = Double(capacity - remaining) * Double(chunk.samples.count) / chunk.sampleRate
         return queued <= backlogLimit
     }
+
+    /// Frames a refused yield cost the session. A finished relay means it already ended.
+    static func lostFrames(
+        _ result: AsyncStream<AudioChunk>.Continuation.YieldResult, chunk: AudioChunk
+    ) -> Int? {
+        switch result {
+        case .dropped(let evicted): evicted.samples.count
+        case .enqueued: chunk.samples.count
+        case .terminated: nil
+        @unknown default: nil
+        }
+    }
 }
 
 enum DictationSessionError: LocalizedError {
