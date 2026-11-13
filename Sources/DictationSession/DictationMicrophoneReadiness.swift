@@ -95,6 +95,7 @@ final class DictationMicrophoneReadiness {
         feed: AsyncStream<AudioChunk>.Continuation,
         mirror: @escaping @Sendable (AudioChunk) -> Void = { _ in },
         onInputEnded: @escaping @Sendable () async -> Void = {},
+        onRelayDrop: @escaping @Sendable (Int) async -> Void = { _ in },
         updateMeter: @escaping @MainActor @Sendable (Float) -> Void
     ) -> Task<Void, Never> {
         Task.detached { [self] in
@@ -117,7 +118,9 @@ final class DictationMicrophoneReadiness {
                         peak = max(peak, abs(sample))
                     }
                     guard await accept(arrivedAt: arrivedAt), !Task.isCancelled else { break }
-                    guard DictationRelayPolicy.admits(feed.yield(chunk), chunk: chunk) else {
+                    let relayed = feed.yield(chunk)
+                    guard DictationRelayPolicy.admits(relayed, chunk: chunk) else {
+                        if let lost = DictationRelayPolicy.lostFrames(relayed, chunk: chunk) { await onRelayDrop(lost) }
                         if !Task.isCancelled { await failCapture() }
                         feed.finish()
                         return

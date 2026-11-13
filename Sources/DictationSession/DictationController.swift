@@ -238,9 +238,7 @@ final class DictationController {
         adopt(lease)
         self.dependencies = dependencies
         sessionFeedbackWait = dependencies.waitForFeedbackDismissal
-        measurement = dependencies.measurementSink.map {
-            DictationSessionMeasurementRecorder(now: dependencies.measurementClock, sink: $0)
-        }
+        measurement = DictationSessionMeasurementRecorder.make(for: dependencies)
         pressedAt = nil
         pressedSessionID = nil
         cancelFeedbackDismissal()
@@ -330,6 +328,7 @@ final class DictationController {
             guard activeSessionID == id else { return }
             microphone = input.source
             self.microphone = input.source
+            measurement?.observeCapture(input.source)
             microphoneNotice = input.usesSystemFallback ? L10n.text(
                 "Your preferred microphone is unavailable. Using the system default for this dictation.") : nil
             // Audio-first: speech during a cold load waits in the bounded relay.
@@ -597,6 +596,7 @@ private extension DictationController {
         try Task.checkCancellation()
         guard activeSessionID == id else { throw CancellationError() }
         sessionEngine = runtime.lane
+        if let lane = runtime.lane { measurement?.noteEngine(lane.rawValue) }
         return runtime
     }
 
@@ -674,6 +674,9 @@ private extension DictationController {
             onInputEnded: { [weak self] in
                 if let measurement { await measurement.record(.inputEnded) }
                 await self?.markRelayEnded(sessionID)
+            },
+            onRelayDrop: { frames in
+                if let measurement { await measurement.noteRelayDrop(frames: frames) }
             },
             updateMeter: { [weak self] peak in
                 guard let self, activeSessionID == sessionID else { return }
@@ -962,6 +965,7 @@ private extension DictationController {
         guard let edit = command.edit(in: reference) else { return false }
         guard let last = lastInsertion, last.text == reference, last.isFresh(at: dependencies.now()), last.isIntact()
         else {
+            measurement?.finish(.deliveryRejected)
             failSession(id: sessionID, message: L10n.text(
                 "Secreteo can correct only its last insertion while it is unchanged in a field it can read."))
             return true
@@ -969,6 +973,7 @@ private extension DictationController {
         dispatched = (sessionID, false)
         guard let updated = await last.edit(edit.range, edit.replacement) else {
             guard activeSessionID == sessionID else { return true }
+            measurement?.finish(.deliveryRejected)
             failSession(id: sessionID, message: L10n.text("This field did not accept the correction. Nothing changed."))
             return true
         }
@@ -978,6 +983,7 @@ private extension DictationController {
         correctionSummary = Self.correctionSummary(for: command, edit: edit, in: reference)
         learnableCorrection = DictationLearnableCorrection(
             command, edit: edit, in: reference, dependencies: dependencies)
+        measurement?.finishDelivery(.dispatched)
         completeSession(id: sessionID)
         destination = nil
         phase = .verified(0)
