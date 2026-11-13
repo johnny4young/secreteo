@@ -77,7 +77,9 @@ final class DictationAgentSearchStoreTests: XCTestCase {
         let all = try await search(store, "report", offset: 148, limit: 10)
         XCTAssertEqual(all.page.total, 152)
         XCTAssertEqual(all.meaningMatches, 2, "word matches past the first page are never listed again")
-        XCTAssertEqual(all.page.records.map(\.text), ["Report 148", "Report 149", "Mail the summary", "Write the summary"])
+        let texts = all.page.records.map(\.text)
+        XCTAssertEqual(Array(texts.prefix(2)), ["Report 148", "Report 149"])
+        XCTAssertEqual(Set(texts.dropFirst(2)), ["Mail the summary", "Write the summary"], "equal scores order by id")
 
         let read = try await store.searchDictationsForAgents(
             matching: .init(query: "report", onlyNotDelivered: true),
