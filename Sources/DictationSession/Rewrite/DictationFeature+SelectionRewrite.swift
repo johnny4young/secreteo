@@ -118,6 +118,6 @@ struct SelectionRewriteUITestFixture {
             recipes: recipes,
             protectedTerms: { [] },
             copyText: { _ in true },
-            wait: DictationUITestFixture.waitHoldingUnverifiedNotices)
+            wait: DictationUITestFixture.waitHoldingFeedback)
     }
 }

@@ -428,6 +428,12 @@ final class DictationControllerTests: XCTestCase {
         XCTAssertEqual(harness.controller.phase, .idle)
     }
 
+    func testUIJourneysHoldFeedbackLongEnoughToReadIt() {
+        XCTAssertEqual(DictationUITestFixture.heldFeedback(DictationController.unverifiedFeedbackDuration), .seconds(3_600))
+        XCTAssertEqual(DictationUITestFixture.heldFeedback(DictationController.verifiedFeedbackDuration), .seconds(3))
+        XCTAssertEqual(DictationUITestFixture.heldFeedback(.seconds(6)), .seconds(6))
+    }
+
     func testFixtureFlagsAreInertOutsideTemporaryComposition() async {
         XCTAssertNil(DictationUITestFixture(
             arguments: ["-seed-dictation"], usesTemporaryStore: false))

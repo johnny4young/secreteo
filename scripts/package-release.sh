@@ -68,15 +68,18 @@ app="$stage/Secreteo.app"
 dmg="$output/Secreteo-$version.dmg"
 
 notarize() {
-  local submit="$1" staple="$2" plist status=0
+  local submit="$1" staple="$2" plist status=0 id
   plist="$(mktemp)"
   xcrun notarytool submit "$submit" --key "$MACOS_NOTARY_KEY_P8" --key-id "$MACOS_NOTARY_KEY_ID" \
     --issuer "$MACOS_NOTARY_KEY_ISSUER_ID" --wait --timeout 45m --output-format plist > "$plist" || status=$?
-  if [[ "$status" -ne 0 || "$(plutil -extract status raw -o - "$plist")" != "Accepted" ]]; then
+  if [[ "$status" -ne 0 || "$(plutil -extract status raw -o - "$plist" 2>/dev/null)" != "Accepted" ]]; then
     echo "error: notarization of $staple was not accepted" >&2
     cat "$plist" >&2
-    xcrun notarytool log "$(plutil -extract id raw -o - "$plist")" --key "$MACOS_NOTARY_KEY_P8" \
-      --key-id "$MACOS_NOTARY_KEY_ID" --issuer "$MACOS_NOTARY_KEY_ISSUER_ID" >&2
+    # A request Apple refuses outright gets no submission, so there is no log to fetch.
+    if id="$(plutil -extract id raw -o - "$plist" 2>/dev/null)" && [[ -n "$id" ]]; then
+      xcrun notarytool log "$id" --key "$MACOS_NOTARY_KEY_P8" \
+        --key-id "$MACOS_NOTARY_KEY_ID" --issuer "$MACOS_NOTARY_KEY_ISSUER_ID" >&2
+    fi
     exit 1
   fi
   rm -f "$plist"

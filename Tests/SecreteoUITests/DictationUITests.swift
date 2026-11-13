@@ -402,17 +402,19 @@ final class DictationUITests: SecreteoUITestCase {
             app.launchSecreteo()
             defer { finishUITestApplication(app) }
             enterDestinationDelivery(app)
+            // The verified confirmation closes after 1.6 s, so one tree read sees all of it.
+            let texts = renderedTexts(in: app)
             let status = app.staticTexts["dictation-panel-delivery-status"]
-            let title = renderedText(of: status)
-            let detail = app.staticTexts["dictation-panel-delivery-detail"]
-            XCTAssertTrue(detail.exists)
-            XCTAssertFalse(app.buttons["dictation-recovery-reinsert"].exists,
-                           "An unacknowledged event is not an automatically retryable refusal")
+            let title = texts["dictation-panel-delivery-status"] ?? ""
+            let detail = texts["dictation-panel-delivery-detail"]
+            XCTAssertNotNil(detail)
+            XCTAssertNil(texts["dictation-recovery-reinsert"],
+                         "An unacknowledged event is not an automatically retryable refusal")
             if verified {
                 XCTAssertTrue(title.contains("inserted") || title.contains("insertadas"), title)
                 XCTAssertTrue(["Nothing was saved in Secreteo.", "No se guardó nada en Secreteo."]
-                    .contains(renderedText(of: detail)))
-                XCTAssertFalse(app.buttons["dictation-unverified-copy"].exists)
+                    .contains(detail ?? ""), detail ?? "")
+                XCTAssertNil(texts["dictation-unverified-copy"])
                 XCTAssertTrue(waitForUITestCondition(timeout: 5) { !status.exists })
             } else {
                 XCTAssertTrue(["Sent — insertion not verified", "Enviado — inserción sin verificar"]

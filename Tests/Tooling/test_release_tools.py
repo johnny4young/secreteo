@@ -1,5 +1,6 @@
 import importlib.util
 import os
+import plistlib
 import re
 import subprocess
 import sys
@@ -383,6 +384,58 @@ class TapTests(unittest.TestCase):
         result = subprocess.run([str(ROOT / "scripts/update-homebrew-tap.sh"), "1.2.3", self.sha], env=environment,
                                 capture_output=True, text=True, check=False)
         self.assertNotEqual(result.returncode, 0)
+
+
+PLUTIL_STUB = """#!/usr/bin/env python3
+import plistlib, sys
+try:
+    print(plistlib.loads(open(sys.argv[-1], "rb").read())[sys.argv[2]])
+except Exception:
+    sys.exit("Property List error")
+"""
+
+
+class NotarizeTests(unittest.TestCase):
+    def notarize(self, submitted: str, status: int):
+        script = (ROOT / "scripts/package-release.sh").read_text()
+        function = re.search(r"^notarize\(\) \{.*?^\}\n", script, re.MULTILINE | re.DOTALL).group(0)
+        with tempfile.TemporaryDirectory() as scratch:
+            root = Path(scratch)
+            (root / "submitted").write_text(submitted)
+            calls = root / "calls"
+            calls.write_text("")
+            xcrun = root / "xcrun"
+            xcrun.write_text(f'#!/bin/bash\necho "$*" >> "{calls}"\n'
+                             f'[[ "$2" == submit ]] && {{ cat "{root}/submitted"; exit {status}; }}\nexit 0\n')
+            (root / "plutil").write_text(PLUTIL_STUB)
+            for stub in (xcrun, root / "plutil"):
+                stub.chmod(0o755)
+            environment = os.environ | {"PATH": f"{root}:{os.environ['PATH']}", "MACOS_NOTARY_KEY_P8": "key",
+                                        "MACOS_NOTARY_KEY_ID": "id", "MACOS_NOTARY_KEY_ISSUER_ID": "issuer"}
+            result = subprocess.run(["bash", "-c", f"set -euo pipefail\n{function}notarize app.zip Secreteo.app"],
+                                    env=environment, capture_output=True, text=True, check=False)
+            return result, [line.split()[:2] for line in calls.read_text().splitlines()]
+
+    @staticmethod
+    def plist(**values):
+        return plistlib.dumps(values).decode()
+
+    def test_an_accepted_app_is_stapled(self):
+        result, calls = self.notarize(self.plist(id="0000", status="Accepted"), 0)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(calls, [["notarytool", "submit"], ["stapler", "staple"]])
+
+    def test_a_rejected_submission_prints_its_log(self):
+        result, calls = self.notarize(self.plist(id="0000", status="Invalid"), 0)
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(calls, [["notarytool", "submit"], ["notarytool", "log"]])
+
+    def test_a_refused_request_has_no_log_to_fetch(self):
+        result, calls = self.notarize("", 69)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("was not accepted", result.stderr)
+        self.assertNotIn("Property List error", result.stderr)
+        self.assertEqual(calls, [["notarytool", "submit"]])
 
 
 class ContractTests(unittest.TestCase):
