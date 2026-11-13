@@ -68,7 +68,7 @@ enum DictationToolbox {
 
             MCPTool(
                 name: "search_dictations",
-                description: "Search the user's saved dictations by words (accents ignored, the last word may be partial), then by meaning: after every word match come dictations that say the same in other words, in English or Spanish, when this Mac has Apple's language model. Optionally only one application or only text that did not reach its app.",
+                description: "Search the user's saved dictations by words (accents ignored, the last word may be partial), then by meaning: after every word match come dictations that say the same in other words in the same language, when this Mac has Apple's language model. Optionally only one application or only text that did not reach its app.",
                 inputSchema: """
                     {"type":"object","properties":{"query":{"type":"string","description":"Words to search for"},"application":{"type":"string","description":"Only dictations sent to this application name"},"only_not_delivered":{"type":"boolean","description":"Only dictations that did not reach their app"},"offset":{"type":"integer","description":"Matches to skip (default 0)"},"limit":{"type":"integer","description":"Max matches to return (default 20, max 50)"}},"required":["query"]}
                     """

@@ -89,9 +89,6 @@ struct UnavailableDictationStore: DictationHistoryStore, DictationStatsStore, Di
     }
     func dictationStatsSummary(days: [String]) async throws -> DictationStatsSummary { throw error }
     func deleteDictationStats() async throws { throw error }
-    func dictationRecordsForAgents(
-        matching filter: DictationRecordFilter, offset: Int, limit: Int
-    ) async throws -> DictationAgentRead<DictationRecordPage> { throw error }
     func searchDictationsForAgents(
         matching filter: DictationRecordFilter, meaning: DictationMeaningQuery?, offset: Int, limit: Int
     ) async throws -> DictationAgentRead<DictationSearchPage> { throw error }

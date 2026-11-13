@@ -414,12 +414,6 @@ private final class FlakyStore: DictationHistoryStore, DictationStatsStore {
         }
         return snapshot
     }
-    func dictationRecordsForAgents(
-        matching filter: DictationRecordFilter, offset: Int, limit: Int
-    ) async throws -> DictationAgentRead<DictationRecordPage> {
-        try pass()
-        return try await base.dictationRecordsForAgents(matching: filter, offset: offset, limit: limit)
-    }
     func searchDictationsForAgents(
         matching filter: DictationRecordFilter, meaning: DictationMeaningQuery?, offset: Int, limit: Int
     ) async throws -> DictationAgentRead<DictationSearchPage> {

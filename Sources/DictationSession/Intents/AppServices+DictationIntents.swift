@@ -8,13 +8,16 @@ struct AppDictationIntentReader: SecreteoDictationReader {
     var embedding: (any DictationTextEmbedding)?
 
     func dictationTexts(matching words: String, limit: Int) async throws -> [String]? {
-        let read: DictationAgentRead<DictationSearchPage>
+        let filter = DictationRecordFilter(query: words)
+        var read: DictationAgentRead<DictationSearchPage>
         do {
-            // The model never sees a query the user has not shared; the read below checks again.
-            guard try await store.dictationHistoryPolicy().agentsCanRead else { return nil }
-            read = try await store.searchDictationsForAgents(
-                matching: DictationRecordFilter(query: words),
-                meaning: await DictationMeaningQuery.make(for: words, using: embedding), offset: 0, limit: limit)
+            // Words first: the model never sees an unshared query, nor one whose words fill the limit.
+            read = try await store.searchDictationsForAgents(matching: filter, meaning: nil, offset: 0, limit: limit)
+            if case .allowed(let search) = read, search.page.records.count < limit,
+               let meaning = await DictationMeaningQuery.make(for: words, using: embedding) {
+                read = try await store.searchDictationsForAgents(
+                    matching: filter, meaning: meaning, offset: 0, limit: limit)
+            }
         } catch is CancellationError {
             throw CancellationError()
         } catch {
