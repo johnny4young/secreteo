@@ -7,8 +7,9 @@
 ## Setup
 
 - The release Mac, Apple silicon. Note the chip, memory, macOS build and power source.
-- A disposable Portavoz build of the frozen commit `a957253b`, or a later tag that ships the ownership protocol, with a temporary database and model root. Never `/Applications/Portavoz.app` or its library.
-- Secreteo from `make install`, launched with `-use-temp-store`.
+- A macOS user account used only for this run. Portavoz keeps its database at a fixed path whatever its bundle id, so a separate account is what keeps the owner's library out of reach.
+- In that account, Portavoz `v1.5.1` or a later tag that ships the ownership protocol. Never the owner's Portavoz or its library.
+- Secreteo from `make install`, without `-use-temp-store`: that flag swaps in a fake microphone, a fake engine and a private ownership root, so the two apps would never meet. Release builds ignore it.
 - The public synthetic corpus from `scripts/materialize_dictation_corpus.py`, played to the input through a loopback device, or the owner's voice reading the same cells.
 - A line in `STATUS.md` before starting, removed after.
 
