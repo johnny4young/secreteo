@@ -28,14 +28,14 @@ You should see `/Applications/Secreteo Dev.app`. Steps that say **release build*
 
 ## 3. Triggers
 
-Dictation on, Secreteo the owner. Target: TextEdit, a new document.
+Dictation on, Secreteo the owner: if the menu offers Use Secreteo for Dictation, choose it first, because no app owns dictation until a user takes it. Target: TextEdit, a new document.
 
 | Step | Expect | Updates |
 |---|---|---|
-| Press ⌃⌥⌘D, say "the meeting moves to Monday", press it again | The sentence lands in TextEdit once, capitalized | Global shortcut |
+| Press the dictation shortcut from Settings (⌃⌥⌘D unless changed), say "the meeting moves to Monday", press it again | The sentence lands in TextEdit once, capitalized | Global shortcut |
 | Set Fn as push to talk; hold it, speak, release | The words land once when you release | Push to talk, Fn and modifiers |
 | Set a mouse button; hold it, speak, release | Same as Fn | Push to talk, mouse |
-| Select a word in TextEdit, press ⌃⌥⌘R | The selection is rewritten in place | Selection Rewrite |
+| Select a word in TextEdit, press the Rewrite shortcut from Settings | The selection is rewritten in place | Selection Rewrite |
 | Turn on Correct the Last Dictation by Voice; dictate "change Monday to Friday" | The last dictation changes in place | Spoken correction in delivery |
 
 ## 4. Delivery
