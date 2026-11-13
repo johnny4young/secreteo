@@ -149,7 +149,7 @@ public final class DictationFeature: AppServices {
             MainActor.assumeIsolated { self?.preferenceRevision += 1 }
         }
         // A disposable launch owns its own scratch folder, because no user is there to take it.
-        if usesTemporaryStore { ownership.claimScratchOwnership() }
+        if usesTemporaryStore, !arguments.contains("-seed-dictation-no-owner") { ownership.claimScratchOwnership() }
     }
 
     public func start() {
