@@ -479,6 +479,14 @@ final class DictationFeatureTests: XCTestCase {
         XCTAssertEqual(feature.practice.text, "")
     }
 
+    func testEverySessionWritesToTheTimingLogOnlyWhenTheLaunchAsks() throws {
+        XCTAssertNil(try makeFeature().unroutedDependencies().timingLog)
+        let logged = try makeFeature(arguments: ["-dictation-timing-log", "/private/tmp/secreteo-timing.jsonl"])
+        XCTAssertEqual(logged.timingLog?.url.path, "/private/tmp/secreteo-timing.jsonl")
+        XCTAssertNotNil(logged.unroutedDependencies().timingLog)
+        XCTAssertNotNil(logged.makeDictationSessionDependencies().timingLog, "Practice and rewrite routes keep it")
+    }
+
     func testADisposableLaunchPracticesWithNoModel() throws {
         let feature = try DictationFeature(usesTemporaryStore: true, arguments: [], defaults: makeDefaults())
 

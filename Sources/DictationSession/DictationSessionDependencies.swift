@@ -73,6 +73,8 @@ struct DictationSessionDependencies {
     /// Nil in ordinary composition: no observation, file, timer or telemetry.
     var measurementSink: DictationSessionMeasurementRecorder.Sink?
     var measurementClock: DictationSessionMeasurementRecorder.Clock = { .now }
+    /// Nil unless the launch asked for the timing log.
+    var timingLog: DictationSessionMeasurementRecorder.RecordSink?
     var playCue: (DictationSoundCue) -> Void = { _ in }
     /// Nil leaves delivery to the lexical check alone (the gate is opt-in).
     var makeSpeechGate: () -> DictationSpeechGate? = { nil }

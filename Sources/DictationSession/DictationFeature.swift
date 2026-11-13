@@ -31,6 +31,8 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored let modelStore: LocalModelStore
     @ObservationIgnored private let fixture: DictationUITestFixture?
     @ObservationIgnored let launchArguments: [String]
+    @ObservationIgnored private(set) lazy var timingLog = DictationTimingLog(
+        arguments: launchArguments, bundleIdentifier: Bundle.main.bundleIdentifier)
     @ObservationIgnored let environment: DictationFeatureEnvironment
     @ObservationIgnored private let ownership: DictationOwnershipCoordinator
     @ObservationIgnored let readiness: ReadinessGap
@@ -325,6 +327,7 @@ public final class DictationFeature: AppServices {
         dependencies.beginHistory = { [weak self] in self?.history.admit() }
         dependencies.pendingWrites = pendingWrites
         dependencies.recordStats = { [weak self] sample in self?.stats.record(sample) }
+        dependencies.timingLog = timingLog.map { log in { log.append($0) } }
         return dependencies
     }
 

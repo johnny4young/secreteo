@@ -238,9 +238,7 @@ final class DictationController {
         adopt(lease)
         self.dependencies = dependencies
         sessionFeedbackWait = dependencies.waitForFeedbackDismissal
-        measurement = dependencies.measurementSink.map {
-            DictationSessionMeasurementRecorder(now: dependencies.measurementClock, sink: $0)
-        }
+        measurement = DictationSessionMeasurementRecorder.make(for: dependencies)
         pressedAt = nil
         pressedSessionID = nil
         cancelFeedbackDismissal()
@@ -330,6 +328,7 @@ final class DictationController {
             guard activeSessionID == id else { return }
             microphone = input.source
             self.microphone = input.source
+            measurement?.observeCapture(input.source)
             microphoneNotice = input.usesSystemFallback ? L10n.text(
                 "Your preferred microphone is unavailable. Using the system default for this dictation.") : nil
             // Audio-first: speech during a cold load waits in the bounded relay.
@@ -597,6 +596,7 @@ private extension DictationController {
         try Task.checkCancellation()
         guard activeSessionID == id else { throw CancellationError() }
         sessionEngine = runtime.lane
+        if let lane = runtime.lane { measurement?.noteEngine(lane.rawValue) }
         return runtime
     }
 
@@ -674,6 +674,9 @@ private extension DictationController {
             onInputEnded: { [weak self] in
                 if let measurement { await measurement.record(.inputEnded) }
                 await self?.markRelayEnded(sessionID)
+            },
+            onRelayDrop: { frames in
+                if let measurement { await measurement.noteRelayDrop(frames: frames) }
             },
             updateMeter: { [weak self] peak in
                 guard let self, activeSessionID == sessionID else { return }
