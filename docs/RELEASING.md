@@ -101,7 +101,7 @@ Same tap as the other apps, with its own deploy key. `packaging/Casks/secreteo.r
 
 ## Manual gates on the release Mac
 
-The exact steps and what each should show are in the [runbook](RUNBOOK.md).
+None of these blocks a tag yet ([D29](DECISIONS.md#d29-manual-gates-do-not-block-a-release-yet)). The exact steps and what each should show are in the [runbook](RUNBOOK.md).
 
 | Gate | When |
 |---|---|

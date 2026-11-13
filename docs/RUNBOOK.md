@@ -1,6 +1,6 @@
 # Release runbook
 
-The manual gates of [RELEASING](RELEASING.md#manual-gates-on-the-release-mac), as steps on the release Mac. Each step says what you should see and which [PARITY](PARITY.md) row or [GAPS](GAPS.md) entry its result updates. Write results in a docs PR.
+The manual gates of [RELEASING](RELEASING.md#manual-gates-on-the-release-mac), as steps on the release Mac. Each step says what you should see and which [PARITY](PARITY.md) row or [GAPS](GAPS.md) entry its result updates. Write results in a docs PR. Optional for now ([D29](DECISIONS.md#d29-manual-gates-do-not-block-a-release-yet)).
 
 Before any step that runs the app, add a line to the physical test reservations, and remove it after. Use synthetic text and the disposable build where a step says so; never the real Portavoz library.
 
