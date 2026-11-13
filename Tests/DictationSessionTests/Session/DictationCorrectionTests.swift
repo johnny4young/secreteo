@@ -84,6 +84,7 @@ struct DictationCorrectionDeliveryTests {
         let command = DictationControllerHarness(text: "um change friday to monday", controller: first.controller)
         try await dictate(command, dependencies(command, receiver: receiver))
         #expect(receiver.text == "Earlier text. ship it on monday")
+        #expect(command.measurements.map(\.outcome) == [.dispatchReported], "A correction closes its own receipt")
         #expect(first.controller.correctionSummary == "Changed “friday” to “monday”.")
         #expect(first.controller.lastText.current == "ship it on monday")
     }

@@ -218,6 +218,10 @@ final class DictationColdStartTests: XCTestCase {
         XCTAssertFalse(DictationRelayPolicy.admits(.enqueued(remaining: capacity - Int(limit) - 1), chunk: second))
         XCTAssertFalse(DictationRelayPolicy.admits(.dropped(second), chunk: second))
         XCTAssertFalse(DictationRelayPolicy.admits(.terminated, chunk: second))
+        let evicted = chunk(seconds: 0.5)
+        XCTAssertEqual(DictationRelayPolicy.lostFrames(.dropped(evicted), chunk: second), 8_000)
+        XCTAssertEqual(DictationRelayPolicy.lostFrames(.enqueued(remaining: 0), chunk: second), second.samples.count)
+        XCTAssertNil(DictationRelayPolicy.lostFrames(.terminated, chunk: second))
         // Small hardware buffers reach the 30 s time bound before the chunk backstop.
         let small = AudioChunk(channel: .microphone, samples: [Float](repeating: 0, count: 128),
                                sampleRate: 48_000, timestamp: 0)
