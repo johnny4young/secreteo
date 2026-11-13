@@ -7,6 +7,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 ## 0.1.0
 
 - 🎙️ **First release**: dictate anywhere on your Mac with a shortcut, Fn or a mouse button. Speech recognition runs on this Mac.
+- 🎙️ **Take dictation from the menu**: when no app owns dictation, the menu offers Use Secreteo for Dictation instead of sending you to Settings.
 - 🎨 **App icon**: Secreteo has its own icon in Finder, the Dock and the installer.
 - ℹ️ **About in Settings**: version, license, the authors of the speech models and a link to the source code, next to the third-party notices.
 - 🗂️ **Speech models in Settings**: see each model on this Mac, its size and which other apps use it. Remove, for a model dictation is not using, drops Secreteo's copy only; another app keeps its own.
