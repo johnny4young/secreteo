@@ -41,7 +41,7 @@ struct SearchDictationsIntent: AppIntent {
     static let title: LocalizedStringResource = "Search Dictations"
     static let description = IntentDescription(
         // swiftlint:disable:next line_length
-        "Finds your saved dictations that contain these words, newest first. Works only while Secreteo lets agents and Shortcuts read the history.")
+        "Finds your saved dictations that contain these words, newest first, then those that say the same in other words. Works only while Secreteo lets agents and Shortcuts read the history.")
     static let supportedModes: IntentModes = [.background]
 
     @Parameter(title: "Words")

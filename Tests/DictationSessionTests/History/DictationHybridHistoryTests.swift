@@ -698,6 +698,11 @@ final class DictationHybridHistoryTests: XCTestCase {
             async throws -> DictationAgentRead<DictationRecordPage> {
             try await store.dictationRecordsForAgents(matching: filter, offset: offset, limit: limit)
         }
+        func searchDictationsForAgents(
+            matching filter: DictationRecordFilter, meaning: DictationMeaningQuery?, offset: Int, limit: Int
+        ) async throws -> DictationAgentRead<DictationSearchPage> {
+            try await store.searchDictationsForAgents(matching: filter, meaning: meaning, offset: offset, limit: limit)
+        }
     }
 
     func testADeletedDictationNeverComesBackByMeaning() async throws {

@@ -26,7 +26,7 @@ actor DictationSemanticIndex {
     static let backfillBatch = 50
 
     private let store: any DictationEmbeddingStore
-    private let embedding: any DictationTextEmbedding
+    let embedding: any DictationTextEmbedding
     private var library: [DictationEmbedding]?
     /// Bumped on every change, so a read that started before one is never cached.
     private var generation = 0

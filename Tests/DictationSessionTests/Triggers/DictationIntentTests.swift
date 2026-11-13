@@ -229,6 +229,34 @@ final class DictationIntentTests: XCTestCase {
         XCTAssertEqual(newest, ["No borres estas notas."])
     }
 
+    func testSearchListsDictationsCloseInMeaningAfterTheWordMatches() async throws {
+        let store = try DictationStore.inMemory()
+        let now = Date()
+        let policy = try await store.setDictationHistoryPolicy(
+            isEnabled: true, keepsOriginal: false, retentionDays: 30, exposesToAgents: true, at: now)
+        let embedding = DictationFixtureEmbedding()
+        for (offset, text) in ["Mail the summary today.", "Send the report on Friday.", "Buy bread."].enumerated() {
+            let record = DictationRecord(
+                id: DictationRecordID(), createdAt: now.addingTimeInterval(Double(offset)), duration: 1,
+                text: text, originalText: nil, mode: .literal, language: nil, engine: "parakeet",
+                applicationName: "Slack", applicationBundleID: nil, delivery: .verified)
+            _ = try await store.recordDictation(record, admittedGeneration: policy.generation, at: now)
+            _ = try await store.saveDictationEmbedding(
+                .init(recordID: record.id, vector: try await embedding.embed(text)), profile: embedding.profile)
+        }
+
+        let hybrid = try await SecreteoDictationSearchAction.search(
+            "report", limit: 10, reader: AppDictationIntentReader(store: store, embedding: embedding))
+        let wordsOnly = try await SecreteoDictationSearchAction.search(
+            "report", limit: 10, reader: AppDictationIntentReader(store: store))
+        let capped = try await SecreteoDictationSearchAction.search(
+            "report", limit: 1, reader: AppDictationIntentReader(store: store, embedding: embedding))
+
+        XCTAssertEqual(hybrid, ["Send the report on Friday.", "Mail the summary today."])
+        XCTAssertEqual(wordsOnly, ["Send the report on Friday."])
+        XCTAssertEqual(capped, ["Send the report on Friday."], "word matches fill the limit first")
+    }
+
     @MainActor
     func testASearchFromAShortcutReplacesOtherHistoryFilters() async throws {
         let model = DictationHistoryModel(store: try DictationStore.inMemory())

@@ -10,6 +10,9 @@ public protocol DictationAgentStore: Sendable {
         matching filter: DictationRecordFilter, offset: Int, limit: Int
     ) async throws -> DictationAgentRead<DictationRecordPage>
     func dictationRecordForAgents(_ id: DictationRecordID) async throws -> DictationAgentRead<DictationRecord?>
+    func searchDictationsForAgents(
+        matching filter: DictationRecordFilter, meaning: DictationMeaningQuery?, offset: Int, limit: Int
+    ) async throws -> DictationAgentRead<DictationSearchPage>
 }
 
 extension DictationStore: DictationAgentStore {}
@@ -36,6 +39,26 @@ public struct ReadDictationsForAgents {
     public func execute(_ request: Request) async throws -> DictationAgentRead<DictationRecordPage> {
         try await store.dictationRecordsForAgents(
             matching: request.filter, offset: request.offset, limit: request.limit)
+    }
+}
+
+/// Words first, then meaning, as the history window searches. Without the model on this
+/// Mac it matches words only.
+public struct SearchDictationsForAgents {
+    private let store: any DictationAgentStore
+    private let embedding: (any DictationTextEmbedding)?
+
+    public init(store: any DictationAgentStore, embedding: (any DictationTextEmbedding)?) {
+        self.store = store
+        self.embedding = embedding
+    }
+
+    public func execute(
+        _ request: ReadDictationsForAgents.Request
+    ) async throws -> DictationAgentRead<DictationSearchPage> {
+        let meaning = await DictationMeaningQuery.make(for: request.filter.query, using: embedding)
+        return try await store.searchDictationsForAgents(
+            matching: request.filter, meaning: meaning, offset: request.offset, limit: request.limit)
     }
 }
 

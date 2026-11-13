@@ -22,6 +22,9 @@ public protocol DictationHistoryStore: Sendable {
     func dictationRecordsForAgents(
         matching filter: DictationRecordFilter, offset: Int, limit: Int
     ) async throws -> DictationAgentRead<DictationRecordPage>
+    func searchDictationsForAgents(
+        matching filter: DictationRecordFilter, meaning: DictationMeaningQuery?, offset: Int, limit: Int
+    ) async throws -> DictationAgentRead<DictationSearchPage>
 }
 
 extension DictationStore: DictationHistoryStore {}

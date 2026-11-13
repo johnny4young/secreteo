@@ -92,6 +92,9 @@ struct UnavailableDictationStore: DictationHistoryStore, DictationStatsStore, Di
     func dictationRecordsForAgents(
         matching filter: DictationRecordFilter, offset: Int, limit: Int
     ) async throws -> DictationAgentRead<DictationRecordPage> { throw error }
+    func searchDictationsForAgents(
+        matching filter: DictationRecordFilter, meaning: DictationMeaningQuery?, offset: Int, limit: Int
+    ) async throws -> DictationAgentRead<DictationSearchPage> { throw error }
     func saveDictationEmbedding(_ embedding: DictationEmbedding, profile: String) async throws -> Bool { throw error }
     func dictationEmbeddings(
         profile: String, matching filter: DictationRecordFilter

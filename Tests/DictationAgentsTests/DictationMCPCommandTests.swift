@@ -16,7 +16,7 @@ final class DictationMCPCommandTests: XCTestCase {
 
     func testAClientSetUpBeforeTheAppRanStartsReadingOnceTheHistoryExists() async throws {
         let url = try scratch().appendingPathComponent(DictationStore.fileName)
-        let tool = try XCTUnwrap(DictationToolbox.tools(reader: .opening(url)).first { $0.name == "list_dictations" })
+        let tool = try XCTUnwrap(DictationToolbox.tools(reader: .opening(url, embedding: nil)).first { $0.name == "list_dictations" })
 
         do {
             _ = try await tool.handler(Data("{}".utf8))

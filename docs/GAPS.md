@@ -71,4 +71,4 @@ The import copies only settings Secreteo's Settings can show and change. Activat
 
 ## G18. Search by meaning has limits
 
-It reaches only the Dictation History window: the Shortcuts actions and the MCP server still match words. A Mac without the system's Latin embedding assets searches by words only, and Secreteo offers no way to fetch them. Questions in one language rarely find a dictation in the other, which the public corpus measures at zero.
+Shortcuts and the MCP server find by meaning only dictations the app has already given a vector: one saved a moment ago, or an older one its background pass has not reached, matches by words only. A Mac without the system's Latin embedding assets searches by words only, and Secreteo offers no way to fetch them. Questions in one language rarely find a dictation in the other, which the public corpus measures at zero.
