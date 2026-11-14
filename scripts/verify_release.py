@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Refuses a release artifact that would not ship correctly.
 
-Usage: verify_release.py <dmg> <version> <production|dryrun>
+Usage: verify_release.py <dmg> <version> <production|dryrun|instrumented>
 It mounts the DMG, because the copy inside is the one that ships.
 """
 import base64
@@ -20,6 +20,8 @@ FEED = "https://github.com/johnny4young/secreteo/releases/latest/download/appcas
 TEAM_ID = "JGWX5ZT2N2"
 FORBIDDEN_PAYLOAD = (".dSYM", ".debug.dylib", "__preview.dylib", ".xctest", ".swiftmodule", "generate_appcast",
                      "sign_update", "generate_keys")
+# The launch argument behind SECRETEO_UPDATE_DRYRUN, which only the instrumented dry-run build compiles.
+DRYRUN_SEAM = b"-secreteo-update-dryrun-hold"
 
 
 def info_problems(info: dict, version: str) -> list[str]:
@@ -62,6 +64,14 @@ def payload_problems(relative_paths: list[str], sparkle_version: str, pinned_spa
     if sparkle_version != pinned_sparkle:
         problems.append(f"Sparkle is {sparkle_version}, pinned {pinned_sparkle}")
     return problems
+
+
+def seam_problems(app: Path, mode: str) -> list[str]:
+    carriers = [path for path in sorted(app.rglob("*"))
+                if path.is_file() and not path.is_symlink() and DRYRUN_SEAM in path.read_bytes()]
+    if mode == "instrumented":
+        return [] if carriers else ["the instrumented build lacks the update dry run's seam"]
+    return [f"{path.relative_to(app)} carries the update dry run's seam" for path in carriers]
 
 
 def signature_problems(name: str, details: str, entitlements: str, mode: str) -> list[str]:
@@ -120,6 +130,7 @@ def artifact_problems(app: Path, dmg: Path, version: str, mode: str) -> list[str
 
     problems = info_problems(info, version)
     problems += payload_problems(paths, sparkle_info.get("CFBundleShortVersionString", ""), pinned)
+    problems += seam_problems(app, mode)
 
     archs = run("lipo", "-archs", str(contents / "MacOS/Secreteo")).stdout.split()
     if archs != ["arm64"]:
@@ -151,7 +162,7 @@ def artifact_problems(app: Path, dmg: Path, version: str, mode: str) -> list[str
 
 def main() -> None:
     dmg, version, mode = Path(sys.argv[1]), sys.argv[2], sys.argv[3]
-    if mode not in ("production", "dryrun"):
+    if mode not in ("production", "dryrun", "instrumented"):
         sys.exit(f"Unknown mode: {mode}")
     with mounted_app(dmg) as app:
         problems = artifact_problems(app, dmg, version, mode)

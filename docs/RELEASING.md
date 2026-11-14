@@ -29,7 +29,14 @@ gh variable set GLOBAL_DICTATION_CLEARED --body 0.1.0
 
 ## Dry run
 
-`scripts/release-dryrun.sh` packages versions 9.0.0 and 9.0.1 through `scripts/package-release.sh` with ad-hoc signing and a throwaway key, and builds a feed that holds both. On a hosted runner it then installs 9.0.0, serves the feed locally, and waits for the real updater to replace the app with 9.0.1. CI runs it when packaging changes, and `nightly.yml` runs it every night. `make release-dryrun` runs the packaging half on any Mac.
+`scripts/release-dryrun.sh` packages versions 9.0.0 and 9.0.1 through `scripts/package-release.sh` with ad-hoc signing and a throwaway key, and builds a feed that holds both. These two are exactly what a tag builds. It then packages a third, instrumented 9.0.0 (`package-release.sh 9.0.0 instrumented`), which compiles `SECRETEO_UPDATE_DRYRUN` in its own derived data. That condition adds two things only: a launch argument that holds a practice lease until a file is deleted, and an immediate install, so Sparkle takes its relaunch path. `scripts/verify_release.py` refuses the argument in production and exact dry-run artifacts and requires it in the instrumented one.
+
+On a hosted runner the update stage runs two scenarios against the same local feed:
+
+1. It installs the exact 9.0.0 and waits for the real updater to replace it with 9.0.1 when the app quits.
+2. It installs the instrumented 9.0.0 with the lease held. Sparkle must log a postponed relaunch, and the old process must stay up with 9.0.0 installed for 20 seconds. Once the file is deleted, Sparkle must install 9.0.1 and relaunch it with no `open` from the script.
+
+CI runs it when packaging changes, and `nightly.yml` runs it every night. The instrumented build is not in the derived-data cache, so it compiles cold and adds its build time to every run. `make release-dryrun` runs the exact packaging on any Mac, and `scripts/release-dryrun.sh instrumented` adds the third DMG after it.
 
 It cannot prove what needs the secrets: hardened runtime, notarization, stapling and Gatekeeper. Those stay in the real release.
 

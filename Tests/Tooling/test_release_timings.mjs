@@ -14,7 +14,7 @@ const previous = fs.existsSync('calls.jsonl') ? fs.readFileSync('calls.jsonl', '
 fs.appendFileSync('calls.jsonl', JSON.stringify({name,args}) + '\\n');
 if (process.env.FAIL_STAGE === name) process.exit(37);
 if (name === 'hdiutil' && previous.filter(row => row.name === name).length < Number(process.env.DMG_RETRIES || 0)) process.exit(38);
-if (name === 'xcodebuild') fs.mkdirSync('build/release/Build/Products/Release/Secreteo.app/Contents', {recursive:true});
+if (name === 'xcodebuild') fs.mkdirSync(args[args.indexOf('-derivedDataPath') + 1] + '/Build/Products/Release/Secreteo.app/Contents', {recursive:true});
 if (name === 'ditto') fs.cpSync(args[0], args[1], {recursive:true});
 if (name === 'hdiutil') fs.writeFileSync(args.at(-1), 'synthetic disk image');
 `;
@@ -77,6 +77,33 @@ test('production keeps quiet build output and does not use the diagnostic dry-ru
   assert.equal(result.calls.at(-1).name, 'xcodebuild');
   assert.equal(timings(result).at(-1).phase, 'build');
   assert.doesNotMatch(records(result), /synthetic-identity|synthetic-id|synthetic-issuer|synthetic-unused-key-path/);
+});
+
+test('the instrumented dry run adds only its condition, in its own derived data and DMG', () => {
+  const result = run({ mode: 'instrumented' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(result.calls.find(row => row.name === 'xcodebuild').args, [
+    '-project', 'Secreteo.xcodeproj', '-scheme', 'Secreteo', '-configuration', 'Release',
+    '-destination', 'platform=macOS,arch=arm64', '-derivedDataPath', 'build/release-instrumented',
+    '-skipPackagePluginValidation', '-showBuildTimingSummary', 'ARCHS=arm64', 'MARKETING_VERSION=1.2.3',
+    'SPARKLE_PUBLIC_ED_KEY=synthetic-public-key',
+    'SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) SECRETEO_UPDATE_DRYRUN', 'build',
+  ]);
+  assert.deepEqual(result.calls.find(row => row.name === 'sign-app.sh').args,
+    ['build/release-stage/1.2.3-instrumented/Secreteo.app', '-']);
+  assert.deepEqual(result.calls.find(row => row.name === 'python3').args,
+    ['scripts/verify_release.py', 'dist/Secreteo-1.2.3-instrumented.dmg', '1.2.3', 'instrumented']);
+  assert.match(readFileSync(join(result.root, 'dist/Secreteo-1.2.3-instrumented.dmg.sha256'), 'utf8'),
+    /^[a-f0-9]{64}  Secreteo-1\.2\.3-instrumented\.dmg\n$/);
+});
+
+test('no other mode compiles the dry-run condition', () => {
+  for (const mode of ['dryrun', 'production']) {
+    const result = run({ mode, fail: mode === 'production' ? 'xcodebuild' : '' });
+    const args = result.calls.find(row => row.name === 'xcodebuild').args;
+    assert.ok(args.every(arg => !arg.includes('SECRETEO_UPDATE_DRYRUN')), mode);
+    assert.ok(args.includes('build/release'), mode);
+  }
 });
 
 for (const [fail, phase] of [['fetch-sparkle.sh', 'prepare'], ['xcodegen', 'prepare'], ['xcodebuild', 'build'],
