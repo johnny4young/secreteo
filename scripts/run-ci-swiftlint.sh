@@ -5,6 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 umask 077
 
+# This build links libxml2.so.2, so ci.yml keeps lint on ubuntu-24.04; drop that pin when a bump no longer does.
 version="0.65.0"
 archive_sha256="79306a34e5c7cc55a220cd108cbb861dcad5f10138dcdf261e2624ae8b0a486b"
 archive_url="https://github.com/realm/SwiftLint/releases/download/${version}/swiftlint_linux_amd64.zip"
