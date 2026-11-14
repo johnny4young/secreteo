@@ -4,7 +4,7 @@ Binding decisions, numbered from D1. `Portavoz Dxxx` points to the [decision log
 
 ## D1. Name and identity
 
-Secreteo. Bundle ID `com.johnny4young.secreteo`, Dev `com.johnny4young.secreteo.dev`, repository `johnny4young/secreteo`, cask `secreteo`. The update feed URL is effectively permanent once shipped.
+Secreteo. Bundle ID `com.johnny4young.secreteo`, Dev `com.johnny4young.secreteo.dev`, Debug builds and UI tests `com.johnny4young.secreteo.debug`, repository `johnny4young/secreteo`, cask `secreteo`. The update feed URL is effectively permanent once shipped.
 
 ## D2. Scope and approved losses
 

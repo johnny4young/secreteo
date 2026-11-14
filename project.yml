@@ -74,6 +74,8 @@ targets:
       configs:
         Debug:
           SPARKLE_PUBLIC_ED_KEY: ""
+          # UI tests and Xcode runs never read or write an installed Secreteo's settings.
+          APP_BUNDLE_IDENTIFIER: com.johnny4young.secreteo.debug
     info:
       path: Apps/Secreteo/Info.plist
       properties:

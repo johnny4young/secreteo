@@ -190,6 +190,13 @@ class CheckReleaseTests(unittest.TestCase):
         install = (ROOT / "Makefile").read_text().split("\ninstall:", 1)[1].split("\n\n", 1)[0]
         self.assertIn("SPARKLE_PUBLIC_ED_KEY= ", install)
 
+    def test_ui_tests_and_debug_runs_never_share_the_installed_apps_identity(self):
+        project = (ROOT / "project.yml").read_text()
+        debug = project.split("        Debug:\n", 1)[1].split("    info:", 1)[0]
+        self.assertIn("APP_BUNDLE_IDENTIFIER: com.johnny4young.secreteo.debug", debug)
+        scheme = project.split("\nschemes:", 1)[1]
+        self.assertRegex(scheme, r"test:\n\s+config: Debug\n")
+
     def test_the_dev_install_renames_only_the_app(self):
         install = (ROOT / "Makefile").read_text().split("\ninstall:", 1)[1].split("\n\n", 1)[0]
         # A command-line PRODUCT_NAME reaches every target, and they all collide on one module.
