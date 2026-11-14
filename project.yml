@@ -15,7 +15,7 @@ options:
 
 settings:
   base:
-    MARKETING_VERSION: "0.1.0"
+    MARKETING_VERSION: "0.1.1"
     # One source for the version, so the number Sparkle compares can never be forgotten.
     CURRENT_PROJECT_VERSION: $(MARKETING_VERSION)
     SWIFT_VERSION: "6.0"
