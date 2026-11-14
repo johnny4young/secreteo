@@ -1,5 +1,6 @@
 import AppKit
 import AppUI
+import OSLog
 @preconcurrency import Sparkle
 
 /// Sparkle with gentle reminders: a background app gets a menu row instead of an alert
@@ -8,6 +9,7 @@ import AppUI
 @MainActor
 final class SparkleUpdater: NSObject, UpdateChecking,
     @preconcurrency SPUStandardUserDriverDelegate, SPUUpdaterDelegate {
+    nonisolated private static let logger = Logger(subsystem: "com.johnny4young.secreteo", category: "updates")
     private weak var model: AppModel?
     private var controller: SPUStandardUpdaterController?
 
@@ -16,6 +18,9 @@ final class SparkleUpdater: NSObject, UpdateChecking,
         super.init()
         let key = Bundle.main.object(forInfoDictionaryKey: "SUPublicEDKey") as? String ?? ""
         guard !key.isEmpty else { return }
+        #if SECRETEO_UPDATE_DRYRUN
+            model.dictation?.holdLeaseForUpdateDryRun()
+        #endif
         controller = SPUStandardUpdaterController(
             startingUpdater: true, updaterDelegate: self, userDriverDelegate: self)
     }
@@ -33,8 +38,24 @@ final class SparkleUpdater: NSObject, UpdateChecking,
         _ updater: SPUUpdater, shouldPostponeRelaunchForUpdate item: SUAppcastItem,
         untilInvokingBlock installHandler: @escaping () -> Void
     ) -> Bool {
-        model?.dictation?.postponeUpdateRelaunch(until: installHandler) ?? false
+        let postponed = model?.dictation?.postponeUpdateRelaunch {
+            Self.logger.notice("Resuming the postponed update relaunch")
+            installHandler()
+        } ?? false
+        if postponed { Self.logger.notice("Postponed the update relaunch until dictation finishes") }
+        return postponed
     }
+
+    #if SECRETEO_UPDATE_DRYRUN
+        // A shipped build installs an automatic update on quit, a path that never asks the hook above.
+        func updater(
+            _ updater: SPUUpdater, willInstallUpdateOnQuit item: SUAppcastItem,
+            immediateInstallationBlock immediateInstallHandler: @escaping () -> Void
+        ) -> Bool {
+            immediateInstallHandler()
+            return true
+        }
+    #endif
 
     func updater(_ updater: SPUUpdater, didAbortWithError error: Error) {
         model?.dictation?.finishUpdateCycle()

@@ -128,6 +128,37 @@ class SignatureTests(unittest.TestCase):
         self.assertTrue(verify_release.signature_problems("x", GOOD_SIGNATURE, "", "dryrun"))
 
 
+class SeamTests(unittest.TestCase):
+    SOURCE = ROOT / "Sources/DictationSession/DictationFeature+UpdateDryRun.swift"
+
+    def app(self, executable: bytes) -> Path:
+        scratch = tempfile.TemporaryDirectory()
+        self.addCleanup(scratch.cleanup)
+        app = Path(scratch.name) / "Secreteo.app"
+        (app / "Contents/MacOS").mkdir(parents=True)
+        (app / "Contents/MacOS/Secreteo").write_bytes(b"\xcf\xfa\xed\xfe" + executable + b"\0")
+        (app / "Contents/Info.plist").write_bytes(b"<plist/>")
+        return app
+
+    def test_production_and_the_exact_dry_run_refuse_the_seam(self):
+        seamed = self.app(b"prefix" + verify_release.DRYRUN_SEAM + b"suffix")
+        for mode in ("production", "dryrun"):
+            self.assertEqual(verify_release.seam_problems(seamed, mode),
+                             ["Contents/MacOS/Secreteo carries the update dry run's seam"], mode)
+            self.assertEqual(verify_release.seam_problems(self.app(b"clean"), mode), [], mode)
+
+    def test_the_instrumented_build_must_carry_it(self):
+        self.assertEqual(verify_release.seam_problems(self.app(verify_release.DRYRUN_SEAM), "instrumented"), [])
+        self.assertTrue(verify_release.seam_problems(self.app(b"clean"), "instrumented"))
+
+    def test_the_marker_is_the_argument_only_the_dry_run_condition_compiles(self):
+        source = self.SOURCE.read_text()
+        self.assertTrue(source.startswith("#if SECRETEO_UPDATE_DRYRUN\n"))
+        self.assertTrue(source.rstrip().endswith("#endif"))
+        self.assertEqual(source.count("#if"), 1)
+        self.assertIn(f'= "{verify_release.DRYRUN_SEAM.decode()}"', source)
+
+
 class AppcastTests(unittest.TestCase):
     def test_a_correct_item_passes(self):
         self.assertEqual(feed_problems(feed()), [])
@@ -467,8 +498,17 @@ class ContractTests(unittest.TestCase):
 
     def test_the_real_update_refuses_to_run_off_a_hosted_runner(self):
         text = (ROOT / "scripts/release-dryrun.sh").read_text()
-        update = re.search(r"^update\(\) \{(.*?)^\}", text, re.MULTILINE | re.DOTALL).group(1)
-        self.assertLess(update.index("github-hosted"), update.index('rm -rf "$installed"'))
+        def body(name):
+            return re.search(rf"^{name}\(\) \{{(.*?)^\}}", text, re.MULTILINE | re.DOTALL).group(1)
+
+        update, scenario, install = body("update"), body("update_during_dictation"), body("install_app")
+        self.assertIn('rm -rf "$installed"', install)
+        guard = update.index("github-hosted")
+        self.assertLess(guard, update.index("install_app"))
+        self.assertLess(guard, update.index("update_during_dictation"))
+        rest = text.replace(update, "").replace(scenario, "")
+        self.assertEqual(re.findall(r"^[ \t]+(?:install_app|update_during_dictation)\b", rest, re.MULTILINE), [])
+        self.assertNotIn('rm -rf "$installed"', text.replace(install, ""))
 
 
 if __name__ == "__main__":
