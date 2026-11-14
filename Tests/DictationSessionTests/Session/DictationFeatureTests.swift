@@ -395,11 +395,19 @@ final class DictationFeatureTests: XCTestCase {
         XCTAssertFalse(feature.prewarmConditions.underPressure)
     }
 
-    func testAModelGetsNoGraceUnderMemoryPressure() {
-        for profile in [DictationModelMemory.balanced, .lightweight] {
-            XCTAssertEqual(profile.idleLimit(underPressure: true), .zero)
-            XCTAssertGreaterThan(profile.idleLimit(underPressure: false), .zero)
-        }
+    func testTheWarmModelWaitsByTheProfileAndGetsNoGraceUnderPressure() throws {
+        isolateArgumentDomain()
+        let feature = try makeFeature()
+        XCTAssertEqual(feature.warmEngine.currentIdleLimit, .seconds(600))
+
+        feature.defaults.set(DictationModelMemory.lightweight.rawValue, forKey: DictationModelMemory.key)
+        XCTAssertEqual(feature.warmEngine.currentIdleLimit, .seconds(60))
+
+        feature.memoryPressureChanged(isUnderPressure: true)
+        XCTAssertEqual(feature.warmEngine.currentIdleLimit, .zero)
+
+        feature.memoryPressureChanged(isUnderPressure: false)
+        XCTAssertEqual(feature.warmEngine.currentIdleLimit, .seconds(60))
     }
 
     func testThePrewarmChoiceReadsAsOffWithTheLightweightProfileAndComesBack() throws {
