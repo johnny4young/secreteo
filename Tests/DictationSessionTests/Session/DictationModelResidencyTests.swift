@@ -65,7 +65,7 @@ final class DictationModelResidencyTests: XCTestCase {
         for profile in [DictationModelMemory.balanced, .lightweight] {
             let rig = makeRig()
             rig.defaults.set(profile.rawValue, forKey: DictationModelMemory.key)
-            rig.pressure.changed(isActive: true, releasing: rig.warm)
+            rig.pressure.changed(isActive: true)
             _ = try await rig.warm.acquire()
             rig.warm.releaseWhenIdle()
 
@@ -87,7 +87,7 @@ final class DictationModelResidencyTests: XCTestCase {
         let started = await rig.clock.waitUntilCallCount(1)
         XCTAssertTrue(started)
 
-        rig.pressure.changed(isActive: true, releasing: rig.warm)
+        rig.pressure.changed(isActive: true)
 
         XCTAssertFalse(rig.warm.isHoldingModel, "Pressure does not wait for the window")
         await assertGivenBack(rig)
@@ -98,7 +98,7 @@ final class DictationModelResidencyTests: XCTestCase {
     func testAModelInUseHasNoIdleClock() async throws {
         let rig = makeRig()
         rig.defaults.set(DictationModelMemory.lightweight.rawValue, forKey: DictationModelMemory.key)
-        rig.pressure.changed(isActive: true, releasing: rig.warm)
+        rig.pressure.changed(isActive: true)
         _ = try await rig.warm.acquire()
         _ = try await rig.warm.acquire()
 
@@ -123,7 +123,7 @@ final class DictationModelResidencyTests: XCTestCase {
         var session: SyntheticModel? = try await rig.warm.acquire()
         let identity = session.map(ObjectIdentifier.init)
 
-        rig.pressure.changed(isActive: true, releasing: rig.warm)
+        rig.pressure.changed(isActive: true)
 
         XCTAssertFalse(rig.warm.isHoldingModel)
         XCTAssertEqual(rig.census.resident, 1, "The session keeps working with the model it was given")
@@ -144,7 +144,7 @@ final class DictationModelResidencyTests: XCTestCase {
             let started = await rig.clock.waitUntilCallCount(1)
             XCTAssertTrue(started)
             if releasesUnderPressure {
-                rig.pressure.changed(isActive: true, releasing: rig.warm)
+                rig.pressure.changed(isActive: true)
             } else {
                 let ended = await rig.clock.resumeCall(at: 0)
                 XCTAssertTrue(ended)
@@ -192,6 +192,7 @@ final class DictationModelResidencyTests: XCTestCase {
             mayKeep: { true },
             load: { SyntheticModel(census: census) },
             sleep: { try await clock.wait(for: $0) })
+        pressure.releases(warm)
         return Rig(
             warm: warm, defaults: defaults, pressure: pressure, clock: clock, census: census,
             idleClockStarts: starts)

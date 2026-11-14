@@ -138,6 +138,7 @@ public final class DictationFeature: AppServices {
             idleLimit: { [pressure] in DictationModelMemory.idleLimit(in: defaults, pressure: pressure) },
             mayKeep: { ownership.state == .owned },
             load: { try await Self.loadSpeechModel(store: modelStore, defaults: engineDefaults) })
+        pressure.releases(warmEngine)
         controller = DictationController()
         practice.onForget = { [controller] in controller.practiceLastText.clear() }
         practice.onVerifiedDelivery = { [weak self] in self?.completePractice() }
@@ -150,6 +151,7 @@ public final class DictationFeature: AppServices {
         }
         // A disposable launch owns its own scratch folder, because no user is there to take it.
         if usesTemporaryStore, !arguments.contains("-seed-dictation-no-owner") { ownership.claimScratchOwnership() }
+        pressure.whenItEnds { [weak self] in self?.prewarmIfConfigured() }
     }
 
     public func start() {
@@ -405,7 +407,7 @@ public final class DictationFeature: AppServices {
     }
 
     func memoryPressureChanged(isUnderPressure: Bool) {
-        pressure.changed(isActive: isUnderPressure, releasing: warmEngine)
+        pressure.changed(isActive: isUnderPressure)
     }
 
     private func watchMemoryPressure() {
