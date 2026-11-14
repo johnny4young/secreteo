@@ -34,7 +34,7 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored private(set) lazy var timingLog = DictationTimingLog(
         arguments: launchArguments, bundleIdentifier: Bundle.main.bundleIdentifier)
     @ObservationIgnored let environment: DictationFeatureEnvironment
-    @ObservationIgnored let ownership: DictationOwnershipCoordinator
+    @ObservationIgnored private let ownership: DictationOwnershipCoordinator
     @ObservationIgnored let readiness: ReadinessGap
     @ObservationIgnored let warmEngine: WarmModel<ParakeetEngine>
     @ObservationIgnored private var readinessPoll: Task<Void, Never>?

@@ -21,7 +21,8 @@ served_from=0
 log_from=""
 
 package() {
-  rm -rf "$work"
+  # The instrumented app embeds this run's public key, so one from an earlier run could never update.
+  rm -rf "$work" "$instrumented_dmg" "$instrumented_dmg.sha256"
   mkdir -p "$work/feed"
   local keys private public
   keys="$(swift scripts/throwaway-sparkle-key.swift)"
@@ -170,6 +171,7 @@ update() {
   wait_for "the updated app gone" 30 not_running
   update_during_dictation
   pkill -x Secreteo
+  wait_for "the relaunched app gone" 30 not_running
   scripts/smoke-launch.sh "dist/Secreteo-$new_version.dmg"
 
   scripts/enable-gatekeeper.sh

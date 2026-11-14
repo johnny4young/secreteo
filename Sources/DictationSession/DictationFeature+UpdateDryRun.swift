@@ -9,12 +9,12 @@
 
         /// Holds a practice lease through the real coordinator until the named file is deleted,
         /// so Sparkle's relaunch meets a dictation that has not finished.
-        public func holdLeaseForUpdateDryRun(arguments: [String] = CommandLine.arguments) {
-            guard let flag = arguments.firstIndex(of: Self.updateDryRunHoldArgument),
-                  arguments.indices.contains(flag + 1) else { return }
-            let sentinel = arguments[flag + 1]
+        public func holdLeaseForUpdateDryRun() {
+            guard let flag = launchArguments.firstIndex(of: Self.updateDryRunHoldArgument),
+                  launchArguments.indices.contains(flag + 1) else { return }
+            let sentinel = launchArguments[flag + 1]
             let logger = Logger(subsystem: "com.johnny4young.secreteo", category: "updates")
-            guard case .success(let lease) = ownership.admission.acquire(.practice) else {
+            guard case .success(let lease) = dictationAdmission.acquire(.practice) else {
                 logger.error("The update dry run could not take a lease")
                 return
             }

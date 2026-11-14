@@ -50,7 +50,8 @@ test('ci machinery runs every lane', () => {
     'scripts/ci_changes.py', 'scripts/ci_gate.py', 'scripts/ci_reuse_gate.py', 'scripts/ci_reuse_gate.mjs']) assert.deepEqual(classify([path]), all, path);
 });
 test('packaging selects the release dry run', () => {
-  for (const path of ['scripts/package-release.sh', 'project.yml', 'Apps/Secreteo/SparkleUpdater.swift']) {
+  for (const path of ['scripts/package-release.sh', 'project.yml', 'Apps/Secreteo/SparkleUpdater.swift',
+    'Sources/DictationSession/DictationFeature+UpdateDryRun.swift']) {
     assert.equal(classify([path]).release, true, path);
   }
   for (const path of ['Sources/AppUI/A.swift', 'Apps/Secreteo/Localizable.xcstrings']) {
