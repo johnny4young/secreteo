@@ -20,6 +20,9 @@ final class DictationToolboxTests: XCTestCase {
             XCTAssertEqual(schema["type"] as? String, "object", tool.name)
         }
         XCTAssertTrue(DictationToolbox.serverInstructions.contains("only while the user allows it"))
+        for field in ["by_meaning=", "matched by meaning"] {
+            XCTAssertTrue(DictationToolbox.serverInstructions.contains(field), "agents are told what \(field) means")
+        }
     }
 
     func testEveryToolRefusesUntilTheUserSharesTheHistoryAndAgainAfterRevoking() async throws {
