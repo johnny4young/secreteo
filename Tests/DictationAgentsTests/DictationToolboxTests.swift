@@ -82,6 +82,38 @@ final class DictationToolboxTests: XCTestCase {
         }
     }
 
+    func testSearchAddsDictationsCloseInMeaningAfterTheWordMatchesAndMarksThem() async throws {
+        let store = try await populatedStore(sharing: true)
+        let embedding = KeywordEmbedding()
+        for record in try await store.dictationRecords(limit: 10) {
+            _ = try await store.saveDictationEmbedding(
+                .init(recordID: record.id, vector: try await embedding.embed(record.text)), profile: embedding.profile)
+        }
+        let tools = DictationToolbox.tools(reader: .local(store: store, embedding: embedding))
+
+        let answer = try await call(tools, "search_dictations", #"{"query":"pendiente"}"#)
+        let lines = answer.split(separator: "\n").map(String.init)
+        XCTAssertEqual(lines.first, "secreteo-dictations/1 total=2 range=1-2 next_offset=none by_meaning=1")
+        XCTAssertTrue(answer.contains("Mail · inserted · literal\n  Revisa la acción pendiente."))
+        XCTAssertTrue(answer.contains("Notes · inserted · clean · matched by meaning\n  No borres estas notas."))
+        XCTAssertFalse(answer.contains("report"), "a dictation far in meaning stays out")
+
+        let wordsOnly = DictationToolbox.tools(reader: .local(store: store))
+        let plain = try await call(wordsOnly, "search_dictations", #"{"query":"pendiente"}"#)
+        XCTAssertTrue(plain.hasPrefix("secreteo-dictations/1 total=1 range=1-1 next_offset=none by_meaning=0"))
+    }
+
+    func testASearchTheUserHasNotSharedNeverReachesTheModel() async throws {
+        let store = try await populatedStore(sharing: false)
+        let embedding = KeywordEmbedding()
+        let tools = DictationToolbox.tools(reader: .local(store: store, embedding: embedding))
+
+        let answer = try await call(tools, "search_dictations", #"{"query":"pendiente"}"#)
+        XCTAssertEqual(answer, DictationToolbox.notAllowed)
+        let calls = await embedding.calls
+        XCTAssertEqual(calls, 0, "an unshared search never reaches the model")
+    }
+
     func testGetDictationReturnsTheFullTextAndTheKeptOriginal() async throws {
         let store = try await populatedStore(sharing: true)
         let tools = DictationToolbox.tools(reader: .local(store: store))
@@ -144,5 +176,19 @@ final class DictationToolboxTests: XCTestCase {
     private func call(_ tools: [MCPTool], _ name: String, _ arguments: String) async throws -> String {
         let tool = try XCTUnwrap(tools.first { $0.name == name }, name)
         return try await tool.handler(Data(arguments.utf8))
+    }
+}
+
+/// Texts about pending work or notes point one way, everything else another.
+actor KeywordEmbedding: DictationTextEmbedding {
+    nonisolated let profile = "keyword-test-v1"
+    private(set) var calls = 0
+
+    func isReady() -> Bool { true }
+
+    func embed(_ text: String) throws -> [Float] {
+        calls += 1
+        let lowered = text.lowercased()
+        return ["pendiente", "notas"].contains(where: lowered.contains) ? [1, 0] : [0, 1]
     }
 }

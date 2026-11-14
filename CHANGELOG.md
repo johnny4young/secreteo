@@ -4,6 +4,8 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- 🔎 **Search by meaning in Shortcuts and agents**: Search Dictations and the MCP server's `search_dictations` list the dictations that say the same in other words after the ones that hold your words, as Dictation History does.
+
 ## 0.1.0
 
 - 🎙️ **First release**: dictate anywhere on your Mac with a shortcut, Fn or a mouse button. Speech recognition runs on this Mac.

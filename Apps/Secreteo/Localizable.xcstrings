@@ -1954,18 +1954,18 @@
         }
       }
     },
-    "Finds your saved dictations that contain these words, newest first. Works only while Secreteo lets agents and Shortcuts read the history." : {
+    "Finds your saved dictations that contain these words, newest first, then those that say the same in other words. Works only while Secreteo lets agents and Shortcuts read the history." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Finds your saved dictations that contain these words, newest first. Works only while Secreteo lets agents and Shortcuts read the history."
+            "value" : "Finds your saved dictations that contain these words, newest first, then those that say the same in other words. Works only while Secreteo lets agents and Shortcuts read the history."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Encuentra tus dictados guardados que contienen estas palabras, del más reciente al más antiguo. Solo funciona mientras Secreteo permita que los agentes y Atajos lean el historial."
+            "value" : "Encuentra tus dictados guardados que contienen estas palabras, del más reciente al más antiguo, y después los que dicen lo mismo con otras palabras. Solo funciona mientras Secreteo permita que los agentes y Atajos lean el historial."
           }
         }
       }

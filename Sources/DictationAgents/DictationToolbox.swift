@@ -7,14 +7,19 @@ import SpeechCore
 struct DictationAgentReader: Sendable {
     let page: @Sendable (DictationRecordFilter, Int, Int) async throws -> DictationAgentRead<DictationRecordPage>
     let record: @Sendable (DictationRecordID) async throws -> DictationAgentRead<DictationRecord?>
+    let search: @Sendable (DictationRecordFilter, Int, Int) async throws -> DictationAgentRead<DictationSearchPage>
 
-    static func local(store: any DictationAgentStore) -> Self {
+    static func local(store: any DictationAgentStore, embedding: (any DictationTextEmbedding)? = nil) -> Self {
         Self(
             page: { filter, offset, limit in
                 try await ReadDictationsForAgents(store: store).execute(
                     .init(filter: filter, offset: offset, limit: limit))
             },
-            record: { try await ReadDictationForAgents(store: store).execute($0) })
+            record: { try await ReadDictationForAgents(store: store).execute($0) },
+            search: { filter, offset, limit in
+                try await SearchDictationsForAgents(store: store, embedding: embedding).execute(
+                    .init(filter: filter, offset: offset, limit: limit))
+            })
     }
 }
 
@@ -63,7 +68,7 @@ enum DictationToolbox {
 
             MCPTool(
                 name: "search_dictations",
-                description: "Search the user's saved dictations by words (accents ignored, the last word may be partial), optionally only one application or only text that did not reach its app.",
+                description: "Search the user's saved dictations by words (accents ignored, the last word may be partial), then by meaning: after every word match come dictations that say the same in other words in the same language, when this Mac has Apple's language model. Optionally only one application or only text that did not reach its app.",
                 inputSchema: """
                     {"type":"object","properties":{"query":{"type":"string","description":"Words to search for"},"application":{"type":"string","description":"Only dictations sent to this application name"},"only_not_delivered":{"type":"boolean","description":"Only dictations that did not reach their app"},"offset":{"type":"integer","description":"Matches to skip (default 0)"},"limit":{"type":"integer","description":"Max matches to return (default 20, max 50)"}},"required":["query"]}
                     """
@@ -73,7 +78,7 @@ enum DictationToolbox {
                     query: args.query, applicationName: args.application,
                     onlyNotDelivered: args.onlyNotDelivered ?? false)
                 let limit = min(max(1, args.limit ?? searchDefault), searchMaximum)
-                return render(try await reader.page(filter, args.offset ?? 0, limit))
+                return render(try await reader.search(filter, args.offset ?? 0, limit))
             },
 
             MCPTool(
@@ -101,21 +106,40 @@ enum DictationToolbox {
     /// One content-free header, then one entry per dictation.
     static func render(_ read: DictationAgentRead<DictationRecordPage>) -> String {
         guard case .allowed(let page) = read else { return notAllowed }
+        return render(page, header: header(page), byMeaning: { _ in false })
+    }
+
+    /// A search also says how many of its matches hold none of the words, and marks them.
+    static func render(_ read: DictationAgentRead<DictationSearchPage>) -> String {
+        guard case .allowed(let search) = read else { return notAllowed }
+        return render(
+            search.page, header: header(search.page) + " by_meaning=\(search.meaningMatches)",
+            byMeaning: search.matchesByMeaning(at:))
+    }
+
+    private static func header(_ page: DictationRecordPage) -> String {
         let shown = page.records.count
         let range = shown == 0 ? "none" : "\(page.offset + 1)-\(page.offset + shown)"
         let next = page.offset + shown < page.total ? "\(page.offset + shown)" : "none"
-        let header = "secreteo-dictations/1 total=\(page.total) range=\(range) next_offset=\(next)"
-        guard shown > 0 else {
-            return header + "\n\n" + (page.total == 0 ? "No dictations match." : "Offset is past the end.")
-        }
-        return header + "\n\n" + page.records.map(entry).joined(separator: "\n\n")
+        return "secreteo-dictations/1 total=\(page.total) range=\(range) next_offset=\(next)"
     }
 
-    static func entry(_ record: DictationRecord) -> String {
+    private static func render(
+        _ page: DictationRecordPage, header: String, byMeaning: (Int) -> Bool
+    ) -> String {
+        guard !page.records.isEmpty else {
+            return header + "\n\n" + (page.total == 0 ? "No dictations match." : "Offset is past the end.")
+        }
+        return header + "\n\n" + page.records.enumerated().map { index, record in
+            entry(record, byMeaning: byMeaning(index))
+        }.joined(separator: "\n\n")
+    }
+
+    static func entry(_ record: DictationRecord, byMeaning: Bool = false) -> String {
         let text = record.text.count > previewLength
             ? String(record.text.prefix(previewLength)) + "… (get_dictation for the full text)"
             : record.text
-        return summaryLine(record) + "\n" + indented(text)
+        return summaryLine(record) + (byMeaning ? " · matched by meaning" : "") + "\n" + indented(text)
     }
 
     static func detail(_ record: DictationRecord) -> String {

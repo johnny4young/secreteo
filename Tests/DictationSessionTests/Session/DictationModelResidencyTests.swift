@@ -41,6 +41,7 @@ final class DictationModelResidencyTests: XCTestCase {
         XCTAssertEqual(window, .seconds(600), "The window is counted from the last use")
         XCTAssertTrue(rig.warm.isHoldingModel)
         XCTAssertEqual(rig.census.loads, 1)
+        rig.warm.release()
     }
 
     func testTheLightweightProfileGivesTheModelBackAfterOneIdleMinute() async throws {
@@ -110,6 +111,13 @@ final class DictationModelResidencyTests: XCTestCase {
 
         rig.warm.releaseWhenIdle()
         XCTAssertEqual(rig.idleClockStarts.count, 1, "The clock starts only when the last user gives it back")
+        let started = await rig.clock.waitUntilCallCount(1)
+        XCTAssertTrue(started)
+        let window = await rig.clock.requestedDuration(at: 0)
+        XCTAssertEqual(window, .zero)
+        let ended = await rig.clock.resumeCall(at: 0)
+        XCTAssertTrue(ended)
+        await assertGivenBack(rig)
     }
 
     func testMemoryPressureNeverTakesTheModelFromASessionInUse() async throws {
@@ -125,8 +133,9 @@ final class DictationModelResidencyTests: XCTestCase {
         XCTAssertEqual(session.map(ObjectIdentifier.init), identity)
 
         session = nil
+        let freed = await TestPolling.until { rig.census.resident == 0 }
+        XCTAssertTrue(freed, "Its memory goes as soon as the session gives it back")
         rig.warm.releaseWhenIdle()
-        XCTAssertEqual(rig.census.resident, 0, "Its memory goes as soon as the session gives it back")
         XCTAssertEqual(rig.idleClockStarts.count, 0, "Nothing is left to wait for")
     }
 
