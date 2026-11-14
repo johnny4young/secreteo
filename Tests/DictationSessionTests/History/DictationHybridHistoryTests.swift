@@ -694,9 +694,10 @@ final class DictationHybridHistoryTests: XCTestCase {
         func purgeExpiredDictationRecords(at now: Date) async throws -> Int {
             try await store.purgeExpiredDictationRecords(at: now)
         }
-        func dictationRecordsForAgents(matching filter: DictationRecordFilter, offset: Int, limit: Int)
-            async throws -> DictationAgentRead<DictationRecordPage> {
-            try await store.dictationRecordsForAgents(matching: filter, offset: offset, limit: limit)
+        func searchDictationsForAgents(
+            matching filter: DictationRecordFilter, meaning: DictationMeaningQuery?, offset: Int, limit: Int
+        ) async throws -> DictationAgentRead<DictationSearchPage> {
+            try await store.searchDictationsForAgents(matching: filter, meaning: meaning, offset: offset, limit: limit)
         }
     }
 

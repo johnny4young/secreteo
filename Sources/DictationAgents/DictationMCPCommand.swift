@@ -1,3 +1,4 @@
+import DictationKit
 import DictationStore
 import Foundation
 
@@ -9,7 +10,8 @@ public enum DictationMCPCommand {
         let server = MCPServer(
             serverName: "secreteo", serverVersion: version(executable: executable),
             instructions: DictationToolbox.serverInstructions,
-            tools: DictationToolbox.tools(reader: .opening(databaseURL(arguments: arguments, executable: executable))))
+            tools: DictationToolbox.tools(reader: .opening(
+                databaseURL(arguments: arguments, executable: executable), embedding: SystemSentenceEmbedding())))
         while let line = readLine(strippingNewline: true) {
             if let response = await server.handleLine(line) {
                 print(response)
@@ -45,14 +47,18 @@ public enum DictationMCPCommand {
 extension DictationAgentReader {
     /// Opens the app's database on the first call that finds it, so a client set up
     /// before Secreteo first ran starts working without a restart.
-    static func opening(_ url: URL) -> Self {
+    static func opening(_ url: URL, embedding: (any DictationTextEmbedding)?) -> Self {
         let opener = StoreOpener(url: url)
         return Self(
             page: { filter, offset, limit in
                 try await ReadDictationsForAgents(store: try await opener.store()).execute(
                     .init(filter: filter, offset: offset, limit: limit))
             },
-            record: { try await ReadDictationForAgents(store: try await opener.store()).execute($0) })
+            record: { try await ReadDictationForAgents(store: try await opener.store()).execute($0) },
+            search: { filter, offset, limit in
+                try await SearchDictationsForAgents(store: try await opener.store(), embedding: embedding).execute(
+                    .init(filter: filter, offset: offset, limit: limit))
+            })
     }
 }
 

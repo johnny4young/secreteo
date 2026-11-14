@@ -218,6 +218,8 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationSession/Panel/DictationRecoveryView.swift` | `Sources/portavoz-app/DictationRecoveryView.swift` | Renames |
 | `Sources/DictationSession/Panel/DictationUnverifiedDeliveryView.swift` | `Sources/portavoz-app/DictationUnverifiedDeliveryView.swift` | Renames |
 | `Sources/DictationSession/Panel/DictationWaveform.swift` | `Sources/portavoz-app/DictationWaveform.swift` | Seam. Fixes: it stops at Stop and its canvas renders asynchronously, because a slow window server blocked the main thread on each frame |
+| `Tests/DictationSessionTests/Panel/DictationPanelAnchorTests.swift` | `Tests/PortavozAppTests/DictationPanelAnchorTests.swift` | Renames |
+| `Tests/DictationSessionTests/Panel/DictationCompactIndicatorTests.swift` | `Tests/PortavozAppTests/DictationCompactIndicatorTests.swift` | Renames |
 | `Sources/DictationSession/Panel/DictationTextPickers.swift` | `Sources/portavoz-app/DictationTextSettingsSection.swift` | Extract: the two pickers the panel uses |
 | `Sources/DictationSession/Settings/DictationSettingsControls.swift` | `Sources/portavoz-app/DictationSection.swift` | Seam: the controls and labels that have behavior here, grouped anew, with no helper text, and the microphone picker from `AudioSection.swift` |
 | `Sources/DictationSession/Settings/DictationVocabularyEditor.swift` | `Sources/portavoz-app/SettingsView.swift` | Extract: the vocabulary list and add field, with no suggestions from meetings |

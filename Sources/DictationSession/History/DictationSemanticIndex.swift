@@ -26,7 +26,7 @@ actor DictationSemanticIndex {
     static let backfillBatch = 50
 
     private let store: any DictationEmbeddingStore
-    private let embedding: any DictationTextEmbedding
+    let embedding: any DictationTextEmbedding
     private var library: [DictationEmbedding]?
     /// Bumped on every change, so a read that started before one is never cached.
     private var generation = 0
@@ -48,6 +48,7 @@ actor DictationSemanticIndex {
     /// Dictations close in meaning to the query among those the filter allows; nil when
     /// the query has nothing to mean or the model is not on this Mac.
     func ranking(for query: String, matching filter: DictationRecordFilter) async throws -> [DictationRecordID]? {
+        let query = String(query.prefix(DictationRecordFilter.maximumQueryLength))
         guard DictationHybridSearch.isSearchable(query), await embedding.isReady() else { return nil }
         var candidates = try await currentLibrary()
         guard !candidates.isEmpty else { return [] }
