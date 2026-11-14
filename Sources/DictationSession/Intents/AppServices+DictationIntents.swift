@@ -2,15 +2,22 @@ import DictationKit
 import Foundation
 
 /// Saved dictation texts for the Search Dictations Shortcut, behind the same
-/// agent consent the MCP tools check.
+/// agent consent the MCP tools check: word matches first, then those close in meaning.
 struct AppDictationIntentReader: SecreteoDictationReader {
     let store: any DictationHistoryStore
+    var embedding: (any DictationTextEmbedding)?
 
     func dictationTexts(matching words: String, limit: Int) async throws -> [String]? {
-        let read: DictationAgentRead<DictationRecordPage>
+        let filter = DictationRecordFilter(query: words)
+        var read: DictationAgentRead<DictationSearchPage>
         do {
-            read = try await store.dictationRecordsForAgents(
-                matching: DictationRecordFilter(query: words), offset: 0, limit: limit)
+            // Words first: the model never sees an unshared query, nor one whose words fill the limit.
+            read = try await store.searchDictationsForAgents(matching: filter, meaning: nil, offset: 0, limit: limit)
+            if case .allowed(let search) = read, search.page.records.count < limit,
+               let meaning = await DictationMeaningQuery.make(for: words, using: embedding) {
+                read = try await store.searchDictationsForAgents(
+                    matching: filter, meaning: meaning, offset: 0, limit: limit)
+            }
         } catch is CancellationError {
             throw CancellationError()
         } catch {
@@ -19,7 +26,7 @@ struct AppDictationIntentReader: SecreteoDictationReader {
         }
         switch read {
         case .notAllowed: return nil
-        case .allowed(let page): return page.records.map(\.text)
+        case .allowed(let search): return search.page.records.map(\.text)
         }
     }
 }
@@ -78,7 +85,8 @@ extension DictationFeature {
         SecreteoAppIntentBridge.dictationHandler = { [weak self] request in
             self?.performDictationIntent(request) ?? .unavailable
         }
-        SecreteoAppIntentBridge.dictationReader = AppDictationIntentReader(store: history.store)
+        SecreteoAppIntentBridge.dictationReader = AppDictationIntentReader(
+            store: history.store, embedding: history.semantic?.embedding)
     }
 
     /// Opens the history window for Open Dictations, including one asked for while launching.

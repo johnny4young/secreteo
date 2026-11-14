@@ -30,6 +30,14 @@ extension DictationStore {
     public func dictationEmbeddings(
         profile: String, matching filter: DictationRecordFilter = .all
     ) async throws -> [DictationEmbedding] {
+        try await database.read { database in
+            try Self.dictationEmbeddings(in: database, profile: profile, matching: filter)
+        }
+    }
+
+    static func dictationEmbeddings(
+        in database: Database, profile: String, matching filter: DictationRecordFilter
+    ) throws -> [DictationEmbedding] {
         var wordless = filter
         wordless.query = ""
         guard let (filters, filterArguments) = Self.dictationFilterConditions(wordless) else { return [] }
@@ -41,16 +49,13 @@ extension DictationStore {
             WHERE \(conditions.joined(separator: " AND "))
             ORDER BY dictationRecord.createdAt DESC, dictationRecord.id DESC
             """
-        return try await database.read { [arguments] database in
-            try Row.fetchAll(database, sql: sql, arguments: arguments).map { row in
-                let rawID: String = row["recordID"]
-                guard let uuid = UUID(uuidString: rawID) else {
-                    throw DictationStoreError.invalidPersistedUUID(
-                        table: "dictationEmbedding", column: "recordID", value: rawID)
-                }
-                return DictationEmbedding(
-                    recordID: DictationRecordID(rawValue: uuid), vector: Self.decode(row["vector"]))
+        return try Row.fetchAll(database, sql: sql, arguments: arguments).map { row in
+            let rawID: String = row["recordID"]
+            guard let uuid = UUID(uuidString: rawID) else {
+                throw DictationStoreError.invalidPersistedUUID(
+                    table: "dictationEmbedding", column: "recordID", value: rawID)
             }
+            return DictationEmbedding(recordID: DictationRecordID(rawValue: uuid), vector: Self.decode(row["vector"]))
         }
     }
 
@@ -101,16 +106,18 @@ extension DictationStore {
 
     /// These dictations in the order given; any no longer saved are left out.
     public func dictationRecords(ids: [DictationRecordID]) async throws -> [DictationRecord] {
-        let found = try await database.read { database in
-            // SQLite bounds the arguments of one statement, so long lists go in pages.
-            try stride(from: 0, to: ids.count, by: Self.maximumDictationPageSize).flatMap { start in
-                let page = ids[start..<min(start + Self.maximumDictationPageSize, ids.count)]
-                let placeholders = Array(repeating: "?", count: page.count).joined(separator: ", ")
-                return try Row.fetchAll(
-                    database, sql: Self.dictationColumns + "\nWHERE id IN (\(placeholders))",
-                    arguments: StatementArguments(page.map(\.rawValue.uuidString))
-                ).map(Self.dictationRecord(from:))
-            }
+        try await database.read { database in try Self.dictationRecords(in: database, ids: ids) }
+    }
+
+    static func dictationRecords(in database: Database, ids: [DictationRecordID]) throws -> [DictationRecord] {
+        // SQLite bounds the arguments of one statement, so long lists go in pages.
+        let found = try stride(from: 0, to: ids.count, by: Self.maximumDictationPageSize).flatMap { start in
+            let page = ids[start..<min(start + Self.maximumDictationPageSize, ids.count)]
+            let placeholders = Array(repeating: "?", count: page.count).joined(separator: ", ")
+            return try Row.fetchAll(
+                database, sql: Self.dictationColumns + "\nWHERE id IN (\(placeholders))",
+                arguments: StatementArguments(page.map(\.rawValue.uuidString))
+            ).map(Self.dictationRecord(from:))
         }
         let byID = Dictionary(uniqueKeysWithValues: found.map { ($0.id, $0) })
         return ids.compactMap { byID[$0] }

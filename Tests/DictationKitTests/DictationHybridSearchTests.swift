@@ -52,4 +52,42 @@ struct DictationHybridSearchTests {
         #expect(DictationHybridSearch.isSearchable("informe"))
         #expect(DictationHybridSearch.isSearchable("2026"))
     }
+
+    @Test
+    func aQueryVectorNeedsSearchableWordsAndAReadyModelThatWorks() async {
+        let ready = RecordingEmbedding(ready: true, fails: false)
+        #expect(await DictationMeaningQuery.make(for: "report", using: nil) == nil)
+        #expect(await DictationMeaningQuery.make(for: "report", using: RecordingEmbedding(ready: false, fails: false)) == nil)
+        #expect(await DictationMeaningQuery.make(for: "report", using: RecordingEmbedding(ready: true, fails: true)) == nil)
+        #expect(await DictationMeaningQuery.make(for: "?! …", using: ready) == nil)
+        #expect(await ready.texts.isEmpty, "punctuation never reaches the model")
+        #expect(await DictationMeaningQuery.make(for: "report", using: ready) == .init(profile: "recording", vector: [1, 0]))
+    }
+
+    @Test
+    func theModelReadsNoMoreThanAWordSearchDoes() async {
+        let embedding = RecordingEmbedding(ready: true, fails: false)
+        _ = await DictationMeaningQuery.make(for: String(repeating: "palabra ", count: 1_000), using: embedding)
+        #expect(await embedding.texts.map(\.count) == [DictationRecordFilter.maximumQueryLength])
+    }
+}
+
+private actor RecordingEmbedding: DictationTextEmbedding {
+    nonisolated let profile = "recording"
+    let ready: Bool
+    let fails: Bool
+    private(set) var texts: [String] = []
+
+    init(ready: Bool, fails: Bool) {
+        self.ready = ready
+        self.fails = fails
+    }
+
+    func isReady() -> Bool { ready }
+
+    func embed(_ text: String) throws -> [Float] {
+        texts.append(text)
+        if fails { throw CancellationError() }
+        return [1, 0]
+    }
 }
