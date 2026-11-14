@@ -396,10 +396,7 @@ final class DictationFeatureTests: XCTestCase {
     }
 
     func testTheWarmModelWaitsByTheProfileAndGetsNoGraceUnderPressure() throws {
-        // The argument domain outranks the feature's suite, and other tests write to it.
-        let argumentDomain = UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)
-        UserDefaults.standard.setVolatileDomain([:], forName: UserDefaults.argumentDomain)
-        defer { UserDefaults.standard.setVolatileDomain(argumentDomain, forName: UserDefaults.argumentDomain) }
+        isolateArgumentDomain()
         let feature = try makeFeature()
         XCTAssertEqual(feature.warmEngine.currentIdleLimit, .seconds(600))
 

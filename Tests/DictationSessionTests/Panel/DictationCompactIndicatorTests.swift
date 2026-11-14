@@ -8,10 +8,7 @@ final class DictationCompactIndicatorTests: XCTestCase {
         let suite = "compact-indicator-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
-        // The process-wide argument domain outranks the suite, and other tests write to it.
-        let argumentDomain = UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)
-        UserDefaults.standard.setVolatileDomain([:], forName: UserDefaults.argumentDomain)
-        defer { UserDefaults.standard.setVolatileDomain(argumentDomain, forName: UserDefaults.argumentDomain) }
+        isolateArgumentDomain()
         XCTAssertFalse(DictationCompactIndicator.applies(to: .listening, defaults: defaults), "off by default")
 
         defaults.set(true, forKey: DictationCompactIndicator.defaultsKey)

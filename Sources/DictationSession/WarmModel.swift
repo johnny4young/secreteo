@@ -70,7 +70,7 @@ final class WarmModel<Model: Sendable> {
         idleRelease?.cancel()
         idleRelease = nil
         guard users == 0, model != nil else { return }
-        let limit = idleLimit()
+        let limit = currentIdleLimit
         idleRelease = Task { [weak self, sleep] in
             try? await sleep(limit)
             guard !Task.isCancelled else { return }

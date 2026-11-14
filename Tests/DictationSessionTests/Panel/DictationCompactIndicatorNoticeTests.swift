@@ -5,11 +5,9 @@ import XCTest
 @MainActor
 extension DictationControllerTests {
     func testAMicrophoneNoticeOpensTheFullStrip() async {
+        isolateArgumentDomain()
         let harness = DictationControllerHarness(text: "Send the report.")
-        defer {
-            harness.controller.cancel()
-            harness.defaults.setVolatileDomain([:], forName: UserDefaults.argumentDomain)
-        }
+        defer { harness.controller.cancel() }
         harness.set(true, forKey: DictationCompactIndicator.defaultsKey)
 
         harness.controller.toggle(using: harness.dependencies)
@@ -26,8 +24,10 @@ extension DictationControllerTests {
             return input
         }
         harness.controller.toggle(using: fallback)
-        let noticed = await TestPolling.until { harness.controller.microphoneNotice != nil }
-        XCTAssertTrue(noticed)
+        let fellBack = await TestPolling.until { harness.controller.phase == .listening }
+        XCTAssertTrue(fellBack)
+        XCTAssertNotNil(harness.controller.microphoneNotice)
+        XCTAssertTrue(DictationCompactIndicator.applies(to: harness.controller.phase), "only the notice keeps it full")
         XCTAssertFalse(DictationCompactIndicator.applies(to: harness.controller), "the notice needs the full strip")
     }
 }
