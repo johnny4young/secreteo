@@ -40,13 +40,13 @@ extension DictationControllerTests {
     func testTheStripAnchorIsReadWithTheDestination() async {
         let harness = DictationControllerHarness(text: "Send the report.")
         defer { harness.controller.cancel() }
-        harness.controller.toggle(using: harness.dependencies)
-        XCTAssertNil(harness.controller.panelAnchor, "disposable launches keep the default placement")
-        harness.controller.cancel()
-
         var dependencies = harness.dependencies
         dependencies.locatePanelAnchor = { .pointer(NSPoint(x: 300, y: 400)) }
         harness.controller.toggle(using: dependencies)
         XCTAssertEqual(harness.controller.panelAnchor, .pointer(NSPoint(x: 300, y: 400)))
+        harness.controller.cancel()
+
+        harness.controller.toggle(using: harness.dependencies)
+        XCTAssertNil(harness.controller.panelAnchor, "a new dictation never keeps the last one's anchor")
     }
 }
