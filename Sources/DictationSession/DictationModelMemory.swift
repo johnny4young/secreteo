@@ -32,11 +32,34 @@ enum DictationModelMemory: String {
 @MainActor
 final class DictationMemoryPressure {
     private(set) var isActive = false
+    private var releasers: [@MainActor () -> Bool] = []
+    private var afterEnd: [@MainActor () -> Void] = []
+    private var tookSomething = false
 
     /// Pressure gives an idle model back at once; a session in use keeps the one it holds.
-    func changed<Model>(isActive: Bool, releasing warm: WarmModel<Model>) {
+    func releases<Model>(_ warm: WarmModel<Model>) {
+        releases { [weak warm] in warm?.release() ?? false }
+    }
+
+    /// Runs on each report of pressure; returns whether it gave anything back.
+    func releases(_ release: @escaping @MainActor () -> Bool) {
+        releasers.append(release)
+    }
+
+    /// Runs when pressure that gave something back ends, not on every report of normal memory.
+    func whenItEnds(_ action: @escaping @MainActor () -> Void) {
+        afterEnd.append(action)
+    }
+
+    func changed(isActive: Bool) {
+        let ended = self.isActive && !isActive
         self.isActive = isActive
-        if isActive { warm.release() }
+        if isActive {
+            for release in releasers where release() { tookSomething = true }
+        }
+        guard ended, tookSomething else { return }
+        tookSomething = false
+        afterEnd.forEach { $0() }
     }
 }
 

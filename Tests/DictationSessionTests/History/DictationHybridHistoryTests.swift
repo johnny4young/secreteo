@@ -8,10 +8,12 @@ import XCTest
 
 @MainActor
 final class DictationHybridHistoryTests: XCTestCase {
-    private func model(embedding: any DictationTextEmbedding = DictationFixtureEmbedding()) async throws
-        -> (DictationHistoryModel, DictationSemanticIndex, DictationStore) {
+    private func model(
+        embedding: any DictationTextEmbedding = DictationFixtureEmbedding(), backfills: Bool = true
+    ) async throws -> (DictationHistoryModel, DictationSemanticIndex, DictationStore) {
         let store = try DictationStore.inMemory()
-        let index = DictationSemanticIndex(store: store, embedding: embedding)
+        let vectors: any DictationEmbeddingStore = backfills ? store : NoBackfillStore(store: store)
+        let index = DictationSemanticIndex(store: vectors, embedding: embedding)
         let model = DictationHistoryModel(store: store, semantic: index)
         await model.load()
         await model.update(isEnabled: true)
@@ -66,7 +68,8 @@ final class DictationHybridHistoryTests: XCTestCase {
     }
 
     func testASearchOnScreenAddsADictationOnceItsVectorIsSaved() async throws {
-        let (model, index, store) = try await model()
+        // The backfill `load()` starts could otherwise reach the dictation before the search.
+        let (model, index, store) = try await model(backfills: false)
         // Saved straight to the store, so only the explicit index call makes its vector.
         let report = record("Send the report on Friday.", app: "Slack")
         _ = try await store.recordDictation(report, admittedGeneration: model.policy.generation, at: Date())
@@ -771,6 +774,33 @@ final class DictationHybridHistoryTests: XCTestCase {
         let model = DictationHistoryModel(store: store, semantic: index)
         await model.load()
         return (model, gate, report, survivor, store)
+    }
+
+    /// Leaves every vector to an explicit `index(_:)` call.
+    private struct NoBackfillStore: DictationEmbeddingStore {
+        let store: DictationStore
+
+        func saveDictationEmbedding(_ embedding: DictationEmbedding, profile: String) async throws -> Bool {
+            try await store.saveDictationEmbedding(embedding, profile: profile)
+        }
+
+        func dictationEmbeddings(profile: String, matching filter: DictationRecordFilter) async throws
+            -> [DictationEmbedding] {
+            try await store.dictationEmbeddings(profile: profile, matching: filter)
+        }
+
+        func dictationEmbeddingIDs(profile: String, matching filter: DictationRecordFilter) async throws
+            -> Set<DictationRecordID> {
+            try await store.dictationEmbeddingIDs(profile: profile, matching: filter)
+        }
+
+        func dictationRecordsMissingEmbedding(
+            profile: String, before cursor: DictationRecord?, limit: Int
+        ) async throws -> [DictationRecord] { [] }
+
+        func dictationRecords(ids: [DictationRecordID]) async throws -> [DictationRecord] {
+            try await store.dictationRecords(ids: ids)
+        }
     }
 
     private struct HeldMeaningStore: DictationEmbeddingStore {

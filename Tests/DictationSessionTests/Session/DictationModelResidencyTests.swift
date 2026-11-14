@@ -65,7 +65,7 @@ final class DictationModelResidencyTests: XCTestCase {
         for profile in [DictationModelMemory.balanced, .lightweight] {
             let rig = makeRig()
             rig.defaults.set(profile.rawValue, forKey: DictationModelMemory.key)
-            rig.pressure.changed(isActive: true, releasing: rig.warm)
+            rig.pressure.changed(isActive: true)
             _ = try await rig.warm.acquire()
             rig.warm.releaseWhenIdle()
 
@@ -87,7 +87,7 @@ final class DictationModelResidencyTests: XCTestCase {
         let started = await rig.clock.waitUntilCallCount(1)
         XCTAssertTrue(started)
 
-        rig.pressure.changed(isActive: true, releasing: rig.warm)
+        rig.pressure.changed(isActive: true)
 
         XCTAssertFalse(rig.warm.isHoldingModel, "Pressure does not wait for the window")
         await assertGivenBack(rig)
@@ -98,7 +98,7 @@ final class DictationModelResidencyTests: XCTestCase {
     func testAModelInUseHasNoIdleClock() async throws {
         let rig = makeRig()
         rig.defaults.set(DictationModelMemory.lightweight.rawValue, forKey: DictationModelMemory.key)
-        rig.pressure.changed(isActive: true, releasing: rig.warm)
+        rig.pressure.changed(isActive: true)
         _ = try await rig.warm.acquire()
         _ = try await rig.warm.acquire()
 
@@ -123,17 +123,41 @@ final class DictationModelResidencyTests: XCTestCase {
         var session: SyntheticModel? = try await rig.warm.acquire()
         let identity = session.map(ObjectIdentifier.init)
 
-        rig.pressure.changed(isActive: true, releasing: rig.warm)
+        rig.pressure.changed(isActive: true)
 
         XCTAssertFalse(rig.warm.isHoldingModel)
         XCTAssertEqual(rig.census.resident, 1, "The session keeps working with the model it was given")
         XCTAssertEqual(session.map(ObjectIdentifier.init), identity)
+        XCTAssertNil(rig.warm.prewarm(), "A prewarm must not load a second copy beside the session's")
 
         session = nil
         let freed = await TestPolling.until { rig.census.resident == 0 }
         XCTAssertTrue(freed, "Its memory goes as soon as the session gives it back")
         rig.warm.releaseWhenIdle()
         XCTAssertEqual(rig.idleClockStarts.count, 0, "Nothing is left to wait for")
+    }
+
+    func testAPrewarmLoadsAgainAfterPressureAndStillWaitsOutItsWindow() async throws {
+        let rig = makeRig()
+        _ = try await rig.warm.acquire()
+        rig.warm.releaseWhenIdle()
+        let started = await rig.clock.waitUntilCallCount(1)
+        XCTAssertTrue(started)
+        rig.pressure.changed(isActive: true)
+        await assertGivenBack(rig)
+        rig.pressure.changed(isActive: false)
+
+        let prewarm = try XCTUnwrap(rig.warm.prewarm())
+        await prewarm.value
+
+        XCTAssertEqual(rig.census.loads, 2)
+        XCTAssertTrue(rig.warm.isHoldingModel)
+        let waiting = await rig.clock.waitUntilCallCount(2)
+        XCTAssertTrue(waiting, "A prewarmed model still gets its idle clock")
+        let window = await rig.clock.requestedDuration(at: 1)
+        XCTAssertEqual(window, .seconds(600))
+        XCTAssertTrue(rig.warm.release(), "pressure would have something to give back")
+        XCTAssertFalse(rig.warm.release(), "and nothing the second time")
     }
 
     func testANewUseAfterAReleaseLoadsAgain() async throws {
@@ -144,7 +168,7 @@ final class DictationModelResidencyTests: XCTestCase {
             let started = await rig.clock.waitUntilCallCount(1)
             XCTAssertTrue(started)
             if releasesUnderPressure {
-                rig.pressure.changed(isActive: true, releasing: rig.warm)
+                rig.pressure.changed(isActive: true)
             } else {
                 let ended = await rig.clock.resumeCall(at: 0)
                 XCTAssertTrue(ended)
@@ -192,6 +216,7 @@ final class DictationModelResidencyTests: XCTestCase {
             mayKeep: { true },
             load: { SyntheticModel(census: census) },
             sleep: { try await clock.wait(for: $0) })
+        pressure.releases(warm)
         return Rig(
             warm: warm, defaults: defaults, pressure: pressure, clock: clock, census: census,
             idleClockStarts: starts)
