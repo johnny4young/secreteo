@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# Usage: package-release.sh <version> <production|dryrun>
+# Usage: package-release.sh <version> <production|dryrun|instrumented>
 # Builds, signs inside out, notarizes and packages one DMG into dist/. The dry run takes
 # this same path with ad-hoc signing and a throwaway key, so it proves what a tag runs.
+# instrumented is a dry run that also compiles SECRETEO_UPDATE_DRYRUN, for the update scenario
+# that holds a lease; it builds in its own derived data and DMG name so the exact pair never sees it.
 set -euo pipefail
 
 version="${1:?version}"
-mode="${2:?production or dryrun}"
+mode="${2:?production, dryrun or instrumented}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
@@ -37,6 +39,8 @@ project_setting() {
 
 settings=("MARKETING_VERSION=$version")
 build_output=(-quiet)
+derived="build/release"
+suffix=""
 case "$mode" in
   production)
     identity="${MACOS_CODE_SIGN_IDENTITY:?MACOS_CODE_SIGN_IDENTITY is required}"
@@ -49,11 +53,17 @@ case "$mode" in
     [[ -n "$(project_setting SPARKLE_PUBLIC_ED_KEY)" ]] \
       || { echo "error: SPARKLE_PUBLIC_ED_KEY is empty, so this build could never update" >&2; exit 1; }
     ;;
-  dryrun)
+  dryrun|instrumented)
     identity="-"
     settings+=("SPARKLE_PUBLIC_ED_KEY=${DRYRUN_SPARKLE_PUBLIC_KEY:?DRYRUN_SPARKLE_PUBLIC_KEY is required}")
     # Quiet output also suppresses Xcode's timing summary.
     build_output=(-showBuildTimingSummary)
+    if [[ "$mode" == "instrumented" ]]; then
+      # shellcheck disable=SC2016 # Xcode expands $(inherited), not the shell.
+      settings+=('SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) SECRETEO_UPDATE_DRYRUN')
+      derived="build/release-instrumented"
+      suffix="-instrumented"
+    fi
     ;;
   *)
     echo "Unknown mode: $mode" >&2
@@ -62,10 +72,10 @@ case "$mode" in
 esac
 
 output="dist"
-derived="build/release"
-stage="build/release-stage/$version"
+stage="build/release-stage/$version$suffix"
 app="$stage/Secreteo.app"
-dmg="$output/Secreteo-$version.dmg"
+name="Secreteo-$version$suffix"
+dmg="$output/$name.dmg"
 
 notarize() {
   local submit="$1" staple="$2" plist status=0 id
@@ -141,6 +151,6 @@ fi
 begin_phase verify
 python3 scripts/verify_release.py "$dmg" "$version" "$mode"
 finish_phase 0
-(cd "$output" && shasum -a 256 "Secreteo-$version.dmg" > "Secreteo-$version.dmg.sha256")
+(cd "$output" && shasum -a 256 "$name.dmg" > "$name.dmg.sha256")
 echo "Packaged $dmg"
 report_timing total "$package_started" 0

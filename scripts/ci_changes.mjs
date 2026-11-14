@@ -13,7 +13,8 @@ const RELEASE = ['scripts/package-release.sh', 'scripts/sign-app.sh', 'scripts/r
   'scripts/verify-ed-signature.swift', 'scripts/smoke-launch.sh', 'scripts/enable-gatekeeper.sh',
   'scripts/fetch-sparkle.sh', 'scripts/throwaway-sparkle-key.swift', 'project.yml',
   'Apps/Secreteo/Info.plist', 'Apps/Secreteo/Secreteo.entitlements',
-  'Apps/Secreteo/SecreteoMain.swift', 'Apps/Secreteo/SparkleUpdater.swift', ...CI];
+  'Apps/Secreteo/SecreteoMain.swift', 'Apps/Secreteo/SparkleUpdater.swift',
+  'Sources/DictationSession/DictationFeature+UpdateDryRun.swift', ...CI];
 
 // fnmatch semantics: * and ? also match separators and newlines.
 export const glob = pattern => new RegExp(`^${pattern.replace(/[\\^$.|+()[\]{}]/g, '\\$&')

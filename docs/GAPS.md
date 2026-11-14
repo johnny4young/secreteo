@@ -28,7 +28,11 @@ Microphone and Accessibility grants, Shortcuts, MCP client configuration, and hi
 
 ## G7. Updates during a dictation
 
-A scheduled update shows as a menu row. Sparkle's relaunch-postponement hook now closes new dictation admission and waits until every capture/delivery lease, native Stop, clipboard restore and pending history/statistics write attempt has finished. Write failures retain their existing handling. An aborted or finished update cycle clears the pending callback and reopens admission. Synthetic tests cover these boundaries; an actual signed update during dictation is still unqualified. [Sparkle documents](https://sparkle-project.org/documentation/api-reference/Protocols/SPUUpdaterDelegate.html) paths that omit this hook (including a prior update without relaunch), so this is not a general termination barrier.
+A scheduled update shows as a menu row. Sparkle's relaunch-postponement hook closes new dictation admission and waits until every capture/delivery lease, native Stop, clipboard restore and pending history/statistics write attempt has finished. Write failures retain their existing handling. An aborted or finished update cycle clears the pending callback and reopens admission.
+
+Sparkle 2.10.1 asks the hook only on its relaunch path: Install and Relaunch from the update alert, or a delegate's immediate install. An automatic update installs when the app quits and never asks the hook, and [Sparkle documents](https://sparkle-project.org/documentation/api-reference/Protocols/SPUUpdaterDelegate.html) other paths that omit it (including a prior update without relaunch), so this is not a general termination barrier.
+
+The [release dry run](RELEASING.md#dry-run) proves the Sparkle, hook and relaunch wiring on packaged builds with a synthetic lease: an instrumented 9.0.0 holds a practice lease through the real coordinator and forces the relaunch path, Sparkle postpones, the old app stays running and installed, and once the lease ends Sparkle installs and relaunches 9.0.1 by itself. That lease captures nothing, so native Stop, the clipboard restore, pending writes and real audio I/O during an update are still covered only by synthetic unit tests and the runbook.
 
 ## G8. Ownership on a network home
 
