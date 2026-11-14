@@ -31,7 +31,13 @@ enum DictationModelMemory: String {
 /// The system's last word on memory, which `WarmModel` reads before the feature exists.
 @MainActor
 final class DictationMemoryPressure {
-    var isActive = false
+    private(set) var isActive = false
+
+    /// Pressure gives an idle model back at once; a session in use keeps the one it holds.
+    func changed<Model>(isActive: Bool, releasing warm: WarmModel<Model>) {
+        self.isActive = isActive
+        if isActive { warm.release() }
+    }
 }
 
 /// Opt-in warm load for dictation. It never pins the model: the hold ends at

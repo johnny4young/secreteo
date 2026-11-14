@@ -16,6 +16,8 @@ final class WarmModel<Model: Sendable> {
     private var generation = 0
 
     var isHoldingModel: Bool { model != nil }
+    /// The wait the next idle period would get.
+    var currentIdleLimit: Duration { idleLimit() }
 
     init(
         idleLimit: @escaping @MainActor () -> Duration = { .seconds(600) }, mayKeep: @escaping @MainActor () -> Bool,
@@ -68,7 +70,7 @@ final class WarmModel<Model: Sendable> {
         idleRelease?.cancel()
         idleRelease = nil
         guard users == 0, model != nil else { return }
-        let limit = idleLimit()
+        let limit = currentIdleLimit
         idleRelease = Task { [weak self, sleep] in
             try? await sleep(limit)
             guard !Task.isCancelled else { return }
