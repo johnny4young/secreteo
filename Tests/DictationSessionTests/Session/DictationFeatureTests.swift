@@ -395,11 +395,22 @@ final class DictationFeatureTests: XCTestCase {
         XCTAssertFalse(feature.prewarmConditions.underPressure)
     }
 
-    func testAModelGetsNoGraceUnderMemoryPressure() {
-        for profile in [DictationModelMemory.balanced, .lightweight] {
-            XCTAssertEqual(profile.idleLimit(underPressure: true), .zero)
-            XCTAssertGreaterThan(profile.idleLimit(underPressure: false), .zero)
-        }
+    func testTheWarmModelWaitsByTheProfileAndGetsNoGraceUnderPressure() throws {
+        // The argument domain outranks the feature's suite, and other tests write to it.
+        let argumentDomain = UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)
+        UserDefaults.standard.setVolatileDomain([:], forName: UserDefaults.argumentDomain)
+        defer { UserDefaults.standard.setVolatileDomain(argumentDomain, forName: UserDefaults.argumentDomain) }
+        let feature = try makeFeature()
+        XCTAssertEqual(feature.warmEngine.currentIdleLimit, .seconds(600))
+
+        feature.defaults.set(DictationModelMemory.lightweight.rawValue, forKey: DictationModelMemory.key)
+        XCTAssertEqual(feature.warmEngine.currentIdleLimit, .seconds(60))
+
+        feature.memoryPressureChanged(isUnderPressure: true)
+        XCTAssertEqual(feature.warmEngine.currentIdleLimit, .zero)
+
+        feature.memoryPressureChanged(isUnderPressure: false)
+        XCTAssertEqual(feature.warmEngine.currentIdleLimit, .seconds(60))
     }
 
     func testThePrewarmChoiceReadsAsOffWithTheLightweightProfileAndComesBack() throws {

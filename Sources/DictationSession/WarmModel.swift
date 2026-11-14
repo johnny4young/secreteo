@@ -16,6 +16,8 @@ final class WarmModel<Model: Sendable> {
     private var generation = 0
 
     var isHoldingModel: Bool { model != nil }
+    /// The wait the next idle period would get.
+    var currentIdleLimit: Duration { idleLimit() }
 
     init(
         idleLimit: @escaping @MainActor () -> Duration = { .seconds(600) }, mayKeep: @escaping @MainActor () -> Bool,

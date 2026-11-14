@@ -405,8 +405,7 @@ public final class DictationFeature: AppServices {
     }
 
     func memoryPressureChanged(isUnderPressure: Bool) {
-        pressure.isActive = isUnderPressure
-        if isUnderPressure { warmEngine.release() }
+        pressure.changed(isActive: isUnderPressure, releasing: warmEngine)
     }
 
     private func watchMemoryPressure() {
