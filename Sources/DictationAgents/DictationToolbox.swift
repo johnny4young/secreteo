@@ -38,7 +38,9 @@ enum DictationToolbox {
         Nothing here can create, change or delete them, and nothing leaves the machine. \
         `list_dictations`, `search_dictations`, and `get_dictation` read them only while \
         the user allows it in Secreteo; their responses open with a content-free \
-        `secreteo-dictations/1` header.
+        `secreteo-dictations/1` header. In `search_dictations`, `by_meaning=<n>` counts the \
+        matches found by meaning rather than by the words, and each of them is marked \
+        `matched by meaning`.
         """
     static let notAllowed = """
         Dictation history is not shared with agents. The user can turn on \
