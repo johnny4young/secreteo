@@ -4,7 +4,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
-- ♻️ **Prewarm after memory pressure**: with Prewarm on, the speech model loads again once the Mac has memory to spare, so the next dictation does not wait for it.
+- ♻️ **Prewarm after memory pressure**: with Prewarm on, a speech model that memory pressure unloaded loads again once the pressure ends, so the next dictation does not wait for it.
 
 ## 0.1.1
 

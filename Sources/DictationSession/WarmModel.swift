@@ -78,11 +78,26 @@ final class WarmModel<Model: Sendable> {
         }
     }
 
-    func release() {
+    /// Says whether it let go of a model or a load.
+    @discardableResult
+    func release() -> Bool {
+        let held = model != nil || loading != nil
         idleRelease?.cancel()
         idleRelease = nil
         model = nil
         loading = nil
         generation += 1
+        return held
+    }
+
+    /// Loads ahead of the next use and starts its idle clock. Nil beside a session in use,
+    /// which may hold a model `release()` let go: a load would make a second copy.
+    @discardableResult
+    func prewarm() -> Task<Void, Never>? {
+        guard users == 0 else { return nil }
+        return Task {
+            guard (try? await acquire()) != nil else { return }
+            releaseWhenIdle()
+        }
     }
 }

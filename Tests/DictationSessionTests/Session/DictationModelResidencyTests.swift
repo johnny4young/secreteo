@@ -128,12 +128,36 @@ final class DictationModelResidencyTests: XCTestCase {
         XCTAssertFalse(rig.warm.isHoldingModel)
         XCTAssertEqual(rig.census.resident, 1, "The session keeps working with the model it was given")
         XCTAssertEqual(session.map(ObjectIdentifier.init), identity)
+        XCTAssertNil(rig.warm.prewarm(), "A prewarm must not load a second copy beside the session's")
 
         session = nil
         let freed = await TestPolling.until { rig.census.resident == 0 }
         XCTAssertTrue(freed, "Its memory goes as soon as the session gives it back")
         rig.warm.releaseWhenIdle()
         XCTAssertEqual(rig.idleClockStarts.count, 0, "Nothing is left to wait for")
+    }
+
+    func testAPrewarmLoadsAgainAfterPressureAndStillWaitsOutItsWindow() async throws {
+        let rig = makeRig()
+        _ = try await rig.warm.acquire()
+        rig.warm.releaseWhenIdle()
+        let started = await rig.clock.waitUntilCallCount(1)
+        XCTAssertTrue(started)
+        rig.pressure.changed(isActive: true)
+        await assertGivenBack(rig)
+        rig.pressure.changed(isActive: false)
+
+        let prewarm = try XCTUnwrap(rig.warm.prewarm())
+        await prewarm.value
+
+        XCTAssertEqual(rig.census.loads, 2)
+        XCTAssertTrue(rig.warm.isHoldingModel)
+        let waiting = await rig.clock.waitUntilCallCount(2)
+        XCTAssertTrue(waiting, "A prewarmed model still gets its idle clock")
+        let window = await rig.clock.requestedDuration(at: 1)
+        XCTAssertEqual(window, .seconds(600))
+        XCTAssertTrue(rig.warm.release(), "pressure would have something to give back")
+        XCTAssertFalse(rig.warm.release(), "and nothing the second time")
     }
 
     func testANewUseAfterAReleaseLoadsAgain() async throws {

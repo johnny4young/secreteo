@@ -27,9 +27,11 @@ final class DictationPanelPlacementTests: XCTestCase {
         dependencies.locatePanelAnchor = { first }
         harness.controller.toggle(using: dependencies)
         XCTAssertEqual(harness.controller.phase, .preparing)
+        // Another controller in this process may still hold a panel with the same identifier.
+        let earlier = Set(NSApplication.shared.windows.map(ObjectIdentifier.init))
         panels.show(controller: harness.controller)
         let panel = try XCTUnwrap(NSApplication.shared.windows.first {
-            $0.accessibilityIdentifier() == "dictation-panel"
+            $0.accessibilityIdentifier() == "dictation-panel" && !earlier.contains(ObjectIdentifier($0))
         })
         assertOrigin(of: panel, near: first, in: screen)
 

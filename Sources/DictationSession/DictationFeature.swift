@@ -395,10 +395,7 @@ public final class DictationFeature: AppServices {
     /// Loads only an installed, verified model, because `warmEngine` never downloads.
     func prewarmIfConfigured() {
         guard DictationPrewarmPolicy.shouldWarm(prewarmConditions) else { return }
-        Task {
-            guard (try? await warmEngine.acquire()) != nil else { return }
-            warmEngine.releaseWhenIdle()
-        }
+        warmEngine.prewarm()
     }
 
     func modelMemoryChanged() {
