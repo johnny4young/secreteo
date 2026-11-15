@@ -278,9 +278,14 @@ struct SettingsSegments<Value: Hashable>: View {
             selection = SettingsArrowKeys.neighbor(of: selection, in: options.map(\.value), by: $0)
         })
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(label)
-        .accessibilityValue(options.first { $0.value == selection }?.title ?? Text(verbatim: ""))
+        // A group exposes no value on macOS, so the choice rides on the label.
+        .accessibilityLabel(chosenLabel)
         .accessibilityIdentifier(identifier)
+    }
+
+    private var chosenLabel: Text {
+        guard let chosen = options.first(where: { $0.value == selection }) else { return label }
+        return Text("\(label), \(chosen.title)")
     }
 }
 
