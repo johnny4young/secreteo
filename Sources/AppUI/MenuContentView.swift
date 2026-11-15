@@ -4,6 +4,8 @@ import SwiftUI
 /// The status item's content. UI tests mount this same view in a window, because the
 /// status item itself cannot be automated reliably.
 public struct MenuContentView: View {
+    static let width: CGFloat = 320
+
     private let model: AppModel
     /// Runs a row whose words go to the app with focus.
     private let inTargetApp: @MainActor (@escaping @MainActor () -> Void) -> Void
@@ -16,61 +18,33 @@ public struct MenuContentView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 0) {
             if let dictation = model.dictation {
-                if dictation.isActive {
-                    MenuRow(title: "Stop Dictating", identifier: "menu-bar-dictate") {
-                        inTargetApp { dictation.toggleDictation() }
-                    }
-                } else if dictation.canDictate {
-                    MenuRow(title: "Dictate", identifier: "menu-bar-dictate") {
-                        inTargetApp { dictation.toggleDictation() }
-                    }
-                } else if dictation.isEnabled, dictation.canTakeOwnership {
-                    MenuRow(title: "Use Secreteo for Dictation", identifier: "menu-bar-take-ownership") {
-                        dictation.takeOwnership()
-                    }
-                } else {
-                    MenuRow(title: "Set Up Dictation…", identifier: "menu-bar-set-up-dictation") {
-                        model.openSettings()
-                    }
-                }
-                if dictation.canPasteLast {
-                    MenuRow(title: "Paste Last Dictation", identifier: "menu-bar-paste-last") {
-                        inTargetApp { dictation.pasteLast() }
-                    }
-                }
+                DictationMenuDashboard(dictation: dictation, openSettings: model.openSettings, inTargetApp: inTargetApp)
+                Divider()
+                    .padding(.horizontal, 4)
+                    .padding(.top, 12)
+                    .padding(.bottom, 6)
                 if dictation.canRewriteSelection {
-                    MenuRow(title: "Rewrite Selection…", identifier: "menu-bar-rewrite-selection") {
+                    MenuRow(title: "Rewrite Selection…", shortcut: dictation.rewriteSelectionShortcutLabel,
+                            identifier: "menu-bar-rewrite-selection") {
                         inTargetApp { dictation.rewriteSelection() }
                     }
                 }
-                if dictation.canPasteUnpolished {
-                    MenuRow(title: "Paste Without Polish", identifier: "menu-bar-paste-unpolished") {
-                        inTargetApp { dictation.pasteLast(alternate: true) }
-                    }
-                }
-                if dictation.canPasteOriginal {
-                    MenuRow(title: "Paste the Original", identifier: "menu-bar-paste-original") {
-                        inTargetApp { dictation.pasteLast(alternate: true) }
-                    }
-                }
                 MenuRow(title: "Dictation History…", identifier: "menu-bar-history") { model.openHistory() }
-                Divider()
             }
             if model.updateIsAvailable {
                 MenuRow(title: "Update Available…", identifier: "menu-update-available", action: model.checkForUpdates)
-                Divider()
             }
-            MenuRow(title: "Settings…", identifier: "menu-settings", action: model.openSettings)
+            MenuRow(title: "Settings…", shortcut: "⌘,", key: ",", identifier: "menu-settings") { model.openSettings() }
             if model.canCheckForUpdates {
                 MenuRow(title: "Check for Updates…", identifier: "menu-check-updates", action: model.checkForUpdates)
             }
-            Divider()
-            MenuRow(title: "Quit Secreteo", identifier: "menu-quit", action: model.quit)
+            MenuRow(title: "Quit Secreteo", shortcut: "⌘Q", identifier: "menu-quit", action: model.quit)
         }
-        .padding(8)
-        .frame(width: 220)
+        .padding(14)
+        .frame(width: Self.width)
+        .background(SecreteoDesign.windowBackground)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("menu-content")
         .tint(SecreteoDesign.accent)
@@ -79,19 +53,42 @@ public struct MenuContentView: View {
 
 private struct MenuRow: View {
     let title: LocalizedStringKey
+    var shortcut: String?
+    /// Set when the shortcut works only while the menu is open; the main menu owns the others.
+    var key: KeyEquivalent?
     let identifier: String
     let action: () -> Void
+    @State private var isHovered = false
+    @FocusState private var isFocused: Bool
 
     var body: some View {
+        let isLit = isHovered || isFocused
         Button(action: action) {
             // Inside the label: a plain button only responds where its label has a shape.
-            Text(title)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .contentShape(Rectangle())
+            HStack(spacing: 10) {
+                Text(title)
+                Spacer(minLength: 0)
+                if let shortcut {
+                    Text(shortcut)
+                        .font(.system(size: 11.5, design: .monospaced))
+                        .foregroundStyle(isLit ? SecreteoDesign.onAccent : SecreteoDesign.tertiaryText)
+                }
+            }
+            .font(.system(size: 13))
+            .foregroundStyle(isLit ? SecreteoDesign.onAccent : SecreteoDesign.text)
+            .padding(.horizontal, 9)
+            .frame(height: 28)
+            .background(isLit ? SecreteoDesign.accent : .clear, in: RoundedRectangle(cornerRadius: 7))
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .keyboardShortcut(key.map { KeyboardShortcut($0, modifiers: .command) })
+        .focused($isFocused)
+        .focusEffectDisabled()
+        .onHover { isHovered = $0 }
+        // A closing popover never reports the pointer leaving, so a reopened menu would keep a lit row.
+        .onDisappear { isHovered = false }
+        .accessibilityLabel(Text(title))
         .accessibilityIdentifier(identifier)
     }
 }
