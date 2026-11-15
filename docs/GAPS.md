@@ -79,13 +79,14 @@ Shortcuts and the MCP server find by meaning only dictations the app has already
 
 ## G19. Paths only tests have run
 
-These are ported, and tests cover their logic. None has run on a real Mac against another app. [D29](DECISIONS.md#d29-manual-gates-do-not-block-a-release-yet) keeps that check optional until Secreteo has customers, and the [runbook](RUNBOOK.md) has the steps.
+These are ported, and tests cover their logic. None has been checked on a real Mac. [D29](DECISIONS.md#d29-manual-gates-do-not-block-a-release-yet) keeps that check optional until Secreteo has customers, and the [runbook](RUNBOOK.md) has the steps.
 
 - Microphone capture: engine start and route changes on a real device.
 - The global shortcut, pressed in another app.
+- Push to talk with Fn, a modifier or a mouse button, held in another app.
 - Selection Rewrite on a real selection in another app.
 - Cancel during prepare and during Stop, with a real capture.
 - A microphone or Accessibility permission revoked while Secreteo runs.
 - The panel and compact indicator anchored to a real caret in another app.
 
-Delivery into another app, which covers the clipboard restore, capitals and spacing from the caret, readback and spoken corrections, is in [G9](#g9-delivery-limits-a-real-device-has-to-settle).
+Delivery into another app, which covers retry, recovery, the clipboard restore, capitals and spacing from the caret, readback and spoken corrections, is in [G9](#g9-delivery-limits-a-real-device-has-to-settle).
