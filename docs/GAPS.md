@@ -6,9 +6,9 @@ Known limits and unresolved work.
 
 The cost of running Secreteo and Portavoz together is not measured yet: caption latency, time to first text, audio loss and footprint. Thresholds are written before measuring. Distribution waits on the result.
 
-## G2. 8 and 16 GB Macs
+## G2. Smaller Macs are unmeasured
 
-Measurements so far come from one 36 GB machine, which does not prove smaller Macs. The declared minimum is Apple silicon with 16 GB recommended, in the README and on the site; 8 GB is unmeasured.
+Secreteo requires Apple silicon. Every measurement so far comes from one M4 Max with 36 GB of memory. Macs with a smaller chip or less memory have not been measured, so no minimum memory is declared. The README and the site say the same.
 
 ## G3. Core ML compiles per app
 
@@ -76,3 +76,16 @@ The import copies only settings Secreteo's Settings can show and change. Activat
 ## G18. Search by meaning has limits
 
 Shortcuts and the MCP server find by meaning only dictations the app has already given a vector: one saved a moment ago, or an older one its background pass has not reached, matches by words only, and new vectors can shift the meaning matches between two pages of one search. A Mac without the system's Latin embedding assets searches by words only, and Secreteo offers no way to fetch them. Questions in one language rarely find a dictation in the other, which the public corpus measures at zero.
+
+## G19. Paths only tests have run
+
+These are ported, and tests cover their logic. None has run on a real Mac against another app. [D29](DECISIONS.md#d29-manual-gates-do-not-block-a-release-yet) keeps that check optional until Secreteo has customers, and the [runbook](RUNBOOK.md) has the steps.
+
+- Microphone capture: engine start and route changes on a real device.
+- The global shortcut, pressed in another app.
+- Selection Rewrite on a real selection in another app.
+- Cancel during prepare and during Stop, with a real capture.
+- A microphone or Accessibility permission revoked while Secreteo runs.
+- The panel and compact indicator anchored to a real caret in another app.
+
+Delivery into another app, which covers the clipboard restore, capitals and spacing from the caret, readback and spoken corrections, is in [G9](#g9-delivery-limits-a-real-device-has-to-settle).

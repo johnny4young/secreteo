@@ -15,7 +15,7 @@ Or download the disk image from [the latest release](https://github.com/johnny4y
 ## Requirements
 
 - macOS 26 or later
-- Apple silicon, with 16 GB of memory recommended. 8 GB has not been measured.
+- Apple silicon. Measured only on an M4 Max with 36 GB of memory; smaller Macs are unmeasured.
 
 ## What leaves your Mac
 
