@@ -49,6 +49,8 @@ Dictation on, Secreteo the owner: if the menu offers Use Secreteo for Dictation,
 | Start a dictation, switch apps before it pastes, then press Retry in the panel | The words land once, in the app you retried in | Retry with no double paste, Text recovery |
 | Start a dictation and press Esc while it prepares, then again during Stop | No text lands and the next dictation starts clean | Cancel during prepare and during Stop |
 | Revoke Microphone in System Settings while Secreteo runs, then dictate | Secreteo says what is missing; granting it again works without a relaunch | Permissions revoked |
+| Revoke Accessibility in System Settings while Secreteo runs, then dictate | Secreteo says what is missing; granting it again works without a relaunch | Permissions revoked |
+| Dictate into TextEdit with the panel, then with the compact indicator | Each appears next to the caret, not at a screen corner | Panel, compact indicator and waveform |
 | Unplug a USB microphone mid-dictation | The words so far stay in the panel to copy | Microphone capture, G10 |
 | Open the menu from another app and choose Dictate | Focus returns to that app and the words land there | G11 |
 

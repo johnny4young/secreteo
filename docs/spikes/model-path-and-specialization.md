@@ -76,6 +76,6 @@ The onboarding rule resolves to its two stronger rows:
 
 ## Not covered
 
-- Smaller chips and memory sizes, tracked in [G2](../GAPS.md#g2-8-and-16-gb-macs). This is why the message gives no estimate.
+- Smaller chips and memory sizes, tracked in [G2](../GAPS.md#g2-smaller-macs-are-unmeasured). This is why the message gives no estimate.
 - Parakeet Ultra, which is larger and needs its own measurement when the speech slice lands.
 - Re-specialization after a macOS update.
