@@ -138,7 +138,9 @@ struct DictationHistoryRow: View {
             .accessibilityLabel(copied ? L10n.text("Copied") : L10n.text("Copy"))
             .accessibilityIdentifier("dictation-history-copy-\(index)")
             Button(role: .destructive, action: onDelete) {
-                Label("Delete", systemImage: "trash").labelStyle(.iconOnly).frame(width: 24, height: 24)
+                Label("Delete", systemImage: "trash").labelStyle(.iconOnly)
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
             }
             .help(L10n.text("Delete"))
             .accessibilityIdentifier("dictation-history-delete-\(index)")
@@ -199,8 +201,10 @@ private struct DictationHistoryCopyStyle: LabelStyle {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
                 .background(SecreteoDesign.accent.opacity(0.09), in: RoundedRectangle(cornerRadius: 8))
+                .frame(minHeight: 28)
+                .contentShape(Rectangle())
         } else {
-            configuration.icon.frame(width: 24, height: 24)
+            configuration.icon.frame(width: 28, height: 28).contentShape(Rectangle())
         }
     }
 }
