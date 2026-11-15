@@ -4,7 +4,7 @@ Known limits and unresolved work.
 
 ## G1. Two apps at once
 
-The cost of running Secreteo and Portavoz together is not measured yet: caption latency, time to first text, audio loss and footprint. Thresholds are written before measuring. Distribution waits on the result.
+The cost of running Secreteo and Portavoz together is not measured yet: caption latency, time to first text, audio loss and footprint. Thresholds are written before measuring. Releases ship before it is measured ([D29](DECISIONS.md#d29-manual-gates-do-not-block-a-release-yet)).
 
 ## G2. Smaller Macs are unmeasured
 
