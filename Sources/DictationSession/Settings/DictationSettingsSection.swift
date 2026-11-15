@@ -41,13 +41,13 @@ public struct DictationSettingsSection: View {
                     .accessibilityIdentifier("settings-dictation-reset")
                 if dictation.lastResetFailed {
                     Text("Could not reset dictation. Try again.")
-                        .foregroundStyle(.red)
+                        .foregroundStyle(SecreteoDesign.notSent)
                         .accessibilityIdentifier("settings-dictation-reset-failed")
                 }
             }
             if dictation.lastHandoffFailed {
                 Text("Could not take over dictation. Try again.")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(SecreteoDesign.notSent)
                     .accessibilityIdentifier("settings-dictation-handoff-failed")
             }
         }
@@ -96,7 +96,7 @@ public struct DictationSettingsSection: View {
                 .accessibilityIdentifier("settings-dictation-model-download")
             if dictation.modelState == .failed {
                 Text("The download failed.")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(SecreteoDesign.notSent)
                     .accessibilityIdentifier("settings-dictation-model-failed")
             }
         }

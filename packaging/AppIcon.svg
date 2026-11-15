@@ -1,7 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4B3FD1"/><stop offset="1" stop-color="#1E1A5C"/></linearGradient></defs>
-<rect x="100" y="100" width="824" height="824" rx="185" fill="url(#g)"/>
-<path d="M300 330h424a70 70 0 0 1 70 70v220a70 70 0 0 1-70 70H470l-120 92v-92h-50a70 70 0 0 1-70-70V400a70 70 0 0 1 70-70z" fill="#FFFFFF"/>
-<circle cx="512" cy="488" r="46" fill="#2C2680"/>
-<path d="M490 510h44l16 96h-76z" fill="#2C2680"/>
+<defs>
+<linearGradient id="body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C4673A"/><stop offset="1" stop-color="#7E3713"/></linearGradient>
+<radialGradient id="glow" cx=".5" cy=".52" r=".42"><stop offset="0" stop-color="#F4B63C" stop-opacity=".55"/><stop offset="1" stop-color="#F4B63C" stop-opacity="0"/></radialGradient>
+<linearGradient id="voice" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD67A"/><stop offset="1" stop-color="#F0A22A"/></linearGradient>
+</defs>
+<g transform="translate(54.222 54.222) scale(7.6296)">
+<rect x="6" y="6" width="108" height="108" rx="27" fill="url(#body)"/>
+<rect x="6.5" y="6.5" width="107" height="107" rx="26.5" fill="none" stroke="#FFFFFF" stroke-opacity="0.16"/>
+<circle cx="60" cy="61" r="42" fill="url(#glow)"/>
+<g fill="none" stroke="#FFF4E6" stroke-width="7.5" stroke-linecap="round"><path d="M40 30C24 46 24 76 40 92"/><path d="M80 30C96 46 96 76 80 92"/></g>
+<path d="M60 46v30" stroke="url(#voice)" stroke-width="7.5" stroke-linecap="round"/>
+<path d="M48.5 56v10M71.5 54v14" stroke="#FFF4E6" stroke-opacity=".5" stroke-width="5.5" stroke-linecap="round"/>
+</g>
 </svg>

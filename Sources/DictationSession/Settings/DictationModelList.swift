@@ -56,7 +56,7 @@ struct DictationModelListSection: View {
                 }
                 if dictation.modelList.removalFailed {
                     Text("Could not remove the model.")
-                        .foregroundStyle(.red)
+                        .foregroundStyle(SecreteoDesign.notSent)
                         .accessibilityIdentifier("settings-model-remove-failed")
                 }
             }

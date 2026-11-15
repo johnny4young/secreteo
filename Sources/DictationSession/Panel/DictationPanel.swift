@@ -144,13 +144,13 @@ private struct DictationStripView: View {
                 if showsModelLoading {
                     // Audio is kept, but no words can appear yet.
                     Image(systemName: "hourglass")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(.secondary)
                         .symbolEffect(.pulse)
                         .accessibilityLabel(L10n.text("Loading the speech model"))
                         .accessibilityIdentifier("dictation-panel-loading")
                 } else {
                     Image(systemName: "waveform.badge.mic")
-                        .foregroundStyle(isFailed ? Color.orange : SecreteoDesign.accent)
+                        .foregroundStyle(isFailed ? SecreteoDesign.notSent : SecreteoDesign.accent)
                         .symbolEffect(.pulse, isActive: controller.microphoneIsOpen)
                 }
                 Text(title)
@@ -259,7 +259,7 @@ private struct DictationStripView: View {
     private func verifiedDeliveryView(_ words: Int) -> some View {
         HStack(spacing: 10) {
             Image(systemName: SecreteoSymbol.success)
-                .foregroundStyle(.green)
+                .foregroundStyle(SecreteoDesign.verified)
                 .font(.title3)
             VStack(alignment: .leading, spacing: 1) {
                 Text(controller.correctionSummary ?? insertedTitle(words))

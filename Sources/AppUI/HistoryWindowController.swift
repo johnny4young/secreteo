@@ -15,7 +15,8 @@ final class HistoryWindowController {
     func show() {
         if window == nil {
             let created = NSWindow(
-                contentViewController: NSHostingController(rootView: DictationHistoryView(dictation: dictation)))
+                contentViewController: NSHostingController(
+                    rootView: DictationHistoryView(dictation: dictation).tint(SecreteoDesign.accent)))
             created.title = String(localized: "Dictation History")
             created.styleMask = [.titled, .closable, .resizable]
             created.setContentSize(NSSize(width: 640, height: 560))

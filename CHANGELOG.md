@@ -4,6 +4,8 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- 🎨 **A look of its own**: a new icon, two parentheses keeping one voice, and copper and amber colours across the app, with a serif for titles.
+
 ## 1.0.0
 
 - 🎉 **Secreteo 1.0**: dictation has fully moved over from Portavoz. What has been checked only by tests, and not yet on a real Mac, is listed in the [known limits](https://github.com/johnny4young/secreteo/blob/main/docs/GAPS.md).

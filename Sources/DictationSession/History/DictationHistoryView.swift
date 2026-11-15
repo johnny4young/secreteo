@@ -22,7 +22,7 @@ public struct DictationHistoryView: View {
                 if showsFilters { filters }
                 if let failure = model.failure {
                     Label(failure, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(SecreteoDesign.notSent)
                         .accessibilityIdentifier("dictation-history-error")
                 }
                 content
@@ -179,7 +179,7 @@ private struct DictationHistoryRow: View {
                 }
                 Text(details)
                     .font(.caption)
-                    .foregroundStyle(record.delivery == .notDelivered ? .orange : .secondary)
+                    .foregroundStyle(record.delivery == .notDelivered ? SecreteoDesign.notSent : .secondary)
                     .accessibilityIdentifier("dictation-history-details-\(index)")
             }
             Spacer(minLength: 0)

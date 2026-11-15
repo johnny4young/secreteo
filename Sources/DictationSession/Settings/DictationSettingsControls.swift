@@ -19,14 +19,14 @@ struct DictationSettingsControls: View {
                 .accessibilityIdentifier("settings-dictation-paste-last-hotkey")
             if dictation.pasteLastShortcutIsUnavailable {
                 Text("Another shortcut already uses ⌃⌥⌘V.")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(SecreteoDesign.notSent)
                     .accessibilityIdentifier("settings-dictation-paste-last-taken")
             }
             Toggle("Rewrite the Selection with ⌃⌥⌘R", isOn: dictation.rewriteSelectionShortcutBinding)
                 .accessibilityIdentifier("settings-dictation-rewrite-hotkey")
             if dictation.rewriteSelectionShortcutIsUnavailable {
                 Text("Another shortcut already uses ⌃⌥⌘R.")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(SecreteoDesign.notSent)
                     .accessibilityIdentifier("settings-dictation-rewrite-taken")
             }
         }
@@ -108,7 +108,7 @@ struct DictationSettingsControls: View {
                 .accessibilityIdentifier("settings-dictation-ultra-download")
             if dictation.ultra.state == .failed {
                 Text("The download failed.")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(SecreteoDesign.notSent)
                     .accessibilityIdentifier("settings-dictation-ultra-failed")
             }
         }
@@ -130,7 +130,7 @@ struct DictationSettingsControls: View {
         .accessibilityIdentifier("settings-dictation-modifier-key")
         if key.wrappedValue != ModifierKeySetting.off.rawValue, dictation.controller.modifierTrigger.unavailable {
             Text("Holding a key needs Accessibility permission.")
-                .foregroundStyle(.red)
+                .foregroundStyle(SecreteoDesign.notSent)
                 .accessibilityIdentifier("settings-dictation-modifier-unavailable")
         }
         if key.wrappedValue == ModifierKeySetting.function.rawValue {

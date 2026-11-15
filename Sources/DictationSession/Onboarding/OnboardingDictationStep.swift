@@ -40,7 +40,7 @@ private struct DictationPermissionRows: View {
             row(icon: "mic", title: Text("Microphone")) {
                 if dictation.microphoneIsAuthorized {
                     Label("Allowed", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+                        .foregroundStyle(SecreteoDesign.verified)
                         .accessibilityIdentifier("onboarding-microphone-allowed")
                 } else {
                     Button("Allow") { dictation.requestMicrophone() }
@@ -51,7 +51,7 @@ private struct DictationPermissionRows: View {
             row(icon: "accessibility", title: Text("Accessibility")) {
                 if dictation.accessibilityIsGranted {
                     Label("Allowed", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+                        .foregroundStyle(SecreteoDesign.verified)
                         .accessibilityIdentifier("onboarding-accessibility-allowed")
                 } else {
                     Button("Allow") { dictation.requestAccessibility() }

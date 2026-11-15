@@ -25,7 +25,7 @@ struct DictationStatsSettingsSection: View {
                 }
             if let failure = model.failure {
                 Text(failure)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(SecreteoDesign.notSent)
                     .accessibilityIdentifier("settings-dictation-stats-error")
             }
         }

@@ -9,7 +9,7 @@ struct DictationUnverifiedDeliveryView: View {
             HStack(alignment: .firstTextBaseline) {
                 Label("Sent — insertion not verified", systemImage: "paperplane.circle")
                     .font(.headline)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(SecreteoDesign.notSent)
                     .accessibilityAddTraits(.isHeader)
                     .accessibilityIdentifier("dictation-panel-delivery-status")
                 Spacer()

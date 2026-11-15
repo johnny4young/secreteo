@@ -112,7 +112,7 @@ struct SelectionRewriteView: View {
             if let notice = controller.notice {
                 Text(notice)
                     .font(.caption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(SecreteoDesign.notSent)
                     .accessibilityIdentifier("rewrite-notice")
             }
             if let instruction = controller.spokenInstruction {
