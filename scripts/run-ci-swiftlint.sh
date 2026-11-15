@@ -1,33 +1,9 @@
 #!/usr/bin/env bash
+# Lints inside SwiftLint's own image, pinned by digest, so the runner's libraries never matter.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$ROOT"
-umask 077
+image="ghcr.io/realm/swiftlint:0.65.0@sha256:a482729f4b58741875af1566f23397f3f6db300372756fc31606d0a4527fab9e"
 
-# This build links libxml2.so.2, so ci.yml keeps lint on ubuntu-24.04; drop that pin when a bump no longer does.
-version="0.65.0"
-archive_sha256="79306a34e5c7cc55a220cd108cbb861dcad5f10138dcdf261e2624ae8b0a486b"
-archive_url="https://github.com/realm/SwiftLint/releases/download/${version}/swiftlint_linux_amd64.zip"
-scratch="$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/secreteo-swiftlint.XXXXXX")"
-trap 'rm -rf -- "$scratch"' EXIT HUP INT TERM
-
-archive="$scratch/swiftlint.zip"
-curl --fail --location --silent --show-error "$archive_url" --output "$archive"
-printf '%s  %s\n' "$archive_sha256" "$archive" | sha256sum --check --status
-unzip -q "$archive" -d "$scratch/unpacked"
-
-mapfile -t executables < <(
-  find "$scratch/unpacked" -type f -name swiftlint -perm -u+x -print
-)
-if [[ ${#executables[@]} -ne 1 ]]; then
-  echo "Pinned SwiftLint archive did not contain exactly one executable." >&2
-  exit 2
-fi
-swiftlint="${executables[0]}"
-if [[ "$($swiftlint version)" != "$version" ]]; then
-  echo "Pinned SwiftLint executable reported an unexpected version." >&2
-  exit 2
-fi
-
-"$swiftlint" lint --strict --no-cache --reporter github-actions-logging
+docker run --rm --network none --mount "type=bind,source=$ROOT,target=/work,readonly" --workdir /work "$image" \
+  lint --strict --no-cache --reporter github-actions-logging
