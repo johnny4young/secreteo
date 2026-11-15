@@ -53,7 +53,8 @@ public final class StatusItemController: NSObject {
     /// Draws the capsule's face for the current phase and redraws whenever it changes.
     private func showFace() {
         let face = withObservationTracking {
-            model.dictation?.statusFace ?? .ready
+            // No feature means nothing on this Mac can dictate through Secreteo right now.
+            model.dictation?.statusFace ?? .notOwner
         } onChange: { [weak self] in
             Task { @MainActor in self?.showFace() }
         }
