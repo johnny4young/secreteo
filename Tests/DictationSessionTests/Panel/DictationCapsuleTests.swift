@@ -1,4 +1,6 @@
+import AppKit
 import Foundation
+import SwiftUI
 import Testing
 
 @testable import DictationSession
@@ -36,20 +38,22 @@ struct DictationCapsuleTests {
         #expect(DictationLiquidShape.motion(microphoneIsOpen: false, reduceMotion: true) == .stepped)
 
         let heights = stride(from: Float(0), through: 1.2, by: 0.001).map { DictationLiquidShape.step(for: $0) }
-        #expect(Set(heights) == Set(DictationLiquidShape.steps), "three heights and nothing between")
+        #expect(Set(heights) == Set(DictationLiquidShape.steps()), "three heights and nothing between")
         #expect(heights == heights.sorted(), "a louder voice never lowers the bar")
-        #expect(DictationLiquidShape.step(for: 0) == DictationLiquidShape.steps[0])
-        #expect(DictationLiquidShape.step(for: 2) == DictationLiquidShape.steps[2])
+        #expect(DictationLiquidShape.step(for: 0) == DictationLiquidShape.steps()[0])
+        #expect(DictationLiquidShape.step(for: 2) == DictationLiquidShape.steps()[2])
     }
 
     @Test
     func theRimFollowsTheFace() {
         #expect(DictationCapsuleRim(face: .listening) == .voice)
         #expect(DictationCapsuleRim(face: .loading) == .loading)
-        #expect(DictationCapsuleRim(face: .polishing) == .polish)
+        #expect(DictationCapsuleRim(face: .polishing) == .quiet)
         #expect(DictationCapsuleRim(face: .notSent) == .notSent)
         #expect(DictationCapsuleRim.voice.glows && DictationCapsuleRim.polish.glows && DictationCapsuleRim.notSent.glows)
         #expect(!DictationCapsuleRim.quiet.glows && !DictationCapsuleRim.loading.glows)
+        #expect(DictationCapsuleRim(face: .polishing, transforms: true) == .polish)
+        #expect(DictationCapsuleRim(face: .polishing, transforms: false) == .quiet, "a plain paste is not copper")
         for face: SecreteoGlyphFace in [.ready, .inserted, .sent, .noSpeech, .notOwner] {
             #expect(DictationCapsuleRim(face: face) == .quiet)
         }
@@ -75,6 +79,9 @@ struct DictationCapsuleTests {
         }
         #expect(!DictationPanelLayout.isCapsule(.verified(3)))
         #expect(!DictationPanelLayout.isCapsule(.idle))
+        #expect(
+            DictationPanelLayout.height(for: .idle) == DictationPanelLayout.height(for: .preparing),
+            "cancelling must not resize a panel that is still on screen")
     }
 
     @Test
@@ -101,5 +108,117 @@ struct DictationCapsuleTests {
             confirmed: "uno", partial: "dos tres cuatro cinco seis siete ocho nueve", limit: 12)
         #expect(tailOnly.confirmed == "…")
         #expect(tailOnly.partial.hasSuffix("ocho nueve"))
+    }
+
+    @Test
+    func aPausedLiquidIgnoresNewLevelsSoNothingRedrawsAfterStop() {
+        func liquid(_ level: Float, paused: Bool) -> DictationLiquidLevel {
+            DictationLiquidLevel(
+                level: level, motion: paused ? .frozen : .flowing, paused: paused, dimmed: false, opaque: false)
+        }
+        #expect(liquid(0.1, paused: true) == liquid(0.9, paused: true))
+        #expect(liquid(0.1, paused: false) != liquid(0.9, paused: false))
+        #expect(liquid(0.1, paused: false) != liquid(0.1, paused: true), "Stop itself is drawn once")
+    }
+
+    @Test
+    func nothingAnimatesOnceTheMicrophoneCloses() {
+        #expect(DictationCapsuleMotion.settle(microphoneIsOpen: true) == .easeOut(duration: 0.14))
+        #expect(DictationCapsuleMotion.settle(microphoneIsOpen: false) == nil)
+        #expect(DictationCapsuleMotion.phaseChange(microphoneIsOpen: true, reduceMotion: false) != nil)
+        #expect(DictationCapsuleMotion.phaseChange(microphoneIsOpen: false, reduceMotion: false) == nil)
+        #expect(DictationCapsuleMotion.phaseChange(microphoneIsOpen: true, reduceMotion: true) == nil)
+    }
+
+    @Test
+    func theElapsedTimeStopsAtStop() {
+        let stop = Date(timeIntervalSince1970: 1_000)
+        let later = stop.addingTimeInterval(9)
+        #expect(DictationCapsuleMotion.clock(tick: later, stoppedAt: nil) == later)
+        #expect(DictationCapsuleMotion.clock(tick: later, stoppedAt: stop) == stop)
+    }
+
+    @Test
+    func theWordsKeepAtLeastFortyFivePercentOfTheLine() {
+        let budget = DictationCapsuleBudget.self
+        #expect(budget.words >= budget.content * 0.45)
+        let used = budget.face + budget.words + budget.chips + budget.cancel + 3 * budget.spacing
+        #expect(used <= budget.content)
+        #expect(budget.leading + budget.content + budget.trailing == DictationPanelLayout.width)
+    }
+
+    /// The chips' box never exceeds its budget, whatever the names: it falls back to a tighter row.
+    @Test
+    @MainActor
+    func longNamesNeverTakeTheWordsRoom() {
+        let limit = DictationCapsuleBudget.chips
+        func width(_ target: String, _ recipe: String) -> CGFloat {
+            let chips = DictationCappedWidth(limit: limit) {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 6) { Text(target).fixedSize(); Text(recipe).fixedSize(); Text(verbatim: "0:07") }
+                    HStack(spacing: 6) { Text(verbatim: "✎"); Text(recipe).lineLimit(1); Text(verbatim: "0:07") }
+                }
+            }
+            return NSHostingView(rootView: chips).fittingSize.width
+        }
+        let long = width("Microsoft Visual Studio Code Insiders", "Polish: Formal letter to the committee")
+        #expect(long <= limit)
+        #expect(long > limit - 40, "the tighter row still uses its room")
+        let short = width("Notes", "Clean")
+        #expect(short < limit - 40, "short names hug their content")
+    }
+
+    @Test(arguments: [false, true])
+    func theWordsKeepTheirContrastOverTheLoudestLight(opaque: Bool) {
+        let fill = DictationLiquidShape.fill(for: 2, opaque: opaque)
+        let crest = fill * DictationLiquidShape.peak
+        if opaque {
+            #expect(crest <= DictationLiquidShape.clearBelow, "solid light stays under the words")
+            #expect(DictationLiquidShape.steps(opaque: true).allSatisfy { $0 <= DictationLiquidShape.clearBelow })
+            return
+        }
+        #expect(crest > DictationLiquidShape.textBand, "a loud voice does reach the words, so the fade must hold")
+        let strength = DictationLiquidShape.strength(at: DictationLiquidShape.textBand)
+        #expect(DictationLiquidShape.strength(at: 1) == strength)
+        #expect(DictationLiquidShape.strength(at: 0) == 1)
+        let lacquer = Self.rgb(SecreteoPalette.lacquer.dark)
+        for stop in DictationLiquidShape.body {
+            // Both waves and the crest's highlight, all at their strongest, behind the text band.
+            var behind = Self.over(
+                Self.rgb(stop.color.dark), stop.alpha * DictationLiquidShape.backWaveOpacity * strength, lacquer)
+            behind = Self.over(Self.rgb(stop.color.dark), stop.alpha * strength, behind)
+            let highlight = DictationLiquidShape.highlight[0]
+            behind = Self.over(Self.rgb(highlight.color.dark), highlight.alpha * strength, behind)
+            let settled = Self.rgb(SecreteoPalette.capsuleText.dark)
+            let provisional = Self.over(
+                Self.rgb(SecreteoPalette.capsuleProvisionalText.dark),
+                DictationCapsuleTranscript.provisionalOpacity, behind)
+            #expect(Self.contrast(settled, behind) >= 4.5, "settled words at \(stop.location)")
+            #expect(Self.contrast(provisional, behind) >= 4.5, "provisional words at \(stop.location)")
+        }
+    }
+
+    private typealias RGB = (red: Double, green: Double, blue: Double)
+
+    private static func rgb(_ hex: UInt32) -> RGB {
+        (Double((hex >> 16) & 0xFF) / 255, Double((hex >> 8) & 0xFF) / 255, Double(hex & 0xFF) / 255)
+    }
+
+    private static func over(_ top: RGB, _ alpha: Double, _ bottom: RGB) -> RGB {
+        (
+            top.red * alpha + bottom.red * (1 - alpha), top.green * alpha + bottom.green * (1 - alpha),
+            top.blue * alpha + bottom.blue * (1 - alpha)
+        )
+    }
+
+    private static func contrast(_ one: RGB, _ other: RGB) -> Double {
+        func luminance(_ color: RGB) -> Double {
+            func channel(_ value: Double) -> Double {
+                value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
+            }
+            return 0.2126 * channel(color.red) + 0.7152 * channel(color.green) + 0.0722 * channel(color.blue)
+        }
+        let lighter = max(luminance(one), luminance(other)), darker = min(luminance(one), luminance(other))
+        return (lighter + 0.05) / (darker + 0.05)
     }
 }

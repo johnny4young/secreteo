@@ -28,7 +28,9 @@ enum DictationPanelLayout {
     static func height(for phase: DictationController.Phase, showsNotice: Bool = false) -> CGFloat {
         switch phase {
         case .recovery, .dispatched, .noSpeech: 288
-        case .idle, .verified: 96
+        case .verified: 96
+        // Idle keeps the capsule's height, so a cancelled dictation does not resize a panel still on screen.
+        case .idle: capsuleHeight
         case .preparing, .listening, .delivering, .failed:
             capsuleHeight + (showsNotice ? noticeSpacing + noticeHeight : 0)
         }

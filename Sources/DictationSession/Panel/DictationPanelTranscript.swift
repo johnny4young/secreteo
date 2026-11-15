@@ -33,9 +33,11 @@ struct DictationCapsuleTranscript: View {
     let partial: String
     /// VoiceOver keeps the whole dictation; the capsule only shows its end.
     let spoken: String
+    /// Nil once the microphone has closed, so the stop tail's captions land without a frame of animation.
+    let settle: Animation?
 
     static let fadeWidth: CGFloat = 36
-    static let settle = 0.14
+    static let provisionalOpacity = 0.78
 
     var body: some View {
         // A line that fits starts at the face; a longer one anchors right so the newest words stay in view.
@@ -62,12 +64,12 @@ struct DictationCapsuleTranscript: View {
             .foregroundStyle(SecreteoPalette.capsuleText.color)
         let provisional = Text(visible.partial)
             .font(.secreteoSerif(20, italic: true))
-            .foregroundStyle(SecreteoPalette.capsuleProvisionalText.color.opacity(0.78))
+            .foregroundStyle(SecreteoPalette.capsuleProvisionalText.color.opacity(Self.provisionalOpacity))
         return Text("\(settled)\(provisional)")
             .lineLimit(1)
             .fixedSize()
             .contentTransition(.opacity)
-            .animation(.easeOut(duration: Self.settle), value: visible)
+            .animation(settle, value: visible)
             .accessibilityIdentifier("dictation-panel-transcript")
             .accessibilityLabel(spoken)
     }

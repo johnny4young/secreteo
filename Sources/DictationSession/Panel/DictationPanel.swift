@@ -8,6 +8,7 @@ import DictationKit
 @MainActor
 final class DictationPanelController {
     private var panel: NSPanel?
+    private var pinnedEdge = DictationPanelAnchor.PinnedEdge.bottom
 
     func show(controller: DictationController) {
         let size = DictationPanelLayout.size(for: controller)
@@ -50,7 +51,9 @@ final class DictationPanelController {
         if let anchor,
            let screen = NSScreen.screens.first(where: { $0.frame.contains(anchor.point) }) ?? NSScreen.main {
             panel.setFrameOrigin(DictationPanelAnchor.origin(for: size, near: anchor, in: screen.visibleFrame))
+            pinnedEdge = DictationPanelAnchor.pinnedEdge(for: size, near: anchor, in: screen.visibleFrame)
         } else if let screen = NSScreen.main {
+            pinnedEdge = .bottom
             let frame = screen.visibleFrame
             panel.setFrameOrigin(NSPoint(x: frame.midX - size.width / 2, y: frame.minY + 48))
         }
@@ -74,14 +77,11 @@ final class DictationPanelController {
 
     private func resize(_ panel: NSPanel, to size: NSSize) {
         guard panel.contentRect(forFrameRect: panel.frame).size != size else { return }
-        let origin = panel.frame.origin
-        // Keep the horizontal center when the compact indicator grows into the full panel.
-        let midX = panel.frame.midX
+        let before = panel.frame
         panel.setContentSize(size)
         guard let visible = panel.screen?.visibleFrame else { return }
-        panel.setFrameOrigin(NSPoint(
-            x: max(visible.minX, min(midX - panel.frame.width / 2, visible.maxX - panel.frame.width)),
-            y: max(visible.minY, min(origin.y, visible.maxY - panel.frame.height))))
+        panel.setFrameOrigin(DictationPanelAnchor.origin(
+            resizing: before, to: panel.frame.size, pinned: pinnedEdge, in: visible))
     }
 }
 
