@@ -1,4 +1,5 @@
 import AppKit
+import DictationSession
 import SwiftUI
 
 /// An `NSStatusItem` rather than `MenuBarExtra`, whose scene can stay registered on
@@ -11,6 +12,7 @@ public final class StatusItemController: NSObject {
     private var visibility: NSKeyValueObservation?
     private let popover = NSPopover()
     private let focusReturn = MenuFocusReturn()
+    private var images: [SecreteoGlyphFace: NSImage] = [:]
 
     public init(model: AppModel) {
         self.model = model
@@ -37,8 +39,6 @@ public final class StatusItemController: NSObject {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         // Dragging the icon out of the menu bar quits the app.
         item.behavior = .terminationOnRemoval
-        item.button?.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Secreteo")
-        item.button?.image?.isTemplate = true
         item.button?.target = self
         item.button?.action = #selector(togglePopover)
         item.isVisible = true
@@ -47,6 +47,27 @@ public final class StatusItemController: NSObject {
         }
         item.button?.addSubview(WindowSentinel { [weak self] in self?.onAffordanceChange?() })
         statusItem = item
+        showFace()
+    }
+
+    /// Draws the capsule's face for the current phase and redraws whenever it changes.
+    private func showFace() {
+        let face = withObservationTracking {
+            // No feature means nothing on this Mac can dictate through Secreteo right now.
+            model.dictation?.statusFace ?? .notOwner
+        } onChange: { [weak self] in
+            Task { @MainActor in self?.showFace() }
+        }
+        guard let button = statusItem?.button else { return }
+        button.image = image(for: face)
+        button.setAccessibilityLabel("Secreteo, \(face.accessibilityName)")
+    }
+
+    private func image(for face: SecreteoGlyphFace) -> NSImage {
+        if let image = images[face] { return image }
+        let image = face.templateImage()
+        images[face] = image
+        return image
     }
 
     public func closeMenu() {
