@@ -43,7 +43,7 @@ extension DictationControllerTests {
         harness.controller.toggle(using: harness.dependencies)
         let listening = await TestPolling.until { harness.controller.phase == .listening }
         XCTAssertTrue(listening)
-        XCTAssertEqual(DictationPanelLayout.size(for: harness.controller), NSSize(width: 30, height: 24))
+        XCTAssertEqual(DictationPanelLayout.size(for: harness.controller), NSSize(width: 38, height: 32))
         harness.controller.expandCompactIndicator()
         XCTAssertFalse(DictationCompactIndicator.applies(to: harness.controller))
         XCTAssertEqual(DictationPanelLayout.size(for: harness.controller).width, DictationPanelLayout.width)

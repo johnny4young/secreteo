@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 import XCTest
 
 @testable import DictationSession
@@ -34,6 +35,12 @@ final class DictationCompactIndicatorTests: XCTestCase {
         XCTAssertEqual(
             DictationCompactIndicator.size(for: .init(showsElapsedTime: true, showsBackdrop: true)),
             NSSize(width: 68, height: 30))
+        XCTAssertEqual(
+            DictationCompactIndicator.windowSize(for: .init()), NSSize(width: 38, height: 32),
+            "4 pt of clear room on every side holds the shadow")
+        XCTAssertEqual(
+            DictationCompactIndicator.windowSize(for: .init(showsElapsedTime: true, showsBackdrop: true)),
+            NSSize(width: 76, height: 38))
 
         defaults.set(true, forKey: "dictationCompactShowsElapsedTime")
         defaults.set(true, forKey: "dictationCompactShowsBackdrop")
@@ -46,17 +53,17 @@ final class DictationCompactIndicatorTests: XCTestCase {
         let size = NSSize(width: 30, height: 24)
         let caret = NSRect(x: 400, y: 500, width: 2, height: 18)
         XCTAssertEqual(
-            DictationCompactIndicator.origin(for: size, near: .caret(caret), in: visible), NSPoint(x: 400, y: 470),
-            "left edge on the caret, 6 pt under its line")
+            DictationCompactIndicator.origin(for: size, near: .caret(caret), in: visible), NSPoint(x: 396, y: 466),
+            "the glyph inside the window's margin: left edge on the caret, 6 pt under its line")
         XCTAssertEqual(DictationCompactIndicator.pinnedEdge(for: size, near: .caret(caret), in: visible), .top)
 
         let low = NSRect(x: 1_430, y: 50, width: 2, height: 18)
         XCTAssertEqual(
-            DictationCompactIndicator.origin(for: size, near: .caret(low), in: visible), NSPoint(x: 1_410, y: 74),
+            DictationCompactIndicator.origin(for: size, near: .caret(low), in: visible), NSPoint(x: 1_406, y: 70),
             "above the line and inside the screen when there is no room below")
         XCTAssertEqual(DictationCompactIndicator.pinnedEdge(for: size, near: .caret(low), in: visible), .bottom)
 
-        let fallback = NSPoint(x: 705, y: 88)
+        let fallback = NSPoint(x: 701, y: 84)
         XCTAssertEqual(DictationCompactIndicator.origin(for: size, near: nil, in: visible), fallback)
         XCTAssertEqual(
             DictationCompactIndicator.origin(for: size, near: .pointer(NSPoint(x: 10, y: 10)), in: visible), fallback,
@@ -94,6 +101,11 @@ final class DictationCompactIndicatorTests: XCTestCase {
         XCTAssertEqual(DictationCompactIndicator.hold(for: .noSpeech), .milliseconds(1_200))
         XCTAssertNil(DictationCompactIndicator.hold(for: .listening))
         XCTAssertNil(DictationCompactIndicator.hold(for: .recovery(.cancelled)), "the card stays until you choose")
+        XCTAssertEqual(DictationCompactIndicator.growth, 0.32)
+        XCTAssertEqual(DictationCompactIndicator.growthAnchor(pinned: .top, atCaret: true), .topLeading)
+        XCTAssertEqual(DictationCompactIndicator.growthAnchor(pinned: .bottom, atCaret: true), .bottomLeading)
+        XCTAssertEqual(DictationCompactIndicator.growthAnchor(pinned: .bottom, atCaret: false), .bottom)
+        XCTAssertEqual(DictationCompactIndicator.growthAnchor(pinned: .top, atCaret: false), .top)
         XCTAssertTrue(DictationCompactIndicator.isClick(translation: CGSize(width: 2, height: -2)))
         XCTAssertFalse(DictationCompactIndicator.isClick(translation: CGSize(width: 3, height: 3)))
     }

@@ -260,7 +260,8 @@ final class DictationUITests: SecreteoUITestCase {
         let compact = app.descendants(matching: .any)["dictation-panel-compact"]
         XCTAssertTrue(compact.waitForExistenceFast(timeout: 5))
         let panel = app.dialogs["dictation-panel"]
-        XCTAssertEqual(panel.frame.size, CGSize(width: 30, height: 24), "the two parentheses and nothing else")
+        XCTAssertEqual(
+            panel.frame.size, CGSize(width: 38, height: 32), "the two parentheses and the room for their shadow")
         XCTAssertFalse(app.staticTexts["dictation-panel-elapsed"].exists, "the time is an option")
         XCTAssertFalse(app.buttons["dictation-panel-cancel"].exists, "no buttons in the small indicator")
         XCTAssertFalse(app.staticTexts["dictation-panel-state"].exists, "no live text or title")
@@ -283,7 +284,7 @@ final class DictationUITests: SecreteoUITestCase {
         XCTAssertTrue(waitForUITestCondition(timeout: 5) {
             renderedText(of: elapsed).range(of: #"^\d+:\d{2}$"#, options: .regularExpression) != nil
         }, "the elapsed time reads as m:ss")
-        XCTAssertEqual(app.dialogs["dictation-panel"].frame.size, CGSize(width: 68, height: 30))
+        XCTAssertEqual(app.dialogs["dictation-panel"].frame.size, CGSize(width: 76, height: 38))
         XCTAssertFalse(app.staticTexts["dictation-panel-state"].exists, "no live text or title")
         attachScreenshot(named: "pr-indicator-options")
     }

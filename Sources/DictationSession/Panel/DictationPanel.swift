@@ -12,8 +12,6 @@ final class DictationPanelController {
     /// What the last layout showed, so a change knows whether the indicator is growing.
     private var showsIndicator = false
     private var indicatorIsAtCaret = false
-    /// The size last asked for; a frame that is still animating has not reached it.
-    private var wantedSize: NSSize?
 
     func show(controller: DictationController) {
         let size = DictationPanelLayout.size(for: controller)
@@ -45,9 +43,14 @@ final class DictationPanelController {
         panel.indicatorClicked = { [weak controller] in controller?.expandCompactIndicator() }
         shade(panel, for: controller)
         panel.contentView = NSHostingView(
-            rootView: DictationStripView(controller: controller) { [weak self] in
-                self?.relayout(for: controller)
-            }.secreteoLocalized())
+            rootView: DictationStripView(
+                controller: controller,
+                growthAnchor: { [weak self] in
+                    DictationCompactIndicator.growthAnchor(
+                        pinned: self?.pinnedEdge ?? .bottom, atCaret: self?.indicatorIsAtCaret ?? false)
+                },
+                relayout: { [weak self] in self?.relayout(for: controller) }
+            ).secreteoLocalized())
         place(panel, size: size, for: controller)
         panel.orderFrontRegardless()
         self.panel = panel
@@ -63,15 +66,15 @@ final class DictationPanelController {
         let anchor = controller.panelAnchor
         showsIndicator = DictationCompactIndicator.applies(to: controller)
         indicatorIsAtCaret = false
-        wantedSize = size
         let screen = anchor.flatMap { anchor in NSScreen.screens.first { $0.frame.contains(anchor.point) } }
             ?? NSScreen.main
         guard let visible = screen?.visibleFrame else { return }
         let origin: NSPoint
         if showsIndicator {
             if case .caret = anchor { indicatorIsAtCaret = true }
-            origin = DictationCompactIndicator.origin(for: size, near: anchor, in: visible)
-            pinnedEdge = DictationCompactIndicator.pinnedEdge(for: size, near: anchor, in: visible)
+            let glyph = DictationCompactIndicator.size(for: .current())
+            origin = DictationCompactIndicator.origin(for: glyph, near: anchor, in: visible)
+            pinnedEdge = DictationCompactIndicator.pinnedEdge(for: glyph, near: anchor, in: visible)
         } else if let anchor {
             origin = DictationPanelAnchor.origin(for: size, near: anchor, in: visible)
             pinnedEdge = DictationPanelAnchor.pinnedEdge(for: size, near: anchor, in: visible)
@@ -99,30 +102,21 @@ final class DictationPanelController {
         panel.invalidateShadow()
     }
 
+    /// The window takes its new frame at once; the card's own transition does the growing, so nothing is cut.
     private func resize(_ panel: NSPanel, to size: NSSize, for controller: DictationController) {
         let grows = showsIndicator
         showsIndicator = DictationCompactIndicator.applies(to: controller)
-        guard (wantedSize ?? panel.frame.size) != size else { return }
-        wantedSize = size
+        guard panel.frame.size != size else { return }
         guard let visible = panel.screen?.visibleFrame else {
             panel.setContentSize(size)
             return
         }
-        let frame = NSRect(
-            origin: DictationPanelAnchor.origin(
-                resizing: panel.frame, to: size, pinned: pinnedEdge, in: visible,
-                keepsLeading: grows && indicatorIsAtCaret),
-            size: size)
-        // The indicator grows into its card where it stands.
-        if grows, !showsIndicator, !DictationPanelLayout.isCapsule(controller.phase),
-           !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = DictationCompactIndicator.growth
-                panel.animator().setFrame(frame, display: true)
-            }
-        } else {
-            panel.setFrame(frame, display: true)
-        }
+        // The glyph, not its clear margin, is what the card grows from.
+        let margin = grows ? DictationCompactIndicator.margin : 0
+        let origin = DictationPanelAnchor.origin(
+            resizing: panel.frame.insetBy(dx: margin, dy: margin), to: size, pinned: pinnedEdge, in: visible,
+            keepsLeading: grows && indicatorIsAtCaret)
+        panel.setFrame(NSRect(origin: origin, size: size), display: true)
     }
 }
 
@@ -158,18 +152,31 @@ private final class DictationPanelWindow: NSPanel {
 
 private struct DictationStripView: View {
     let controller: DictationController
+    let growthAnchor: () -> UnitPoint
     /// Lets the panel follow phases that change without an explicit re-show, such as a failure.
     let relayout: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
+        let showsIndicator = DictationCompactIndicator.applies(to: controller)
         Group {
-            if DictationCompactIndicator.applies(to: controller) {
+            if showsIndicator {
                 DictationAsideView(controller: controller)
+                    .transition(.identity)
             } else {
                 fullStrip
+                    .transition(.asymmetric(insertion: growth, removal: .identity))
             }
         }
+        .animation(.easeOut(duration: DictationCompactIndicator.growth), value: showsIndicator)
         .onChange(of: DictationPanelLayout.size(for: controller)) { relayout() }
+    }
+
+    /// The indicator becomes its capsule or card where it stands; Reduce Motion cross-fades instead.
+    private var growth: AnyTransition {
+        reduceMotion
+            ? .opacity
+            : .scale(scale: DictationCompactIndicator.growthStart, anchor: growthAnchor()).combined(with: .opacity)
     }
 
     @ViewBuilder private var fullStrip: some View {

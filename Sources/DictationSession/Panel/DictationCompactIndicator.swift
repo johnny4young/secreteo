@@ -27,6 +27,9 @@ enum DictationCompactIndicator {
     static let fallbackLift: CGFloat = 48
     static let fade: Duration = .milliseconds(300)
     static let growth: TimeInterval = 0.32
+    static let growthStart: CGFloat = 0.06
+    /// Clear room around the glyph, so the window does not cut its shadow.
+    static let margin: CGFloat = 4
     /// A press that travels farther moves the indicator instead of opening the capsule.
     static let clickSlop: CGFloat = 3
 
@@ -34,6 +37,21 @@ enum DictationCompactIndicator {
         NSSize(
             width: options.showsElapsedTime ? widthWithTime : glyphSize.width,
             height: options.showsBackdrop ? beadHeight : glyphSize.height)
+    }
+
+    static func windowSize(for options: Options) -> NSSize {
+        let size = size(for: options)
+        return NSSize(width: size.width + 2 * margin, height: size.height + 2 * margin)
+    }
+
+    /// The corner a card grows from: the one the window keeps.
+    static func growthAnchor(pinned: DictationPanelAnchor.PinnedEdge, atCaret: Bool) -> UnitPoint {
+        switch (pinned, atCaret) {
+        case (.top, true): .topLeading
+        case (.top, false): .top
+        case (.bottom, true): .bottomLeading
+        case (.bottom, false): .bottom
+        }
     }
 
     /// A microphone notice needs the full capsule's words, and a click on the glyph asks for it.
@@ -73,16 +91,17 @@ enum DictationCompactIndicator {
         hypot(translation.width, translation.height) <= clickSlop
     }
 
-    /// Left edge on the caret, just under its line; above it when there is no room below.
+    /// Where the window goes so the glyph inside its margin has its left edge on the caret,
+    /// just under its line; above it when there is no room below.
     static func origin(for size: NSSize, near anchor: DictationPanelAnchor?, in visible: NSRect) -> NSPoint {
         guard case .caret(let caret) = anchor else {
-            return NSPoint(x: visible.midX - size.width / 2, y: visible.minY + fallbackLift)
+            return NSPoint(x: visible.midX - size.width / 2 - margin, y: visible.minY + fallbackLift - margin)
         }
         var y = caret.minY - caretGap - size.height
         if y < visible.minY { y = caret.maxY + caretGap }
         return NSPoint(
-            x: min(max(caret.minX, visible.minX), visible.maxX - size.width),
-            y: min(max(y, visible.minY), visible.maxY - size.height))
+            x: min(max(caret.minX, visible.minX), visible.maxX - size.width) - margin,
+            y: min(max(y, visible.minY), visible.maxY - size.height) - margin)
     }
 
     static func pinnedEdge(

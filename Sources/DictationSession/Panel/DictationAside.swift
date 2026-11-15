@@ -238,6 +238,7 @@ struct DictationAsideView: View {
         .frame(width: size.width, height: size.height, alignment: .leading)
         // Fully clear pixels let clicks through the window; a barely-there fill keeps the glyph a target.
         .background(Color.black.opacity(0.01))
+        .padding(DictationCompactIndicator.margin)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(controller.statusFace.accessibilityName)
         .accessibilityAddTraits(.isButton)
