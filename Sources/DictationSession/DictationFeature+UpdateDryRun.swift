@@ -7,6 +7,12 @@
     extension DictationFeature {
         public static let updateDryRunHoldArgument = "-secreteo-update-dryrun-hold"
 
+        /// Lives behind the condition so SparkleUpdater's immediate install cannot compile without it.
+        public func installUpdateNowForDryRun(_ install: () -> Void) -> Bool {
+            install()
+            return true
+        }
+
         /// Holds a practice lease through the real coordinator until the named file is deleted,
         /// so Sparkle's relaunch meets a dictation that has not finished.
         public func holdLeaseForUpdateDryRun() {

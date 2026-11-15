@@ -47,7 +47,7 @@ On a hosted runner the update stage runs two scenarios against the same local fe
 1. It installs the exact 9.0.0 and waits for the real updater to replace it with 9.0.1 when the app quits.
 2. It installs the instrumented 9.0.0 with the lease held. Sparkle must log a postponed relaunch, and the old process must stay up with 9.0.0 installed for 20 seconds. Once the file is deleted, Sparkle must install 9.0.1 and relaunch it with no `open` from the script.
 
-CI runs it when packaging changes, and `nightly.yml` runs it every night. The instrumented build is not in the derived-data cache, so it compiles cold and adds its build time to every run. `make release-dryrun` runs the exact packaging on any Mac, and `scripts/release-dryrun.sh instrumented` adds the third DMG after it.
+CI runs it when packaging changes, and `nightly.yml` runs it every night. The instrumented build is not in the derived-data cache, so it compiles cold and adds its build time to every run; it reuses the packages the exact pair already cloned. The `unit` job compiles its seam on every Swift change. `make release-dryrun` runs the exact packaging on any Mac, and `scripts/release-dryrun.sh instrumented` adds the third DMG after it.
 
 It cannot prove what needs the secrets: hardened runtime, notarization, stapling and Gatekeeper. Those stay in the real release.
 

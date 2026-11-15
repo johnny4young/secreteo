@@ -34,6 +34,7 @@ function validate(unitJob, cacheJob) {
   assert.deepEqual(commands(unitJob), [
     'build -Xswiftc -warnings-as-errors',
     'test --parallel -Xswiftc -warnings-as-errors',
+    'build --target DictationSession --traits UpdateDryRun -Xswiftc -warnings-as-errors',
   ]);
   assert.deepEqual(commands(cacheJob), ['build --build-tests -Xswiftc -warnings-as-errors']);
 }

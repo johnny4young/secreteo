@@ -37,8 +37,7 @@ jobs:
         run: python3 -I -m unittest discover -s Tests/Tooling -p 'test_*.py'
 
   lint:
-    # The pinned Linux SwiftLint links libxml2.so.2, which ubuntu-26.04 no longer ships.
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -111,6 +110,8 @@ jobs:
           restore-keys: swiftpm-build-macos-26-xcode-26.6-${{ hashFiles('Package.swift') }}-
       - run: swift build -Xswiftc -warnings-as-errors
       - run: swift test --parallel -Xswiftc -warnings-as-errors
+      # Otherwise only the release dry run's instrumented build compiles the update seam.
+      - run: swift build --target DictationSession --traits UpdateDryRun -Xswiftc -warnings-as-errors
 
   ui-smoke:
     needs: changes

@@ -42,6 +42,7 @@ The serial legacy runner, controller and comparison tests generate one process-l
 |---|---|---|
 | Strict build | `swift build -Xswiftc -warnings-as-errors` | Any Swift change |
 | Strict tests | `swift test --parallel -Xswiftc -warnings-as-errors` | Any Swift change |
+| Update seam | `swift build --target DictationSession --traits UpdateDryRun -Xswiftc -warnings-as-errors` | Any Swift change |
 | Lint | `swiftlint lint --strict --no-cache` | Any Swift change |
 | Hygiene | `scripts/check-repository-hygiene.sh` | Always |
 | Legacy tooling | `python3 -I -m unittest discover -s Tests/Tooling -p 'test_*.py'` | Swift, script or tooling changes |
