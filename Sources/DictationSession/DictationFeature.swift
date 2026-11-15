@@ -305,6 +305,11 @@ public final class DictationFeature: AppServices {
     }
     public var lastHandoffFailed: Bool { handoffProblem == .failed }
     public var canTakeOwnership: Bool { ownership.state == .available }
+    /// The menu bar face: the capsule's face while a dictation runs, else whether this app owns dictation.
+    public var statusFace: SecreteoGlyphFace {
+        guard controller.phase == .idle else { return controller.statusFace }
+        return ownership.state == .owned ? .ready : .notOwner
+    }
     public var canResetOwnership: Bool { ownership.state == .unavailable(.corruptState) }
 
     // MARK: AppServices

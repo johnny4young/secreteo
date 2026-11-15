@@ -434,6 +434,22 @@
         }
       }
     },
+    "Another app handles dictation" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another app handles dictation"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otra app se encarga del dictado"
+          }
+        }
+      }
+    },
     "Another app handles dictation on this Mac. Open Secreteo Settings to use Secreteo." : {
       "localizations" : {
         "en" : {
@@ -2738,6 +2754,22 @@
         }
       }
     },
+    "No speech detected" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No speech detected"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se detectó voz"
+          }
+        }
+      }
+    },
     "No speech detected — nothing was inserted" : {
       "localizations" : {
         "en" : {
@@ -4904,6 +4936,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Text wasn't sent"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El texto no se envió"
+          }
+        }
+      }
+    },
+    "Text wasn’t sent" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text wasn’t sent"
           }
         },
         "es" : {
