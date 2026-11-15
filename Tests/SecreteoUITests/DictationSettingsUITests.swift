@@ -428,21 +428,25 @@ final class DictationSettingsUITests: SecreteoUITestCase {
 
     func testWithNoOwnerTheMenuOffersToTakeDictation() throws {
         let app = try XCUIApplication.secreteo(showMenuBarContent: true)
-        app.launchArguments.append("-seed-dictation-no-owner")
+        // The board draws this state dark.
+        app.launchArguments += ["-seed-dictation-no-owner", "-AppleInterfaceStyle", "Dark"]
         app.launchEnvironment["SECRETEO_UI_TEST_DEFAULTS"] = #"{"globalDictationEnabled":true}"#
         app.launchSecreteo()
         defer { finishUITestApplication(app) }
 
         let take = app.buttons["menu-bar-take-ownership"]
+        let title = app.control(withIdentifier: "menu-state-title")
         XCTAssertTrue(take.waitForStableFrame(timeout: 30))
         XCTAssertFalse(app.buttons["menu-bar-dictate"].exists)
         XCTAssertFalse(app.buttons["menu-bar-set-up-dictation"].exists, "Setup is done; only ownership is missing")
-        attachScreenshot(named: "pr-menu-take-ownership")
+        XCTAssertTrue(renderedText(of: title).contains("Standing by"))
+        attachScreenshot(named: "pr-menu-standing-by")
 
         take.click()
 
         XCTAssertTrue(app.buttons["menu-bar-dictate"].waitForExistence(timeout: 5))
         XCTAssertFalse(take.exists)
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) { renderedText(of: title).contains("Ready") })
     }
 
     func testAllPermissionsGrantedOfferNoActions() throws {

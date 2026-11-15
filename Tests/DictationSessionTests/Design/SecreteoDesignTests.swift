@@ -56,6 +56,21 @@ struct SecreteoDesignTests {
         ("dark segment text", SecreteoPalette.segmentText.dark, SecreteoPalette.segment.dark),
         ("text on amber", SecreteoPalette.onAmber.light, SecreteoPalette.amber.light),
         ("text on dark amber", SecreteoPalette.onAmber.dark, SecreteoPalette.amber.dark)
+        ("row text on accent", SecreteoPalette.onAccent.light, SecreteoPalette.accent.light),
+        ("row text on dark accent", SecreteoPalette.onAccent.dark, SecreteoPalette.accent.dark),
+        ("capsule text on its highlight", SecreteoPalette.capsuleText.light, SecreteoPalette.capsuleHighlight.light),
+        ("capsule secondary on its highlight", SecreteoPalette.capsuleSecondaryText.light,
+         SecreteoPalette.capsuleHighlight.light),
+        ("ink on an amber key", SecreteoPalette.capsuleInk.light, SecreteoPalette.capsuleAmber.light),
+        ("ink on a copper button", SecreteoPalette.capsuleInk.light, SecreteoPalette.capsuleAccent.light),
+        ("text on a card", SecreteoPalette.text.light, SecreteoPalette.card.light),
+        ("secondary on a card", SecreteoPalette.secondaryText.light, SecreteoPalette.card.light),
+        ("tertiary on a card", SecreteoPalette.tertiaryText.light, SecreteoPalette.card.light),
+        ("accent on a card", SecreteoPalette.accent.light, SecreteoPalette.card.light),
+        ("text on a dark card", SecreteoPalette.text.dark, SecreteoPalette.card.dark),
+        ("secondary on a dark card", SecreteoPalette.secondaryText.dark, SecreteoPalette.card.dark),
+        ("tertiary on a dark card", SecreteoPalette.tertiaryText.dark, SecreteoPalette.card.dark),
+        ("accent on a dark card", SecreteoPalette.accent.dark, SecreteoPalette.card.dark)
     ] as [(String, UInt32, UInt32)])
     func textMeetsContrast(_ pair: (String, UInt32, UInt32)) {
         #expect(Self.contrast(pair.1, pair.2) >= 4.5, "\(pair.0)")

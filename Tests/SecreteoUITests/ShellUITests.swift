@@ -42,6 +42,9 @@ final class ShellUITests: XCTestCase {
         XCTAssertTrue(element("menu-content").waitForExistence(timeout: 30))
         XCTAssertTrue(element("menu-settings").exists)
         XCTAssertTrue(element("menu-quit").exists)
+        XCTAssertTrue(element("menu-state").exists)
+        let title = element("menu-state-title")
+        XCTAssertEqual(title.value as? String ?? title.label, "Dictation is off")
         screenshot("pr-menu")
     }
 

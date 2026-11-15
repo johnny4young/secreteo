@@ -833,7 +833,8 @@ extension DictationController {
         copyStatus = .idle
         if renewsPasteLast(id) {
             sessionLastText.remember(
-                text, alternate: alternate?.alternate, isOriginal: alternate?.alternateIsOriginal == true)
+                text, app: destination?.name, alternate: alternate?.alternate,
+                isOriginal: alternate?.alternateIsOriginal == true)
         }
         recordHistory(result, id: id)
         if case .refused(let failure) = result {
@@ -981,7 +982,7 @@ private extension DictationController {
         }
         guard activeSessionID == sessionID else { return true }
         lastInsertion = updated
-        if renewsPasteLast(sessionID) { lastText.remember(updated.text) }
+        if renewsPasteLast(sessionID) { lastText.remember(updated.text, app: destination?.name) }
         correctionSummary = Self.correctionSummary(for: command, edit: edit, in: reference)
         learnableCorrection = DictationLearnableCorrection(
             command, edit: edit, in: reference, dependencies: dependencies)
