@@ -4,6 +4,8 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+## 0.1.2
+
 - ♻️ **Prewarm after memory pressure**: with Prewarm on, a speech model that memory pressure unloaded loads again once the pressure ends, so the next dictation does not wait for it.
 
 ## 0.1.1
