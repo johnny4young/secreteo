@@ -577,7 +577,7 @@ private extension DictationController {
             dependencies = nil
             return
         }
-        sessionLastText.remember(heard, app: targetApp)
+        sessionLastText.remember(heard)
         recoveryText = heard
         holdRecoveryForUpdate()
         copyStatus = .idle
@@ -1249,7 +1249,7 @@ private extension DictationController {
         copyStatus = .idle
         recoveryText = text
         holdRecoveryForUpdate()
-        sessionLastText.remember(text, app: targetApp)
+        sessionLastText.remember(text)
         phase = .noSpeech
         showPanel()
     }

@@ -102,7 +102,7 @@ public struct DictationMenuDashboard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(DictationMenuStyle.capsule, in: RoundedRectangle(cornerRadius: 14))
             .overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(DictationMenuStyle.rim) }
-        case .setUp:
+        case .setUp, .notReady:
             Button(action: openSettings) {
                 DictationMenuCapsuleLabel(
                     title: L10n.text("Set Up Dictation…"), showsGlyph: false, holdKey: nil, shortcut: nil)

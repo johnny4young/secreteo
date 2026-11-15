@@ -86,6 +86,8 @@ private struct MenuRow: View {
         .focused($isFocused)
         .focusEffectDisabled()
         .onHover { isHovered = $0 }
+        // A closing popover never reports the pointer leaving, so a reopened menu would keep a lit row.
+        .onDisappear { isHovered = false }
         .accessibilityLabel(Text(title))
         .accessibilityIdentifier(identifier)
     }

@@ -90,8 +90,12 @@ final class DictationStatsModel {
     }
 
     private func refresh() async throws {
+        // Read once: a range change during the await must not turn this refresh's week into 30 days.
+        let range = range
         let load = LoadDictationStatsSummary(store: store, now: now)
-        summary = try await load.execute(range)
-        week = range == 7 ? summary : try await load.execute(7)
+        let loaded = try await load.execute(range)
+        let week = range == 7 ? loaded : try await load.execute(7)
+        if range == self.range { summary = loaded }
+        self.week = week
     }
 }

@@ -7,14 +7,29 @@ enum DictationMenuState: Equatable {
     /// A dictation is running or just ended; the face says which.
     case live
     case standingBy
+    /// On, but not able to dictate yet: preparing, taking over, or blocked by another app.
+    case notReady
     case setUp
 }
 
 extension DictationFeature {
     var menuState: DictationMenuState {
-        if controller.phase != .idle, canDictate { return .live }
-        if canDictate { return .ready }
-        return isEnabled && canTakeOwnership ? .standingBy : .setUp
+        Self.menuState(
+            isIdle: controller.phase == .idle, canDictate: canDictate, isEnabled: isEnabled,
+            canTakeOwnership: canTakeOwnership)
+    }
+
+    nonisolated static func menuState(
+        isIdle: Bool, canDictate: Bool, isEnabled: Bool, canTakeOwnership: Bool
+    ) -> DictationMenuState {
+        if canDictate { return isIdle ? .ready : .live }
+        guard isEnabled else { return .setUp }
+        return canTakeOwnership ? .standingBy : .notReady
+    }
+
+    /// The popover keeps one view, so a day that turned while it was closed needs an explicit refresh.
+    public func menuWillOpen() {
+        Task { await stats.refreshWeek() }
     }
 
     var menuTitle: String {
@@ -22,6 +37,7 @@ extension DictationFeature {
         case .ready: L10n.text("Ready")
         case .live: statusFace.accessibilityName
         case .standingBy: L10n.text("Standing by")
+        case .notReady: L10n.text("Not ready yet")
         case .setUp: L10n.text("Dictation is off")
         }
     }
@@ -31,7 +47,7 @@ extension DictationFeature {
         switch menuState {
         case .ready, .live: L10n.format("Secreteo owns dictation · %@ on this Mac", speechEngine.displayName)
         case .standingBy: L10n.text("Another app handles dictation on this Mac")
-        case .setUp: unavailableMessage
+        case .setUp, .notReady: unavailableMessage
         }
     }
 

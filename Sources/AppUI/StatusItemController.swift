@@ -83,6 +83,7 @@ public final class StatusItemController: NSObject {
             popover.performClose(nil)
         } else {
             focusReturn.remember()
+            model.dictation?.menuWillOpen()
             NSApp.activate()
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         }

@@ -2962,6 +2962,22 @@
         }
       }
     },
+    "Not ready yet" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not ready yet"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aún no está listo"
+          }
+        }
+      }
+    },
     "Not saved to your dictation history." : {
       "localizations" : {
         "en" : {
