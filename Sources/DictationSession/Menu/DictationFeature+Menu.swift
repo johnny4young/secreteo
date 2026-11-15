@@ -22,7 +22,7 @@ extension DictationFeature {
         case .ready: L10n.text("Ready")
         case .live: statusFace.accessibilityName
         case .standingBy: L10n.text("Standing by")
-        case .setUp: L10n.text("Set Up Dictation")
+        case .setUp: L10n.text("Dictation is off")
         }
     }
 

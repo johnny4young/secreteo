@@ -1714,6 +1714,22 @@
         }
       }
     },
+    "Dictation is off" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictation is off"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El dictado está apagado"
+          }
+        }
+      }
+    },
     "Dictation is off. Turn it on in Secreteo Settings." : {
       "localizations" : {
         "en" : {
@@ -4622,22 +4638,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enviado, sin verificar"
-          }
-        }
-      }
-    },
-    "Set Up Dictation" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Set Up Dictation"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Configura el dictado"
           }
         }
       }

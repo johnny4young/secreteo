@@ -25,7 +25,7 @@ final class DictationMenuTests: XCTestCase {
         let off = try makeFeature(makeDefaults(enabled: false))
         off.start()
         XCTAssertEqual(off.menuState, .setUp)
-        XCTAssertEqual(off.menuTitle, "Set Up Dictation")
+        XCTAssertEqual(off.menuTitle, "Dictation is off")
         XCTAssertNil(off.menuDetail)
 
         let defaults = makeDefaults()
