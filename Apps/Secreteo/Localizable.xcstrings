@@ -6018,38 +6018,6 @@
         }
       }
     },
-    "Your words are being polished. Esc pastes them without polish." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your words are being polished. Esc pastes them without polish."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Estamos puliendo tus palabras. Esc las pega sin pulir."
-          }
-        }
-      }
-    },
-    "Your words are being translated on this Mac. Esc pastes them untranslated." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your words are being translated on this Mac. Esc pastes them untranslated."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tus palabras se están traduciendo en este Mac. Esc las pega sin traducir."
-          }
-        }
-      }
-    },
     "hold" : {
       "localizations" : {
         "en" : {
@@ -6158,6 +6126,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "este Mac no es compatible con Apple Intelligence"
+          }
+        }
+      }
+    },
+    "unpolished" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "unpolished"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "sin pulir"
+          }
+        }
+      }
+    },
+    "untranslated" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "untranslated"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "sin traducir"
           }
         }
       }

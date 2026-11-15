@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Testing
 
 @testable import DictationSession
@@ -19,12 +20,17 @@ struct DictationMeterTests {
         harness.controller.toggle(using: harness.dependencies)
         try #require(await TestPolling.until { harness.controller.partialText == harness.text })
         #expect(DictationWaveform.animates(for: harness.controller))
+        #expect(DictationCapsuleMotion.settle(microphoneIsOpen: true) != nil)
 
         harness.now = harness.now.addingTimeInterval(1)
         harness.controller.toggle(using: harness.dependencies)
         #expect(await tail.waitUntilCallCount(1))
         #expect(harness.controller.phase == .listening, "the stop tail is still capturing")
         #expect(!DictationWaveform.animates(for: harness.controller))
+        let open = DictationWaveform.animates(for: harness.controller)
+        #expect(DictationCapsuleMotion.settle(microphoneIsOpen: open) == nil, "tail captions land unanimated")
+        #expect(DictationCapsuleMotion.phaseChange(microphoneIsOpen: open, reduceMotion: false) == nil)
+        #expect(DictationLiquidShape.motion(microphoneIsOpen: open, reduceMotion: false) == .frozen)
         _ = await tail.resumeCall(at: 0)
     }
 }

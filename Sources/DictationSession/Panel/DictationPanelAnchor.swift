@@ -15,13 +15,37 @@ enum DictationPanelAnchor: Equatable {
         return .pointer(NSEvent.mouseLocation)
     }
 
-    /// Below the anchor when it fits, otherwise above it, always inside `visible`.
-    static func origin(for size: NSSize, near anchor: Self, in visible: NSRect, gap: CGFloat = 8) -> NSPoint {
-        let target: NSRect = switch anchor {
+    /// The edge that stays put when the panel's height changes.
+    enum PinnedEdge: Equatable { case top, bottom }
+
+    private var target: NSRect {
+        switch self {
         case .caret(let rect): rect
         // Leave room for the cursor glyph itself.
         case .pointer(let point): NSRect(x: point.x, y: point.y - 20, width: 0, height: 20)
         }
+    }
+
+    /// A panel under its anchor grows downward, away from the line being written.
+    static func pinnedEdge(for size: NSSize, near anchor: Self, in visible: NSRect, gap: CGFloat = 8) -> PinnedEdge {
+        anchor.target.minY - gap - size.height >= visible.minY ? .top : .bottom
+    }
+
+    /// Where a panel that changes size goes: one edge stays, and a panel that keeps its width keeps its place.
+    static func origin(resizing frame: NSRect, to size: NSSize, pinned: PinnedEdge, in visible: NSRect) -> NSPoint {
+        let y = pinned == .top ? frame.maxY - size.height : frame.minY
+        guard size.width != frame.width else {
+            return NSPoint(x: frame.minX, y: pinned == .top ? max(visible.minY, y) : min(y, visible.maxY - size.height))
+        }
+        // Keep the horizontal center when the compact indicator grows into the full panel.
+        return NSPoint(
+            x: max(visible.minX, min(frame.midX - size.width / 2, visible.maxX - size.width)),
+            y: max(visible.minY, min(y, visible.maxY - size.height)))
+    }
+
+    /// Below the anchor when it fits, otherwise above it, always inside `visible`.
+    static func origin(for size: NSSize, near anchor: Self, in visible: NSRect, gap: CGFloat = 8) -> NSPoint {
+        let target = anchor.target
         var y = target.minY - gap - size.height
         if y < visible.minY { y = target.maxY + gap }
         let x = min(max(target.minX - 16, visible.minX), visible.maxX - size.width)
