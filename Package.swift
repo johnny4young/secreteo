@@ -17,6 +17,8 @@ let package = Package(
         .library(name: "Polish", targets: ["Polish"]),
         .library(name: "SpeechCore", targets: ["SpeechCore"])
     ],
+    // Compiles the release dry run's update seam into DictationSession without touching other modules.
+    traits: [.trait(name: "UpdateDryRun")],
     dependencies: [
         // Exact on purpose: patch releases change decoder behavior, so a move needs paired evidence.
         .package(url: "https://github.com/FluidInference/FluidAudio.git", exact: "0.18.2", traits: []),
@@ -35,7 +37,8 @@ let package = Package(
                 "DictationKit", "DictationOwnership", "DictationStore", "LiveSpeech", "MicCapture", "Polish",
                 "SpeechCore",
                 .product(name: "LocalModelStore", package: "local-model-store")
-            ]),
+            ],
+            swiftSettings: [.define("SECRETEO_UPDATE_DRYRUN", .when(traits: ["UpdateDryRun"]))]),
         .target(
             name: "DictationStore",
             dependencies: ["DictationKit", "SpeechCore", .product(name: "GRDB", package: "GRDB.swift")]),

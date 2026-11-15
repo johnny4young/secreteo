@@ -85,7 +85,8 @@ test('the instrumented dry run adds only its condition, in its own derived data 
   assert.deepEqual(result.calls.find(row => row.name === 'xcodebuild').args, [
     '-project', 'Secreteo.xcodeproj', '-scheme', 'Secreteo', '-configuration', 'Release',
     '-destination', 'platform=macOS,arch=arm64', '-derivedDataPath', 'build/release-instrumented',
-    '-skipPackagePluginValidation', '-showBuildTimingSummary', 'ARCHS=arm64', 'MARKETING_VERSION=1.2.3',
+    '-skipPackagePluginValidation', '-showBuildTimingSummary',
+    '-clonedSourcePackagesDirPath', 'build/release/SourcePackages', 'ARCHS=arm64', 'MARKETING_VERSION=1.2.3',
     'SPARKLE_PUBLIC_ED_KEY=synthetic-public-key',
     'SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) SECRETEO_UPDATE_DRYRUN', 'build',
   ]);
