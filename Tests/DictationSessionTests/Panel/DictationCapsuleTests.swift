@@ -51,10 +51,14 @@ struct DictationCapsuleTests {
         #expect(DictationCapsuleRim(face: .polishing) == .quiet)
         #expect(DictationCapsuleRim(face: .notSent) == .notSent)
         #expect(DictationCapsuleRim.voice.glows && DictationCapsuleRim.polish.glows && DictationCapsuleRim.notSent.glows)
-        #expect(!DictationCapsuleRim.quiet.glows && !DictationCapsuleRim.loading.glows)
+        #expect(DictationCapsuleRim(face: .inserted) == .verified)
+        #expect(DictationCapsuleRim(face: .sent) == .sent)
+        for rim: DictationCapsuleRim in [.quiet, .loading, .verified, .sent] {
+            #expect(!rim.glows, "only the voice, the polish and a refusal glow")
+        }
         #expect(DictationCapsuleRim(face: .polishing, transforms: true) == .polish)
         #expect(DictationCapsuleRim(face: .polishing, transforms: false) == .quiet, "a plain paste is not copper")
-        for face: SecreteoGlyphFace in [.ready, .inserted, .sent, .noSpeech, .notOwner] {
+        for face: SecreteoGlyphFace in [.ready, .noSpeech, .notOwner] {
             #expect(DictationCapsuleRim(face: face) == .quiet)
         }
     }
@@ -63,25 +67,70 @@ struct DictationCapsuleTests {
     func theCapsuleIsOneLineInEveryDictatingPhase() {
         for phase: DictationController.Phase in [.preparing, .listening, .delivering, .failed("x")] {
             #expect(DictationPanelLayout.isCapsule(phase))
-            #expect(DictationPanelLayout.height(for: phase) == 56)
-            #expect(DictationPanelLayout.height(for: phase, showsNotice: true) == 82, "the notice hangs under it")
+            #expect(!DictationPanelLayout.isCard(phase))
         }
+        #expect(DictationPanelLayout.capsuleHeight() == 56)
+        #expect(DictationPanelLayout.capsuleHeight(showsNotice: true) == 82, "the notice hangs under it")
         #expect(DictationPanelLayout.width == 520)
     }
 
     @Test
-    func outcomesKeepTheirOwnHeights() {
-        #expect(DictationPanelLayout.height(for: .verified(3)) == 96)
-        for phase: DictationController.Phase in [.recovery(.cancelled), .dispatched(3), .noSpeech] {
-            #expect(!DictationPanelLayout.isCapsule(phase))
-            #expect(DictationPanelLayout.height(for: phase) == 288)
-            #expect(DictationPanelLayout.height(for: phase, showsNotice: true) == 288)
-        }
-        #expect(!DictationPanelLayout.isCapsule(.verified(3)))
-        #expect(!DictationPanelLayout.isCapsule(.idle))
+    func anOutcomeIsAsTallAsItsContent() {
+        let screen = CGSize(width: 1_512, height: 944)
+        #expect(DictationPanelLayout.outcomeSize(measuredHeight: 187.2, visible: screen) == NSSize(width: 520, height: 188))
+        #expect(DictationPanelLayout.outcomeSize(measuredHeight: 56, visible: screen) == NSSize(width: 520, height: 56))
         #expect(
-            DictationPanelLayout.height(for: .idle) == DictationPanelLayout.height(for: .preparing),
-            "cancelling must not resize a panel that is still on screen")
+            DictationPanelLayout.outcomeSize(measuredHeight: 86.5, visible: nil) == NSSize(width: 520, height: 87),
+            "without a screen it is still the content")
+        for unmeasured: CGFloat? in [nil, 0, 12, -4, .infinity, .nan] {
+            #expect(
+                DictationPanelLayout.outcomeSize(measuredHeight: unmeasured, visible: screen)
+                    == NSSize(width: 520, height: 56),
+                "never shorter than the capsule")
+        }
+    }
+
+    @Test
+    func anOutcomeNeverLeavesTheScreen() {
+        #expect(
+            DictationPanelLayout.outcomeSize(measuredHeight: 900, visible: CGSize(width: 1_280, height: 640.5))
+                == NSSize(width: 520, height: 640))
+        #expect(
+            DictationPanelLayout.outcomeSize(measuredHeight: 200, visible: CGSize(width: 480.9, height: 300))
+                == NSSize(width: 480, height: 200))
+        #expect(
+            DictationPanelLayout.outcomeSize(measuredHeight: 200, visible: .zero) == NSSize(width: 520, height: 200),
+            "an unknown screen clamps nothing")
+    }
+
+    @Test
+    func theWordsGrowToAFewLinesAndThenScroll() {
+        #expect(DictationPanelLayout.wordsHeight(forContent: 28.4) == 29)
+        #expect(DictationPanelLayout.wordsHeight(forContent: 87) == 87)
+        #expect(DictationPanelLayout.wordsHeight(forContent: 4_000) == DictationPanelLayout.wordsMaxHeight)
+        for empty: CGFloat in [0, -1, .nan, .infinity] {
+            #expect(DictationPanelLayout.wordsHeight(forContent: empty) == 0)
+        }
+    }
+
+    @Test
+    func onlyTheOutcomesWithWordsOpenIntoACard() {
+        for phase: DictationController.Phase in [.recovery(.cancelled), .dispatched(3), .noSpeech] {
+            #expect(DictationPanelLayout.isCard(phase))
+            #expect(!DictationPanelLayout.isCapsule(phase))
+        }
+        #expect(!DictationPanelLayout.isCard(.verified(3)) && !DictationPanelLayout.isCapsule(.verified(3)))
+        #expect(!DictationPanelLayout.isCard(.idle) && !DictationPanelLayout.isCapsule(.idle))
+    }
+
+    @Test @MainActor
+    func cancellingDoesNotResizeAPanelStillOnScreen() {
+        let idle = DictationController(presentsPanel: false)
+        #expect(idle.phase == .idle)
+        #expect(
+            DictationPanelLayout.size(for: idle, outcomeHeight: 240, visible: CGSize(width: 1_512, height: 944))
+                == NSSize(width: 520, height: DictationPanelLayout.capsuleHeight()),
+            "idle keeps the capsule's height, whatever an earlier card measured")
     }
 
     @Test

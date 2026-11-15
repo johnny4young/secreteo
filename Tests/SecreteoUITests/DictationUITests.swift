@@ -339,6 +339,8 @@ final class DictationUITests: SecreteoUITestCase {
             XCTAssertTrue(app.dialogs["dictation-panel"].frame.contains(button.frame),
                           "Long destination names must not push recovery actions outside the panel")
         }
+        XCTAssertTrue(app.dialogs["dictation-panel"].frame.contains(text.frame))
+        XCTAssertLessThan(app.dialogs["dictation-panel"].frame.height, 288, "The card is as tall as its words")
         app.buttons["dictation-recovery-copy"].click()
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { renderedText(of: status) != initial })
         XCTAssertEqual(board.string(forType: .string), "Original recovery clipboard")
@@ -415,14 +417,15 @@ final class DictationUITests: SecreteoUITestCase {
             XCTAssertNil(texts["dictation-recovery-reinsert"],
                          "An unacknowledged event is not an automatically retryable refusal")
             if verified {
-                XCTAssertTrue(title.contains("inserted") || title.contains("insertadas"), title)
+                XCTAssertTrue(
+                    [" words in ", " words inserted.", " palabras en ", " palabras insertadas."]
+                        .contains { title.contains($0) }, title)
                 XCTAssertTrue(["Nothing was saved in Secreteo.", "No se guardó nada en Secreteo."]
                     .contains(detail ?? ""), detail ?? "")
                 XCTAssertNil(texts["dictation-unverified-copy"])
                 XCTAssertTrue(waitForUITestCondition(timeout: 5) { !status.exists })
             } else {
-                XCTAssertTrue(["Sent — insertion not verified", "Enviado — inserción sin verificar"]
-                    .contains(title), title)
+                XCTAssertTrue(["Sent, not verified", "Enviado, sin verificar"].contains(title), title)
                 assertUnverifiedRecovery(app, board: board)
             }
         }
@@ -458,8 +461,11 @@ final class DictationUITests: SecreteoUITestCase {
         defer { finishUITestApplication(app) }
         enterDestinationDelivery(app)
         let status = app.staticTexts["dictation-panel-delivery-status"]
-        XCTAssertTrue(["No speech detected — nothing was inserted", "No se detectó voz: no se insertó nada"]
-            .contains(renderedText(of: status)), renderedText(of: status))
+        XCTAssertTrue(["No speech detected", "No se detectó voz"].contains(renderedText(of: status)),
+                      renderedText(of: status))
+        XCTAssertTrue(["Nothing was inserted.", "No se insertó nada."]
+            .contains(renderedText(of: app.staticTexts["dictation-panel-delivery-detail"])))
+        attachScreenshot(named: "pr-panel-no-speech")
         XCTAssertEqual(renderedText(of: app.staticTexts["dictation-no-speech-text"]), recoveryFixtureText)
         XCTAssertFalse(app.buttons["dictation-recovery-reinsert"].exists, "Silence is offered, never re-sent")
         let copy = app.buttons["dictation-no-speech-copy"]
@@ -557,6 +563,7 @@ private extension DictationUITests {
             XCTAssertEqual(app.buttons.matching(identifier: identifier).count, 1)
             XCTAssertTrue(originalFrame.contains(button.frame))
         }
+        attachScreenshot(named: "pr-panel-unverified")
         let copy = app.buttons["dictation-unverified-copy"]
         copy.click()
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { renderedText(of: status) != originalStatus })

@@ -8,10 +8,12 @@ import DictationKit
 @MainActor
 final class DictationPanelController {
     private var panel: NSPanel?
-    private var pinnedEdge = DictationPanelAnchor.PinnedEdge.bottom
+    private let placement = DictationPanelPlacement()
+    /// The last height an outcome's content measured.
+    private var outcomeHeight: CGFloat?
 
     func show(controller: DictationController) {
-        let size = DictationPanelLayout.size(for: controller)
+        let size = size(for: controller)
         if let panel {
             shade(panel, for: controller)
             resize(panel, to: size)
@@ -32,10 +34,13 @@ final class DictationPanelController {
         panel.backgroundColor = .clear
         panel.isOpaque = false
         shade(panel, for: controller)
-        panel.contentView = NSHostingView(
-            rootView: DictationStripView(controller: controller) { [weak self] in
-                self?.relayout(for: controller)
+        let content = NSHostingView(
+            rootView: DictationStripView(controller: controller, placement: placement) { [weak self] measured in
+                self?.relayout(for: controller, outcomeHeight: measured)
             }.secreteoLocalized())
+        // The layout decides the size; the hosting view must not constrain the window too.
+        content.sizingOptions = []
+        panel.contentView = content
         place(panel, size: size, near: controller.panelAnchor)
         panel.orderFrontRegardless()
         self.panel = panel
@@ -44,6 +49,13 @@ final class DictationPanelController {
     func close() {
         panel?.orderOut(nil)
         panel = nil
+        outcomeHeight = nil
+    }
+
+    private func size(for controller: DictationController) -> NSSize {
+        DictationPanelLayout.size(
+            for: controller, outcomeHeight: outcomeHeight,
+            visible: (panel?.screen ?? NSScreen.main)?.visibleFrame.size)
     }
 
     /// Beside the caret (or pointer) when known; otherwise bottom-center above the Dock.
@@ -51,25 +63,26 @@ final class DictationPanelController {
         if let anchor,
            let screen = NSScreen.screens.first(where: { $0.frame.contains(anchor.point) }) ?? NSScreen.main {
             panel.setFrameOrigin(DictationPanelAnchor.origin(for: size, near: anchor, in: screen.visibleFrame))
-            pinnedEdge = DictationPanelAnchor.pinnedEdge(for: size, near: anchor, in: screen.visibleFrame)
+            placement.pinnedEdge = DictationPanelAnchor.pinnedEdge(for: size, near: anchor, in: screen.visibleFrame)
         } else if let screen = NSScreen.main {
-            pinnedEdge = .bottom
+            placement.pinnedEdge = .bottom
             let frame = screen.visibleFrame
             panel.setFrameOrigin(NSPoint(x: frame.midX - size.width / 2, y: frame.minY + 48))
         }
     }
 
     /// Follows a layout change without ever reopening a closed panel.
-    private func relayout(for controller: DictationController) {
+    private func relayout(for controller: DictationController, outcomeHeight measured: CGFloat?) {
         guard let panel else { return }
+        if let measured { outcomeHeight = measured }
         shade(panel, for: controller)
-        resize(panel, to: DictationPanelLayout.size(for: controller))
+        resize(panel, to: size(for: controller))
     }
 
-    /// The capsule draws its own edge; the window's shadow would outline a rectangle around it.
+    /// The capsule and the pill draw their own edge and change shape; only the cards keep the window's shadow.
     private func shade(_ panel: NSPanel, for controller: DictationController) {
         let wanted = DictationCompactIndicator.applies(to: controller)
-            || !DictationPanelLayout.isCapsule(controller.phase)
+            || DictationPanelLayout.isCard(controller.phase)
         guard panel.hasShadow != wanted else { return }
         panel.hasShadow = wanted
         panel.invalidateShadow()
@@ -79,9 +92,10 @@ final class DictationPanelController {
         guard panel.contentRect(forFrameRect: panel.frame).size != size else { return }
         let before = panel.frame
         panel.setContentSize(size)
+        if panel.hasShadow { panel.invalidateShadow() }
         guard let visible = panel.screen?.visibleFrame else { return }
         panel.setFrameOrigin(DictationPanelAnchor.origin(
-            resizing: before, to: panel.frame.size, pinned: pinnedEdge, in: visible))
+            resizing: before, to: panel.frame.size, pinned: placement.pinnedEdge, in: visible))
     }
 }
 
@@ -89,83 +103,49 @@ private final class DictationPanelWindow: NSPanel {
     override var canBecomeKey: Bool { true }
 }
 
+/// The edge the panel keeps when its height changes, shared with the content it hosts.
+@MainActor
+@Observable
+final class DictationPanelPlacement {
+    var pinnedEdge = DictationPanelAnchor.PinnedEdge.bottom
+}
+
 private struct DictationStripView: View {
     let controller: DictationController
-    /// Lets the panel follow phases that change without an explicit re-show, such as a failure.
-    let relayout: () -> Void
+    let placement: DictationPanelPlacement
+    /// Lets the panel follow phases that change without an explicit re-show, such as a failure,
+    /// and the height an outcome's content measures.
+    let relayout: (CGFloat?) -> Void
 
     var body: some View {
         Group {
             if DictationCompactIndicator.applies(to: controller) {
                 DictationCompactStripView(controller: controller)
+            } else if DictationPanelLayout.isCapsule(controller.phase) {
+                DictationCapsuleView(controller: controller)
             } else {
-                fullStrip
+                outcome
+                    .fixedSize(horizontal: false, vertical: true)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { relayout($0) }
+                    // Dark over any app and in either appearance, like the capsule.
+                    .environment(\.colorScheme, .dark)
             }
         }
-        .onChange(of: DictationPanelLayout.size(for: controller)) { relayout() }
+        // The content sits on the edge the panel keeps, so it never jumps while the window follows.
+        .frame(
+            maxWidth: .infinity, maxHeight: .infinity,
+            alignment: placement.pinnedEdge == .top ? .topLeading : .bottomLeading)
+        .onChange(of: DictationPanelLayout.size(for: controller)) { relayout(nil) }
+        .onChange(of: DictationPanelLayout.isCapsule(controller.phase)) { relayout(nil) }
     }
 
-    @ViewBuilder private var fullStrip: some View {
-        if DictationPanelLayout.isCapsule(controller.phase) {
-            DictationCapsuleView(controller: controller)
-        } else {
-            Group {
-                if case .recovery(let failure) = controller.phase {
-                    DictationRecoveryView(controller: controller, failure: failure)
-                } else if case .verified(let words) = controller.phase {
-                    verifiedDeliveryView(words)
-                } else if controller.phase == .noSpeech {
-                    DictationNoSpeechView(controller: controller)
-                } else if case .dispatched = controller.phase {
-                    DictationUnverifiedDeliveryView(controller: controller)
-                }
-            }
-            .padding(12)
-            .frame(width: DictationPanelLayout.width, height: DictationPanelLayout.size(for: controller).height)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+    @ViewBuilder private var outcome: some View {
+        switch controller.phase {
+        case .recovery(let failure): DictationRecoveryView(controller: controller, failure: failure)
+        case .verified(let words): DictationResultPill(controller: controller, words: words)
+        case .noSpeech: DictationNoSpeechView(controller: controller)
+        case .dispatched: DictationUnverifiedDeliveryView(controller: controller)
+        default: EmptyView()
         }
-    }
-
-    /// The brief confirmation after insertion: N words → the target app,
-    /// and whether the dictation history kept it.
-    private func verifiedDeliveryView(_ words: Int) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: SecreteoSymbol.success)
-                .foregroundStyle(SecreteoDesign.verified)
-                .font(.title3)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(controller.correctionSummary ?? insertedTitle(words))
-                    .accessibilityIdentifier("dictation-panel-delivery-status")
-                    .font(.callout.weight(.medium))
-                Text(controller.deliveryPrivacyLine)
-                    .accessibilityIdentifier("dictation-panel-delivery-detail")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                if let notice = controller.polishNotice {
-                    Text(notice)
-                        .accessibilityIdentifier("dictation-panel-polish-notice")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-            }
-            Spacer()
-            if let learnable = controller.learnableCorrection {
-                Button(L10n.format("Always write “%@”", learnable.rule.replacement)) {
-                    controller.learnCorrection()
-                }
-                .controlSize(.small)
-                .help(L10n.format(
-                    "Adds “%@” → “%@” to your text replacements.", learnable.rule.trigger, learnable.rule.replacement))
-                .accessibilityIdentifier("dictation-panel-learn-correction")
-            }
-        }
-    }
-
-    private func insertedTitle(_ words: Int) -> String {
-        if let target = controller.targetApp {
-            return L10n.format("%d words inserted into %@.", words, target)
-        }
-        return L10n.format("%d words inserted.", words)
     }
 }

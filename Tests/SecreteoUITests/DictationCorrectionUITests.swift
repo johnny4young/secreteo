@@ -27,6 +27,8 @@ final class DictationCorrectionUITests: SecreteoUITestCase {
         let learn = app.buttons["dictation-panel-learn-correction"]
         XCTAssertTrue(learn.waitForHittable(timeout: 4), "A new spelling is offered, never learned silently")
         XCTAssertTrue(renderedText(of: learn).contains("files"))
+        XCTAssertEqual(app.dialogs["dictation-panel"].frame.height, 56, accuracy: 1, "The result is one pill, not a card")
+        attachScreenshot(named: "pr-panel-result")
         learn.click()
         XCTAssertTrue(waitForUITestCondition(timeout: 5) {
             renderedText(of: status).contains("From now on, “notes” is written “files”.")

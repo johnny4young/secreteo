@@ -130,18 +130,18 @@
         }
       }
     },
-    "%d words inserted into %@." : {
+    "%d words in %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%d words inserted into %@."
+            "value" : "%d words in %@"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%d palabras insertadas en %@."
+            "value" : "%d palabras en %@"
           }
         }
       }
@@ -2226,22 +2226,6 @@
         }
       }
     },
-    "If you did speak, copy the text below. Nothing was saved in Secreteo." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "If you did speak, copy the text below. Nothing was saved in Secreteo."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Si sí hablaste, copia el texto de abajo. No se guardó nada en Secreteo."
-          }
-        }
-      }
-    },
     "Import" : {
       "localizations" : {
         "en" : {
@@ -2430,22 +2414,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Se guardan en este Mac durante %d días."
-          }
-        }
-      }
-    },
-    "Kept only in memory. Copy it before quitting Secreteo." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kept only in memory. Copy it before quitting Secreteo."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Solo se conserva en memoria. Cópialo antes de cerrar Secreteo."
           }
         }
       }
@@ -2898,22 +2866,6 @@
         }
       }
     },
-    "No speech detected — nothing was inserted" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No speech detected — nothing was inserted"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se detectó voz: no se insertó nada"
-          }
-        }
-      }
-    },
     "None" : {
       "localizations" : {
         "en" : {
@@ -3006,6 +2958,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No se oyó nada. Vuelve a decir cómo o elige una receta."
+          }
+        }
+      }
+    },
+    "Nothing was inserted." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing was inserted."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se insertó nada."
           }
         }
       }
@@ -4622,22 +4590,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Primero selecciona un texto y vuelve a intentarlo."
-          }
-        }
-      }
-    },
-    "Sent — insertion not verified" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sent — insertion not verified"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enviado — inserción sin verificar"
           }
         }
       }
