@@ -7,7 +7,7 @@ struct DictationHistoryDivider: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Text(title)
+            Text(title.uppercased(with: AppLanguage.current.locale))
                 .font(.system(size: 11, weight: .medium, design: .monospaced))
                 .tracking(1.5)
                 .foregroundStyle(SecreteoDesign.tertiaryText)
