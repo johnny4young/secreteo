@@ -65,6 +65,20 @@ final class DictationPanelAnchorTests: XCTestCase {
         XCTAssertEqual(origin, NSPoint(x: 284, y: 400 - 20 - 8 - 32))
     }
 
+    func testASlotHoldsTheStripCentredOnItsBottomEdge() {
+        let slot = NSRect(x: 400, y: 300, width: 448, height: 56)
+        let origin = DictationPanelAnchor.origin(for: NSSize(width: 520, height: 56), near: .slot(slot), in: visible)
+        XCTAssertEqual(origin, NSPoint(x: 624 - 260, y: 300))
+        let taller = DictationPanelAnchor.origin(for: NSSize(width: 520, height: 96), near: .slot(slot), in: visible)
+        XCTAssertEqual(taller.y, 300, "A taller notice grows upward from the same edge")
+        XCTAssertEqual(
+            DictationPanelAnchor.pinnedEdge(for: NSSize(width: 520, height: 56), near: .slot(slot), in: visible), .bottom)
+
+        let offScreen = NSRect(x: -200, y: 0, width: 448, height: 56)
+        let clamped = DictationPanelAnchor.origin(for: size, near: .slot(offScreen), in: visible)
+        XCTAssertTrue(visible.contains(NSRect(origin: clamped, size: size)))
+    }
+
     func testAccessibilityGeometryFlipsToCocoaCoordinates() {
         let rect = DictationPanelAnchor.cocoaRect(
             fromAccessibility: CGRect(x: 100, y: 200, width: 2, height: 18), primaryScreenHeight: 900)

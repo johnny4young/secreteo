@@ -69,8 +69,8 @@ public final class DictationFeature: AppServices {
     private(set) var modelDownloadFraction: Double?
     let ultra = SpeechUltraDownload()
     let modelList = DictationModelList()
-    private var speechModelIsInstalled = false
-    private var detectorIsInstalled = false
+    private(set) var speechModelIsInstalled = false
+    private(set) var detectorIsInstalled = false
     public private(set) var isEnabled: Bool
     public private(set) var microphoneIsAuthorized: Bool
     public private(set) var accessibilityIsGranted: Bool

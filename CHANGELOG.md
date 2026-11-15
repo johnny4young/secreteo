@@ -10,6 +10,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 - 🫧 **The dictation panel is a living capsule**: one dark line under your caret whose light rises with your voice. Words you are still saying appear in italics and stand upright once they are settled, with the elapsed time beside them.
 - 📖 **Dictation History reads as a day log**: dictations are grouped under Today, Yesterday and each earlier day, with the time, what happened to the text, the app, the mode, the words and the seconds. The statistics show the words of the period, each app's share and the words of every day, and a search marks where the dictations close in meaning begin.
 - 🎛️ **The menu bar icon shows what is happening**: ready, listening, loading the model, polishing, inserted, sent, not sent, or another app handling dictation, each as a face between the two parentheses.
+- 👋 **Setup ends with a real first dictation**: the three steps show where you are, the speech model fills a capsule as it downloads and says when it was copied from Portavoz, and the last step shows the key you hold and your words landing in the field.
 - 🎨 **A look of its own**: a new icon, two parentheses keeping one voice, and copper and amber colours across the app.
 
 ## 1.0.0

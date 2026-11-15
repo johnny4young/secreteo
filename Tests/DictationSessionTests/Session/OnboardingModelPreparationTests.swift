@@ -21,6 +21,65 @@ final class OnboardingModelPreparationTests: XCTestCase {
     }
 
     @MainActor
+    func testEachModelSaysWhereItStands() async {
+        let model = OnboardingModelPreparation()
+        XCTAssertEqual(model.speechStatus(isInstalled: false), .missing)
+        XCTAssertEqual(model.speechStatus(isInstalled: true), .installed)
+        XCTAssertEqual(model.detectorStatus(isInstalled: false), .missing)
+        XCTAssertEqual(model.detectorStatus(isInstalled: true), .ready(copied: false))
+
+        await model.prepare {
+            XCTAssertEqual(model.speechStatus(isInstalled: false), .downloading)
+            XCTAssertEqual(model.speechStatus(isInstalled: true), .installed)
+            XCTAssertEqual(model.detectorStatus(isInstalled: false), .downloading)
+            XCTAssertNil(OnboardingModelStep.fraction(downloaded: nil, isWarming: model.isWarming), "No made-up number")
+            XCTAssertEqual(OnboardingModelStep.fraction(downloaded: 0.72, isWarming: model.isWarming), 0.72)
+
+            model.startedWarming(copiedFromPortavoz: true)
+            XCTAssertEqual(model.speechStatus(isInstalled: true), .warming(copied: true))
+            XCTAssertEqual(model.detectorStatus(isInstalled: false), .ready(copied: false))
+            XCTAssertEqual(OnboardingModelStep.fraction(downloaded: nil, isWarming: model.isWarming), 1)
+        }
+        XCTAssertEqual(model.speechStatus(isInstalled: true), .ready(copied: true))
+        XCTAssertFalse(model.speechStatus(isInstalled: true).isReady, "A copy says where it came from")
+        XCTAssertTrue(model.detectorStatus(isInstalled: true).isReady)
+    }
+
+    @MainActor
+    func testARetryStartsBeforeTheWarmUpAgain() async {
+        let model = OnboardingModelPreparation()
+        await model.prepare {
+            model.startedWarming(copiedFromPortavoz: false)
+            throw URLError(.timedOut)
+        }
+        await model.prepare { XCTAssertFalse(model.isWarming) }
+    }
+
+    func testTheTitleLeansItsLastWord() {
+        XCTAssertEqual(OnboardingTitle.split("Dictate Anywhere").lead, "Dictate ")
+        XCTAssertEqual(OnboardingTitle.split("Dictate Anywhere").emphasis, "Anywhere")
+        XCTAssertEqual(OnboardingTitle.split("Dictar en cualquier app").lead, "Dictar en cualquier ")
+        XCTAssertEqual(OnboardingTitle.split("Listo").lead, "")
+        XCTAssertEqual(OnboardingTitle.split("Listo").emphasis, "Listo")
+    }
+
+    func testThePracticeFieldKeepsTheTailProvisionalAndShowsTheRealKey() {
+        let idle = OnboardingPracticeStep.words(delivered: "Hola.", confirmed: "old", partial: "tail", isLive: false)
+        XCTAssertEqual(idle.settled, "Hola.")
+        XCTAssertEqual(idle.provisional, "")
+        let live = OnboardingPracticeStep.words(delivered: "Hola.", confirmed: "Esto es", partial: "una prueba", isLive: true)
+        XCTAssertEqual(live.settled, "Hola. Esto es")
+        XCTAssertEqual(live.provisional, " una prueba")
+        let first = OnboardingPracticeStep.words(delivered: "", confirmed: "", partial: "hola", isLive: true)
+        XCTAssertEqual(first.settled + first.provisional, "hola")
+
+        XCTAssertEqual(OnboardingPracticeStep.keyLabel(modifier: .function, shortcut: "⌃⌥⌘D"), "fn")
+        XCTAssertEqual(OnboardingPracticeStep.keyLabel(modifier: .rightOption, shortcut: "⌃⌥⌘D"), "⌥")
+        XCTAssertEqual(OnboardingPracticeStep.keyLabel(modifier: .rightCommand, shortcut: "⌃⌥⌘D"), "⌘")
+        XCTAssertEqual(OnboardingPracticeStep.keyLabel(modifier: .off, shortcut: "⌃⌥⌘D"), "⌃⌥⌘D")
+    }
+
+    @MainActor
     func testRepeatedAdmissionWhilePreparingDoesNotStartAnotherLoad() async {
         let model = OnboardingModelPreparation()
         await model.prepare {

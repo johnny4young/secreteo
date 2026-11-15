@@ -38,6 +38,8 @@ struct DictationModels: Sendable {
     var changes: @Sendable () -> AsyncStream<Void> = { AsyncStream { $0.finish() } }
     /// The folder name the store gives a part, to match it with a listed model.
     var key: @Sendable (Part) -> String = { _ in "" }
+    /// Whether this launch installed the part from Portavoz's files without downloading a byte.
+    var wasCopiedFromPortavoz: @Sendable (Part) -> Bool = { _ in false }
 
     /// Throws the first failure, so the caller can say what went wrong.
     /// `progress` gets the share of the missing bytes in place, from 0 to 1, once per whole percent:
@@ -85,6 +87,7 @@ struct DictationModels: Sendable {
             guard let directory = try? await store.directory(for: manifests(part)) else { return nil }
             return VerifiedModelRecord.fingerprint(of: manifests(part), in: directory)
         }
+        let copied = CopiedParts()
         return Self(
             isVerified: { await store.verifiedInstallation(manifests($0)) != nil },
             wasVerified: { part in
@@ -95,13 +98,21 @@ struct DictationModels: Sendable {
                 defaults.set(isVerified ? await fingerprint(part) : nil, forKey: part.recordKey)
             },
             install: { part, placedBytes in
-                _ = try await store.ensureAvailable(manifests(part), seeds: [part.seed(in: seedRoot)]) { event in
+                let seed = part.seed(in: seedRoot)
+                let hasSeed = FileManager.default.fileExists(atPath: seed.path)
+                let cameFromElsewhere = Mutex(false)
+                _ = try await store.ensureAvailable(manifests(part), seeds: [seed]) { event in
                     switch event {
-                    case .downloading(let state): placedBytes(state.completedBytes)
-                    case .waitingForOtherProcess(let completed, _): placedBytes(completed)
+                    case .downloading(let state):
+                        cameFromElsewhere.withLock { $0 = true }
+                        placedBytes(state.completedBytes)
+                    case .waitingForOtherProcess(let completed, _):
+                        cameFromElsewhere.withLock { $0 = true }
+                        placedBytes(completed)
                     case .verifying: break
                     }
                 }
+                if hasSeed, !cameFromElsewhere.withLock({ $0 }) { copied.parts.withLock { _ = $0.insert(part) } }
             },
             size: { manifests($0).totalSizeBytes },
             // Never worth failing a launch over, and the next launch tries again.
@@ -126,8 +137,13 @@ struct DictationModels: Sendable {
                 return outcome
             },
             changes: { store.changes() },
-            key: { manifests($0).shelfKey })
+            key: { manifests($0).shelfKey },
+            wasCopiedFromPortavoz: { part in copied.parts.withLock { $0.contains(part) } })
     }
+}
+
+private final class CopiedParts: Sendable {
+    let parts = Mutex<Set<DictationModels.Part>>([])
 }
 
 extension DictationModels.Part {

@@ -1250,6 +1250,38 @@
         }
       }
     },
+    "Copied from Portavoz" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied from Portavoz"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiado de Portavoz"
+          }
+        }
+      }
+    },
+    "Copied from Portavoz · warming up" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied from Portavoz · warming up"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiado de Portavoz · preparándose"
+          }
+        }
+      }
+    },
     "Copied. You can paste the text yourself." : {
       "localizations" : {
         "en" : {
@@ -1842,6 +1874,22 @@
         }
       }
     },
+    "Dictation key: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictation key: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tecla de dictado: %@"
+          }
+        }
+      }
+    },
     "Dictation needs the Accessibility permission to type into other apps — grant it in System Settings and try again." : {
       "localizations" : {
         "en" : {
@@ -1982,6 +2030,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Descargar modelo de voz"
+          }
+        }
+      }
+    },
+    "Downloaded" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloaded"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descargado"
+          }
+        }
+      }
+    },
+    "Downloading" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloading"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descargando"
           }
         }
       }
@@ -3006,6 +3086,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ninguno"
+          }
+        }
+      }
+    },
+    "Not Downloaded" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not Downloaded"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin descargar"
           }
         }
       }
@@ -5154,6 +5250,22 @@
         }
       }
     },
+    "Step %d of %d" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Step %d of %d"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paso %d de %d"
+          }
+        }
+      }
+    },
     "Stop After a Pause" : {
       "localizations" : {
         "en" : {
@@ -6078,6 +6190,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Detección de voz"
+          }
+        }
+      }
+    },
+    "Voice Detector" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voice Detector"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detector de voz"
+          }
+        }
+      }
+    },
+    "Warming up" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warming up"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparándose"
           }
         }
       }

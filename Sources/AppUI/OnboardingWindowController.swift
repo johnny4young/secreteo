@@ -39,9 +39,15 @@ final class OnboardingWindowController {
                 practiceShown: { [weak self] in self?.practiceShown($0) },
                 onFinish: { [weak self] in self?.window?.close() })
             let hosting = NSHostingController(rootView: view.tint(SecreteoDesign.accent))
+            // The progress sits beside the window's buttons, in the title bar.
+            hosting.safeAreaRegions = []
             let created = NSWindow(contentViewController: hosting)
             created.title = String(localized: "Set Up Secreteo")
-            created.styleMask = [.titled, .closable]
+            created.styleMask = [.titled, .closable, .fullSizeContentView]
+            // The title stays for VoiceOver and the Window menu; the paper runs to the top edge.
+            created.titleVisibility = .hidden
+            created.titlebarAppearsTransparent = true
+            created.backgroundColor = SecreteoPalette.window.nsColor
             created.isReleasedWhenClosed = false
             created.center()
             observe(created)

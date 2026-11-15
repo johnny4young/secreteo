@@ -7,6 +7,8 @@ enum DictationPanelAnchor: Equatable {
     /// Cocoa screen coordinates (bottom-left origin).
     case caret(NSRect)
     case pointer(NSPoint)
+    /// A place a window keeps for the strip: centred in it, on its bottom edge.
+    case slot(NSRect)
 
     /// Reads only geometry, never text; secure fields fall back to the pointer.
     @MainActor
@@ -20,7 +22,7 @@ enum DictationPanelAnchor: Equatable {
 
     private var target: NSRect {
         switch self {
-        case .caret(let rect): rect
+        case .caret(let rect), .slot(let rect): rect
         // Leave room for the cursor glyph itself.
         case .pointer(let point): NSRect(x: point.x, y: point.y - 20, width: 0, height: 20)
         }
@@ -28,7 +30,9 @@ enum DictationPanelAnchor: Equatable {
 
     /// A panel under its anchor grows downward, away from the line being written.
     static func pinnedEdge(for size: NSSize, near anchor: Self, in visible: NSRect, gap: CGFloat = 8) -> PinnedEdge {
-        anchor.target.minY - gap - size.height >= visible.minY ? .top : .bottom
+        // A slot's bottom edge is the place the window kept, so a taller notice grows up into it.
+        if case .slot = anchor { return .bottom }
+        return anchor.target.minY - gap - size.height >= visible.minY ? .top : .bottom
     }
 
     /// Where a panel that changes size goes: one edge stays, and a panel that keeps its width keeps its place.
@@ -45,6 +49,11 @@ enum DictationPanelAnchor: Equatable {
 
     /// Below the anchor when it fits, otherwise above it, always inside `visible`.
     static func origin(for size: NSSize, near anchor: Self, in visible: NSRect, gap: CGFloat = 8) -> NSPoint {
+        if case .slot(let slot) = anchor {
+            return NSPoint(
+                x: min(max(slot.midX - size.width / 2, visible.minX), visible.maxX - size.width),
+                y: min(max(slot.minY, visible.minY), visible.maxY - size.height))
+        }
         let target = anchor.target
         var y = target.minY - gap - size.height
         if y < visible.minY { y = target.maxY + gap }
@@ -59,7 +68,7 @@ enum DictationPanelAnchor: Equatable {
 
     var point: NSPoint {
         switch self {
-        case .caret(let rect): NSPoint(x: rect.midX, y: rect.midY)
+        case .caret(let rect), .slot(let rect): NSPoint(x: rect.midX, y: rect.midY)
         case .pointer(let point): point
         }
     }

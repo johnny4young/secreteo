@@ -48,9 +48,9 @@ public enum SecreteoPalette {
     public static let text = SecreteoColor(light: 0x1E1612, dark: 0xFBF1E6)
     public static let secondaryText = SecreteoColor(light: 0x5F4F44, dark: 0xCDB9A8)
     public static let tertiaryText = SecreteoColor(light: 0x7A685B, dark: 0xA08C7C)
-    /// A recessed control on the window, such as the search field.
     /// A card raised from the window.
     public static let card = SecreteoColor(light: 0xFFFFFF, dark: 0x261C17)
+    /// A recessed control on the window, such as the search field.
     public static let field = SecreteoColor(light: 0xF4ECE3, dark: 0x2E2019)
     /// Chart marks on a card, each at least 3:1 against it.
     public static let dayBar = SecreteoColor(light: 0xB5713F, dark: 0xC27A50)

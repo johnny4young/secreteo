@@ -942,6 +942,7 @@ final class VerifiedModelRecordTests: XCTestCase {
         let installed: Void? = try? await models.install(.speechDetector) { _ in }
 
         XCTAssertNil(installed, "A seed that does not hash right is not the model")
+        XCTAssertFalse(models.wasCopiedFromPortavoz(.speechDetector))
         XCTAssertEqual(try Data(contentsOf: seeded), Data("not the model".utf8))
     }
 
@@ -964,6 +965,8 @@ final class VerifiedModelRecordTests: XCTestCase {
 
         let isVerified = await models.isVerified(.speechDetector)
         XCTAssertTrue(isVerified, "Installed with no network, so from the seed")
+        XCTAssertTrue(models.wasCopiedFromPortavoz(.speechDetector))
+        XCTAssertFalse(models.wasCopiedFromPortavoz(.speech), "Only the part that was copied")
         XCTAssertEqual(try Data(contentsOf: seeded), bytes)
     }
 

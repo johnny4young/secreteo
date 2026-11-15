@@ -90,7 +90,10 @@ struct SecreteoDesignTests {
         ("accent on card, dark", SecreteoPalette.accent.dark, SecreteoPalette.card.dark),
         ("not sent on card, light", SecreteoPalette.notSent.light, SecreteoPalette.card.light),
         ("not sent on card, dark", SecreteoPalette.notSent.dark, SecreteoPalette.card.dark),
-        ("white on accent", 0xFFFFFF, SecreteoPalette.accent.light)
+        ("white on accent", 0xFFFFFF, SecreteoPalette.accent.light),
+        ("verified on a card", SecreteoPalette.verified.light, SecreteoPalette.card.light),
+        ("verified on a dark card", SecreteoPalette.verified.dark, SecreteoPalette.card.dark),
+        ("ink on a light amber key", SecreteoPalette.capsuleInk.light, SecreteoPalette.amber.light)
     ] as [(String, UInt32, UInt32)])
     func textMeetsContrast(_ pair: (String, UInt32, UInt32)) {
         #expect(Self.contrast(pair.1, pair.2) >= 4.5, "\(pair.0)")
