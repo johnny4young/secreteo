@@ -110,7 +110,7 @@ enum DictationLiquidShape {
     ]
     /// From the crest down, on the front wave only.
     static let highlight = [
-        Stop(color: SecreteoPalette.capsuleHighlight, alpha: 0.4, location: 0),
+        Stop(color: SecreteoPalette.capsuleVoiceCrest, alpha: 0.4, location: 0),
         Stop(color: SecreteoPalette.capsuleAmber, alpha: 0.12, location: 1)
     ]
     static let backWaveOpacity = 0.5

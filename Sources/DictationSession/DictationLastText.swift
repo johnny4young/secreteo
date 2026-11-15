@@ -14,6 +14,8 @@ final class DictationLastText {
     /// True when that text is the untranslated original rather than the unpolished one.
     private(set) var alternateIsOriginal = false
     private var storedAt: Date?
+    /// The app the words were dictated into, for the menu's card.
+    private var app: String?
     @ObservationIgnored private let now: () -> Date
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
     @ObservationIgnored private let waitForExpiry: @MainActor (Duration) async -> Void
@@ -61,6 +63,18 @@ final class DictationLastText {
 
     var currentAlternate: String? { current == nil ? nil : alternate }
 
+    /// The text with where and when it was dictated, under the same lifetime as `current`.
+    var currentEntry: Entry? {
+        guard let text = current, let storedAt else { return nil }
+        return Entry(text: text, app: app, storedAt: storedAt)
+    }
+
+    struct Entry: Equatable {
+        let text: String
+        let app: String?
+        let storedAt: Date
+    }
+
     /// The current text, dropping an expired one so its menu action disappears.
     func takeCurrent() -> String? {
         if current == nil, text != nil { clear() }
@@ -72,8 +86,9 @@ final class DictationLastText {
         return currentAlternate
     }
 
-    func remember(_ value: String, alternate: String? = nil, isOriginal: Bool = false) {
+    func remember(_ value: String, app: String? = nil, alternate: String? = nil, isOriginal: Bool = false) {
         text = value
+        self.app = app
         self.alternate = alternate == value ? nil : alternate
         alternateIsOriginal = self.alternate != nil && isOriginal
         storedAt = now()
@@ -93,6 +108,7 @@ final class DictationLastText {
         alternate = nil
         alternateIsOriginal = false
         storedAt = nil
+        app = nil
         onClear?()
     }
 }
