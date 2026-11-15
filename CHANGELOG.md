@@ -4,6 +4,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- 🗂️ **Settings in five tabs**: Dictation, Text, Polish, History and General, with a readiness header that shows what dictation still needs, shortcuts drawn as keys, and the indicator chosen by picture.
 - 🎛️ **The menu bar icon shows what is happening**: ready, listening, loading the model, polishing, inserted, sent, not sent, or another app handling dictation, each as a face between the two parentheses.
 - 🎨 **A look of its own**: a new icon, two parentheses keeping one voice, and copper and amber colours across the app.
 

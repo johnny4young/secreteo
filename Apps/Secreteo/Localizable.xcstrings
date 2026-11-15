@@ -834,6 +834,22 @@
         }
       }
     },
+    "Capsule with your words" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capsule with your words"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cápsula con tus palabras"
+          }
+        }
+      }
+    },
     "Changed “%@” to “%@”." : {
       "localizations" : {
         "en" : {
@@ -2082,6 +2098,22 @@
         }
       }
     },
+    "General" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "General"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "General"
+          }
+        }
+      }
+    },
     "Heard" : {
       "localizations" : {
         "en" : {
@@ -2094,6 +2126,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lo que se oye"
+          }
+        }
+      }
+    },
+    "History" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historial"
           }
         }
       }
@@ -2142,6 +2190,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mantener una tecla requiere el permiso de Accesibilidad."
+          }
+        }
+      }
+    },
+    "I will send the report tomorrow" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I will send the report tomorrow"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "mañana te mando el informe"
+          }
+        }
+      }
+    },
+    "I will send the report tomorrow before noon." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I will send the report tomorrow before noon."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mañana te mando el informe antes del mediodía."
           }
         }
       }
@@ -2366,22 +2446,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Idioma"
-          }
-        }
-      }
-    },
-    "Language and Microphone" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Language and Microphone"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Idioma y micrófono"
           }
         }
       }
@@ -3010,6 +3074,22 @@
         }
       }
     },
+    "Only a small indicator" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only a small indicator"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo un indicador pequeño"
+          }
+        }
+      }
+    },
     "Open Dictations" : {
       "localizations" : {
         "en" : {
@@ -3202,18 +3282,18 @@
         }
       }
     },
-    "Paste the Last Dictation with ⌃⌥⌘V" : {
+    "Paste the Last Dictation" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Paste the Last Dictation with ⌃⌥⌘V"
+            "value" : "Paste the Last Dictation"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pegar el último dictado con ⌃⌥⌘V"
+            "value" : "Pegar el último dictado"
           }
         }
       }
@@ -4114,18 +4194,18 @@
         }
       }
     },
-    "Rewrite the Selection with ⌃⌥⌘R" : {
+    "Rewrite the Selection" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rewrite the Selection with ⌃⌥⌘R"
+            "value" : "Rewrite the Selection"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reescribir la selección con ⌃⌥⌘R"
+            "value" : "Reescribir la selección"
           }
         }
       }
@@ -4706,6 +4786,22 @@
         }
       }
     },
+    "Speech" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speech"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voz"
+          }
+        }
+      }
+    },
     "Speech Engine" : {
       "localizations" : {
         "en" : {
@@ -4766,6 +4862,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reconocimiento de voz"
+          }
+        }
+      }
+    },
+    "Speech model on this Mac" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speech model on this Mac"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modelo de voz en esta Mac"
           }
         }
       }
@@ -5394,6 +5506,22 @@
         }
       }
     },
+    "Translate and Rewrite" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translate and Rewrite"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traducir y reescribir"
+          }
+        }
+      }
+    },
     "Translate into" : {
       "localizations" : {
         "en" : {
@@ -5534,6 +5662,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lo que se escribe"
+          }
+        }
+      }
+    },
+    "Typed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Typed"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escrito"
           }
         }
       }
@@ -5858,6 +6002,22 @@
         }
       }
     },
+    "before noon" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "before noon"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "antes del mediodía"
+          }
+        }
+      }
+    },
     "the on-device model is still downloading; try again in a few minutes" : {
       "localizations" : {
         "en" : {
@@ -5902,6 +6062,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "este Mac no es compatible con Apple Intelligence"
+          }
+        }
+      }
+    },
+    "um," : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "um,"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "eh,"
+          }
+        }
+      }
+    },
+    "you know," : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "you know,"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "o sea,"
           }
         }
       }

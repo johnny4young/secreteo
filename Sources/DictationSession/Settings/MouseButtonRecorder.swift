@@ -12,6 +12,9 @@ struct MouseButtonRecorder: View {
         HStack {
             Text("Push-to-Talk Mouse Button")
             Spacer()
+            Image(systemName: "computermouse")
+                .foregroundStyle(SecreteoDesign.tertiaryText)
+                .accessibilityHidden(true)
             Button {
                 recording ? stopRecording() : startRecording()
             } label: {

@@ -169,7 +169,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/PolishTests/DictationPolishEgressTests.swift` | `Tests/PortavozKitTests/DictationPolishEgressTests.swift` | Extract: the gateway tests, rewritten for one operation with no store or journal |
 | `Tests/DictationSessionTests/Session/DictationPolishRouterTests.swift` | `Tests/PortavozAppTests/DictationPolishRouterTests.swift` | Extract: without the MLX tests, plus the default engine |
 | `Sources/DictationSession/Settings/DictationTextSettingsModel.swift` | `Sources/portavoz-app/DictationTextSettingsModel.swift` | Seam: `reload()`, for an import that writes the same keys |
-| `Sources/DictationSession/Settings/DictationRecipeSettings.swift` | `Sources/portavoz-app/DictationRecipeSettings.swift` | Seam: no helper text, the instruction field named instead of asked about, labels in title case, and row identifiers joined from a prefix |
+| `Sources/DictationSession/Settings/DictationRecipeSettings.swift` | `Sources/portavoz-app/DictationRecipeSettings.swift` | Seam: no helper text, the instruction field named instead of asked about, labels in title case, row identifiers joined from a prefix, and the list always open in its card |
 | `Sources/DictationSession/Settings/DictationTranslationSettings.swift` | `Sources/portavoz-app/DictationTranslationSettings.swift` | Seam: a status and the download only when translation is on and needs them, and the label in title case |
 | `Tests/DictationSessionTests/Session/DictationRecipePreferenceTests.swift` | `Tests/PortavozAppTests/DictationRecipeTests.swift` | Extract: the preference and Settings tests, guarded like the other suites that read the argument domain |
 | `Tests/PolishTests/DictationRecipePromptTests.swift` | `Tests/PortavozAppTests/DictationRecipeTests.swift` | Extract: the prompt tests |
@@ -221,7 +221,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/DictationSessionTests/Panel/DictationPanelAnchorTests.swift` | `Tests/PortavozAppTests/DictationPanelAnchorTests.swift` | Seam. Fixes: a new dictation is checked not to keep the last one's anchor |
 | `Tests/DictationSessionTests/Panel/DictationCompactIndicatorTests.swift` | `Tests/PortavozAppTests/DictationCompactIndicatorTests.swift` | Seam. Fixes: the settings test clears the shared argument domain, which outranks its suite |
 | `Sources/DictationSession/Panel/DictationTextPickers.swift` | `Sources/portavoz-app/DictationTextSettingsSection.swift` | Extract: the two pickers the panel uses |
-| `Sources/DictationSession/Settings/DictationSettingsControls.swift` | `Sources/portavoz-app/DictationSection.swift` | Seam: the controls and labels that have behavior here, grouped anew, with no helper text, and the microphone picker from `AudioSection.swift` |
+| `Sources/DictationSession/Settings/DictationSettingsControls.swift` | `Sources/portavoz-app/DictationSection.swift` | Seam: the controls and labels that have behavior here, grouped anew as the Dictation tab's cards, with no helper text, and the microphone picker from `AudioSection.swift` |
 | `Sources/DictationSession/Settings/DictationVocabularyEditor.swift` | `Sources/portavoz-app/SettingsView.swift` | Extract: the vocabulary list and add field, with no suggestions from meetings |
 | `Sources/DictationSession/Settings/HotkeyRecorder.swift` | `Sources/portavoz-app/HotkeySetting.swift` | Extract: the recorder view, which hands the setting back instead of saving it and frees the shortcut while listening |
 | `Sources/DictationSession/Settings/MouseButtonRecorder.swift` | `Sources/portavoz-app/MouseButtonPTT.swift` | Extract: the recorder view, which hands the button back instead of saving it |
@@ -253,9 +253,9 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationSession/Fixtures/UITestDefaults.swift` | `Sources/portavoz-app/UITestDefaults.swift` | Renames |
 | `Tests/SecreteoUITests/DictationUITests.swift` | `Tests/PortavozUITests/DictationUITests.swift` | Extract: without the native delivery tests, whose receiver arrives with the signed lane |
 | `Tests/SecreteoUITests/DictationCorrectionUITests.swift` | `Tests/PortavozUITests/DictationCorrectionUITests.swift` | Extract: without the dictionary test, which arrives with Settings |
-| `Tests/SecreteoUITests/DictationPolishUITests.swift` | `Tests/PortavozUITests/DictationPolishUITests.swift` | Extract: without the Settings tests, which are rewritten for the Polish section |
-| `Tests/SecreteoUITests/DictationTranslationUITests.swift` | `Tests/PortavozUITests/DictationTranslationUITests.swift` | Extract: the Settings test is rewritten for Secreteo's form |
-| `Tests/SecreteoUITests/DictationTextModeUITests.swift` | `Tests/PortavozUITests/DictationTextModeUITests.swift` | Seam: the Settings tests reach the form by scrolling, without the privacy note, and drive the chooser with plain keys |
+| `Tests/SecreteoUITests/DictationPolishUITests.swift` | `Tests/PortavozUITests/DictationPolishUITests.swift` | Extract: without the Settings tests, which are rewritten for the Polish tab |
+| `Tests/SecreteoUITests/DictationTranslationUITests.swift` | `Tests/PortavozUITests/DictationTranslationUITests.swift` | Extract: the Settings test is rewritten for the Polish tab's segments |
+| `Tests/SecreteoUITests/DictationTextModeUITests.swift` | `Tests/PortavozUITests/DictationTextModeUITests.swift` | Seam: the Settings tests reach the Text tab, without the privacy note, and drive the chooser with plain keys |
 | `Sources/DictationStore/DictationStore+History.swift` | `Sources/StorageKit/MeetingStore+DictationHistory.swift` | Seam: imports `DictationKit` and `SpeechCore`, and deleting, retention, a save that expires rows and a policy change end with a truncating checkpoint |
 | `Sources/DictationSession/History/ApplicationUseCase.swift` | `Sources/ApplicationKit/ApplicationUseCase.swift` | Renames |
 | `Sources/DictationSession/History/DictationHistoryUseCases.swift` | `Sources/ApplicationKit/DictationHistory.swift` | Seam: imports `SpeechCore` |

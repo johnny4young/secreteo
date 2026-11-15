@@ -60,6 +60,9 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         XCTAssertTrue(app.buttons["menu-bar-set-up-dictation"].exists, "Off, the menu offers setup, not a dead Dictate")
         XCTAssertFalse(app.buttons["menu-bar-dictate"].exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-failed-to-start").exists)
+        XCTAssertFalse(app.control(withIdentifier: "settings-tab-text").exists, "Off, there is no text to shape")
+        XCTAssertFalse(app.control(withIdentifier: "settings-tab-polish").exists)
+        assertControlsExist(["settings-tab-dictation", "settings-tab-history", "settings-tab-general"], in: app)
         attachScreenshot(named: "pr-settings-dictation")
 
         app.control(withIdentifier: "settings-dictation-enabled").click()
@@ -74,30 +77,78 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-model-progress").exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-model-failed").exists)
 
+        assertControlsExist(SettingsTabIdentifier.allCases.map(\.rawValue), in: app)
         assertControlsExist([
             "settings-dictation-practice-field", "settings-dictation-practice-start",
-            "settings-dictation-mouse-recorder", "settings-dictation-modifier-key",
-            "settings-dictation-paste-last-hotkey", "settings-dictation-rewrite-hotkey", "settings-dictation-sounds",
-            "settings-dictation-compact", "settings-dictation-speech-gate", "settings-dictation-auto-stop",
-            "settings-dictation-corrections", "settings-dictation-caret-case",
-            "settings-model-memory-lightweight", "settings-dictation-prewarm", "settings-dictation-language",
-            "settings-dictation-microphone-device", "settings-dictation-text-mode", "settings-dictation-filler",
-            "settings-dictation-dict-trigger", "settings-dictation-dict-replacement", "settings-dictation-dict-add",
-            "settings-dictation-vocabulary-field", "settings-dictation-vocabulary-add"
+            "settings-dictation-mouse-recorder", "settings-dictation-modifier-key", "settings-dictation-sounds",
+            "settings-dictation-compact", "settings-dictation-indicator-capsule", "settings-dictation-speech-gate",
+            "settings-dictation-auto-stop", "settings-dictation-engine", "settings-dictation-language",
+            "settings-dictation-microphone-device"
         ], in: app)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-mouse-clear").exists, "No button is set")
-        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-paste-last-taken").exists)
-        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-rewrite-taken").exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-auto-stop-pause").exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-modifier-unavailable").exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-modifier-fn-note").exists)
-        attachScreenshot(named: "pr-settings-dictation-controls")
+        attachScreenshot(named: "pr-settings-tab-dictation")
 
         try requireForeground(app)
-        app.control(withIdentifier: "settings-root").scroll(byDeltaX: 0, deltaY: -600)
-        attachScreenshot(named: "pr-settings-dictation-controls-middle")
         app.control(withIdentifier: "settings-root").scroll(byDeltaX: 0, deltaY: -1_200)
-        attachScreenshot(named: "pr-settings-dictation-controls-bottom")
+        attachScreenshot(named: "pr-settings-tab-dictation-bottom")
+
+        app.openSettingsTab(.text)
+        assertControlsExist([
+            "settings-dictation-text-mode", "settings-dictation-filler", "settings-dictation-dict-trigger",
+            "settings-dictation-dict-replacement", "settings-dictation-dict-add", "settings-dictation-profiles",
+            "settings-dictation-vocabulary-field", "settings-dictation-vocabulary-add",
+            "settings-dictation-corrections", "settings-dictation-caret-case"
+        ], in: app)
+        attachScreenshot(named: "pr-settings-tab-text")
+
+        app.openSettingsTab(.polish)
+        assertControlsExist([
+            "settings-dictation-polish-engine", "settings-dictation-polish-preview", "settings-dictation-recipes",
+            "settings-dictation-recipe-new", "settings-dictation-translate", "settings-dictation-rewrite-hotkey",
+            "settings-dictation-paste-last-hotkey"
+        ], in: app)
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-paste-last-taken").exists)
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-rewrite-taken").exists)
+        attachScreenshot(named: "pr-settings-tab-polish")
+
+        app.openSettingsTab(.history)
+        assertControlsExist(["settings-dictation-history", "settings-dictation-stats"], in: app)
+
+        app.openSettingsTab(.general)
+        assertControlsExist([
+            "settings-model-memory-lightweight", "settings-dictation-prewarm", "settings-launch-at-login",
+            "settings-version"
+        ], in: app)
+    }
+
+    func testTheIndicatorIsChosenByPicture() throws {
+        let app = try launchEnabled()
+        defer { finishUITestApplication(app) }
+        let capsule = app.control(withIdentifier: "settings-dictation-indicator-capsule")
+        let small = app.control(withIdentifier: "settings-dictation-compact")
+        XCTAssertTrue(app.revealInSettings(small))
+        XCTAssertTrue(capsule.isChosen, "The capsule with your words is the default")
+        XCTAssertFalse(small.isChosen)
+
+        small.click()
+
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) { small.isChosen && !capsule.isChosen })
+    }
+
+    func testTheTabsKeepTheirLookInDark() throws {
+        let app = try launchEnabled(arguments: ["-AppleInterfaceStyle", "Dark"])
+        defer { finishUITestApplication(app) }
+
+        app.openSettingsTab(.polish)
+        XCTAssertTrue(app.control(withIdentifier: "settings-dictation-polish-preview").waitForExistence(timeout: 5))
+        attachScreenshot(named: "pr-settings-tab-polish-dark")
+
+        app.openSettingsTab(.general)
+        XCTAssertTrue(app.control(withIdentifier: "settings-open-notices").waitForExistence(timeout: 5))
+        attachScreenshot(named: "pr-settings-tab-general-dark")
     }
 
     func testOpeningSettingsWithEditableReplacementsStaysAtTheTop() throws {
@@ -113,7 +164,7 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         let app = try launchEnabled()
         defer { finishUITestApplication(app) }
         let toggle = app.control(withIdentifier: "settings-dictation-rewrite-hotkey")
-        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.revealInSettings(toggle, tab: .polish))
         XCTAssertFalse(toggle.value as? Int == 1 || toggle.value as? String == "1", "Off until chosen")
 
         toggle.click()
@@ -128,7 +179,7 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         let app = try launchEnabled()
         defer { finishUITestApplication(app) }
         let toggle = app.control(withIdentifier: "settings-dictation-paste-last-hotkey")
-        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.revealInSettings(toggle, tab: .polish))
         XCTAssertFalse(toggle.value as? Int == 1 || toggle.value as? String == "1", "Off until chosen")
 
         toggle.click()
@@ -144,7 +195,7 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         defer { finishUITestApplication(app) }
         let importRow = app.control(withIdentifier: "settings-portavoz-import")
         let confirm = app.control(withIdentifier: "settings-portavoz-import-confirm")
-        XCTAssertTrue(importRow.waitForStableFrame(timeout: 5))
+        XCTAssertTrue(app.revealInSettings(importRow, tab: .general))
 
         importRow.click()
 
@@ -161,6 +212,7 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         confirm.click()
 
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { !importRow.exists }, "Nothing is left to import")
+        app.openSettingsTab(.dictation)
         let sounds = app.control(withIdentifier: "settings-dictation-sounds")
         XCTAssertTrue(sounds.waitForExistence(timeout: 5))
         XCTAssertTrue(sounds.value as? Int == 1 || sounds.value as? String == "1")
@@ -189,7 +241,10 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         let engine = app.control(withIdentifier: "settings-dictation-engine")
         let download = app.control(withIdentifier: "settings-dictation-ultra-download")
         let progress = app.control(withIdentifier: "settings-dictation-ultra-progress")
-        XCTAssertTrue(app.revealInSettings(engine))
+        let ultra = app.control(withIdentifier: "settings-dictation-engine-ultra")
+        XCTAssertTrue(app.revealInSettings(ultra))
+        XCTAssertTrue(engine.exists)
+        XCTAssertTrue(ultra.isChosen)
         XCTAssertTrue(app.revealInSettings(download), "Ultra is the default, and nothing has fetched it yet")
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-ultra-failed").exists)
 
@@ -229,9 +284,7 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         defer { finishUITestApplication(app) }
         let lightweight = app.control(withIdentifier: "settings-model-memory-lightweight")
         let prewarm = app.control(withIdentifier: "settings-dictation-prewarm")
-        // The form leaves rows below the fold out of the accessibility tree.
-        app.control(withIdentifier: "settings-root").scroll(byDeltaX: 0, deltaY: -600)
-        XCTAssertTrue(lightweight.waitForStableFrame(timeout: 5))
+        XCTAssertTrue(app.revealInSettings(lightweight, tab: .general))
         XCTAssertTrue(prewarm.isEnabled)
         XCTAssertTrue(prewarm.value as? Int == 1 || prewarm.value as? String == "1")
 
@@ -283,7 +336,7 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         defer { finishUITestApplication(app) }
         try requireForeground(app)
         let trigger = app.control(withIdentifier: "settings-dictation-dict-trigger")
-        XCTAssertTrue(trigger.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.revealInSettings(trigger, tab: .text))
 
         trigger.click()
         trigger.typeText("portabos")
@@ -305,7 +358,7 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         let app = try launchEnabled(defaults: #""customVocabulary":"Secreteo""#)
         defer { finishUITestApplication(app) }
         let remove = app.control(withIdentifier: "settings-dictation-vocabulary-remove")
-        XCTAssertTrue(remove.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.revealInSettings(remove, tab: .text))
 
         remove.click()
 

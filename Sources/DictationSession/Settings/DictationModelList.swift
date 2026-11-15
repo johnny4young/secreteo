@@ -50,7 +50,8 @@ struct DictationModelListSection: View {
 
     var body: some View {
         if !dictation.modelList.entries.isEmpty {
-            Section("Speech Models") {
+            SettingsEyebrow(Text("Speech Models"))
+            SettingsCard {
                 ForEach(Array(dictation.modelList.entries.enumerated()), id: \.element.id) {
                     row($1, index: $0)
                 }
@@ -85,6 +86,7 @@ struct DictationModelListSection: View {
             }
             if dictation.canRemove(entry) {
                 Button("Remove") { dictation.modelList.pendingRemoval = entry }
+                    .buttonStyle(SettingsLinkStyle())
                     .accessibilityIdentifier("settings-model-remove-\(index)")
             }
         }

@@ -18,10 +18,15 @@ struct HotkeyRecorder: View {
             Button {
                 recording ? stopRecording() : startRecording()
             } label: {
-                Text(recording ? L10n.text("Press keys…") : setting.label)
-                    .font(.body.monospaced())
-                    .frame(minWidth: 90)
+                if recording {
+                    Text("Press keys…")
+                        .foregroundStyle(SecreteoDesign.accent)
+                } else {
+                    SettingsKeyCaps(shortcut: setting.label)
+                }
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel(recording ? L10n.text("Press keys…") : setting.label)
             .accessibilityIdentifier("settings-dictation-hotkey-recorder")
         }
         .onDisappear(perform: stopRecording)
