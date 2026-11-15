@@ -77,15 +77,19 @@ Synthetic data only, from seed fixtures. Each image is opened and checked before
 
 ## Release contract
 
-No 1.0 without all of these, even if smoke is green:
+Every release, 1.0 included, needs each row marked Yes, even if smoke is green. The manual rows stay listed, and [D29](DECISIONS.md#d29-manual-gates-do-not-block-a-release-yet) keeps them from blocking a release until Secreteo has customers.
 
-| Requirement | Where it is checked |
-|---|---|
-| Strict unit tests in full | `unit` on every PR that touches Swift |
-| Full UI plan in English, Spanish catalogs complete | The two `ui-full` halves of `nightly.yml`, and `Tests/Tooling/test_ui_contract.py` in `legacy-tooling` |
-| Physical delivery and TCC | `scripts/run-signed-handoff.sh` in `signed-handoff`, then the [manual gates](RELEASING.md#manual-gates-on-the-release-mac) |
-| Total memory within budget | [D26](DECISIONS.md#d26-total-memory-has-a-budget-written-before-it-was-measured), in the `memory` lane of `make test-model-gated` on the release Mac |
-| No audio or dictated text in logs | `Tests/Tooling/test_log_privacy.mjs` in hygiene |
-| Database upgrade and rollback in scratch | `Tests/DictationStoreTests/DictationStoreSchemaTests.swift` in `unit` |
-| A real Sparkle update | `scripts/release-dryrun.sh` with a throwaway key, then a real update from the previous version on the release Mac |
-| Signature, notarization and permissions | `release.yml` with the owner's secrets, then permissions on a clean account |
+| Requirement | Where it is checked | Blocks a release |
+|---|---|---|
+| Strict unit tests in full | `unit` on every PR that touches Swift | Yes |
+| Full UI plan in English, Spanish catalogs complete | `verify` in `release.yml`, the two `ui-full` halves of `nightly.yml`, and `Tests/Tooling/test_ui_contract.py` in `legacy-tooling` | Yes |
+| Signed delivery handoff | `scripts/run-signed-handoff.sh` in `signed-handoff` on every PR that touches delivery | Yes |
+| Physical delivery and TCC | The [manual gates](RELEASING.md#manual-gates-on-the-release-mac) | No |
+| Total memory within budget | [D26](DECISIONS.md#d26-total-memory-has-a-budget-written-before-it-was-measured), in the `memory` lane of `make test-model-gated` on the release Mac | No |
+| No audio or dictated text in logs | `Tests/Tooling/test_log_privacy.mjs` in hygiene | Yes |
+| Database upgrade and rollback in scratch | `Tests/DictationStoreTests/DictationStoreSchemaTests.swift` in `unit` | Yes |
+| A real Sparkle update | `scripts/release-dryrun.sh` with a throwaway key, on packaging changes and nightly | Yes |
+| The published release | `verify` in `update-cask.yml`, which updates the previous release through the live feed | Runs after publishing |
+| Signature and notarization | `release.yml` with the owner's secrets | Yes |
+| Permissions on a clean account | The [runbook](RUNBOOK.md) | No |
+| VoiceOver | The [runbook](RUNBOOK.md) | No |
