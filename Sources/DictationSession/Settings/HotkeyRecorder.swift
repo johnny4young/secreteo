@@ -30,7 +30,8 @@ struct HotkeyRecorder: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(recording ? L10n.text("Press keys…") : setting.label)
+            .accessibilityLabel(Text("Dictation Shortcut"))
+            .accessibilityValue(recording ? L10n.text("Press keys…") : setting.label)
             .accessibilityIdentifier("settings-dictation-hotkey-recorder")
         }
         .onDisappear(perform: stopRecording)

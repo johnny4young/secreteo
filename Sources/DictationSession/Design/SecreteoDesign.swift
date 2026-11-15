@@ -69,7 +69,6 @@ public enum SecreteoPalette {
     public static let capsuleInk = SecreteoColor(0x2A1206)
     /// Text on a row filled with the accent.
     public static let onAccent = SecreteoColor(light: 0xFFF6EC, dark: 0x2A1206)
-    /// A card raised from the window.
     /// The crest of the voice light.
     public static let capsuleVoiceCrest = SecreteoColor(0xFFE2A8)
     public static let capsuleCopper = SecreteoColor(0x9A4A1F)

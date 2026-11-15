@@ -153,8 +153,7 @@ struct DictationPolishTab: View {
             DictationTranslationSettings(model: text)
             SettingsSwitch(
                 Text("Rewrite the Selection"), identifier: "settings-dictation-rewrite-hotkey",
-                isOn: dictation.rewriteSelectionShortcutBinding
-            ) { SettingsKeyCaps(shortcut: "⌃⌥⌘R") }
+                shortcut: "⌃⌥⌘R", isOn: dictation.rewriteSelectionShortcutBinding)
             if dictation.rewriteSelectionShortcutIsUnavailable {
                 Text("Another shortcut already uses ⌃⌥⌘R.")
                     .foregroundStyle(SecreteoDesign.notSent)
@@ -162,8 +161,7 @@ struct DictationPolishTab: View {
             }
             SettingsSwitch(
                 Text("Paste the Last Dictation"), identifier: "settings-dictation-paste-last-hotkey",
-                isOn: dictation.pasteLastShortcutBinding
-            ) { SettingsKeyCaps(shortcut: PasteLastShortcut.setting.label) }
+                shortcut: PasteLastShortcut.setting.label, isOn: dictation.pasteLastShortcutBinding)
             if dictation.pasteLastShortcutIsUnavailable {
                 Text("Another shortcut already uses ⌃⌥⌘V.")
                     .foregroundStyle(SecreteoDesign.notSent)

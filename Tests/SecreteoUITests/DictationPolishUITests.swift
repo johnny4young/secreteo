@@ -14,8 +14,8 @@ final class DictationPolishUITests: SecreteoUITestCase {
         let model = app.control(withIdentifier: "settings-dictation-polish-ollama-model")
         XCTAssertTrue(app.revealInSettings(model, tab: .polish))
         XCTAssertTrue(app.control(withIdentifier: "settings-dictation-polish-engine").exists)
-        XCTAssertTrue(app.control(withIdentifier: "settings-dictation-polish-engine-ollama").isChosen)
-        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-polish-engine-apple").isChosen)
+        XCTAssertTrue(app.control(withIdentifier: "settings-dictation-polish-engine-ollama").isSelected)
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-polish-engine-apple").isSelected)
         XCTAssertTrue(renderedText(of: model).contains("None"))
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-polish-ollama-missing").exists)
 
@@ -122,7 +122,7 @@ final class DictationPolishUITests: SecreteoUITestCase {
         XCTAssertTrue(renderedText(of: unavailable).contains("Apple Intelligence is turned off"))
         attachScreenshot(named: "pr-settings-polish-apple-unavailable")
         let ollama = app.control(withIdentifier: "settings-dictation-polish-engine-ollama")
-        XCTAssertTrue(app.control(withIdentifier: "settings-dictation-polish-engine-apple").isChosen)
+        XCTAssertTrue(app.control(withIdentifier: "settings-dictation-polish-engine-apple").isSelected)
         XCTAssertTrue(app.revealInSettings(ollama))
 
         ollama.click()

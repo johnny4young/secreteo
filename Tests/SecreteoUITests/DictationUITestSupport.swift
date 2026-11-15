@@ -118,10 +118,6 @@ enum SettingsTabIdentifier: String, CaseIterable {
 }
 
 extension XCUIElement {
-    /// A switch, or a segment or picture that reads 1 while it is the chosen one.
-    @MainActor
-    var isChosen: Bool { value as? Int == 1 || value as? String == "1" }
-
     @MainActor
     func waitForHittable(timeout: TimeInterval) -> Bool {
         waitForStableFrame(timeout: timeout)

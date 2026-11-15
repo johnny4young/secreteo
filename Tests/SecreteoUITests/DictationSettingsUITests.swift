@@ -130,12 +130,12 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         let capsule = app.control(withIdentifier: "settings-dictation-indicator-capsule")
         let small = app.control(withIdentifier: "settings-dictation-compact")
         XCTAssertTrue(app.revealInSettings(small))
-        XCTAssertTrue(capsule.isChosen, "The capsule with your words is the default")
-        XCTAssertFalse(small.isChosen)
+        XCTAssertTrue(capsule.isSelected, "The capsule with your words is the default")
+        XCTAssertFalse(small.isSelected)
 
         small.click()
 
-        XCTAssertTrue(waitForUITestCondition(timeout: 5) { small.isChosen && !capsule.isChosen })
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) { small.isSelected && !capsule.isSelected })
     }
 
     func testTheTabsKeepTheirLookInDark() throws {
@@ -157,7 +157,16 @@ final class DictationSettingsUITests: SecreteoUITestCase {
 
         let enabled = app.control(withIdentifier: "settings-dictation-enabled")
 
-        XCTAssertTrue(enabled.waitForStableFrame(timeout: 5), "No text field takes focus and scrolls the form")
+        XCTAssertTrue(enabled.waitForStableFrame(timeout: 5))
+        app.openSettingsTab(.text)
+        let mode = app.control(withIdentifier: "settings-dictation-text-mode")
+        let trigger = app.control(withIdentifier: "settings-dictation-dict-trigger")
+        XCTAssertTrue(mode.waitForStableFrame(timeout: 5), "No text field takes focus and scrolls the tab")
+        XCTAssertTrue(trigger.isEnabled, "Clean mode makes the replacements editable")
+        XCTAssertLessThan(mode.frame.minY, trigger.frame.minY)
+        XCTAssertLessThan(
+            mode.frame.minY - app.control(withIdentifier: "settings-tab-text").frame.maxY, 60,
+            "The first row sits right under the tabs")
     }
 
     func testTheRewriteShortcutTurnsOnWithoutAConflict() throws {
@@ -165,6 +174,7 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         defer { finishUITestApplication(app) }
         let toggle = app.control(withIdentifier: "settings-dictation-rewrite-hotkey")
         XCTAssertTrue(app.revealInSettings(toggle, tab: .polish))
+        XCTAssertTrue(toggle.label.contains("⌃⌥⌘R"), "The shortcut is read with the switch")
         XCTAssertFalse(toggle.value as? Int == 1 || toggle.value as? String == "1", "Off until chosen")
 
         toggle.click()
@@ -180,6 +190,7 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         defer { finishUITestApplication(app) }
         let toggle = app.control(withIdentifier: "settings-dictation-paste-last-hotkey")
         XCTAssertTrue(app.revealInSettings(toggle, tab: .polish))
+        XCTAssertTrue(toggle.label.contains("⌃⌥⌘V"), "The shortcut is read with the switch")
         XCTAssertFalse(toggle.value as? Int == 1 || toggle.value as? String == "1", "Off until chosen")
 
         toggle.click()
@@ -244,7 +255,12 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         let ultra = app.control(withIdentifier: "settings-dictation-engine-ultra")
         XCTAssertTrue(app.revealInSettings(ultra))
         XCTAssertTrue(engine.exists)
-        XCTAssertTrue(ultra.isChosen)
+        XCTAssertTrue(ultra.isSelected)
+        XCTAssertTrue(renderedText(of: engine).contains("Parakeet Ultra"), "The group reads its choice")
+        for other in ["settings-dictation-engine-parakeet", "settings-dictation-engine-apple"] {
+            XCTAssertTrue(app.control(withIdentifier: other).exists, other)
+            XCTAssertFalse(app.control(withIdentifier: other).isSelected, other)
+        }
         XCTAssertTrue(app.revealInSettings(download), "Ultra is the default, and nothing has fetched it yet")
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-ultra-failed").exists)
 

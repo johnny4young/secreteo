@@ -69,10 +69,11 @@ final class DictationTranslationUITests: SecreteoUITestCase {
         XCTAssertTrue(picker.exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-translate-download").exists, "Off needs nothing")
         XCTAssertTrue(app.control(withIdentifier: "settings-dictation-translate-es").exists)
-        XCTAssertTrue(off.isChosen)
+        XCTAssertTrue(off.isSelected)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-translate-default").exists)
         english.click()
-        XCTAssertTrue(waitForUITestCondition(timeout: 5) { english.isChosen && !off.isChosen })
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) { english.isSelected && !off.isSelected })
+        XCTAssertTrue(renderedText(of: picker).contains("English"), "The group reads its choice")
         // Whether this Mac has the languages is not up to the test, but the two rows always agree.
         let status = app.control(withIdentifier: "settings-dictation-translate-status")
         let download = app.control(withIdentifier: "settings-dictation-translate-download")

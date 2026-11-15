@@ -100,6 +100,7 @@ struct DictationIndicatorChoice: View {
             }
             .accessibilityIdentifier("settings-dictation-compact")
         }
+        .modifier(SettingsArrowKeys(radius: 12) { isCompact = $0 > 0 })
     }
 
     private func card<Picture: View>(
@@ -130,7 +131,6 @@ struct DictationIndicatorChoice: View {
         .buttonStyle(.plain)
         .accessibilityLabel(caption)
         .accessibilityAddTraits(selected ? .isSelected : [])
-        .accessibilityValue(Text(verbatim: selected ? "1" : "0"))
     }
 }
 

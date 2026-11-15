@@ -44,13 +44,19 @@ public final class SettingsWindowController {
 
     private func fit(height: CGFloat) {
         guard let window else { return }
-        let available = window.screen?.visibleFrame.height ?? height
-        var frame = window.frame
-        let target = min(height, available)
-        guard abs(frame.height - target) > 0.5 else { return }
-        frame.origin.y += frame.height - target
-        frame.size = NSSize(width: SettingsMetrics.width, height: target)
+        let frame = Self.fitted(window.frame, height: height, in: window.screen?.visibleFrame)
+        guard frame != window.frame else { return }
         window.setFrame(frame, display: true)
+    }
+
+    /// The top edge stays put while the window fits on the screen. Otherwise it moves up, and a tab
+    /// taller than the screen gets the screen's height, so it scrolls instead of hiding rows.
+    nonisolated static func fitted(_ frame: NSRect, height: CGFloat, in visible: NSRect?) -> NSRect {
+        let target = min(height, visible?.height ?? height)
+        var fitted = NSRect(x: frame.minX, y: frame.maxY - target, width: SettingsMetrics.width, height: target)
+        guard let visible else { return fitted }
+        fitted.origin.y = min(max(fitted.minY, visible.minY), visible.maxY - target)
+        return fitted
     }
 
     private func observe(_ window: NSWindow) {

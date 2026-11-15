@@ -48,6 +48,9 @@ public struct SettingsTabBar: View {
                 button(tab)
             }
         }
+        .modifier(SettingsArrowKeys(radius: 8) {
+            selection = SettingsArrowKeys.neighbor(of: selection, in: tabs, by: $0)
+        })
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         .padding(.bottom, 5)
         .frame(height: SettingsMetrics.barHeight)
@@ -157,6 +160,8 @@ public struct SettingsSwitch<Accessory: View>: View {
     private let identifier: String
     @Binding private var isOn: Bool
     private let accessory: Accessory
+    /// Drawn as keys beside the switch, and read after its name.
+    private var shortcut = ""
 
     public init(
         _ title: Text, identifier: String, isOn: Binding<Bool>, @ViewBuilder accessory: () -> Accessory
@@ -173,8 +178,13 @@ public struct SettingsSwitch<Accessory: View>: View {
                 .accessibilityHidden(true)
             Spacer(minLength: 8)
             accessory
+            if !shortcut.isEmpty { SettingsKeyCaps(shortcut: shortcut) }
             Toggle(isOn: $isOn) { title }
                 .labelsHidden()
+                .accessibilityLabel { name in
+                    name
+                    if !shortcut.isEmpty { Text(verbatim: shortcut) }
+                }
                 .accessibilityIdentifier(identifier)
         }
     }
@@ -184,9 +194,52 @@ extension SettingsSwitch where Accessory == EmptyView {
     public init(_ title: Text, identifier: String, isOn: Binding<Bool>) {
         self.init(title, identifier: identifier, isOn: isOn) { EmptyView() }
     }
+
+    init(_ title: Text, identifier: String, shortcut: String, isOn: Binding<Bool>) {
+        self.init(title, identifier: identifier, isOn: isOn) { EmptyView() }
+        self.shortcut = shortcut
+    }
 }
 
-/// A few choices side by side. Each segment is `identifier-suffix` and reads 1 when chosen.
+/// One keyboard stop for a group of choices: a focus ring, and the arrow keys move the choice
+/// as they do in a native segmented control.
+struct SettingsArrowKeys: ViewModifier {
+    let radius: CGFloat
+    let move: (Int) -> Void
+    @FocusState private var isFocused: Bool
+    @Environment(\.layoutDirection) private var layoutDirection
+
+    func body(content: Content) -> some View {
+        content
+            .focusable(interactions: .activate)
+            .focused($isFocused)
+            .focusEffectDisabled()
+            .overlay {
+                if isFocused {
+                    RoundedRectangle(cornerRadius: radius + 3)
+                        .strokeBorder(Color(nsColor: .keyboardFocusIndicatorColor), lineWidth: 3)
+                        .padding(-3)
+                        .allowsHitTesting(false)
+                }
+            }
+            .onMoveCommand { direction in
+                let forward = layoutDirection == .leftToRight ? 1 : -1
+                switch direction {
+                case .left: move(-forward)
+                case .right: move(forward)
+                default: break
+                }
+            }
+    }
+
+    /// The choice `offset` places along, stopping at either end.
+    nonisolated static func neighbor<Value: Equatable>(of current: Value, in all: [Value], by offset: Int) -> Value {
+        guard let index = all.firstIndex(of: current), !all.isEmpty else { return current }
+        return all[min(max(index + offset, 0), all.count - 1)]
+    }
+}
+
+/// A few choices side by side. Each segment is `identifier-suffix`; the group reads the chosen one.
 struct SettingsSegments<Value: Hashable>: View {
     struct Option {
         let value: Value
@@ -216,14 +269,17 @@ struct SettingsSegments<Value: Hashable>: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(selected ? .isSelected : [])
-                .accessibilityValue(Text(verbatim: selected ? "1" : "0"))
                 .accessibilityIdentifier(identifier + "-" + option.suffix)
             }
         }
         .padding(2)
         .background(SecreteoDesign.control, in: RoundedRectangle(cornerRadius: 8))
+        .modifier(SettingsArrowKeys(radius: 8) {
+            selection = SettingsArrowKeys.neighbor(of: selection, in: options.map(\.value), by: $0)
+        })
         .accessibilityElement(children: .contain)
         .accessibilityLabel(label)
+        .accessibilityValue(options.first { $0.value == selection }?.title ?? Text(verbatim: ""))
         .accessibilityIdentifier(identifier)
     }
 }
