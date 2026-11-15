@@ -50,11 +50,15 @@ public enum SecreteoPalette {
     public static let tertiaryText = SecreteoColor(light: 0x7A685B, dark: 0xA08C7C)
     /// A recessed control on the window, such as the search field.
     public static let field = SecreteoColor(light: 0xF4ECE3, dark: 0x2E2019)
-    public static let bar = SecreteoColor(light: 0xC98A63, dark: 0xB8683F)
-    public static let emptyBar = SecreteoColor(light: 0xE3D5C7, dark: 0x3D2C23)
+    /// Chart marks on a card, each at least 3:1 against it.
+    public static let bar = SecreteoColor(light: 0xB5713F, dark: 0xC27A50)
+    public static let emptyBar = SecreteoColor(light: 0x9C8B7C, dark: 0x857264)
+    /// Amber deep enough to read as a mark on a white card.
+    public static let todayBar = SecreteoColor(light: 0xC27F00, dark: 0xF4B63C)
     /// Fills for the parts of a whole, strongest first; the last is the rest.
     public static let shareRamp = [
-        accent, SecreteoColor(light: 0xD98A5C, dark: 0xB8683F), amber, SecreteoColor(light: 0xCDB9A8, dark: 0x6B584C)
+        accent, SecreteoColor(light: 0xD98A5C, dark: 0xB8683F), amber,
+        SecreteoColor(light: 0xE8C9A8, dark: 0x8A5A3C), SecreteoColor(light: 0xCDB9A8, dark: 0x6B584C)
     ]
     /// Text on the always-dark capsule, whatever the system appearance.
     public static let capsuleText = SecreteoColor(0xFBF1E6)

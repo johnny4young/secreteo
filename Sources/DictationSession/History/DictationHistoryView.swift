@@ -8,6 +8,7 @@ public struct DictationHistoryView: View {
     private let stats: DictationStatsModel
     @State private var confirmingDeleteAll = false
     @State private var query = ""
+    @State private var days = DictationHistoryDays()
 
     public init(dictation: DictationFeature) {
         self.init(history: dictation.history, stats: dictation.stats)
@@ -58,6 +59,9 @@ public struct DictationHistoryView: View {
             filter.query = query
             await model.apply(filter)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in days.refresh() }
+        .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in days.refresh() }
+        .onReceive(NotificationCenter.default.publisher(for: .NSSystemClockDidChange)) { _ in days.refresh() }
         .confirmationDialog(
             Text("Delete every saved dictation?"), isPresented: $confirmingDeleteAll, titleVisibility: .visible
         ) {
@@ -136,12 +140,11 @@ public struct DictationHistoryView: View {
     }
 
     private var log: some View {
-        let now = Date()
-        let log = DictationDayLog(
-            records: model.records, meaningCount: model.meaningCount, now: now, calendar: .current)
+        let log = days.log(records: model.records, meaningCount: model.meaningCount)
         return LazyVStack(alignment: .leading, spacing: 0) {
             ForEach(Array(log.sections.enumerated()), id: \.element.id) { index, section in
-                DictationHistoryDivider(title: DictationHistoryFormat.title(of: section, now: now))
+                DictationHistoryDivider(
+                    title: DictationHistoryFormat.title(of: section, now: days.now, calendar: days.calendar))
                     .accessibilityIdentifier("dictation-history-day-\(index)")
                 ForEach(section.entries) { row($0, datesRow: false) }
             }
@@ -161,7 +164,7 @@ public struct DictationHistoryView: View {
 
     private func row(_ entry: DictationDayLog.Entry, datesRow: Bool) -> some View {
         DictationHistoryRow(
-            record: entry.record, index: entry.index, datesRow: datesRow,
+            record: entry.record, index: entry.index, day: datesRow ? days : nil,
             onDelete: { Task { await model.delete(entry.record.id) } })
     }
 
@@ -187,6 +190,10 @@ public struct DictationHistoryView: View {
                     .buttonStyle(.plain)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(SecreteoDesign.notSent)
+                    .padding(.horizontal, 4)
+                    .frame(minHeight: 24)
+                    .contentShape(Rectangle())
+                    .dictationHistoryFocusRing()
                     .accessibilityIdentifier("dictation-history-delete-all")
             }
         }

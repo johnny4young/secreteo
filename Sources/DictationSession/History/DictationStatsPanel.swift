@@ -62,7 +62,7 @@ struct DictationStatsPanel: View {
                 Text(totals.words.formatted(.number.locale(AppLanguage.current.locale)))
                     .font(.secreteoSerif(84))
                     .monospacedDigit()
-                Text("words")
+                Text(DictationHistoryFormat.wordsNoun(totals.words))
                     .font(.secreteoSerif(34, italic: true))
                     .foregroundStyle(SecreteoDesign.accent)
             }
@@ -172,12 +172,14 @@ private struct DictationStatsDays: View {
                     }
                     .frame(maxWidth: 34)
                     .help(L10n.format("%@: %d words", day.day, words))
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(dayName(day.day))
+                    .accessibilityValue(DictationHistoryFormat.words(words))
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(L10n.format("%@: %d words", L10n.text("Today"), days.last?.totals.words ?? 0))
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("dictation-stats-days")
     }
 
@@ -188,16 +190,24 @@ private struct DictationStatsDays: View {
 
     private func fill(words: Int, isToday: Bool) -> Color {
         if words == 0 { return SecreteoPalette.emptyBar.color }
-        return isToday ? SecreteoDesign.amber : SecreteoPalette.bar.color
+        return isToday ? SecreteoPalette.todayBar.color : SecreteoPalette.bar.color
     }
 
     /// A week names each weekday; a month numbers every seventh day back from today.
     private func label(_ day: String, back: Int, dense: Bool) -> String {
-        let parts = day.split(separator: "-").compactMap { Int($0) }
-        guard parts.count == 3, !dense || back.isMultiple(of: 7),
-              let date = Calendar.current.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2]))
-        else { return "" }
+        guard !dense || back.isMultiple(of: 7), let date = date(day) else { return "" }
         let style = Date.FormatStyle(locale: AppLanguage.current.locale)
         return date.formatted(dense ? style.day() : style.weekday(.narrow))
+    }
+
+    private func dayName(_ day: String) -> String {
+        guard let date = date(day) else { return day }
+        return date.formatted(Date.FormatStyle(locale: AppLanguage.current.locale).weekday(.wide).day().month(.wide))
+    }
+
+    private func date(_ day: String) -> Date? {
+        let parts = day.split(separator: "-").compactMap { Int($0) }
+        guard parts.count == 3 else { return nil }
+        return Calendar.current.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2]))
     }
 }

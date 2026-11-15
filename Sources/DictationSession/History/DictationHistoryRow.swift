@@ -41,20 +41,37 @@ enum DictationHistoryFormat {
         return date.formatted(style)
     }
 
-    static func time(_ date: Date) -> String {
-        date.formatted(Date.FormatStyle(locale: AppLanguage.current.locale).hour().minute())
+    /// The system's locale, so the 12 or 24-hour choice in System Settings holds whatever the app language.
+    static func time(
+        _ date: Date, locale: Locale = .autoupdatingCurrent, timeZone: TimeZone = .autoupdatingCurrent
+    ) -> String {
+        date.formatted(Date.FormatStyle(locale: locale, timeZone: timeZone).hour().minute())
     }
 
     static func words(_ count: Int) -> String {
         count == 1 ? L10n.text("1 word") : L10n.format("%d words", count)
+    }
+
+    /// The noun alone, beside a numeral set in another face.
+    static func wordsNoun(_ count: Int) -> String {
+        count == 1 ? L10n.text("word") : L10n.text("words")
+    }
+
+    /// What happened to the text; the mode is told in words beside it.
+    static func face(for delivery: DictationRecordDelivery) -> SecreteoGlyphFace {
+        switch delivery {
+        case .verified: .inserted
+        case .dispatched: .sent
+        case .notDelivered: .notSent
+        }
     }
 }
 
 struct DictationHistoryRow: View {
     let record: DictationRecord
     let index: Int
-    /// Rows found by meaning are ranked, so each says its own day.
-    let datesRow: Bool
+    /// Rows found by meaning are ranked, so each says its own day against this one.
+    let day: DictationHistoryDays?
     let onDelete: () -> Void
     @State private var copied = false
     @State private var showsOriginal = false
@@ -124,6 +141,7 @@ struct DictationHistoryRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .dictationHistoryFocusRing()
         .accessibilityValue(showsOriginal ? L10n.text("Expanded") : L10n.text("Collapsed"))
         .accessibilityIdentifier("dictation-history-original-\(index)")
     }
@@ -134,6 +152,7 @@ struct DictationHistoryRow: View {
                 Label(copied ? L10n.text("Copied") : L10n.text("Copy"), systemImage: "doc.on.doc")
                     .labelStyle(DictationHistoryCopyStyle(showsTitle: isNotDelivered))
             }
+            .dictationHistoryFocusRing()
             .help(L10n.text("Copy"))
             .accessibilityLabel(copied ? L10n.text("Copied") : L10n.text("Copy"))
             .accessibilityIdentifier("dictation-history-copy-\(index)")
@@ -142,6 +161,7 @@ struct DictationHistoryRow: View {
                     .frame(width: 28, height: 28)
                     .contentShape(Rectangle())
             }
+            .dictationHistoryFocusRing()
             .help(L10n.text("Delete"))
             .accessibilityIdentifier("dictation-history-delete-\(index)")
         }
@@ -149,18 +169,13 @@ struct DictationHistoryRow: View {
         .foregroundStyle(SecreteoDesign.secondaryText)
     }
 
-    private var face: SecreteoGlyphFace {
-        switch record.delivery {
-        case .notDelivered: .notSent
-        case .dispatched: .sent
-        case .verified: record.mode == .polish ? .polishing : .inserted
-        }
-    }
+    private var face: SecreteoGlyphFace { DictationHistoryFormat.face(for: record.delivery) }
 
     private var details: AttributedString {
         var parts: [AttributedString] = []
-        if datesRow {
-            parts.append(AttributedString(DictationHistoryFormat.date(record.createdAt, now: Date())))
+        if let day {
+            parts.append(AttributedString(
+                DictationHistoryFormat.date(record.createdAt, now: day.now, calendar: day.calendar)))
         }
         if let app = record.applicationName {
             var name = AttributedString(app)
@@ -207,4 +222,26 @@ private struct DictationHistoryCopyStyle: LabelStyle {
             configuration.icon.frame(width: 28, height: 28).contentShape(Rectangle())
         }
     }
+}
+
+/// Plain buttons draw no focus ring of their own, so full keyboard access would not show where it is.
+private struct DictationHistoryFocusRing: ViewModifier {
+    @FocusState private var isFocused: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .focused($isFocused)
+            .focusEffectDisabled()
+            .overlay {
+                if isFocused {
+                    RoundedRectangle(cornerRadius: 8)
+                        .strokeBorder(SecreteoDesign.accent, lineWidth: 2)
+                        .accessibilityHidden(true)
+                }
+            }
+    }
+}
+
+extension View {
+    func dictationHistoryFocusRing() -> some View { modifier(DictationHistoryFocusRing()) }
 }

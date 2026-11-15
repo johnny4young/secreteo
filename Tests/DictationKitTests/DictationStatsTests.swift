@@ -36,9 +36,15 @@ final class DictationStatsTests: XCTestCase {
         XCTAssertEqual(shares(summary(3, [("Slack", 1), ("Mail", 1), ("Notes", 1)])),
                        ["Slack 34", "Mail 33", "Notes 33"], "rounding still adds up to 100")
         XCTAssertEqual(shares(summary(100, [("Mail", 41), ("Slack", 27), ("Xcode", 18), ("Notes", 14)])),
-                       ["Mail 41", "Slack 27", "Xcode 18", "Notes 14"], "a fourth app that is all the rest keeps its name")
+                       ["Mail 41", "Slack 27", "Xcode 18", "Notes 14"], "four apps are named")
         XCTAssertEqual(shares(summary(100, [("Mail", 40), ("Slack", 20), ("Xcode", 10), ("Notes", 8), ("Zed", 7)])),
-                       ["Mail 40", "Slack 20", "Xcode 10", "rest 30"])
+                       ["Mail 40", "Slack 20", "Xcode 10", "Notes 8", "rest 22"],
+                       "the fifth app and the dictations without an app are the rest")
+        XCTAssertEqual(shares(summary(10, [("Mail", 4), ("Slack", 3), ("Xcode", 2), ("Notes", 1), ("Zed", 0)])),
+                       ["Mail 40", "Slack 30", "Xcode 20", "Notes 10"])
+        XCTAssertEqual(
+            summary(100, [("Mail", 40), ("Slack", 20), ("Xcode", 10)]).applicationShares(limit: 2).map(\.percent),
+            [40, 20, 40])
         XCTAssertEqual(shares(summary(10, [("Mail", 4)])), ["Mail 40", "rest 60"], "dictations without an app are the rest")
         XCTAssertEqual(shares(summary(1000, [("Mail", 998), ("Slack", 1)])), ["Mail 100"])
     }

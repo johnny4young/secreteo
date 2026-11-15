@@ -69,6 +69,18 @@ struct SecreteoDesignTests {
         #expect(Self.contrast(pair.1, pair.2) >= 4.5, "\(pair.0)")
     }
 
+    @Test(arguments: [
+        ("bar, light", SecreteoPalette.bar.light, SecreteoPalette.card.light),
+        ("bar, dark", SecreteoPalette.bar.dark, SecreteoPalette.card.dark),
+        ("empty bar, light", SecreteoPalette.emptyBar.light, SecreteoPalette.card.light),
+        ("empty bar, dark", SecreteoPalette.emptyBar.dark, SecreteoPalette.card.dark),
+        ("today's bar, light", SecreteoPalette.todayBar.light, SecreteoPalette.card.light),
+        ("today's bar, dark", SecreteoPalette.todayBar.dark, SecreteoPalette.card.dark)
+    ] as [(String, UInt32, UInt32)])
+    func chartMarksMeetGraphicContrast(_ pair: (String, UInt32, UInt32)) {
+        #expect(Self.contrast(pair.1, pair.2) >= 3, "\(pair.0)")
+    }
+
     @Test
     func dynamicColorsFollowTheAppearance() throws {
         let color = SecreteoPalette.accent.nsColor

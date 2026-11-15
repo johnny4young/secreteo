@@ -39,7 +39,7 @@ extension DictationFeature {
         ].enumerated() {
             _ = await write(DictationRecord(
                 id: DictationRecordID(), createdAt: now.addingTimeInterval(Double(offset - 2) * 60), duration: 3,
-                text: sample.0, originalText: sample.1, mode: sample.1 == nil ? .literal : .clean, language: nil,
+                text: sample.0, originalText: sample.1, mode: sample.1 == nil ? .literal : .polish, language: nil,
                 engine: "parakeet", applicationName: sample.2, applicationBundleID: nil, delivery: sample.3))
         }
     }

@@ -105,15 +105,12 @@ public struct DictationApplicationShare: Equatable, Sendable {
 }
 
 extension DictationStatsSummary {
-    /// Each busiest app's share of the range's dictations, then the rest. The percentages
-    /// add up to 100; an app that rounds to nothing joins the rest.
-    public func applicationShares(limit: Int = 3) -> [DictationApplicationShare] {
+    /// Each busiest app's share of the range's dictations, then every other app and the
+    /// dictations without one. The percentages add up to 100; a share that rounds to nothing is left out.
+    public func applicationShares(limit: Int = 4) -> [DictationApplicationShare] {
         let total = totals.dictations
         guard total > 0, limit > 0 else { return [] }
-        let listed = topApplications.filter { $0.dictations > 0 }
-        let counted = listed.reduce(0) { $0 + $1.dictations }
-        // One more app fits when it is all that is left, so it keeps its name.
-        let named = listed.count == limit + 1 && counted >= total ? listed : Array(listed.prefix(limit))
+        let named = topApplications.filter { $0.dictations > 0 }.prefix(limit)
         var counts = named.map { min($0.dictations, total) }
         counts.append(max(0, total - counts.reduce(0, +)))
         var percents = counts.map { $0 * 100 / total }
