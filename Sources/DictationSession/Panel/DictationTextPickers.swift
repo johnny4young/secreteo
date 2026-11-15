@@ -72,6 +72,8 @@ struct DictationTranslationPicker: View {
     /// Profiles may follow the default instead of choosing a target.
     var followsDefault: Bool = false
     var onFollowDefault: (() -> Void)?
+    /// Where there is no room for a label, "Off" alone says nothing; a symbol stands for it.
+    var offSymbol: String?
 
     var body: some View {
         LabeledContent {
@@ -87,7 +89,11 @@ struct DictationTranslationPicker: View {
                 Button("Spanish") { selection = .spanish }
                     .accessibilityIdentifier(identifier + "-es")
             } label: {
-                title
+                if let offSymbol, selection == .off, !followsDefault {
+                    Image(systemName: offSymbol)
+                } else {
+                    title
+                }
             }
             .accessibilityIdentifier(identifier)
             .accessibilityLabel(label)
