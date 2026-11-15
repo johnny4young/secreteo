@@ -12,6 +12,7 @@ final class DictationPanelController {
     func show(controller: DictationController) {
         let size = DictationPanelLayout.size(for: controller)
         if let panel {
+            shade(panel, for: controller)
             resize(panel, to: size)
             // A new dictation reuses a notice's panel; it still opens at its own caret.
             if controller.phase == .preparing { place(panel, size: size, near: controller.panelAnchor) }
@@ -29,7 +30,7 @@ final class DictationPanelController {
         panel.isMovableByWindowBackground = true
         panel.backgroundColor = .clear
         panel.isOpaque = false
-        panel.hasShadow = true
+        shade(panel, for: controller)
         panel.contentView = NSHostingView(
             rootView: DictationStripView(controller: controller) { [weak self] in
                 self?.relayout(for: controller)
@@ -58,7 +59,17 @@ final class DictationPanelController {
     /// Follows a layout change without ever reopening a closed panel.
     private func relayout(for controller: DictationController) {
         guard let panel else { return }
+        shade(panel, for: controller)
         resize(panel, to: DictationPanelLayout.size(for: controller))
+    }
+
+    /// The capsule draws its own edge; the window's shadow would outline a rectangle around it.
+    private func shade(_ panel: NSPanel, for controller: DictationController) {
+        let wanted = DictationCompactIndicator.applies(to: controller)
+            || !DictationPanelLayout.isCapsule(controller.phase)
+        guard panel.hasShadow != wanted else { return }
+        panel.hasShadow = wanted
+        panel.invalidateShadow()
     }
 
     private func resize(_ panel: NSPanel, to size: NSSize) {
@@ -71,29 +82,6 @@ final class DictationPanelController {
         panel.setFrameOrigin(NSPoint(
             x: max(visible.minX, min(midX - panel.frame.width / 2, visible.maxX - panel.frame.width)),
             y: max(visible.minY, min(origin.y, visible.maxY - panel.frame.height))))
-    }
-}
-
-/// One height authority for AppKit and SwiftUI: a conflicting intrinsic size
-/// otherwise moves the panel again after every explicit re-show.
-private enum DictationPanelLayout {
-    @MainActor
-    static func size(for controller: DictationController) -> NSSize {
-        DictationCompactIndicator.applies(to: controller)
-            ? DictationCompactIndicator.size
-            : NSSize(width: 520, height: height(for: controller.phase) + transformHintHeight(for: controller))
-    }
-
-    @MainActor
-    private static func transformHintHeight(for controller: DictationController) -> CGFloat {
-        controller.isPolishing || controller.isTranslating ? 28 : 0
-    }
-
-    static func height(for phase: DictationController.Phase) -> CGFloat {
-        switch phase {
-        case .recovery, .dispatched, .noSpeech: 288
-        default: 96
-        }
     }
 }
 
@@ -117,140 +105,24 @@ private struct DictationStripView: View {
         .onChange(of: DictationPanelLayout.size(for: controller)) { relayout() }
     }
 
-    private var fullStrip: some View {
-        Group {
-            if case .recovery(let failure) = controller.phase {
-                DictationRecoveryView(controller: controller, failure: failure)
-            } else if case .verified(let words) = controller.phase {
-                verifiedDeliveryView(words)
-            } else if controller.phase == .noSpeech {
-                DictationNoSpeechView(controller: controller)
-            } else if case .dispatched = controller.phase {
-                DictationUnverifiedDeliveryView(controller: controller)
-            } else {
-                dictatingView
-            }
-        }
-        .padding(12)
-        .frame(width: 520, height: DictationPanelLayout.size(for: controller).height)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
-    }
-
-    /// The active strip: what you're saying, and WHERE
-    /// it will land, so you never dictate blind.
-    private var dictatingView: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                if showsModelLoading {
-                    // Audio is kept, but no words can appear yet.
-                    Image(systemName: "hourglass")
-                        .foregroundStyle(.secondary)
-                        .symbolEffect(.pulse)
-                        .accessibilityLabel(L10n.text("Loading the speech model"))
-                        .accessibilityIdentifier("dictation-panel-loading")
-                } else {
-                    Image(systemName: "waveform.badge.mic")
-                        .foregroundStyle(isFailed ? SecreteoDesign.notSent : SecreteoDesign.accent)
-                        .symbolEffect(.pulse, isActive: controller.microphoneIsOpen)
-                }
-                Text(title)
-                    .accessibilityIdentifier("dictation-panel-state")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                if let target = controller.targetApp, controller.isActive {
-                    targetChip(target)
-                }
-                if controller.isActive, controller.phase != .delivering {
-                    DictationTextModePicker(
-                        identifier: "dictation-panel-text-mode", label: Text("Text mode"), selection: Binding(
-                        get: { controller.textChoice }, set: { controller.selectTextChoice($0) }),
-                        recipes: controller.availableRecipes)
-                        .labelsHidden()
-                        .controlSize(.mini)
-                        .frame(width: 124)
-                        .disabled(!controller.canChangeTextMode)
-                    DictationTranslationPicker(
-                        identifier: "dictation-panel-translate", label: Text("Translate into"),
-                        selection: Binding(
-                            get: { controller.translationTarget }, set: { controller.selectTranslationTarget($0) }))
-                        .labelsHidden()
-                        .controlSize(.mini)
-                        .frame(width: 72)
-                        .disabled(!controller.canChangeTextMode)
-                }
-                Spacer()
-                if controller.phase == .listening {
-                    DictationWaveform(
-                        level: controller.micLevel, isActive: DictationWaveform.animates(for: controller),
-                        dimmed: showsModelLoading)
-                        .frame(width: 70, height: 18)
-                        .accessibilityIdentifier("dictation-panel-meter")
-                }
-                Button {
-                    controller.cancel()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                // A posted paste cannot be recalled; cancelling would only hide its outcome.
-                .disabled(controller.phase == .delivering)
-                .accessibilityLabel(L10n.text("Cancel dictation"))
-                .accessibilityIdentifier("dictation-panel-cancel")
-            }
-            if let notice = controller.microphoneNotice {
-                Text(notice)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .accessibilityIdentifier("dictation-panel-microphone-notice")
-            }
-            if controller.isPolishing {
-                HStack {
-                    Text("Your words are being polished. Esc pastes them without polish.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .accessibilityIdentifier("dictation-panel-polish-hint")
-                    Spacer()
-                    Button("Paste without polish") { controller.skipPolish() }
-                        .controlSize(.small)
-                        .accessibilityIdentifier("dictation-panel-skip-polish")
-                }
-            } else if controller.isTranslating {
-                HStack {
-                    Text("Your words are being translated on this Mac. Esc pastes them untranslated.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .accessibilityIdentifier("dictation-panel-translate-hint")
-                    Spacer()
-                    Button("Paste untranslated") { controller.skipPolish() }
-                        .controlSize(.small)
-                        .accessibilityIdentifier("dictation-panel-skip-translation")
+    @ViewBuilder private var fullStrip: some View {
+        if DictationPanelLayout.isCapsule(controller.phase) {
+            DictationCapsuleView(controller: controller)
+        } else {
+            Group {
+                if case .recovery(let failure) = controller.phase {
+                    DictationRecoveryView(controller: controller, failure: failure)
+                } else if case .verified(let words) = controller.phase {
+                    verifiedDeliveryView(words)
+                } else if controller.phase == .noSpeech {
+                    DictationNoSpeechView(controller: controller)
+                } else if case .dispatched = controller.phase {
+                    DictationUnverifiedDeliveryView(controller: controller)
                 }
             }
-            if isFailed {
-                EmptyView()
-            } else if controller.confirmedText.isEmpty && controller.partialText.isEmpty {
-                Text(emptyCaptionHint)
-                    .accessibilityIdentifier("dictation-panel-hint")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                // Confirmed words are settled; the tail is still volatile, so
-                // it reads gray — it firms up as the engine commits it.
-                let visible = DictationPanelTranscript.visible(
-                    confirmed: controller.confirmedText, partial: controller.partialText)
-                let confirmed = Text(visible.confirmed).foregroundStyle(.primary)
-                let partial = Text(visible.partial).foregroundStyle(.tertiary)
-                Text("\(confirmed)\(partial)")
-                    .accessibilityIdentifier("dictation-panel-transcript")
-                    // The strip elides earlier words visually; VoiceOver keeps the whole dictation.
-                    .accessibilityLabel(DictationAssembler.text(
-                        confirmed: controller.confirmedText, partial: controller.partialText))
-                    .font(.body)
-                    .lineLimit(2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+            .padding(12)
+            .frame(width: DictationPanelLayout.width, height: DictationPanelLayout.size(for: controller).height)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
         }
     }
 
@@ -295,49 +167,5 @@ private struct DictationStripView: View {
             return L10n.format("%d words inserted into %@.", words, target)
         }
         return L10n.format("%d words inserted.", words)
-    }
-
-    /// The destination chip: `✎ Notes` — the app the words will land in.
-    private func targetChip(_ app: String) -> some View {
-        HStack(spacing: 3) {
-            Image(systemName: "pencil").font(.caption2)
-            Text(app)
-                .font(.caption2.weight(.semibold))
-                .accessibilityIdentifier("dictation-panel-target")
-        }
-        .foregroundStyle(SecreteoDesign.accent)
-        .padding(.horizontal, 7)
-        .padding(.vertical, 2)
-        .background(SecreteoDesign.accent.opacity(0.14), in: Capsule())
-    }
-
-    private var showsModelLoading: Bool { controller.phase == .listening && controller.isLoadingModel }
-
-    private var isFailed: Bool {
-        if case .failed = controller.phase { return true }
-        return false
-    }
-
-    private var emptyCaptionHint: String {
-        if controller.phase == .preparing { return L10n.text("Preparing microphone…") }
-        return showsModelLoading
-            ? L10n.text("Keep talking. Your words appear once the model is ready.")
-            : L10n.text("Listening…")
-    }
-
-    private var title: String {
-        switch controller.phase {
-        case .preparing:
-            return L10n.text("Preparing dictation…")
-        case .listening:
-            return showsModelLoading ? L10n.text("Loading speech model…") : L10n.text("Dictating")
-        case .delivering:
-            if controller.isTranslating { return L10n.text("Translating…") }
-            return controller.isPolishing ? L10n.text("Polishing…") : L10n.text("Inserting…")
-        case .failed(let message):
-            return message
-        case .idle, .verified, .dispatched, .noSpeech, .recovery:
-            return ""
-        }
     }
 }

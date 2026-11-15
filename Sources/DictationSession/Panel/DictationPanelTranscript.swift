@@ -1,7 +1,9 @@
-/// What the two-line strip shows: the newest words, since those are the ones
+import SwiftUI
+
+/// What the one-line capsule shows: the newest words, since those are the ones
 /// being spoken. Earlier words are elided from the front at a word boundary.
 enum DictationPanelTranscript {
-    /// Roughly two body-font lines of the 520-pt strip, with room for wide glyphs.
+    /// More than the capsule's line holds, so the fade always has words to cover.
     static let visibleCharacters = 120
 
     struct Visible: Equatable {
@@ -22,5 +24,51 @@ enum DictationPanelTranscript {
         let boundary = full.index(full.startIndex, offsetBy: confirmed.count)
         guard start < boundary else { return Visible(confirmed: "…", partial: String(full[start...])) }
         return Visible(confirmed: "…" + full[start..<boundary], partial: String(full[boundary...]))
+    }
+}
+
+/// Confirmed words stand upright; the engine's tail is a whisper in italic serif until it is confirmed.
+struct DictationCapsuleTranscript: View {
+    let confirmed: String
+    let partial: String
+    /// VoiceOver keeps the whole dictation; the capsule only shows its end.
+    let spoken: String
+
+    static let fadeWidth: CGFloat = 36
+    static let settle = 0.14
+
+    var body: some View {
+        // A line that fits starts at the face; a longer one anchors right so the newest words stay in view.
+        ViewThatFits(in: .horizontal) {
+            line
+            Color.clear
+                .overlay(alignment: .trailing) { line }
+                .clipped()
+                .mask(alignment: .leading) {
+                    HStack(spacing: 0) {
+                        LinearGradient(colors: [.clear, .black], startPoint: .leading, endPoint: .trailing)
+                            .frame(width: Self.fadeWidth)
+                        Color.black
+                    }
+                }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var line: some View {
+        let visible = DictationPanelTranscript.visible(confirmed: confirmed, partial: partial)
+        let settled = Text(visible.confirmed)
+            .font(.system(size: 17, weight: .medium))
+            .foregroundStyle(SecreteoPalette.capsuleText.color)
+        let provisional = Text(visible.partial)
+            .font(.secreteoSerif(20, italic: true))
+            .foregroundStyle(SecreteoPalette.capsuleProvisionalText.color.opacity(0.78))
+        return Text("\(settled)\(provisional)")
+            .lineLimit(1)
+            .fixedSize()
+            .contentTransition(.opacity)
+            .animation(.easeOut(duration: Self.settle), value: visible)
+            .accessibilityIdentifier("dictation-panel-transcript")
+            .accessibilityLabel(spoken)
     }
 }

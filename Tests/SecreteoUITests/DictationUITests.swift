@@ -91,7 +91,7 @@ final class DictationUITests: SecreteoUITestCase {
         app.launchSecreteo()
         defer { finishUITestApplication(app) }
 
-        for _ in 0..<2 {
+        for attempt in 0..<2 {
             XCTAssertTrue(app.prepareForInteraction())
             let dictate = app.buttons["menu-bar-dictate"]
             XCTAssertTrue(dictate.waitForStableFrame(timeout: 5))
@@ -104,9 +104,13 @@ final class DictationUITests: SecreteoUITestCase {
             XCTAssertTrue(waitForUITestCondition(timeout: 5) {
                 renderedText(of: transcript).contains("No borres estas notas.")
             })
-            for identifier in ["dictation-panel-state", "dictation-panel-target", "dictation-panel-meter"] {
+            for identifier in [
+                "dictation-panel-state", "dictation-panel-target", "dictation-panel-meter", "dictation-panel-elapsed"
+            ] {
                 XCTAssertEqual(app.descendants(matching: .any).matching(identifier: identifier).count, 1)
             }
+            XCTAssertEqual(app.dialogs["dictation-panel"].frame.height, 56, "one line, as a capsule")
+            if attempt == 0 { attachScreenshot(named: "pr-capsule-listening") }
             let cancel = app.buttons["dictation-panel-cancel"]
             XCTAssertTrue(cancel.waitForStableFrame(timeout: 5))
             cancel.click()

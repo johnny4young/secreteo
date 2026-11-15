@@ -164,6 +164,7 @@ final class DictationPolishUITests: SecreteoUITestCase {
         XCTAssertTrue(skip.waitForHittable(timeout: 4))
         XCTAssertTrue(app.staticTexts["dictation-panel-polish-hint"].exists)
         XCTAssertTrue(renderedText(of: app.staticTexts["dictation-panel-state"]).contains("Polishing"))
+        attachScreenshot(named: "pr-capsule-polishing")
         skip.click()
         XCTAssertTrue(app.staticTexts["dictation-panel-delivery-status"].waitForExistenceFast(timeout: 5))
         XCTAssertTrue(app.staticTexts["dictation-panel-polish-notice"].waitForExistenceFast(timeout: 5))

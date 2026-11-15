@@ -54,6 +54,12 @@ public enum SecreteoPalette {
     public static let capsuleVerified = SecreteoColor(0x7FD1B9)
     public static let capsuleNotSent = SecreteoColor(0xFF8D73)
     public static let capsuleAccent = SecreteoColor(0xE8936A)
+    public static let capsuleAmber = SecreteoColor(0xF4B63C)
+    /// The crest of the voice light.
+    public static let capsuleHighlight = SecreteoColor(0xFFE2A8)
+    public static let capsuleCopper = SecreteoColor(0x9A4A1F)
+    /// Words the engine has heard but not confirmed.
+    public static let capsuleProvisionalText = SecreteoColor(0xFFD8AA)
 }
 
 public enum SecreteoDesign {
