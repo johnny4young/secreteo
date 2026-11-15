@@ -48,6 +48,14 @@ public enum SecreteoPalette {
     public static let text = SecreteoColor(light: 0x1E1612, dark: 0xFBF1E6)
     public static let secondaryText = SecreteoColor(light: 0x5F4F44, dark: 0xCDB9A8)
     public static let tertiaryText = SecreteoColor(light: 0x7A685B, dark: 0xA08C7C)
+    /// A recessed control on the window, such as the search field.
+    public static let field = SecreteoColor(light: 0xF4ECE3, dark: 0x2E2019)
+    public static let bar = SecreteoColor(light: 0xC98A63, dark: 0xB8683F)
+    public static let emptyBar = SecreteoColor(light: 0xE3D5C7, dark: 0x3D2C23)
+    /// Fills for the parts of a whole, strongest first; the last is the rest.
+    public static let shareRamp = [
+        accent, SecreteoColor(light: 0xD98A5C, dark: 0xB8683F), amber, SecreteoColor(light: 0xCDB9A8, dark: 0x6B584C)
+    ]
     /// Text on the always-dark capsule, whatever the system appearance.
     public static let capsuleText = SecreteoColor(0xFBF1E6)
     public static let capsuleSecondaryText = SecreteoColor(0xCDB9A8)
@@ -77,9 +85,11 @@ public enum SecreteoDesign {
     public static let verified = SecreteoPalette.verified.color
     public static let notSent = SecreteoPalette.notSent.color
     public static let windowBackground = SecreteoPalette.window.color
+    public static let card = SecreteoPalette.card.color
+    public static let field = SecreteoPalette.field.color
+    public static let text = SecreteoPalette.text.color
     public static let secondaryText = SecreteoPalette.secondaryText.color
     public static let tertiaryText = SecreteoPalette.tertiaryText.color
-    public static let text = SecreteoPalette.text.color
     public static let onAccent = SecreteoPalette.onAccent.color
 }
 

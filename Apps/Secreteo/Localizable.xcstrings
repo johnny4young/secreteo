@@ -130,6 +130,22 @@
         }
       }
     },
+    "%d words" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d words"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d palabras"
+          }
+        }
+      }
+    },
     "%d words inserted into %@." : {
       "localizations" : {
         "en" : {
@@ -174,6 +190,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1 dictado · ~%d min ahorrados"
+          }
+        }
+      }
+    },
+    "1 word" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 word"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 palabra"
           }
         }
       }
@@ -1102,6 +1134,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cerrar"
+          }
+        }
+      }
+    },
+    "Close in meaning" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close in meaning"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cercanos en significado"
           }
         }
       }
@@ -2418,18 +2466,18 @@
         }
       }
     },
-    "Kept on this Mac for %d days." : {
+    "Kept on this Mac for %d days" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kept on this Mac for %d days."
+            "value" : "Kept on this Mac for %d days"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Se guardan en este Mac durante %d días."
+            "value" : "Se guardan en este Mac durante %d días"
           }
         }
       }
@@ -3230,6 +3278,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "O mantén tu atajo de dictado y di cómo reescribirlo."
+          }
+        }
+      }
+    },
+    "Original" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original"
+          }
+        }
+      }
+    },
+    "Other" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otras"
           }
         }
       }
@@ -5890,22 +5970,6 @@
         }
       }
     },
-    "Where You Dictate Most" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Where You Dictate Most"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Donde más dictas"
-          }
-        }
-      }
-    },
     "While Dictating" : {
       "localizations" : {
         "en" : {
@@ -5954,18 +6018,18 @@
         }
       }
     },
-    "Your Dictation" : {
+    "Yesterday" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your Dictation"
+            "value" : "Yesterday"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tu dictado"
+            "value" : "Ayer"
           }
         }
       }

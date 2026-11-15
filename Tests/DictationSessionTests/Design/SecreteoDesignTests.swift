@@ -46,7 +46,24 @@ struct SecreteoDesignTests {
         ("text on a dark card", SecreteoPalette.text.dark, SecreteoPalette.card.dark),
         ("secondary on a dark card", SecreteoPalette.secondaryText.dark, SecreteoPalette.card.dark),
         ("tertiary on a dark card", SecreteoPalette.tertiaryText.dark, SecreteoPalette.card.dark),
-        ("accent on a dark card", SecreteoPalette.accent.dark, SecreteoPalette.card.dark)
+        ("accent on a dark card", SecreteoPalette.accent.dark, SecreteoPalette.card.dark),
+        ("text on card, light", SecreteoPalette.text.light, SecreteoPalette.card.light),
+        ("text on card, dark", SecreteoPalette.text.dark, SecreteoPalette.card.dark),
+        ("text on field, light", SecreteoPalette.text.light, SecreteoPalette.field.light),
+        ("text on field, dark", SecreteoPalette.text.dark, SecreteoPalette.field.dark),
+        ("secondary on card, light", SecreteoPalette.secondaryText.light, SecreteoPalette.card.light),
+        ("secondary on card, dark", SecreteoPalette.secondaryText.dark, SecreteoPalette.card.dark),
+        ("secondary on field, light", SecreteoPalette.secondaryText.light, SecreteoPalette.field.light),
+        ("secondary on field, dark", SecreteoPalette.secondaryText.dark, SecreteoPalette.field.dark),
+        ("tertiary on card, light", SecreteoPalette.tertiaryText.light, SecreteoPalette.card.light),
+        ("tertiary on card, dark", SecreteoPalette.tertiaryText.dark, SecreteoPalette.card.dark),
+        ("tertiary on field, light", SecreteoPalette.tertiaryText.light, SecreteoPalette.field.light),
+        ("tertiary on field, dark", SecreteoPalette.tertiaryText.dark, SecreteoPalette.field.dark),
+        ("accent on card, light", SecreteoPalette.accent.light, SecreteoPalette.card.light),
+        ("accent on card, dark", SecreteoPalette.accent.dark, SecreteoPalette.card.dark),
+        ("not sent on card, light", SecreteoPalette.notSent.light, SecreteoPalette.card.light),
+        ("not sent on card, dark", SecreteoPalette.notSent.dark, SecreteoPalette.card.dark),
+        ("white on accent", 0xFFFFFF, SecreteoPalette.accent.light)
     ] as [(String, UInt32, UInt32)])
     func textMeetsContrast(_ pair: (String, UInt32, UInt32)) {
         #expect(Self.contrast(pair.1, pair.2) >= 4.5, "\(pair.0)")

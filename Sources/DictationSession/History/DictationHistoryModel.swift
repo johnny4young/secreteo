@@ -28,7 +28,7 @@ final class DictationHistoryModel {
     /// The filter that produced the rows currently on screen.
     @ObservationIgnored private var loadedFilter: DictationRecordFilter?
     /// How many rows at the end match by meaning only, after every word match.
-    @ObservationIgnored private var meaningCount = 0
+    private(set) var meaningCount = 0
     @ObservationIgnored private var watchesVectors = false
 
     init(store: any DictationHistoryStore, semantic: DictationSemanticIndex? = nil) {

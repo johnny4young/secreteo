@@ -46,9 +46,18 @@ final class DictationHybridHistoryTests: XCTestCase {
         await model.apply(.init(query: "report"))
         XCTAssertEqual(model.records.map(\.text), ["Send the report on Friday.", "El informe sale el viernes."],
                        "a newer paraphrase never jumps above the word match")
+        XCTAssertEqual(model.meaningCount, 1)
+        let log = DictationDayLog(
+            records: model.records, meaningCount: model.meaningCount, now: Date(), calendar: .current)
+        XCTAssertEqual(log.sections.flatMap(\.entries).map(\.record.id), [report.id])
+        XCTAssertEqual(log.meaning.map(\.record.id), [paraphrase.id], "the divider goes before the paraphrase")
 
         await model.apply(.init(query: "report", applicationName: "Notes"))
         XCTAssertEqual(model.records.map(\.text), ["El informe sale el viernes."])
+        XCTAssertEqual(model.meaningCount, 1)
+
+        await model.apply(.all)
+        XCTAssertEqual(model.meaningCount, 0, "without a search every row belongs to its day")
     }
 
     func testWordMatchesKeepTheirPages() async throws {
@@ -61,10 +70,15 @@ final class DictationHybridHistoryTests: XCTestCase {
         await model.apply(.init(query: "report"))
         XCTAssertEqual(model.records.count, ListDictations.pageSize)
         XCTAssertTrue(model.hasMore)
+        XCTAssertEqual(model.meaningCount, 0, "meaning waits for the last page of word matches")
 
         await model.loadMore()
         XCTAssertEqual(model.records.count, count, "every word match is reachable, and meaning adds no duplicate")
         XCTAssertFalse(model.hasMore)
+        let log = DictationDayLog(
+            records: model.records, meaningCount: model.meaningCount, now: Date(), calendar: .current)
+        XCTAssertEqual(log.sections.flatMap(\.entries).map(\.index), Array(0..<count))
+        XCTAssertEqual(log.meaning, [])
     }
 
     func testASearchOnScreenAddsADictationOnceItsVectorIsSaved() async throws {
