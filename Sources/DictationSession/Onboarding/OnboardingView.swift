@@ -106,7 +106,7 @@ private extension OnboardingView {
         switch modelPreparation.phase {
         case .ready:
             Label("Ready", systemImage: "checkmark.circle.fill")
-                .foregroundStyle(.green)
+                .foregroundStyle(SecreteoDesign.verified)
                 .accessibilityIdentifier("onboarding-model-ready")
         case .preparing:
             HStack(spacing: 10) {

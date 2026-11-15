@@ -29,7 +29,7 @@ struct DictationHistorySettingsSection: View {
             }
             if let failure = model.failure {
                 Text(failure)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(SecreteoDesign.notSent)
                     .accessibilityIdentifier("settings-dictation-history-error")
             }
         }

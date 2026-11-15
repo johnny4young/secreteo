@@ -16,7 +16,7 @@ public struct SettingsView: View {
             if model.dictationFailedToStart {
                 Section {
                     Text("Dictation could not start.")
-                        .foregroundStyle(.red)
+                        .foregroundStyle(SecreteoDesign.notSent)
                         .accessibilityIdentifier("settings-dictation-failed-to-start")
                 }
             }
@@ -25,7 +25,7 @@ public struct SettingsView: View {
                     .accessibilityIdentifier("settings-launch-at-login")
                 if model.launchAtLoginFailed {
                     Text("Could not change this setting.")
-                        .foregroundStyle(.red)
+                        .foregroundStyle(SecreteoDesign.notSent)
                         .accessibilityIdentifier("settings-launch-at-login-error")
                 }
             }
@@ -53,6 +53,7 @@ public struct SettingsView: View {
         .frame(width: 460, height: 640)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("settings-root")
+        .tint(SecreteoDesign.accent)
     }
 
     private var launchBinding: Binding<Bool> {

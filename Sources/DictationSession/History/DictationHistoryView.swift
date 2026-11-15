@@ -22,7 +22,7 @@ public struct DictationHistoryView: View {
                 if showsFilters { filters }
                 if let failure = model.failure {
                     Label(failure, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(SecreteoDesign.notSent)
                         .accessibilityIdentifier("dictation-history-error")
                 }
                 content
@@ -91,7 +91,6 @@ public struct DictationHistoryView: View {
         } else if model.records.isEmpty, !model.policy.isEnabled {
             Button("Turn On History") { Task { await model.update(isEnabled: true) } }
                 .buttonStyle(.borderedProminent)
-                .tint(SecreteoDesign.accent)
                 .accessibilityIdentifier("dictation-history-enable")
         } else if model.records.isEmpty {
             Text("Your dictations will appear here.")
@@ -179,7 +178,7 @@ private struct DictationHistoryRow: View {
                 }
                 Text(details)
                     .font(.caption)
-                    .foregroundStyle(record.delivery == .notDelivered ? .orange : .secondary)
+                    .foregroundStyle(record.delivery == .notDelivered ? SecreteoDesign.notSent : .secondary)
                     .accessibilityIdentifier("dictation-history-details-\(index)")
             }
             Spacer(minLength: 0)

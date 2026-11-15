@@ -1,11 +1,6 @@
 import AppKit
 import SwiftUI
 
-/// The one accent of the product.
-enum SecreteoDesign {
-    static let accent = Color.indigo
-}
-
 enum SecreteoSymbol {
     static let success = "checkmark.circle.fill"
     static let dictation = "text.bubble"

@@ -38,7 +38,8 @@ final class OnboardingWindowController {
                 dictation: dictation,
                 practiceShown: { [weak self] in self?.practiceShown($0) },
                 onFinish: { [weak self] in self?.window?.close() })
-            let created = NSWindow(contentViewController: NSHostingController(rootView: view))
+            let hosting = NSHostingController(rootView: view.tint(SecreteoDesign.accent))
+            let created = NSWindow(contentViewController: hosting)
             created.title = String(localized: "Set Up Secreteo")
             created.styleMask = [.titled, .closable]
             created.isReleasedWhenClosed = false

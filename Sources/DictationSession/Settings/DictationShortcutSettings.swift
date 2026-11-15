@@ -19,7 +19,7 @@ struct DictationShortcutSettings: View {
         }
         if isUnavailable {
             Text("Another app is using this shortcut.")
-                .foregroundStyle(.red)
+                .foregroundStyle(SecreteoDesign.notSent)
                 .accessibilityIdentifier("settings-dictation-shortcut-unavailable")
             Button("Retry Shortcut", action: retry)
                 .accessibilityIdentifier("settings-dictation-shortcut-retry")

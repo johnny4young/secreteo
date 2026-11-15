@@ -34,13 +34,15 @@ GOOD_INFO = {
     "SUFeedURL": verify_release.FEED,
     "SUEnableAutomaticChecks": True,
     "SUPublicEDKey": KEY,
+    "ATSApplicationFontsPath": "Fonts",
     "CFBundleIconName": "AppIcon",
     "SecreteoGlobalDictation": "YES",
     "DictationOwnershipProtocol": 1,
 }
 GOOD_PATHS = ["Contents/Frameworks/Sparkle.framework", "Contents/Frameworks/Sparkle.framework/Sparkle",
               "Contents/MacOS/Secreteo", "Contents/Resources/THIRD-PARTY-NOTICES.md",
-              "Contents/Resources/AppIcon.icns", "Contents/Resources/Assets.car"]
+              "Contents/Resources/AppIcon.icns", "Contents/Resources/Assets.car",
+              *verify_release.BUNDLED_FONTS]
 GOOD_SIGNATURE = (f"Authority=Developer ID Application: Someone\nTeamIdentifier={verify_release.TEAM_ID}\n"
                   "Timestamp=Nov 2, 2026\nCodeDirectory v=20500 size=1 flags=0x10000(runtime) hashes=1\n")
 PREFIX = "https://example.test/download/v1.2.3/"
@@ -71,7 +73,8 @@ class InfoTests(unittest.TestCase):
         wrong = {"CFBundleIdentifier": "com.johnny4young.secreteo.dev", "CFBundleShortVersionString": "1.2.2",
                  "CFBundleVersion": "1", "LSMinimumSystemVersion": "15.0", "LSUIElement": False,
                  "SUFeedURL": "http://example.test/appcast.xml", "SUEnableAutomaticChecks": False,
-                 "CFBundleIconName": None, "SecreteoGlobalDictation": "NO", "DictationOwnershipProtocol": None}
+                 "CFBundleIconName": None, "SecreteoGlobalDictation": "NO", "DictationOwnershipProtocol": None,
+                 "ATSApplicationFontsPath": None}
         for key, value in wrong.items():
             self.assertTrue(verify_release.info_problems(GOOD_INFO | {key: value}, VERSION), key)
 
@@ -103,6 +106,11 @@ class PayloadTests(unittest.TestCase):
         for icon in ("AppIcon.icns", "Assets.car"):
             problems = self.problems([p for p in GOOD_PATHS if not p.endswith(icon)])
             self.assertTrue(any(icon in problem for problem in problems), icon)
+
+    def test_a_missing_font_fails(self):
+        for font in verify_release.BUNDLED_FONTS:
+            problems = self.problems([p for p in GOOD_PATHS if p != font])
+            self.assertTrue(any(font in problem for problem in problems), font)
 
     def test_a_drifted_sparkle_fails(self):
         self.assertTrue(self.problems(GOOD_PATHS, sparkle="2.10.0"))

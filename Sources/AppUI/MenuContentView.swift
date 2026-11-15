@@ -1,3 +1,4 @@
+import DictationSession
 import SwiftUI
 
 /// The status item's content. UI tests mount this same view in a window, because the
@@ -72,6 +73,7 @@ public struct MenuContentView: View {
         .frame(width: 220)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("menu-content")
+        .tint(SecreteoDesign.accent)
     }
 }
 

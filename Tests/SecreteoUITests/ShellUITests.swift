@@ -56,6 +56,7 @@ final class ShellUITests: XCTestCase {
         XCTAssertTrue(element("settings-version").exists)
         XCTAssertTrue(element("settings-open-notices").exists)
         XCTAssertEqual(toggle.value as? Int, 0)
+        screenshot("pr-settings-identity")
 
         toggle.click()
         XCTAssertEqual(toggle.value as? Int, 1)

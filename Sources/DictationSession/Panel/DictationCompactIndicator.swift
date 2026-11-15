@@ -34,7 +34,7 @@ struct DictationCompactStripView: View {
         HStack(spacing: 8) {
             if case .dispatched = controller.phase {
                 Circle()
-                    .fill(.orange)
+                    .fill(SecreteoDesign.notSent)
                     .frame(width: 8, height: 8)
                     .accessibilityIdentifier("dictation-panel-compact")
                 Text("Sent, not verified")
@@ -42,7 +42,7 @@ struct DictationCompactStripView: View {
                     .accessibilityIdentifier("dictation-panel-delivery-status")
             } else if case .verified(let words) = controller.phase {
                 Image(systemName: SecreteoSymbol.success)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(SecreteoDesign.verified)
                     .accessibilityIdentifier("dictation-panel-compact")
                 Text(L10n.format("%d words inserted.", words))
                     .font(.caption)
@@ -74,7 +74,7 @@ struct DictationCompactStripView: View {
     @ViewBuilder private var icon: some View {
         if isLoadingModel {
             Image(systemName: "hourglass")
-                .foregroundStyle(.orange)
+                .foregroundStyle(SecreteoDesign.notSent)
                 .symbolEffect(.pulse)
                 .accessibilityLabel(L10n.text("Loading the speech model"))
         } else if controller.phase == .delivering {
