@@ -3,7 +3,7 @@ import SwiftUI
 
 /// What the rim of a capsule, pill or card says about the phase.
 enum DictationCapsuleRim: Equatable {
-    case quiet, loading, voice, polish, notSent, verified, sent
+    case quiet, loading, voice, polish, rewrite, notSent, verified, sent
 
     /// `transforms`: polishing or translating. A plain paste shares their face but not their copper.
     init(face: SecreteoGlyphFace, transforms: Bool = false) {
@@ -25,13 +25,14 @@ enum DictationCapsuleRim: Equatable {
         case .quiet, .loading: return (quiet, quiet)
         case .voice: return (SecreteoPalette.capsuleAmber.color, SecreteoDesign.ember)
         case .polish: return (SecreteoPalette.capsuleText.color, SecreteoPalette.capsuleAccent.color)
+        case .rewrite: return (SecreteoPalette.capsuleVoiceCrest.color, SecreteoPalette.capsuleAccent.color)
         case .notSent: return (SecreteoPalette.capsuleNotSent.color, SecreteoPalette.capsuleNotSent.color)
         case .verified: return (SecreteoPalette.capsuleVerified.color, SecreteoPalette.capsuleVerified.color)
         case .sent: return (SecreteoPalette.capsuleAmber.color, SecreteoPalette.capsuleAmber.color)
         }
     }
 
-    var glows: Bool { self == .voice || self == .polish || self == .notSent }
+    var glows: Bool { self == .voice || self == .polish || self == .rewrite || self == .notSent }
 }
 
 /// Both ends light up like parentheses; the edges between them stay a hairline.
@@ -215,6 +216,7 @@ struct DictationCapsuleView: View {
                 .accessibilityHidden(true)
         } else if hasWords {
             DictationCapsuleTranscript(
+                identifier: "dictation-panel-transcript",
                 confirmed: controller.confirmedText, partial: controller.partialText,
                 spoken: DictationAssembler.text(confirmed: controller.confirmedText, partial: controller.partialText),
                 settle: DictationCapsuleMotion.settle(microphoneIsOpen: microphoneIsOpen))

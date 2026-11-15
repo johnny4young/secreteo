@@ -2930,6 +2930,22 @@
         }
       }
     },
+    "More" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Más"
+          }
+        }
+      }
+    },
     "Move Secreteo to Applications?" : {
       "localizations" : {
         "en" : {
@@ -4194,22 +4210,6 @@
         }
       }
     },
-    "Recipe" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recipe"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Receta"
-          }
-        }
-      }
-    },
     "Reinsert" : {
       "localizations" : {
         "en" : {
@@ -4466,6 +4466,22 @@
         }
       }
     },
+    "Rewrite Selection" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rewrite Selection"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reescribir selección"
+          }
+        }
+      }
+    },
     "Rewrite Selection…" : {
       "localizations" : {
         "en" : {
@@ -4510,38 +4526,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reescribir la selección"
-          }
-        }
-      }
-    },
-    "Rewrite your selection" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rewrite your selection"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reescribir tu selección"
-          }
-        }
-      }
-    },
-    "Rewrite your selection in %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rewrite your selection in %@"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reescribir tu selección en %@"
           }
         }
       }
@@ -6398,6 +6382,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "mantén"
+          }
+        }
+      }
+    },
+    "in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "in %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "en %@"
           }
         }
       }

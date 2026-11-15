@@ -38,6 +38,8 @@ final class SelectionRewriteController {
         var startDictation: () -> Void = {}
         var finishDictation: () -> Void = {}
         var isDictating: () -> Bool = { false }
+        /// The instruction as it is being said: settled words and the engine's tail.
+        var liveInstruction: () -> (confirmed: String, partial: String) = { ("", "") }
     }
 
     /// A selection can be long and the user is waiting on a preview, so it gets more time than a dictation.
@@ -68,6 +70,8 @@ final class SelectionRewriteController {
     }
 
     var isActive: Bool { phase != .idle }
+
+    var liveInstruction: (confirmed: String, partial: String) { dependencies?.liveInstruction() ?? ("", "") }
 
     func start(using dependencies: Dependencies) {
         guard case .success(let lease) = dependencies.admission.acquire(.global) else { return }

@@ -67,6 +67,9 @@ extension DictationFeature {
         dependencies.startDictation = { [weak self] in self?.toggleDictation() }
         dependencies.finishDictation = { [weak self] in self?.controller.finishAndInsert() }
         dependencies.isDictating = { [weak self] in self?.controller.isActive ?? false }
+        dependencies.liveInstruction = { [weak self] in
+            (self?.controller.confirmedText ?? "", self?.controller.partialText ?? "")
+        }
         return dependencies
     }
 

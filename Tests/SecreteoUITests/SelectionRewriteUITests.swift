@@ -10,6 +10,11 @@ final class SelectionRewriteUITests: SecreteoUITestCase {
         XCTAssertTrue(app.staticTexts["rewrite-original"].waitForExistenceFast(timeout: 5))
         XCTAssertFalse(app.staticTexts["rewrite-notice"].exists)
         XCTAssertFalse(app.staticTexts["rewrite-instruction"].exists)
+        XCTAssertTrue(renderedText(of: app.staticTexts["rewrite-target"]).contains("Rewrite test receiver"))
+        XCTAssertTrue(app.buttons["rewrite-say-how"].exists)
+        XCTAssertFalse(app.buttons["rewrite-replace"].exists, "Nothing can be replaced before a preview")
+        XCTAssertFalse(app.control(withIdentifier: "rewrite-recipes").exists, "The built-in recipes fit as chips")
+        attachScreenshot(named: "pr-rewrite-card")
         app.buttons["rewrite-choice-polish"].click()
         let preview = app.staticTexts["rewrite-preview"]
         XCTAssertTrue(preview.waitForExistenceFast(timeout: 5))
@@ -31,11 +36,8 @@ final class SelectionRewriteUITests: SecreteoUITestCase {
         let app = try launchRewrite("-seed-rewrite-selection-changes")
         defer { finishUITestApplication(app) }
         openRewrite(app)
-        let recipes = app.control(withIdentifier: "rewrite-recipes")
-        XCTAssertTrue(recipes.waitForHittable(timeout: 5))
-        recipes.click()
-        let bullets = app.menuItems["rewrite-choice-builtin.bullets"]
-        XCTAssertTrue(bullets.waitForExistenceFast(timeout: 5))
+        let bullets = app.buttons["rewrite-choice-builtin.bullets"]
+        XCTAssertTrue(bullets.waitForHittable(timeout: 5))
         bullets.click()
         let preview = app.staticTexts["rewrite-preview"]
         XCTAssertTrue(preview.waitForExistenceFast(timeout: 5))
@@ -43,6 +45,27 @@ final class SelectionRewriteUITests: SecreteoUITestCase {
         app.buttons["rewrite-replace"].click()
         XCTAssertTrue(app.buttons["rewrite-copy"].waitForExistenceFast(timeout: 5))
         XCTAssertFalse(app.buttons["rewrite-replace"].exists)
+    }
+
+    @MainActor
+    func testRecipesThatDoNotFitAsChipsStayReachable() throws {
+        let recipes = (1...3).map {
+            #"{\"id\":\"custom.\#($0)\",\"name\":\"Weekly status update \#($0)\",\"instruction\":\"Short lines.\"}"#
+        }
+        let app = try launchRewrite(defaults: #","dictationRecipes":"[\#(recipes.joined(separator: ","))]""#)
+        defer { finishUITestApplication(app) }
+        openRewrite(app)
+        XCTAssertTrue(app.buttons["rewrite-choice-builtin.formal"].waitForHittable(timeout: 5))
+        let more = app.control(withIdentifier: "rewrite-recipes")
+        XCTAssertTrue(more.waitForHittable(timeout: 5))
+        attachScreenshot(named: "pr-rewrite-card-more-recipes")
+        more.click()
+        let last = app.menuItems["rewrite-choice-custom.3"]
+        XCTAssertTrue(last.waitForExistenceFast(timeout: 5))
+        last.click()
+        let preview = app.staticTexts["rewrite-preview"]
+        XCTAssertTrue(preview.waitForExistenceFast(timeout: 5))
+        XCTAssertTrue(renderedText(of: preview).hasPrefix("- "))
     }
 
     @MainActor
@@ -59,10 +82,10 @@ final class SelectionRewriteUITests: SecreteoUITestCase {
     }
 
     @MainActor
-    private func launchRewrite(_ arguments: String...) throws -> XCUIApplication {
+    private func launchRewrite(_ arguments: String..., defaults: String = "") throws -> XCUIApplication {
         let app = try XCUIApplication.secreteo(showMenuBarContent: true)
         app.launchArguments += arguments
-        app.launchEnvironment["SECRETEO_UI_TEST_DEFAULTS"] = #"{"globalDictationEnabled":true}"#
+        app.launchEnvironment["SECRETEO_UI_TEST_DEFAULTS"] = #"{"globalDictationEnabled":true\#(defaults)}"#
         app.launchSecreteo()
         return app
     }
@@ -94,6 +117,7 @@ extension SelectionRewriteUITests {
         XCTAssertTrue(sayHow.waitForHittable(timeout: 5))
         sayHow.click()
         XCTAssertTrue(app.staticTexts["dictation-panel-transcript"].waitForExistenceFast(timeout: 5))
+        XCTAssertTrue(app.staticTexts["rewrite-live-instruction"].waitForExistenceFast(timeout: 5))
         let done = app.buttons["rewrite-say-how-done"]
         XCTAssertTrue(done.waitForHittable(timeout: 5))
         done.click()
