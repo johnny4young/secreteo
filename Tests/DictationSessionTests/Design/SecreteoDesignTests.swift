@@ -55,7 +55,7 @@ struct SecreteoDesignTests {
         ("segment text", SecreteoPalette.segmentText.light, SecreteoPalette.segment.light),
         ("dark segment text", SecreteoPalette.segmentText.dark, SecreteoPalette.segment.dark),
         ("text on amber", SecreteoPalette.onAmber.light, SecreteoPalette.amber.light),
-        ("text on dark amber", SecreteoPalette.onAmber.dark, SecreteoPalette.amber.dark)
+        ("text on dark amber", SecreteoPalette.onAmber.dark, SecreteoPalette.amber.dark),
         ("row text on accent", SecreteoPalette.onAccent.light, SecreteoPalette.accent.light),
         ("row text on dark accent", SecreteoPalette.onAccent.dark, SecreteoPalette.accent.dark),
         ("capsule text on its highlight", SecreteoPalette.capsuleText.light, SecreteoPalette.capsuleHighlight.light),
