@@ -24,6 +24,7 @@ Nothing by default. Audio and text stay on the device.
 | Network use | When |
 |---|---|
 | Speech model download from Hugging Face | Once per model, after you agree |
+| Apple Speech language download from Apple | Once per language, when you pick Apple Speech and macOS lacks it |
 | Update check through Sparkle | On schedule or when you ask |
 | Polish through Ollama | Only if you configure it, to the address you choose |
 

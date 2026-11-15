@@ -18,9 +18,9 @@ Secreteo 1.0 is out. Hold a key, speak, and the text lands in whatever Mac app y
 
 **Text:**
 
-Secreteo is a menu bar app for macOS 26: hold Fn, a mouse button or a shortcut, speak, and the text is pasted into whatever app has focus. Speech recognition runs on the Mac with Parakeet (through FluidAudio) or Apple Speech. Audio and text stay on the device unless you opt in to something, and the only network calls are the model download, Sparkle's update check, and Ollama at an address you choose.
+Secreteo is a menu bar app for macOS 26: hold Fn, a mouse button or a shortcut, speak, and the text is pasted into whatever app has focus. Speech recognition runs on the Mac with Parakeet (through FluidAudio) or Apple Speech. Audio and text stay on the device unless you opt in to something, and the only network calls are speech model downloads, Sparkle's update check, and Ollama at an address you choose.
 
-It started as the dictation half of Portavoz, my meeting app. Splitting it out meant porting it file by file, and every capability only counts as ported when a test in the new repo proves it. The parity matrix is public, and so is the part I'm least proud of: ten rows (the global shortcut in another app, the clipboard restore, caret-aware capitals, Accessibility readback and a few more) are covered by tests but have not been checked by hand on a real Mac against other apps. They are declared limits, each linked to its gap entry.
+It started as the dictation half of Portavoz, my meeting app. Splitting it out meant porting it file by file, and every capability only counts as ported when a test in the new repo proves it. The parity matrix is public, and so is the part I'm least proud of: fifteen rows (the global shortcut in another app, the clipboard restore, caret-aware capitals, Accessibility readback and a few more) are covered by tests but have not been checked by hand on a real Mac against other apps. They are declared limits, each linked to its gap entry.
 
 Same honesty on hardware: it needs Apple silicon, and the only machine it has been measured on is an M4 Max with 36 GB. I don't claim a minimum I haven't measured. Core ML also compiles its own copy of the model per app, about 14 seconds on that M4 Max, so first launch shows a warm-up step.
 
@@ -58,9 +58,9 @@ Limits: Apple silicon and macOS 26 only, measured only on an M4 Max 36 GB, and s
 
 With Prewarm on, a speech model unloaded under memory pressure loads again once the pressure ends.
 
-### X / Bluesky — 216 characters
+### X / Bluesky — 225 characters
 
-Secreteo 0.1.2: with Prewarm on, the speech model comes back by itself once macOS stops being short on memory, so your next dictation doesn't wait for it. Update from the menu or brew upgrade. https://secreteo.pages.dev
+Secreteo 0.1.2: with Prewarm on, the speech model comes back by itself once macOS stops being short on memory, so your next dictation doesn't wait for it. Update from the menu or brew upgrade --greedy. https://secreteo.pages.dev
 
 ### Links
 
