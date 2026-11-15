@@ -110,7 +110,8 @@ public struct SettingsView: View {
 
     private func credit(_ title: Text, _ value: Text) -> some View {
         SettingsRow(title) { value.foregroundStyle(SecreteoDesign.secondaryText) }
-            .accessibilityElement(children: .contain)
+            // One element, so the name and its value are read together.
+            .accessibilityElement(children: .combine)
     }
 
     private var launchBinding: Binding<Bool> {

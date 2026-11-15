@@ -18,12 +18,16 @@ struct HotkeyRecorder: View {
             Button {
                 recording ? stopRecording() : startRecording()
             } label: {
-                if recording {
-                    Text("Press keys…")
-                        .foregroundStyle(SecreteoDesign.accent)
-                } else {
-                    SettingsKeyCaps(shortcut: setting.label)
+                Group {
+                    if recording {
+                        Text("Press keys…")
+                            .foregroundStyle(SecreteoDesign.accent)
+                    } else {
+                        SettingsKeyCaps(shortcut: setting.label)
+                    }
                 }
+                // The gaps between the keys take the click too.
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(recording ? L10n.text("Press keys…") : setting.label)

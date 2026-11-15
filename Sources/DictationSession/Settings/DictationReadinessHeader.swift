@@ -44,7 +44,7 @@ struct DictationReadinessHeader: View {
         .padding(.vertical, 12)
         .frame(minHeight: 74)
         .background(SecreteoDesign.card, in: shape)
-        .overlay(shape.strokeBorder(SecreteoDesign.hairline))
+        .overlay(shape.strokeBorder(SecreteoDesign.hairline).allowsHitTesting(false))
         if hasStatus {
             SettingsCard { status }
         }

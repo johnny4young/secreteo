@@ -106,6 +106,8 @@ final class ShellUITests: XCTestCase {
         let notices = element("settings-open-notices")
         XCTAssertTrue(element("settings-root").waitForExistence(timeout: 10))
         openGeneral()
+        // The window grows to the tab first; scrolling is only for a screen too short for it.
+        _ = waitForUITestCondition(timeout: 5) { notices.isHittable }
         for _ in 0..<12 where !notices.isHittable {
             element("settings-root").scroll(byDeltaX: 0, deltaY: -600)
         }

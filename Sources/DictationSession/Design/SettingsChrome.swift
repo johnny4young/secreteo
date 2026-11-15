@@ -122,8 +122,10 @@ public struct SettingsCard<Content: View>: View {
             }
         }
         .background(SecreteoDesign.card, in: RoundedRectangle(cornerRadius: SettingsMetrics.cardRadius))
+        // A border that took clicks would cover the controls under it.
         .overlay(
-            RoundedRectangle(cornerRadius: SettingsMetrics.cardRadius).strokeBorder(SecreteoDesign.hairline))
+            RoundedRectangle(cornerRadius: SettingsMetrics.cardRadius).strokeBorder(SecreteoDesign.hairline)
+                .allowsHitTesting(false))
         .toggleStyle(.switch)
         .controlSize(.small)
         .textFieldStyle(.roundedBorder)
