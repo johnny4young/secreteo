@@ -61,6 +61,8 @@ case "$mode" in
     if [[ "$mode" == "instrumented" ]]; then
       # shellcheck disable=SC2016 # Xcode expands $(inherited), not the shell.
       settings+=('SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) SECRETEO_UPDATE_DRYRUN')
+      # The exact pair has already cloned the packages; fetching them again only costs time.
+      build_output+=(-clonedSourcePackagesDirPath "$derived/SourcePackages")
       derived="build/release-instrumented"
       suffix="-instrumented"
     fi

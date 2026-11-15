@@ -111,6 +111,8 @@ jobs:
           restore-keys: swiftpm-build-macos-26-xcode-26.6-${{ hashFiles('Package.swift') }}-
       - run: swift build -Xswiftc -warnings-as-errors
       - run: swift test --parallel -Xswiftc -warnings-as-errors
+      # Otherwise only the release dry run's instrumented build compiles the update seam.
+      - run: swift build --target DictationSession --traits UpdateDryRun -Xswiftc -warnings-as-errors
 
   ui-smoke:
     needs: changes

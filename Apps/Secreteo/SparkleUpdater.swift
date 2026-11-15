@@ -52,8 +52,7 @@ final class SparkleUpdater: NSObject, UpdateChecking,
             _ updater: SPUUpdater, willInstallUpdateOnQuit item: SUAppcastItem,
             immediateInstallationBlock immediateInstallHandler: @escaping () -> Void
         ) -> Bool {
-            immediateInstallHandler()
-            return true
+            model?.dictation?.installUpdateNowForDryRun(immediateInstallHandler) ?? false
         }
     #endif
 
