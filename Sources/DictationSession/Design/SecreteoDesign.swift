@@ -85,6 +85,10 @@ public enum SecreteoPalette {
     /// The crest of the voice light.
     public static let capsuleVoiceCrest = SecreteoColor(0xFFE2A8)
     public static let capsuleCopper = SecreteoColor(0x9A4A1F)
+    /// The ink edge that keeps the small indicator readable on any surface, and the foot of its bead.
+    public static let asideOutline = SecreteoColor(0x17100C)
+    /// The small indicator's face when nothing was heard.
+    public static let asideQuiet = SecreteoColor(0xA08C7C)
     /// Words the engine has heard but not confirmed.
     public static let capsuleProvisionalText = SecreteoColor(0xFFD8AA)
 }

@@ -1,16 +1,48 @@
 import AppKit
 import SwiftUI
 
-/// Off by default. While dictating, the strip shrinks to the audio level and
-/// the elapsed time; outcomes that need an action still open the full panel.
+/// Off by default. While dictating, the panel shrinks to the two parentheses under the caret;
+/// outcomes that need an action still open the full panel.
 enum DictationCompactIndicator {
     static let defaultsKey = "dictationCompactIndicator"
-    static let size = NSSize(width: 176, height: 32)
+    static let elapsedTimeKey = "dictationCompactShowsElapsedTime"
+    static let backdropKey = "dictationCompactShowsBackdrop"
 
-    /// A microphone notice needs the full strip's words.
+    struct Options: Equatable {
+        var showsElapsedTime = false
+        var showsBackdrop = false
+
+        static func current(_ defaults: UserDefaults = .standard) -> Self {
+            Options(
+                showsElapsedTime: defaults.bool(forKey: elapsedTimeKey),
+                showsBackdrop: defaults.bool(forKey: backdropKey))
+        }
+    }
+
+    static let glyphSize = NSSize(width: 30, height: 24)
+    static let widthWithTime: CGFloat = 68
+    static let beadHeight: CGFloat = 30
+    /// Under the caret's line; without a caret, this far above the bottom of the screen.
+    static let caretGap: CGFloat = 6
+    static let fallbackLift: CGFloat = 48
+    static let fade: Duration = .milliseconds(300)
+    static let growth: TimeInterval = 0.32
+    /// A press that travels farther moves the indicator instead of opening the capsule.
+    static let clickSlop: CGFloat = 3
+
+    static func size(for options: Options) -> NSSize {
+        NSSize(
+            width: options.showsElapsedTime ? widthWithTime : glyphSize.width,
+            height: options.showsBackdrop ? beadHeight : glyphSize.height)
+    }
+
+    /// A microphone notice needs the full capsule's words, and a click on the glyph asks for it.
     @MainActor
-    static func applies(to controller: DictationController) -> Bool {
-        controller.microphoneNotice == nil && applies(to: controller.phase)
+    static func applies(to controller: DictationController, defaults: UserDefaults = .standard) -> Bool {
+        guard controller.microphoneNotice == nil, !controller.compactIndicatorExpanded else { return false }
+        // No speech shows its face for a moment before the card with the words to keep.
+        return applies(to: controller.phase, defaults: defaults)
+            || (controller.phase == .noSpeech && defaults.bool(forKey: defaultsKey))
     }
 
     static func applies(to phase: DictationController.Phase, defaults: UserDefaults = .standard) -> Bool {
@@ -21,75 +53,60 @@ enum DictationCompactIndicator {
         }
     }
 
+    /// How long a result's face stays before it fades or gives way to its card.
+    static func hold(for phase: DictationController.Phase) -> Duration? {
+        switch phase {
+        case .verified: .milliseconds(1_400)
+        case .dispatched, .noSpeech: .milliseconds(1_200)
+        default: nil
+        }
+    }
+
+    /// When the controller closes a result shown as a face; nil leaves the full panel's timing.
+    @MainActor
+    static func dismissal(for controller: DictationController) -> Duration? {
+        guard applies(to: controller), let hold = hold(for: controller.phase) else { return nil }
+        return hold + fade
+    }
+
+    static func isClick(translation: CGSize) -> Bool {
+        hypot(translation.width, translation.height) <= clickSlop
+    }
+
+    /// Left edge on the caret, just under its line; above it when there is no room below.
+    static func origin(for size: NSSize, near anchor: DictationPanelAnchor?, in visible: NSRect) -> NSPoint {
+        guard case .caret(let caret) = anchor else {
+            return NSPoint(x: visible.midX - size.width / 2, y: visible.minY + fallbackLift)
+        }
+        var y = caret.minY - caretGap - size.height
+        if y < visible.minY { y = caret.maxY + caretGap }
+        return NSPoint(
+            x: min(max(caret.minX, visible.minX), visible.maxX - size.width),
+            y: min(max(y, visible.minY), visible.maxY - size.height))
+    }
+
+    static func pinnedEdge(
+        for size: NSSize, near anchor: DictationPanelAnchor?, in visible: NSRect
+    ) -> DictationPanelAnchor.PinnedEdge {
+        guard case .caret(let caret) = anchor else { return .bottom }
+        return caret.minY - caretGap - size.height >= visible.minY ? .top : .bottom
+    }
+
     static func elapsed(since start: Date?, now: Date) -> String {
         let seconds = max(0, Int(now.timeIntervalSince(start ?? now)))
         return String(format: "%d:%02d", seconds / 60, seconds % 60)
     }
 }
 
-struct DictationCompactStripView: View {
-    let controller: DictationController
-
-    var body: some View {
-        HStack(spacing: 8) {
-            if case .dispatched = controller.phase {
-                Circle()
-                    .fill(SecreteoDesign.notSent)
-                    .frame(width: 8, height: 8)
-                    .accessibilityIdentifier("dictation-panel-compact")
-                Text("Sent, not verified")
-                    .font(.caption)
-                    .accessibilityIdentifier("dictation-panel-delivery-status")
-            } else if case .verified(let words) = controller.phase {
-                Image(systemName: SecreteoSymbol.success)
-                    .foregroundStyle(SecreteoDesign.verified)
-                    .accessibilityIdentifier("dictation-panel-compact")
-                Text(L10n.format("%d words inserted.", words))
-                    .font(.caption)
-                    .accessibilityIdentifier("dictation-panel-delivery-status")
-            } else {
-                icon
-                    .accessibilityIdentifier("dictation-panel-compact")
-                DictationWaveform(
-                    level: controller.micLevel, isActive: DictationWaveform.animates(for: controller),
-                    dimmed: isLoadingModel)
-                    .frame(width: 64, height: 22)
-                    .accessibilityIdentifier("dictation-panel-meter")
-                TimelineView(.periodic(from: .now, by: 1)) { context in
-                    Text(DictationCompactIndicator.elapsed(since: controller.captureStartedAt, now: context.date))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                        .accessibilityIdentifier("dictation-panel-elapsed")
-                }
-            }
-        }
-        // No backdrop: the glyphs float, and a soft shadow keeps them legible on any wallpaper.
-        .shadow(color: .black.opacity(0.35), radius: 2, y: 1)
-        .padding(.horizontal, 12)
-        .frame(width: DictationCompactIndicator.size.width, height: DictationCompactIndicator.size.height)
-        // Fully clear pixels let clicks through the window; a barely-there fill keeps it draggable.
-        .background(Color.black.opacity(0.01), in: Capsule())
+extension DictationController {
+    /// A click on the small indicator: the full capsule for the rest of this dictation.
+    func expandCompactIndicator() {
+        guard isActive || phase == .noSpeech else { return }
+        expandedSessionID = activeSessionID ?? deliveryID
     }
 
-    @ViewBuilder private var icon: some View {
-        if isLoadingModel {
-            Image(systemName: "hourglass")
-                .foregroundStyle(SecreteoDesign.notSent)
-                .symbolEffect(.pulse)
-                .accessibilityLabel(L10n.text("Loading the speech model"))
-        } else if controller.phase == .delivering {
-            ProgressView()
-                .controlSize(.mini)
-                .accessibilityLabel(
-                    controller.isTranslating ? L10n.text("Translating…")
-                        : controller.isPolishing ? L10n.text("Polishing…") : L10n.text("Inserting…"))
-        } else {
-            Image(systemName: "waveform.badge.mic")
-                .foregroundStyle(controller.phase == .listening ? SecreteoDesign.accent : Color.secondary)
-                .symbolEffect(.pulse, isActive: controller.microphoneIsOpen)
-                .accessibilityLabel(L10n.text("Dictating"))
-        }
+    /// Keyed to the dictation, so the next one starts small again.
+    var compactIndicatorExpanded: Bool {
+        expandedSessionID != nil && expandedSessionID == activeSessionID ?? deliveryID
     }
-
-    private var isLoadingModel: Bool { controller.phase == .listening && controller.isLoadingModel }
 }

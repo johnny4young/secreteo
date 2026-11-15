@@ -9,14 +9,22 @@ import DictationKit
 final class DictationPanelController {
     private var panel: NSPanel?
     private var pinnedEdge = DictationPanelAnchor.PinnedEdge.bottom
+    /// What the last layout showed, so a change knows whether the indicator is growing.
+    private var showsIndicator = false
+    private var indicatorIsAtCaret = false
+    /// The size last asked for; a frame that is still animating has not reached it.
+    private var wantedSize: NSSize?
 
     func show(controller: DictationController) {
         let size = DictationPanelLayout.size(for: controller)
         if let panel {
             shade(panel, for: controller)
-            resize(panel, to: size)
             // A new dictation reuses a notice's panel; it still opens at its own caret.
-            if controller.phase == .preparing { place(panel, size: size, near: controller.panelAnchor) }
+            if controller.phase == .preparing {
+                place(panel, size: size, for: controller)
+            } else {
+                resize(panel, to: size, for: controller)
+            }
             panel.orderFrontRegardless()
             return
         }
@@ -31,12 +39,16 @@ final class DictationPanelController {
         panel.isMovableByWindowBackground = true
         panel.backgroundColor = .clear
         panel.isOpaque = false
+        panel.showsIndicator = { [weak controller] in
+            controller.map { DictationCompactIndicator.applies(to: $0) } ?? false
+        }
+        panel.indicatorClicked = { [weak controller] in controller?.expandCompactIndicator() }
         shade(panel, for: controller)
         panel.contentView = NSHostingView(
             rootView: DictationStripView(controller: controller) { [weak self] in
                 self?.relayout(for: controller)
             }.secreteoLocalized())
-        place(panel, size: size, near: controller.panelAnchor)
+        place(panel, size: size, for: controller)
         panel.orderFrontRegardless()
         self.panel = panel
     }
@@ -47,46 +59,101 @@ final class DictationPanelController {
     }
 
     /// Beside the caret (or pointer) when known; otherwise bottom-center above the Dock.
-    private func place(_ panel: NSPanel, size: NSSize, near anchor: DictationPanelAnchor?) {
-        if let anchor,
-           let screen = NSScreen.screens.first(where: { $0.frame.contains(anchor.point) }) ?? NSScreen.main {
-            panel.setFrameOrigin(DictationPanelAnchor.origin(for: size, near: anchor, in: screen.visibleFrame))
-            pinnedEdge = DictationPanelAnchor.pinnedEdge(for: size, near: anchor, in: screen.visibleFrame)
-        } else if let screen = NSScreen.main {
+    private func place(_ panel: NSPanel, size: NSSize, for controller: DictationController) {
+        let anchor = controller.panelAnchor
+        showsIndicator = DictationCompactIndicator.applies(to: controller)
+        indicatorIsAtCaret = false
+        wantedSize = size
+        let screen = anchor.flatMap { anchor in NSScreen.screens.first { $0.frame.contains(anchor.point) } }
+            ?? NSScreen.main
+        guard let visible = screen?.visibleFrame else { return }
+        let origin: NSPoint
+        if showsIndicator {
+            if case .caret = anchor { indicatorIsAtCaret = true }
+            origin = DictationCompactIndicator.origin(for: size, near: anchor, in: visible)
+            pinnedEdge = DictationCompactIndicator.pinnedEdge(for: size, near: anchor, in: visible)
+        } else if let anchor {
+            origin = DictationPanelAnchor.origin(for: size, near: anchor, in: visible)
+            pinnedEdge = DictationPanelAnchor.pinnedEdge(for: size, near: anchor, in: visible)
+        } else {
             pinnedEdge = .bottom
-            let frame = screen.visibleFrame
-            panel.setFrameOrigin(NSPoint(x: frame.midX - size.width / 2, y: frame.minY + 48))
+            origin = NSPoint(x: visible.midX - size.width / 2, y: visible.minY + DictationCompactIndicator.fallbackLift)
         }
+        panel.setFrame(NSRect(origin: origin, size: size), display: true)
     }
 
     /// Follows a layout change without ever reopening a closed panel.
     private func relayout(for controller: DictationController) {
         guard let panel else { return }
         shade(panel, for: controller)
-        resize(panel, to: DictationPanelLayout.size(for: controller))
+        resize(panel, to: DictationPanelLayout.size(for: controller), for: controller)
     }
 
-    /// The capsule draws its own edge; the window's shadow would outline a rectangle around it.
+    /// The capsule and the bare glyph draw their own edge; the window's shadow would outline a rectangle.
     private func shade(_ panel: NSPanel, for controller: DictationController) {
         let wanted = DictationCompactIndicator.applies(to: controller)
-            || !DictationPanelLayout.isCapsule(controller.phase)
+            ? DictationCompactIndicator.Options.current().showsBackdrop
+            : !DictationPanelLayout.isCapsule(controller.phase)
         guard panel.hasShadow != wanted else { return }
         panel.hasShadow = wanted
         panel.invalidateShadow()
     }
 
-    private func resize(_ panel: NSPanel, to size: NSSize) {
-        guard panel.contentRect(forFrameRect: panel.frame).size != size else { return }
-        let before = panel.frame
-        panel.setContentSize(size)
-        guard let visible = panel.screen?.visibleFrame else { return }
-        panel.setFrameOrigin(DictationPanelAnchor.origin(
-            resizing: before, to: panel.frame.size, pinned: pinnedEdge, in: visible))
+    private func resize(_ panel: NSPanel, to size: NSSize, for controller: DictationController) {
+        let grows = showsIndicator
+        showsIndicator = DictationCompactIndicator.applies(to: controller)
+        guard (wantedSize ?? panel.frame.size) != size else { return }
+        wantedSize = size
+        guard let visible = panel.screen?.visibleFrame else {
+            panel.setContentSize(size)
+            return
+        }
+        let frame = NSRect(
+            origin: DictationPanelAnchor.origin(
+                resizing: panel.frame, to: size, pinned: pinnedEdge, in: visible,
+                keepsLeading: grows && indicatorIsAtCaret),
+            size: size)
+        // The indicator grows into its card where it stands.
+        if grows, !showsIndicator, !DictationPanelLayout.isCapsule(controller.phase),
+           !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = DictationCompactIndicator.growth
+                panel.animator().setFrame(frame, display: true)
+            }
+        } else {
+            panel.setFrame(frame, display: true)
+        }
     }
 }
 
+/// While it shows the small indicator, a click opens the capsule and a drag moves it.
 private final class DictationPanelWindow: NSPanel {
+    var showsIndicator: () -> Bool = { false }
+    var indicatorClicked: () -> Void = {}
+    private var press: (pointer: NSPoint, origin: NSPoint, moved: Bool)?
+
     override var canBecomeKey: Bool { true }
+
+    override func sendEvent(_ event: NSEvent) {
+        switch event.type {
+        case .leftMouseDown where showsIndicator():
+            press = (NSEvent.mouseLocation, frame.origin, false)
+        case .leftMouseDragged where press != nil:
+            guard var held = press else { return }
+            let pointer = NSEvent.mouseLocation
+            let travel = CGSize(width: pointer.x - held.pointer.x, height: pointer.y - held.pointer.y)
+            guard held.moved || !DictationCompactIndicator.isClick(translation: travel) else { return }
+            held.moved = true
+            press = held
+            setFrameOrigin(NSPoint(x: held.origin.x + travel.width, y: held.origin.y + travel.height))
+        case .leftMouseUp where press != nil:
+            let moved = press?.moved == true
+            press = nil
+            if !moved { indicatorClicked() }
+        default:
+            super.sendEvent(event)
+        }
+    }
 }
 
 private struct DictationStripView: View {
@@ -97,7 +164,7 @@ private struct DictationStripView: View {
     var body: some View {
         Group {
             if DictationCompactIndicator.applies(to: controller) {
-                DictationCompactStripView(controller: controller)
+                DictationAsideView(controller: controller)
             } else {
                 fullStrip
             }

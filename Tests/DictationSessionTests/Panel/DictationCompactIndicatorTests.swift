@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import XCTest
 
 @testable import DictationSession
@@ -19,6 +19,93 @@ final class DictationCompactIndicatorTests: XCTestCase {
             XCTAssertFalse(DictationCompactIndicator.applies(to: phase, defaults: defaults),
                            "\(phase) needs the full panel's actions")
         }
+    }
+
+    func testTheGlyphIsAloneUntilAnOptionAddsTheTimeOrTheBead() throws {
+        let suite = "compact-options-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        isolateArgumentDomain()
+        XCTAssertEqual(DictationCompactIndicator.Options.current(defaults), .init(), "both options are off by default")
+        XCTAssertEqual(DictationCompactIndicator.size(for: .init()), NSSize(width: 30, height: 24))
+        XCTAssertEqual(
+            DictationCompactIndicator.size(for: .init(showsElapsedTime: true)), NSSize(width: 68, height: 24))
+        XCTAssertEqual(DictationCompactIndicator.size(for: .init(showsBackdrop: true)), NSSize(width: 30, height: 30))
+        XCTAssertEqual(
+            DictationCompactIndicator.size(for: .init(showsElapsedTime: true, showsBackdrop: true)),
+            NSSize(width: 68, height: 30))
+
+        defaults.set(true, forKey: "dictationCompactShowsElapsedTime")
+        defaults.set(true, forKey: "dictationCompactShowsBackdrop")
+        XCTAssertEqual(
+            DictationCompactIndicator.Options.current(defaults), .init(showsElapsedTime: true, showsBackdrop: true))
+    }
+
+    func testItSitsUnderTheCaretAndFallsBackToTheBottomOfTheScreen() {
+        let visible = NSRect(x: 0, y: 40, width: 1_440, height: 820)
+        let size = NSSize(width: 30, height: 24)
+        let caret = NSRect(x: 400, y: 500, width: 2, height: 18)
+        XCTAssertEqual(
+            DictationCompactIndicator.origin(for: size, near: .caret(caret), in: visible), NSPoint(x: 400, y: 470),
+            "left edge on the caret, 6 pt under its line")
+        XCTAssertEqual(DictationCompactIndicator.pinnedEdge(for: size, near: .caret(caret), in: visible), .top)
+
+        let low = NSRect(x: 1_430, y: 50, width: 2, height: 18)
+        XCTAssertEqual(
+            DictationCompactIndicator.origin(for: size, near: .caret(low), in: visible), NSPoint(x: 1_410, y: 74),
+            "above the line and inside the screen when there is no room below")
+        XCTAssertEqual(DictationCompactIndicator.pinnedEdge(for: size, near: .caret(low), in: visible), .bottom)
+
+        let fallback = NSPoint(x: 705, y: 88)
+        XCTAssertEqual(DictationCompactIndicator.origin(for: size, near: nil, in: visible), fallback)
+        XCTAssertEqual(
+            DictationCompactIndicator.origin(for: size, near: .pointer(NSPoint(x: 10, y: 10)), in: visible), fallback,
+            "a pointer is not a caret")
+        XCTAssertEqual(DictationCompactIndicator.pinnedEdge(for: size, near: nil, in: visible), .bottom)
+    }
+
+    func testTheGapBetweenTheParenthesesIsTheMeter() {
+        XCTAssertEqual(DictationAsideShape.openness(for: 0), 0, "closed in silence")
+        XCTAssertEqual(DictationAsideShape.openness(for: 0.031_6), 0.5, accuracy: 0.01)
+        XCTAssertEqual(DictationAsideShape.openness(for: 2), 1)
+        XCTAssertEqual(DictationAsideShape.spread(for: 0), 0)
+        XCTAssertEqual(DictationAsideShape.spread(for: 0.5), 1, "speaking opens 1 pt each side")
+        XCTAssertEqual(DictationAsideShape.spread(for: 1), 2)
+        XCTAssertEqual(DictationAsideShape.spread(for: 3), 2, "never past 2 pt")
+        XCTAssertEqual(DictationAsideShape.barScale(for: 0), 0.45)
+        XCTAssertEqual(DictationAsideShape.barScale(for: 1), 1)
+        XCTAssertLessThan(DictationAsideShape.barScale(for: 0.3), DictationAsideShape.barScale(for: 0.6))
+        XCTAssertEqual(
+            [0, 0.002, 0.05, 1].map { DictationAsideShape.barStep(for: $0) }, [0.45, 0.45, 0.72, 1],
+            "Reduce Motion rests on three heights")
+    }
+
+    func testTheGlyphOpensAtOnceAndClosesOverTheRelease() {
+        XCTAssertEqual(DictationAsideShape.envelope(from: 0.1, to: 0.9, elapsed: 1.0 / 30), 0.9, "fast attack")
+        XCTAssertEqual(DictationAsideShape.envelope(from: 1, to: 0, elapsed: 0.09), 0.5, accuracy: 0.000_1)
+        XCTAssertEqual(DictationAsideShape.envelope(from: 1, to: 0, elapsed: 0.18), 0, accuracy: 0.000_1)
+        XCTAssertEqual(DictationAsideShape.envelope(from: 1, to: 0.8, elapsed: 0.18), 0.8, "never under the voice")
+        XCTAssertEqual(DictationAsideShape.frameInterval, 1.0 / 30)
+    }
+
+    func testAResultHoldsItsFaceAndAShortPressIsAClick() {
+        XCTAssertEqual(DictationCompactIndicator.hold(for: .verified(3)), .milliseconds(1_400))
+        XCTAssertEqual(DictationCompactIndicator.hold(for: .dispatched(3)), .milliseconds(1_200))
+        XCTAssertEqual(DictationCompactIndicator.hold(for: .noSpeech), .milliseconds(1_200))
+        XCTAssertNil(DictationCompactIndicator.hold(for: .listening))
+        XCTAssertNil(DictationCompactIndicator.hold(for: .recovery(.cancelled)), "the card stays until you choose")
+        XCTAssertTrue(DictationCompactIndicator.isClick(translation: CGSize(width: 2, height: -2)))
+        XCTAssertFalse(DictationCompactIndicator.isClick(translation: CGSize(width: 3, height: 3)))
+    }
+
+    func testEveryFaceKeepsItsContrastOnTheInkOutline() {
+        for face in SecreteoGlyphFace.allCases {
+            let ink = DictationAsideShape.ink(for: face)
+            XCTAssertEqual(ink.light, ink.dark, "\(face) does not follow the appearance: the surface is unknown")
+        }
+        XCTAssertEqual(DictationAsideShape.ink(for: .inserted), SecreteoPalette.capsuleVerified)
+        XCTAssertEqual(DictationAsideShape.ink(for: .notSent), SecreteoPalette.capsuleNotSent)
+        XCTAssertEqual(DictationAsideShape.ink(for: .listening), SecreteoPalette.capsuleText)
     }
 
     func testElapsedTimeReadsAsMinutesAndSeconds() {

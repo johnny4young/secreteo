@@ -69,9 +69,23 @@ struct DictationSettingsControls: View {
         }
         SettingsEyebrow(Text("While Dictating"))
         SettingsCard {
-            DictationIndicatorChoice(
-                isCompact: dictation.preference(DictationCompactIndicator.defaultsKey, default: false))
+            let isCompact = dictation.preference(DictationCompactIndicator.defaultsKey, default: false)
+            DictationIndicatorChoice(isCompact: isCompact)
                 .padding(.vertical, 3)
+            DictationIndicatorOption(
+                Text("Show Elapsed Time"), identifier: "settings-dictation-compact-elapsed",
+                isOn: dictation.preference(DictationCompactIndicator.elapsedTimeKey, default: false),
+                isAvailable: isCompact.wrappedValue
+            ) {
+                DictationAsideBody(face: .listening, fixedOpenness: 0.5, time: "0:07", bead: true, ring: false)
+            }
+            DictationIndicatorOption(
+                Text("Show a Backdrop"), identifier: "settings-dictation-compact-backdrop",
+                isOn: dictation.preference(DictationCompactIndicator.backdropKey, default: false),
+                isAvailable: isCompact.wrappedValue
+            ) {
+                DictationAsideBody(face: .listening, fixedOpenness: 0.5, bead: true)
+            }
             SettingsSwitch(
                 Text("Play Start and Stop Sounds"), identifier: "settings-dictation-sounds",
                 isOn: dictation.preference(DictationSoundCue.defaultsKey, default: false))

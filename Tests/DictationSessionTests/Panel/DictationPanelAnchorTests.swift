@@ -58,6 +58,12 @@ final class DictationPanelAnchorTests: XCTestCase {
         let widened = DictationPanelAnchor.origin(resizing: compact, to: capsule, pinned: .top, in: visible)
         XCTAssertEqual(widened.x + capsule.width / 2, compact.midX, "the compact indicator grows around its center")
         XCTAssertEqual(widened.y + capsule.height, compact.maxY)
+
+        let aside = NSRect(x: 700, y: 400, width: 30, height: 24)
+        let grown = DictationPanelAnchor.origin(
+            resizing: aside, to: card, pinned: .top, in: visible, keepsLeading: true)
+        XCTAssertEqual(grown.x, aside.minX, "under a caret it grows into its card from the caret")
+        XCTAssertEqual(grown.y + card.height, aside.maxY)
     }
 
     func testThePointerLeavesRoomForTheCursorGlyph() {

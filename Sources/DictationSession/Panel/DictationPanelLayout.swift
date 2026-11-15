@@ -11,7 +11,7 @@ enum DictationPanelLayout {
     @MainActor
     static func size(for controller: DictationController) -> NSSize {
         DictationCompactIndicator.applies(to: controller)
-            ? DictationCompactIndicator.size
+            ? DictationCompactIndicator.size(for: .current())
             : NSSize(
                 width: width,
                 height: height(for: controller.phase, showsNotice: controller.microphoneNotice != nil))
