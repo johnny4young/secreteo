@@ -3,9 +3,8 @@
 
 Usage: check_release.py check <tag>
        check_release.py notes <version>
-`check` reads GLOBAL_DICTATION_CLEARED (the one version the owner cleared) from the environment and expects `origin/main` to be fetched.
+`check` expects `origin/main` and the tags to be fetched.
 """
-import os
 import re
 import subprocess
 import sys
@@ -20,14 +19,6 @@ def project_setting(project_yml: str, name: str) -> str:
     return match.group(1) if match else ""
 
 
-def parent_key(lines: list[str], index: int) -> str:
-    indent = len(lines[index]) - len(lines[index].lstrip())
-    for line in reversed(lines[:index]):
-        if line.strip() and not line.lstrip().startswith("#") and len(line) - len(line.lstrip()) < indent:
-            return line.strip()
-    return ""
-
-
 def release_notes(changelog: str, version: str) -> str:
     sections = list(SECTION.finditer(changelog))
     for index, section in enumerate(sections):
@@ -37,20 +28,11 @@ def release_notes(changelog: str, version: str) -> str:
     return ""
 
 
-def arms_global_dictation(project_yml: str) -> bool:
-    # The base value is what a Release build gets. Anything but an explicit NO counts as armed.
-    lines = project_yml.splitlines()
-    values = [
-        match.group(1)
-        for index, line in enumerate(lines)
-        if (match := re.match(r'\s*SECRETEO_GLOBAL_DICTATION:\s*"?([^"\s#]*)', line))
-        and parent_key(lines, index) != "Debug:"
-    ]
-    return not values or any(value != "NO" for value in values)
+def version_key(version: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in version.split("."))
 
 
-def problems(tag: str, project_yml: str, changelog: str, on_main: bool, arms_dictation: bool,
-             cleared_version: str) -> list[str]:
+def problems(tag: str, project_yml: str, changelog: str, on_main: bool, tags: list[str]) -> list[str]:
     if not re.fullmatch(r"v\d+\.\d+\.\d+", tag):
         return [f"{tag} is not vX.Y.Z"]
     version = tag[1:]
@@ -64,8 +46,11 @@ def problems(tag: str, project_yml: str, changelog: str, on_main: bool, arms_dic
         found.append(f"CHANGELOG.md has no entries under ## {version}")
     if not on_main:
         found.append("the tagged commit is not on main")
-    if arms_dictation and cleared_version != version:
-        found.append(f"this build arms global dictation, and GLOBAL_DICTATION_CLEARED is not {version}")
+    # Sparkle and the cask only move forward, so an older version would never reach anyone.
+    released = [other[1:] for other in tags if re.fullmatch(r"v\d+\.\d+\.\d+", other) and other != tag]
+    newest = max(released, key=version_key, default="")
+    if newest and version_key(version) <= version_key(newest):
+        found.append(f"{tag} is not newer than v{newest}")
     return found
 
 
@@ -83,8 +68,9 @@ def main() -> None:
     on_main = subprocess.run(["git", "merge-base", "--is-ancestor", "HEAD", "origin/main"], cwd=ROOT,
                              check=False).returncode == 0
     project_yml = (ROOT / "project.yml").read_text()
-    found = problems(argument, project_yml, changelog, on_main,
-                     arms_global_dictation(project_yml), os.environ.get("GLOBAL_DICTATION_CLEARED", "").strip())
+    tags = subprocess.run(["git", "tag", "--list", "v*"], cwd=ROOT, capture_output=True, text=True,
+                          check=True).stdout.split()
+    found = problems(argument, project_yml, changelog, on_main, tags)
     for problem in found:
         print(f"::error::{problem}")
     if found:

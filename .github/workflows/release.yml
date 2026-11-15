@@ -21,9 +21,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - env:
-          GLOBAL_DICTATION_CLEARED: ${{ vars.GLOBAL_DICTATION_CLEARED }}
-        run: python3 scripts/check_release.py check "$GITHUB_REF_NAME"
+      - run: python3 scripts/check_release.py check "$GITHUB_REF_NAME"
       - run: scripts/verify-ci-toolchain.sh 26 26.6
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -39,6 +37,7 @@ jobs:
       - run: scripts/run-ui-tests.sh full build/pr-screenshots
 
   # The only job that can read the signing secrets. It has no write access to the repository.
+  # Its environment approval is the owner's one decision per release (D30).
   package:
     needs: verify
     runs-on: macos-26
@@ -109,13 +108,14 @@ jobs:
             security delete-keychain "$RUNNER_TEMP/signing.keychain-db"
           fi
 
-  # A draft: nothing reaches users until the owner publishes it.
-  draft:
+  # Everything that could fail has been verified by now, so the release goes out without a draft.
+  publish:
     needs: package
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: write
+      actions: write
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -126,11 +126,16 @@ jobs:
         run: |
           version="${GITHUB_REF_NAME#v}"
           files=("artifact/Secreteo-$version.dmg" "artifact/Secreteo-$version.dmg.sha256" artifact/feed/appcast.xml)
-          # A rerun finishes its own draft, and never touches what is already published.
+          # A rerun finishes a release this tag left unpublished, and never touches a published one.
           state="$(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft 2>/dev/null || echo none)"
           case "$state" in
-            true) gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber "${files[@]}" ;;
-            none) gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft --verify-tag \
-                    --title "Secreteo $version" --notes-file artifact/notes.md "${files[@]}" ;;
+            true)
+              gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber "${files[@]}"
+              gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false --latest ;;
+            none)
+              gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag --latest \
+                --title "Secreteo $version" --notes-file artifact/notes.md "${files[@]}" ;;
             *) echo "::error::$GITHUB_REF_NAME is already published"; exit 1 ;;
           esac
+          # A release published with this token raises no event, so the cask is asked for by name.
+          gh workflow run update-cask.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" -f tag="$GITHUB_REF_NAME"

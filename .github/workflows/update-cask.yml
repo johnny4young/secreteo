@@ -36,3 +36,16 @@ jobs:
           (cd "$RUNNER_TEMP" && sha256sum --check "Secreteo-$version.dmg.sha256")
           sha256="$(cut -d' ' -f1 "$RUNNER_TEMP/Secreteo-$version.dmg.sha256")"
           scripts/update-homebrew-tap.sh "$version" "$sha256"
+
+  # What users get once the release is public: no step here waits on the owner.
+  verify:
+    needs: update-cask
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: scripts/verify-published-release.sh "$TAG"
