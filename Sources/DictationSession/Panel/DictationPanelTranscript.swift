@@ -37,7 +37,7 @@ struct DictationCapsuleTranscript: View {
     let settle: Animation?
 
     static let fadeWidth: CGFloat = 36
-    static let provisionalOpacity = 0.78
+    nonisolated static let provisionalOpacity = 0.78
 
     var body: some View {
         // A line that fits starts at the face; a longer one anchors right so the newest words stay in view.
