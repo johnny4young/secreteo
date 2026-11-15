@@ -20,6 +20,8 @@ FEED = "https://github.com/johnny4young/secreteo/releases/latest/download/appcas
 TEAM_ID = "JGWX5ZT2N2"
 FORBIDDEN_PAYLOAD = (".dSYM", ".debug.dylib", "__preview.dylib", ".xctest", ".swiftmodule", "generate_appcast",
                      "sign_update", "generate_keys")
+BUNDLED_FONTS = ("Contents/Resources/Fonts/InstrumentSerif-Regular.ttf",
+                 "Contents/Resources/Fonts/InstrumentSerif-Italic.ttf", "Contents/Resources/Fonts/OFL.txt")
 # The launch argument behind SECRETEO_UPDATE_DRYRUN, which only the instrumented dry-run build compiles.
 DRYRUN_SEAM = b"-secreteo-update-dryrun-hold"
 
@@ -34,6 +36,8 @@ def info_problems(info: dict, version: str) -> list[str]:
         "SUFeedURL": FEED,
         "SUEnableAutomaticChecks": True,
         "CFBundleIconName": "AppIcon",
+        # The bundled serif registers from Resources/Fonts; without it titles fall back to New York.
+        "ATSApplicationFontsPath": "Fonts",
         # D28: the shipped binary dictates and declares the ownership protocol peers look for.
         "SecreteoGlobalDictation": "YES",
         "DictationOwnershipProtocol": 1,
@@ -61,6 +65,9 @@ def payload_problems(relative_paths: list[str], sparkle_version: str, pinned_spa
     for icon in ("Contents/Resources/AppIcon.icns", "Contents/Resources/Assets.car"):
         if icon not in relative_paths:
             problems.append(f"{icon} is missing, so Finder and the DMG show a blank icon")
+    for font in BUNDLED_FONTS:
+        if font not in relative_paths:
+            problems.append(f"{font} is missing, so the serif falls back to New York")
     if sparkle_version != pinned_sparkle:
         problems.append(f"Sparkle is {sparkle_version}, pinned {pinned_sparkle}")
     return problems

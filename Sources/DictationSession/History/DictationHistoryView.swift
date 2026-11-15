@@ -91,7 +91,6 @@ public struct DictationHistoryView: View {
         } else if model.records.isEmpty, !model.policy.isEnabled {
             Button("Turn On History") { Task { await model.update(isEnabled: true) } }
                 .buttonStyle(.borderedProminent)
-                .tint(SecreteoDesign.accent)
                 .accessibilityIdentifier("dictation-history-enable")
         } else if model.records.isEmpty {
             Text("Your dictations will appear here.")

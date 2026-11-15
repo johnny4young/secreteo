@@ -4,7 +4,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
-- 🎨 **A look of its own**: a new icon, two parentheses keeping one voice, and copper and amber colours across the app, with a serif for titles.
+- 🎨 **A look of its own**: a new icon, two parentheses keeping one voice, and copper and amber colours across the app.
 
 ## 1.0.0
 
