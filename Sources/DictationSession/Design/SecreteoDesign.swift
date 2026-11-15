@@ -54,6 +54,15 @@ public enum SecreteoPalette {
     public static let capsuleVerified = SecreteoColor(0x7FD1B9)
     public static let capsuleNotSent = SecreteoColor(0xFF8D73)
     public static let capsuleAccent = SecreteoColor(0xE8936A)
+    /// The lit top of the capsule's gradient; lacquer is its foot.
+    public static let capsuleHighlight = SecreteoColor(0x34251D)
+    public static let capsuleAmber = SecreteoColor(0xF4B63C)
+    /// Text on an amber key cap or a copper button on the capsule.
+    public static let capsuleInk = SecreteoColor(0x2A1206)
+    /// Text on a row filled with the accent.
+    public static let onAccent = SecreteoColor(light: 0xFFF6EC, dark: 0x2A1206)
+    /// A card raised from the window.
+    public static let card = SecreteoColor(light: 0xFFFFFF, dark: 0x261C17)
 }
 
 public enum SecreteoDesign {
@@ -65,6 +74,8 @@ public enum SecreteoDesign {
     public static let windowBackground = SecreteoPalette.window.color
     public static let secondaryText = SecreteoPalette.secondaryText.color
     public static let tertiaryText = SecreteoPalette.tertiaryText.color
+    public static let text = SecreteoPalette.text.color
+    public static let onAccent = SecreteoPalette.onAccent.color
 }
 
 /// Instrument Serif for titles, numerals and provisional words; New York when the font did not register.

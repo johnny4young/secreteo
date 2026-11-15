@@ -66,6 +66,22 @@
         }
       }
     },
+    "%d dictations · ~%d min saved" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d dictations · ~%d min saved"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d dictados · ~%d min ahorrados"
+          }
+        }
+      }
+    },
     "%d min" : {
       "localizations" : {
         "en" : {
@@ -78,6 +94,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%d min"
+          }
+        }
+      }
+    },
+    "%d min ago" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d min ago"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hace %d min"
           }
         }
       }
@@ -126,6 +158,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%d palabras insertadas."
+          }
+        }
+      }
+    },
+    "1 dictation · ~%d min saved" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 dictation · ~%d min saved"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 dictado · ~%d min ahorrados"
           }
         }
       }
@@ -446,6 +494,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Otra app se encarga del dictado"
+          }
+        }
+      }
+    },
+    "Another app handles dictation on this Mac" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another app handles dictation on this Mac"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otra app se encarga del dictado en esta Mac"
           }
         }
       }
@@ -2274,6 +2338,22 @@
         }
       }
     },
+    "Just now" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Just now"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ahora mismo"
+          }
+        }
+      }
+    },
     "Keep Dictation Statistics" : {
       "localizations" : {
         "en" : {
@@ -2382,6 +2462,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Idioma y micrófono"
+          }
+        }
+      }
+    },
+    "Last dictation" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last dictation"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Último dictado"
+          }
+        }
+      }
+    },
+    "Last dictation · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last dictation · %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Último dictado · %@"
           }
         }
       }
@@ -4402,6 +4514,22 @@
         }
       }
     },
+    "Secreteo owns dictation · %@ on this Mac" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Secreteo owns dictation · %@ on this Mac"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Secreteo se encarga del dictado · %@ en esta Mac"
+          }
+        }
+      }
+    },
     "Select All" : {
       "localizations" : {
         "en" : {
@@ -4494,6 +4622,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enviado, sin verificar"
+          }
+        }
+      }
+    },
+    "Set Up Dictation" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set Up Dictation"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configura el dictado"
           }
         }
       }
@@ -4766,6 +4910,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reconocimiento de voz"
+          }
+        }
+      }
+    },
+    "Standing by" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standing by"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En espera"
           }
         }
       }
@@ -5362,6 +5522,22 @@
         }
       }
     },
+    "Today" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoy"
+          }
+        }
+      }
+    },
     "Translate Dictation Into" : {
       "localizations" : {
         "en" : {
@@ -5858,6 +6034,70 @@
         }
       }
     },
+    "hold" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hold"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "mantén"
+          }
+        }
+      }
+    },
+    "or" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "or"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "o"
+          }
+        }
+      }
+    },
+    "right ⌘" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "right ⌘"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌘ derecha"
+          }
+        }
+      }
+    },
+    "right ⌥" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "right ⌥"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌥ derecha"
+          }
+        }
+      }
+    },
     "the on-device model is still downloading; try again in a few minutes" : {
       "localizations" : {
         "en" : {
@@ -5902,6 +6142,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "este Mac no es compatible con Apple Intelligence"
+          }
+        }
+      }
+    },
+    "word" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "word"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "palabra"
+          }
+        }
+      }
+    },
+    "words" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "words"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "palabras"
           }
         }
       }

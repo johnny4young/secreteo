@@ -202,7 +202,9 @@ public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
                 focusReturn.run(action)
             }
         } ?? MenuContentView(model: model)
-        let window = NSWindow(contentViewController: NSHostingController(rootView: content))
+        let host = NSHostingController(rootView: content)
+        host.sizingOptions = [.preferredContentSize]
+        let window = NSWindow(contentViewController: host)
         window.title = "Menu"
         window.styleMask = [.titled]
         window.isReleasedWhenClosed = false

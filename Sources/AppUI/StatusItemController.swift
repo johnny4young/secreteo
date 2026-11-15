@@ -22,7 +22,10 @@ public final class StatusItemController: NSObject {
             self?.popover.performClose(nil)
             self?.focusReturn.run(action)
         }
-        popover.contentViewController = NSHostingController(rootView: content)
+        let host = NSHostingController(rootView: content)
+        // The dashboard grows and shrinks with the last dictation and today's count.
+        host.sizingOptions = [.preferredContentSize]
+        popover.contentViewController = host
     }
 
     /// Runs when either half of `hasVisibleAffordance` may have changed.

@@ -11,6 +11,8 @@ final class DictationStatsModel {
     private(set) var isEnabled = false
     private(set) var range = 7
     private(set) var summary = DictationStatsSummary(days: [], topApplications: [])
+    /// Always the last 7 days, for the menu; `summary` follows the chosen range.
+    private(set) var week = DictationStatsSummary(days: [], topApplications: [])
     private(set) var failure: String?
     @ObservationIgnored private let store: any DictationStatsStore
     @ObservationIgnored private let now: @Sendable () -> Date
@@ -74,7 +76,22 @@ final class DictationStatsModel {
         }
     }
 
+    /// Today's totals, or nil once the loaded week ends on an earlier day.
+    var today: DictationStatsTotals? {
+        guard let last = week.days.last, last.day == DictationStatsCalendar.day(of: now(), calendar: .current)
+        else { return nil }
+        return last.totals
+    }
+
+    /// The menu asks when it opens, so a week loaded yesterday does not pass for today.
+    func refreshWeek() async {
+        guard isEnabled, today == nil else { return }
+        try? await refresh()
+    }
+
     private func refresh() async throws {
-        summary = try await LoadDictationStatsSummary(store: store, now: now).execute(range)
+        let load = LoadDictationStatsSummary(store: store, now: now)
+        summary = try await load.execute(range)
+        week = range == 7 ? summary : try await load.execute(7)
     }
 }
