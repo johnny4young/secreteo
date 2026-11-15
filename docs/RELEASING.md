@@ -1,10 +1,10 @@
 # Releasing
 
-A `v*` tag runs `release.yml`. The owner approves the `release` Environment, reviews the draft it creates, and publishes. Nothing reaches users before that.
+A `v*` tag runs `release.yml`. The owner approves the `release` Environment, and that is the only step that waits for a person ([D30](DECISIONS.md#d30-one-owner-decision-per-release)). Nothing reaches users before it. The release then publishes itself, and `update-cask.yml` checks what users get.
 
 ## Flow
 
-1. `scripts/check_release.py` refuses a tag that differs from `MARKETING_VERSION`, has no `## <version>` section in `CHANGELOG.md`, is not on `main`, or has no Sparkle key. Release builds dictate ([D28](DECISIONS.md#d28-release-builds-run-global-dictation-from-010)), so it also refuses any tag unless the repository variable `GLOBAL_DICTATION_CLEARED` names that exact version, such as `0.1.0`. The owner sets it again for every release, so a clearance never carries over to the next tag.
+1. `scripts/check_release.py` refuses a tag that differs from `MARKETING_VERSION`, has no `## <version>` section in `CHANGELOG.md`, is not on `main`, is not newer than every earlier `v*` tag, or has no Sparkle key.
 2. Hygiene and tests.
 3. Release build with the pinned toolchain: `macos-26`, Xcode 26.6.
 4. Sign nested helpers and the app with no ignored failures.
@@ -14,18 +14,29 @@ A `v*` tag runs `release.yml`. The owner approves the `release` Environment, rev
 8. Launch the packaged app, since only a launch proves hardened runtime can load Sparkle.
 9. `generate_appcast --ed-key-file - --download-url-prefix .../releases/download/v<version>/ --embed-release-notes`.
 10. Verify the appcast, including its signature against the shipped key.
-11. Create the draft release.
-12. The owner publishes the draft, which runs `update-cask.yml`.
+11. After the owner approves the `release` Environment for steps 3 to 10, publish the release and start `update-cask.yml`. A release published with the job's token raises no event of its own.
+12. `update-cask.yml` updates the tap. Then `scripts/verify-published-release.sh` runs on a hosted Mac and checks four things: the live feed against the shipped key, the tap's version and sha256, a Homebrew install that Gatekeeper accepts, and a Sparkle update from the previous release through the live feed.
 
 The feed stays at `releases/latest/download/appcast.xml`. Enclosures are versioned.
 
-## Each release
+## Cutting a release
 
-After checking the release against the current Portavoz, and before pushing the tag, clear that version and no other:
+An agent does every step except the approval:
 
-```sh
-gh variable set GLOBAL_DICTATION_CLEARED --body 0.1.0
-```
+1. Open `chore: prepare <version>`. It sets `MARKETING_VERSION` in `project.yml` and moves the `## Unreleased` entries under `## <version>` in `CHANGELOG.md`. Use a patch version for fixes and a minor version for features.
+2. Merge it when every check is green.
+3. Check the merge commit, then tag it with the owner's account. A personal repository cannot let Actions bypass the tag ruleset.
+
+   ```sh
+   git fetch origin --tags && git checkout --detach <merge-sha>
+   python3 scripts/check_release.py check v<version>
+   git tag v<version> <merge-sha> && git push origin v<version>
+   ```
+
+4. Tell the owner the run is waiting for the `release` approval.
+5. Watch `release.yml` publish, and `update-cask.yml` update the tap and pass `verify`. Report the release URL.
+
+Rerunning a failed job finishes the same release. A fix to the code needs the next patch version. If something is wrong after publishing, see [Rollback](#rollback).
 
 ## Dry run
 
@@ -108,7 +119,7 @@ Same tap as the other apps, with its own deploy key. `packaging/Casks/secreteo.r
 
 ## Manual gates on the release Mac
 
-None of these blocks a tag yet ([D29](DECISIONS.md#d29-manual-gates-do-not-block-a-release-yet)). The exact steps and what each should show are in the [runbook](RUNBOOK.md).
+None of these blocks a tag yet ([D29](DECISIONS.md#d29-manual-gates-do-not-block-a-release-yet)). The exact steps and what each should show are in the [runbook](RUNBOOK.md). `update-cask.yml` already runs a Sparkle update and a Homebrew install on a hosted Mac after every release.
 
 | Gate | When |
 |---|---|
@@ -116,8 +127,6 @@ None of these blocks a tag yet ([D29](DECISIONS.md#d29-manual-gates-do-not-block
 | Real voice in native, Electron and browser targets | Each release |
 | Microphone and Fn across processes | Each release |
 | Permissions on a clean account | Onboarding or permission changes, and always for 0.1.0 |
-| Real Sparkle update from the previous version | Each release, and before announcing 0.1.1 |
-| Clean Homebrew install | Each release |
 | VoiceOver checklist | Each minor release |
 | Controller matrix and field corpus | Model or FluidAudio changes |
 
@@ -136,4 +145,8 @@ make test-model-gated
 
 ## Rollback
 
-Delete the release and its tag, then revert the tap commit. With a `latest` feed, deleting the release restores the previous feed.
+The owner decides on a rollback. Delete the release and its tag, then revert the tap commit. With a `latest` feed, deleting the release restores the previous feed.
+
+```sh
+gh release delete v<version> --yes --cleanup-tag
+```

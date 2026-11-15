@@ -10,7 +10,7 @@ Before any step that runs the app, add a line to the physical test reservations,
 make install
 ```
 
-You should see `/Applications/Secreteo Dev.app`. Steps that say **release build** use the DMG from the draft release instead.
+You should see `/Applications/Secreteo Dev.app`. Steps that say **release build** use the DMG from the GitHub release instead.
 
 ## 1. Models
 

@@ -184,8 +184,8 @@ PROJECT = 'settings:\n  base:\n    MARKETING_VERSION: "1.2.3"\n    SPARKLE_PUBLI
 CHANGELOG = "# Changelog\n\n## Unreleased\n\n- Soon.\n\n## 1.2.3\n\n- Added this.\n- And that.\n\n## 1.2.2\n\n- Older.\n"
 
 
-def release_problems(tag="v1.2.3", project=PROJECT, changelog=CHANGELOG, on_main=True, arms=False, cleared=""):
-    return check_release.problems(tag, project, changelog, on_main, arms, cleared)
+def release_problems(tag="v1.2.3", project=PROJECT, changelog=CHANGELOG, on_main=True, tags=("v1.2.2", "v1.2.3")):
+    return check_release.problems(tag, project, changelog, on_main, list(tags))
 
 
 class CheckReleaseTests(unittest.TestCase):
@@ -197,21 +197,6 @@ class CheckReleaseTests(unittest.TestCase):
 
         self.assertNotIn("Traceback", result.stderr)
         self.assertIn("::error::", result.stdout)
-
-    def test_a_release_build_arms_dictation_unless_the_project_says_no(self):
-        self.assertFalse(check_release.arms_global_dictation("        SECRETEO_GLOBAL_DICTATION: NO\n"))
-        self.assertTrue(check_release.arms_global_dictation("        SECRETEO_GLOBAL_DICTATION: YES\n"))
-        self.assertTrue(check_release.arms_global_dictation("        OTHER: NO\n"))
-        repository = Path(__file__).resolve().parents[2]
-        # D28: release builds dictate, so every release needs GLOBAL_DICTATION_CLEARED.
-        self.assertTrue(check_release.arms_global_dictation((repository / "project.yml").read_text()))
-
-    def test_only_a_debug_config_may_turn_dictation_on(self):
-        base = "settings:\n  base:\n    SECRETEO_GLOBAL_DICTATION: NO\n  configs:\n"
-        self.assertFalse(check_release.arms_global_dictation(base + "    Debug:\n      SECRETEO_GLOBAL_DICTATION: YES\n"))
-        self.assertTrue(check_release.arms_global_dictation(base + "    Release:\n      SECRETEO_GLOBAL_DICTATION: YES\n"))
-        self.assertTrue(check_release.arms_global_dictation(
-            base + "    Debug:\n      SECRETEO_GLOBAL_DICTATION: YES\n    Release:\n      SECRETEO_GLOBAL_DICTATION: YES\n"))
 
     def test_only_a_release_build_carries_the_update_key(self):
         project = (ROOT / "project.yml").read_text()
@@ -252,12 +237,13 @@ class CheckReleaseTests(unittest.TestCase):
         for name, values in cases.items():
             self.assertTrue(release_problems(**values), name)
 
-    def test_an_armed_release_needs_its_own_clearance(self):
-        self.assertTrue(release_problems(arms=True))
-        self.assertEqual(release_problems(arms=True, cleared="1.2.3"), [])
-        for stale in ("true", "1.2.2", "v1.2.3", "1.2.3.0"):
-            self.assertTrue(release_problems(arms=True, cleared=stale), stale)
-        self.assertEqual(release_problems(arms=False, cleared="1.2.2"), [])
+    def test_a_release_must_be_the_newest_version(self):
+        self.assertEqual(release_problems(tags=()), [])
+        self.assertEqual(release_problems(tags=("v1.2.2", "v0.9.10", "not-a-release")), [])
+        self.assertEqual(release_problems(tags=("v1.2.3",)), [])
+        for newer in ("v1.2.4", "v1.10.0", "v2.0.0"):
+            self.assertTrue(release_problems(tags=("v1.2.3", newer)), newer)
+        self.assertTrue(release_problems(tag="v1.2.3", tags=("v1.2.10",)))
 
 
 class CaskTests(unittest.TestCase):
@@ -297,7 +283,7 @@ class WorkflowContractTests(unittest.TestCase):
 
     def test_only_the_package_job_reads_signing_secrets(self):
         text = self.workflow("release.yml")
-        package = re.search(r"^  package:\n(.*?)^  draft:", text, re.MULTILINE | re.DOTALL).group(1)
+        package = re.search(r"^  package:\n(.*?)^  publish:", text, re.MULTILINE | re.DOTALL).group(1)
         outside = text.replace(package, "")
         self.assertIn("environment: release", package)
         self.assertNotIn("contents: write", package)
@@ -321,10 +307,33 @@ class WorkflowContractTests(unittest.TestCase):
         text = (ROOT / "scripts/setup-release-signing.sh").read_text()
         self.assertLess(text.index("enable-gatekeeper.sh"), text.index("security import"))
 
-    def test_a_tag_only_creates_a_draft(self):
+    def test_a_release_is_published_only_after_the_approved_package(self):
         text = self.workflow("release.yml")
-        self.assertIn("--draft", text)
+        self.assertNotIn("vars.", text)
+        self.assertRegex(text, r"(?m)^  package:\n    needs: verify\n")
+        publish = text.split("\n  publish:\n", 1)[1]
+        self.assertRegex(publish, r"^    needs: package\n")
         self.assertEqual(text.count("gh release create"), 1)
+        self.assertIn("--verify-tag", publish)
+        self.assertNotIn("--draft ", publish)
+        # A release published with the job's token raises no event, so it must ask for the cask itself.
+        self.assertIn('gh workflow run update-cask.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME"', publish)
+
+    def test_every_published_release_is_verified_where_users_get_it(self):
+        text = self.workflow("update-cask.yml")
+        verify = text.split("\n  verify:\n", 1)[1]
+        self.assertRegex(verify, r"^    needs: update-cask\n    runs-on: macos-")
+        self.assertRegex(verify, r"timeout-minutes: \d+")
+        self.assertNotIn("environment:", verify)
+        self.assertIn('scripts/verify-published-release.sh "$TAG"', verify)
+
+    def test_post_publish_verification_refuses_to_run_anywhere_else(self):
+        script = ROOT / "scripts/verify-published-release.sh"
+        for arguments, code in (([], 64), (["v1.2"], 64), (["v1.2.3"], 1)):
+            result = subprocess.run([str(script), *arguments], capture_output=True, text=True, check=False,
+                                    env={"PATH": "/usr/bin:/bin"})
+            self.assertEqual(result.returncode, code, arguments)
+            self.assertEqual(result.stdout, "", arguments)
 
     def test_the_default_token_is_read_only(self):
         for name in self.workflow_names():

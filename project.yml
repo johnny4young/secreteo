@@ -69,7 +69,7 @@ targets:
         ENABLE_APP_SANDBOX: NO
         SWIFT_EMIT_LOC_STRINGS: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        # On since Portavoz's cooperating version shipped; each release still needs its own GLOBAL_DICTATION_CLEARED.
+        # On since Portavoz's cooperating version shipped; the owner's approval of each release run clears it.
         SECRETEO_GLOBAL_DICTATION: YES
       configs:
         Debug:

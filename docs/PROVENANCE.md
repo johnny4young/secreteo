@@ -381,8 +381,8 @@ Adapted from `johnny4young/gancho@d747c028ffb5af4a9430bc43d63f581520a03458`.
 
 | Secreteo path | Gancho path | Change |
 |---|---|---|
-| `.github/workflows/release.yml` | `.github/workflows/release.yml` | Separates signing from write access; creates a draft; no provisioning profile |
-| `.github/workflows/update-cask.yml` | `.github/workflows/update-cask.yml` | Runs on publish and refuses a draft |
+| `.github/workflows/release.yml` | `.github/workflows/release.yml` | Separates signing from write access; publishes once the approved package passes; no provisioning profile |
+| `.github/workflows/update-cask.yml` | `.github/workflows/update-cask.yml` | Runs on publish or when the release job asks, refuses a draft, then verifies what users get |
 | `.github/workflows/pages.yml` | `.github/workflows/pages.yml` | Node from `.nvmrc`; no site script |
 | `scripts/package-release.sh`, `scripts/sign-app.sh` | `scripts/package-macos-dmg.sh` | Adds the dry-run mode; signs before notarizing with no ignored failures |
 | `scripts/generate-appcast.sh` | `scripts/generate-appcast.sh` | Embeds notes; the requirement checks moved to `scripts/verify_appcast.py` |
