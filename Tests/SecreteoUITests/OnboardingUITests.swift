@@ -75,8 +75,8 @@ final class OnboardingUITests: SecreteoUITestCase {
         XCTAssertFalse(start.isEnabled, "Off, the field waits instead of explaining")
         XCTAssertTrue(app.control(withIdentifier: "onboarding-dictation-practice-field").exists)
         XCTAssertEqual(app.control(withIdentifier: "onboarding-progress").label, Self.stepLabel(3))
-        XCTAssertTrue(
-            app.control(withIdentifier: "onboarding-practice-key").label.hasSuffix("⌃⌥⌘D"),
+        XCTAssertEqual(
+            app.control(withIdentifier: "onboarding-practice-key").value as? String, "⌃⌥⌘D",
             "With no key to hold, the cap shows the shortcut")
         XCTAssertEqual(next.label, "Done")
         attachScreenshot(named: "pr-onboarding-practice")

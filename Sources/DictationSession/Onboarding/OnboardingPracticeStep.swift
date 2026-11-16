@@ -52,7 +52,11 @@ struct OnboardingPracticeStep: View {
             .background(SecreteoDesign.amber, in: shape)
             .overlay { shape.strokeBorder(SecreteoPalette.capsuleInk.color.opacity(0.25)) }
             .shadow(color: SecreteoDesign.amber.opacity(controller.isActive ? 0.75 : 0), radius: 13)
-            .accessibilityLabel(L10n.format("Dictation key: %@", label))
+            .accessibilityElement(children: .ignore)
+            // A text's own label is read as its value, so the key is given as the value of a named element.
+            .accessibilityAddTraits(.isStaticText)
+            .accessibilityLabel(L10n.text("Dictation Key"))
+            .accessibilityValue(label)
             .accessibilityIdentifier("onboarding-practice-key")
     }
 

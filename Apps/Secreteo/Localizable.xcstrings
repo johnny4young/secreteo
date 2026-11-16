@@ -1730,6 +1730,22 @@
         }
       }
     },
+    "Dictation Key" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictation Key"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tecla de dictado"
+          }
+        }
+      }
+    },
     "Dictation Shortcut" : {
       "localizations" : {
         "en" : {
@@ -1870,22 +1886,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "El dictado no está disponible ahora. Abre los Ajustes de Secreteo para ver por qué."
-          }
-        }
-      }
-    },
-    "Dictation key: %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dictation key: %@"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tecla de dictado: %@"
           }
         }
       }
