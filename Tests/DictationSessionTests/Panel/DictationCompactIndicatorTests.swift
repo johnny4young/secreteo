@@ -100,6 +100,7 @@ final class DictationCompactIndicatorTests: XCTestCase {
         XCTAssertEqual(DictationCompactIndicator.hold(for: .dispatched(3)), .milliseconds(1_200))
         XCTAssertEqual(DictationCompactIndicator.hold(for: .noSpeech), .milliseconds(1_200))
         XCTAssertNil(DictationCompactIndicator.hold(for: .listening))
+        XCTAssertNil(DictationCompactIndicator.hold(for: .delivering))
         XCTAssertNil(DictationCompactIndicator.hold(for: .recovery(.cancelled)), "the card stays until you choose")
         XCTAssertEqual(DictationCompactIndicator.growth, 0.32)
         XCTAssertEqual(DictationCompactIndicator.growthAnchor(pinned: .top, atCaret: true), .topLeading)
@@ -108,6 +109,72 @@ final class DictationCompactIndicatorTests: XCTestCase {
         XCTAssertEqual(DictationCompactIndicator.growthAnchor(pinned: .top, atCaret: false), .top)
         XCTAssertTrue(DictationCompactIndicator.isClick(translation: CGSize(width: 2, height: -2)))
         XCTAssertFalse(DictationCompactIndicator.isClick(translation: CGSize(width: 3, height: 3)))
+    }
+
+    func testAResultWithSomethingToReadOrPressIsNeverOnlyAFace() {
+        for phase: DictationController.Phase in [.verified(3), .dispatched(3)] {
+            XCTAssertFalse(DictationCompactIndicator.needsFullResult(
+                phase, offersCorrection: false, hasNotice: false, hasSummary: false))
+            XCTAssertTrue(DictationCompactIndicator.needsFullResult(
+                phase, offersCorrection: true, hasNotice: false, hasSummary: false), "Always write…")
+            XCTAssertTrue(DictationCompactIndicator.needsFullResult(
+                phase, offersCorrection: false, hasNotice: true, hasSummary: false), "Pasted without polish.")
+            XCTAssertTrue(DictationCompactIndicator.needsFullResult(
+                phase, offersCorrection: false, hasNotice: false, hasSummary: true), "what a correction changed")
+        }
+        XCTAssertFalse(DictationCompactIndicator.needsFullResult(
+            .listening, offersCorrection: true, hasNotice: true, hasSummary: true), "only results")
+    }
+
+    func testASecondClickNeverLandsOnWhatTheFirstOneOpened() {
+        XCTAssertFalse(DictationCompactIndicator.swallowsPress(clickCount: 1, sinceExpansion: nil, doubleClick: 0.5))
+        XCTAssertTrue(DictationCompactIndicator.swallowsPress(clickCount: 2, sinceExpansion: nil, doubleClick: 0.5))
+        XCTAssertTrue(DictationCompactIndicator.swallowsPress(clickCount: 1, sinceExpansion: 0.2, doubleClick: 0.5))
+        XCTAssertTrue(
+            DictationCompactIndicator.swallowsPress(clickCount: 1, sinceExpansion: 0.3, doubleClick: 0.1),
+            "at least while the capsule grows")
+        XCTAssertFalse(DictationCompactIndicator.swallowsPress(clickCount: 1, sinceExpansion: 0.6, doubleClick: 0.5))
+
+        let visible = NSRect(x: 0, y: 40, width: 1_440, height: 820)
+        let capsule = NSSize(width: DictationPanelLayout.width, height: DictationPanelLayout.capsuleHeight)
+        let card = NSSize(width: DictationPanelLayout.width, height: 288)
+        let atEdge = NSRect(x: visible.maxX - 34, y: 500, width: 30, height: 24)
+        for (size, pinned) in [(capsule, DictationPanelAnchor.PinnedEdge.top), (card, .top), (card, .bottom)] {
+            let origin = DictationCompactIndicator.origin(
+                growingFrom: atEdge, to: size, pinned: pinned, in: visible, atCaret: true)
+            let controls = NSRect(
+                x: origin.x + size.width - DictationCompactIndicator.trailingControls, y: origin.y,
+                width: DictationCompactIndicator.trailingControls, height: size.height)
+            XCTAssertFalse(controls.intersects(atEdge), "Cancel and Discard are never under the glyph just clicked")
+            XCTAssertGreaterThanOrEqual(origin.x, visible.minX)
+        }
+        XCTAssertGreaterThan(
+            DictationCompactIndicator.trailingControls,
+            DictationCapsuleBudget.trailing + DictationCapsuleBudget.cancel, "the zone covers the capsule's Cancel")
+
+        let inText = NSRect(x: 400, y: 500, width: 30, height: 24)
+        XCTAssertEqual(
+            DictationCompactIndicator.origin(
+                growingFrom: inText, to: capsule, pinned: .top, in: visible, atCaret: true),
+            NSPoint(x: 400, y: 468), "anywhere else it grows from the caret")
+    }
+
+    func testVoiceOverHearsOneButtonAndTheOutcome() {
+        XCTAssertEqual(
+            DictationCompactIndicator.accessibilityLabel(face: .listening, time: "0:07"),
+            "Secreteo, \(SecreteoGlyphFace.listening.accessibilityName), 0:07")
+        XCTAssertEqual(
+            DictationCompactIndicator.accessibilityLabel(face: .polishing, time: nil),
+            "Secreteo, \(SecreteoGlyphFace.polishing.accessibilityName)")
+        XCTAssertEqual(
+            DictationCompactIndicator.accessibilityLabel(face: .inserted, time: ""),
+            "Secreteo, \(SecreteoGlyphFace.inserted.accessibilityName)", "a result has no time to read")
+        XCTAssertEqual(
+            DictationCompactIndicator.announcement(for: .verified(3)), SecreteoGlyphFace.inserted.accessibilityName)
+        XCTAssertEqual(
+            DictationCompactIndicator.announcement(for: .dispatched(3)), SecreteoGlyphFace.sent.accessibilityName)
+        XCTAssertNil(DictationCompactIndicator.announcement(for: .listening))
+        XCTAssertNil(DictationCompactIndicator.announcement(for: .delivering))
     }
 
     func testEveryFaceKeepsItsContrastOnTheInkOutline() {

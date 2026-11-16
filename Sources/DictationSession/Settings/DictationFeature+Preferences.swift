@@ -3,6 +3,14 @@ import Foundation
 import Polish
 import SwiftUI
 
+/// Lets a view outside Settings, such as the open dictation panel, follow a saved value.
+@MainActor
+@Observable
+final class DictationPreferenceSignal {
+    static let shared = DictationPreferenceSignal()
+    var revision = 0
+}
+
 extension DictationFeature {
     /// A disposable launch runs under the real bundle identifier, so it writes only to its volatile domain.
     /// A real edit supersedes a startup override, or the next session would not read it.
@@ -17,6 +25,7 @@ extension DictationFeature {
             }
         }
         defaults.setVolatileDomain(domain, forName: UserDefaults.argumentDomain)
+        DictationPreferenceSignal.shared.revision += 1
     }
 
     var textSettings: DictationTextSettingsModel {

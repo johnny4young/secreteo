@@ -111,11 +111,16 @@ final class DictationPanelController {
             panel.setContentSize(size)
             return
         }
+        let margin = DictationCompactIndicator.margin
         // The glyph, not its clear margin, is what the card grows from.
-        let margin = grows ? DictationCompactIndicator.margin : 0
-        let origin = DictationPanelAnchor.origin(
-            resizing: panel.frame.insetBy(dx: margin, dy: margin), to: size, pinned: pinnedEdge, in: visible,
-            keepsLeading: grows && indicatorIsAtCaret)
+        let origin = grows && !showsIndicator
+            ? DictationCompactIndicator.origin(
+                growingFrom: panel.frame.insetBy(dx: margin, dy: margin), to: size, pinned: pinnedEdge,
+                in: visible, atCaret: indicatorIsAtCaret)
+            // An option switched mid-dictation resizes the indicator from its corner.
+            : DictationPanelAnchor.origin(
+                resizing: panel.frame, to: size, pinned: pinnedEdge, in: visible,
+                keepsLeading: grows && showsIndicator)
         panel.setFrame(NSRect(origin: origin, size: size), display: true)
     }
 }
@@ -125,12 +130,19 @@ private final class DictationPanelWindow: NSPanel {
     var showsIndicator: () -> Bool = { false }
     var indicatorClicked: () -> Void = {}
     private var press: (pointer: NSPoint, origin: NSPoint, moved: Bool)?
+    private var expandedAt: Date?
 
     override var canBecomeKey: Bool { true }
 
     override func sendEvent(_ event: NSEvent) {
+        let indicator = showsIndicator()
+        let isPress = event.type == .leftMouseDown || event.type == .leftMouseUp
+        if isPress, press == nil, DictationCompactIndicator.swallowsPress(
+            clickCount: indicator ? event.clickCount : 1,
+            sinceExpansion: expandedAt.map { Date.now.timeIntervalSince($0) },
+            doubleClick: NSEvent.doubleClickInterval) { return }
         switch event.type {
-        case .leftMouseDown where showsIndicator():
+        case .leftMouseDown where indicator:
             press = (NSEvent.mouseLocation, frame.origin, false)
         case .leftMouseDragged where press != nil:
             guard var held = press else { return }
@@ -143,7 +155,9 @@ private final class DictationPanelWindow: NSPanel {
         case .leftMouseUp where press != nil:
             let moved = press?.moved == true
             press = nil
-            if !moved { indicatorClicked() }
+            guard !moved else { return }
+            expandedAt = .now
+            indicatorClicked()
         default:
             super.sendEvent(event)
         }
@@ -157,22 +171,33 @@ private struct DictationStripView: View {
     let relayout: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    /// Reads the signal, so a switch flipped in Settings mid-dictation resizes the indicator.
+    private var options: DictationCompactIndicator.Options {
+        _ = DictationPreferenceSignal.shared.revision
+        return .current()
+    }
+
     var body: some View {
         let showsIndicator = DictationCompactIndicator.applies(to: controller)
+        let options = options
         Group {
             if showsIndicator {
-                DictationAsideView(controller: controller)
+                DictationAsideView(controller: controller, options: options)
                     .transition(.identity)
             } else {
                 fullStrip
                     .transition(.asymmetric(insertion: growth, removal: .identity))
             }
         }
-        .animation(.easeOut(duration: DictationCompactIndicator.growth), value: showsIndicator)
-        .onChange(of: DictationPanelLayout.size(for: controller)) { relayout() }
+        .animation(
+            DictationCapsuleMotion.indicatorChange(
+                microphoneIsOpen: DictationWaveform.animates(for: controller),
+                duration: DictationCompactIndicator.growth),
+            value: showsIndicator)
+        .onChange(of: DictationPanelLayout.size(for: controller, options: options)) { relayout() }
     }
 
-    /// The indicator becomes its capsule or card where it stands; Reduce Motion cross-fades instead.
+    /// While the microphone is open the indicator grows into its capsule; Reduce Motion cross-fades instead.
     private var growth: AnyTransition {
         reduceMotion
             ? .opacity

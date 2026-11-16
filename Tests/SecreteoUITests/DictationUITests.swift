@@ -279,11 +279,11 @@ final class DictationUITests: SecreteoUITestCase {
         let app = try launchCompactDictation(
             defaults: #","dictationCompactShowsElapsedTime":true,"dictationCompactShowsBackdrop":true"#)
         defer { finishUITestApplication(app) }
-        XCTAssertTrue(app.descendants(matching: .any)["dictation-panel-compact"].waitForExistenceFast(timeout: 5))
-        let elapsed = app.staticTexts["dictation-panel-elapsed"]
+        let compact = app.descendants(matching: .any)["dictation-panel-compact"]
+        XCTAssertTrue(compact.waitForExistenceFast(timeout: 5))
         XCTAssertTrue(waitForUITestCondition(timeout: 5) {
-            renderedText(of: elapsed).range(of: #"^\d+:\d{2}$"#, options: .regularExpression) != nil
-        }, "the elapsed time reads as m:ss")
+            renderedText(of: compact).range(of: #"^Secreteo, .+, \d+:\d{2}$"#, options: .regularExpression) != nil
+        }, "one button that reads the app, the state and the time as m:ss")
         XCTAssertEqual(app.dialogs["dictation-panel"].frame.size, CGSize(width: 76, height: 38))
         XCTAssertFalse(app.staticTexts["dictation-panel-state"].exists, "no live text or title")
         attachScreenshot(named: "pr-indicator-options")

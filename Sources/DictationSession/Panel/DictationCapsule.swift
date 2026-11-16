@@ -41,6 +41,11 @@ enum DictationCapsuleMotion {
         microphoneIsOpen && !reduceMotion ? .easeOut(duration: 0.2) : nil
     }
 
+    /// The small indicator's faces cross-fade and its capsule grows only while the microphone is open.
+    static func indicatorChange(microphoneIsOpen: Bool, duration: TimeInterval) -> Animation? {
+        microphoneIsOpen ? .easeOut(duration: duration) : nil
+    }
+
     /// The elapsed time reads the moment of Stop from then on.
     static func clock(tick: Date, stoppedAt: Date?) -> Date { stoppedAt ?? tick }
 }

@@ -174,7 +174,6 @@ struct DictationAsideBody: View {
                     .minimumScaleFactor(0.75)
                     .modifier(DictationAsideInkOutline(isOn: !bead))
                     .frame(width: 32, alignment: .leading)
-                    .accessibilityIdentifier("dictation-panel-elapsed")
             }
         }
         .padding(.trailing, time == nil ? 0 : 4)
@@ -190,7 +189,10 @@ struct DictationAsideBody: View {
                     }
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: face)
+        .animation(
+            DictationCapsuleMotion.indicatorChange(
+                microphoneIsOpen: live, duration: DictationCompactIndicator.faceChange),
+            value: face)
     }
 }
 
@@ -218,48 +220,58 @@ private struct DictationAsideInkOutline: ViewModifier {
 /// The small indicator in the dictation panel.
 struct DictationAsideView: View {
     let controller: DictationController
-    @State private var faded = false
+    let options: DictationCompactIndicator.Options
+    /// What the time read at Stop; it does not count through the delivery.
+    @State private var stoppedTime: String?
 
     var body: some View {
-        let options = DictationCompactIndicator.Options.current()
         let size = DictationCompactIndicator.size(for: options)
+        let isRunning = DictationWaveform.animates(for: controller)
         Group {
-            if options.showsElapsedTime {
+            if options.showsElapsedTime, isRunning {
                 TimelineView(.periodic(from: .now, by: 1)) { tick in
-                    // A result keeps the width, without a time that no longer runs.
-                    indicator(options, time: controller.isActive
-                        ? DictationCompactIndicator.elapsed(since: controller.captureStartedAt, now: tick.date) : "")
+                    indicator(time: DictationCompactIndicator.time(
+                        start: controller.captureStartedAt, tick: tick.date, stoppedAt: nil))
                 }
             } else {
-                indicator(options, time: nil)
+                indicator(time: stillTime)
             }
         }
-        .opacity(faded ? 0 : 1)
         .frame(width: size.width, height: size.height, alignment: .leading)
         // Fully clear pixels let clicks through the window; a barely-there fill keeps the glyph a target.
         .background(Color.black.opacity(0.01))
         .padding(DictationCompactIndicator.margin)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(controller.statusFace.accessibilityName)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityAction { controller.expandCompactIndicator() }
-        .accessibilityIdentifier("dictation-panel-compact")
+        .onChange(of: isRunning, initial: true) {
+            stoppedTime = isRunning ? nil : DictationCompactIndicator.time(
+                start: controller.captureStartedAt, tick: .now, stoppedAt: nil)
+        }
+        .onChange(of: controller.phase) {
+            guard let words = DictationCompactIndicator.announcement(for: controller.phase) else { return }
+            AccessibilityNotification.Announcement(words).post()
+        }
         .task(id: controller.phase) {
-            faded = false
-            guard let hold = DictationCompactIndicator.hold(for: controller.phase) else { return }
+            guard controller.phase == .noSpeech, let hold = DictationCompactIndicator.hold(for: .noSpeech)
+            else { return }
             try? await Task.sleep(for: hold)
             guard !Task.isCancelled else { return }
-            if controller.phase == .noSpeech {
-                controller.expandCompactIndicator()
-            } else {
-                withAnimation(.easeOut(duration: 0.3)) { faded = true }
-            }
+            controller.expandCompactIndicator()
         }
     }
 
-    private func indicator(_ options: DictationCompactIndicator.Options, time: String?) -> some View {
+    /// A result keeps the width, without a time that no longer runs.
+    private var stillTime: String? {
+        guard options.showsElapsedTime else { return nil }
+        return controller.isActive ? stoppedTime ?? "" : ""
+    }
+
+    private func indicator(time: String?) -> some View {
         DictationAsideBody(
             face: controller.statusFace, level: controller.micLevel, live: DictationWaveform.animates(for: controller),
             time: time, bead: options.showsBackdrop)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(DictationCompactIndicator.accessibilityLabel(face: controller.statusFace, time: time))
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction { controller.expandCompactIndicator() }
+            .accessibilityIdentifier("dictation-panel-compact")
     }
 }

@@ -9,9 +9,11 @@ enum DictationPanelLayout {
     static let noticeSpacing: CGFloat = 4
 
     @MainActor
-    static func size(for controller: DictationController) -> NSSize {
+    static func size(
+        for controller: DictationController, options: DictationCompactIndicator.Options = .current()
+    ) -> NSSize {
         DictationCompactIndicator.applies(to: controller)
-            ? DictationCompactIndicator.windowSize(for: .current())
+            ? DictationCompactIndicator.windowSize(for: options)
             : NSSize(
                 width: width,
                 height: height(for: controller.phase, showsNotice: controller.microphoneNotice != nil))
