@@ -4,6 +4,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- ✍️ **Rewrite Selection is a card in the same dark glass**: your selection quoted in serif, Polish and your recipes as chips, the words you say for “Say how” as you say them, and one Replace button once the preview is ready.
 - 💬 **Results the size of their words**: after an insertion the capsule shrinks to a pill that says how many words went where and then leaves. Text that was not sent, was sent without confirmation or held no speech opens a dark card as tall as the words, with Reinsert first when the field can take them again.
 - 🗂️ **Settings in five tabs**: Dictation, Text, Polish, History and General, with a readiness header that shows what dictation still needs, shortcuts drawn as keys, and the indicator chosen by picture.
 - 📋 **The menu is a small dashboard**: what dictation is doing and who owns it, Dictate with its real keys, the last dictation ready to paste again, today's words over the last seven days, and each row's shortcut.

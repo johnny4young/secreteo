@@ -29,6 +29,7 @@ enum DictationPanelTranscript {
 
 /// Confirmed words stand upright; the engine's tail is a whisper in italic serif until it is confirmed.
 struct DictationCapsuleTranscript: View {
+    let identifier: String
     let confirmed: String
     let partial: String
     /// VoiceOver keeps the whole dictation; the capsule only shows its end.
@@ -70,7 +71,7 @@ struct DictationCapsuleTranscript: View {
             .fixedSize()
             .contentTransition(.opacity)
             .animation(settle, value: visible)
-            .accessibilityIdentifier("dictation-panel-transcript")
+            .accessibilityIdentifier(identifier)
             .accessibilityLabel(spoken)
     }
 }

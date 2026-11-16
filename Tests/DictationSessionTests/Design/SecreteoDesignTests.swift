@@ -98,7 +98,11 @@ struct SecreteoDesignTests {
         ("indicator amber on its outline", SecreteoPalette.capsuleAmber.light, SecreteoPalette.asideOutline.light),
         ("indicator verified on its outline", SecreteoPalette.capsuleVerified.light, SecreteoPalette.asideOutline.light),
         ("indicator not sent on its outline", SecreteoPalette.capsuleNotSent.light, SecreteoPalette.asideOutline.light),
-        ("indicator no speech on its outline", SecreteoPalette.asideQuiet.light, SecreteoPalette.asideOutline.light)
+        ("indicator no speech on its outline", SecreteoPalette.asideQuiet.light, SecreteoPalette.asideOutline.light),
+        // Lacquer under the amber wash of a quoted selection (22 %) and of a selected chip (16 %).
+        ("capsule text on a quoted selection", SecreteoPalette.capsuleText.light, 0x463517),
+        ("crest on a selected chip", SecreteoPalette.capsuleVoiceCrest.light, 0x392B15),
+        ("white on accent", 0xFFFFFF, SecreteoPalette.accent.light)
     ] as [(String, UInt32, UInt32)])
     func textMeetsContrast(_ pair: (String, UInt32, UInt32)) {
         #expect(Self.contrast(pair.1, pair.2) >= 4.5, "\(pair.0)")

@@ -15,6 +15,8 @@ final class DictationPanelController {
     /// What the last layout showed, so a change knows whether the indicator is growing.
     private var showsIndicator = false
 
+    var isShown: Bool { panel != nil }
+
     func show(controller: DictationController) {
         track(controller, presented: true)
         let size = size(for: controller)
