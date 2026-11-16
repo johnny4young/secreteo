@@ -14,16 +14,10 @@ struct DictationRecoveryView: View {
             textIdentifier: "dictation-recovery-text"
         ) {
             if controller.canRetryDelivery {
-                Button(action: controller.retryUndeliveredText) {
-                    HStack(spacing: 6) {
-                        Text("Reinsert")
-                        Text(verbatim: "↩").opacity(0.7).accessibilityHidden(true)
-                    }
-                }
-                .buttonStyle(DictationCardButtonStyle(kind: .primary))
-                .keyboardShortcut(.defaultAction)
-                .accessibilityIdentifier("dictation-recovery-reinsert")
-                .disabled(controller.isRetryingDelivery)
+                Button("Reinsert", action: controller.retryUndeliveredText)
+                    .buttonStyle(DictationCardButtonStyle(kind: .primary))
+                    .accessibilityIdentifier("dictation-recovery-reinsert")
+                    .disabled(controller.isRetryingDelivery)
             }
             Button("Copy", action: controller.copyPendingText)
                 .buttonStyle(DictationCardButtonStyle(kind: controller.canRetryDelivery ? .quiet : .primary))
@@ -33,7 +27,9 @@ struct DictationRecoveryView: View {
             Button("Discard", role: .cancel, action: controller.cancel)
                 .buttonStyle(DictationCardButtonStyle(kind: .bare))
                 .accessibilityIdentifier("dictation-recovery-discard")
-            DictationCopyStatusLabel(status: controller.copyStatus, kept: controller.deliveryPrivacyLine)
+            DictationCopyStatusLabel(
+                status: controller.copyStatus, privacy: controller.deliveryPrivacyLine,
+                inHistory: controller.historyKeptDelivery)
                 .accessibilityIdentifier("dictation-recovery-copy-status")
         }
     }

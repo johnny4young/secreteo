@@ -21,6 +21,20 @@ enum DictationPanelLayout {
         !showsNotice && !offersCorrection
     }
 
+    /// Every presented result is a new pill; a card is new when its kind or its delivery changes,
+    /// so showing a retained card again leaves it as it is.
+    static func startsNewOutcome(
+        _ shown: DictationPanelOutcome?, after previous: DictationPanelOutcome?, presented: Bool
+    ) -> Bool {
+        guard let shown else { return false }
+        return shown != previous || (presented && shown.kind == .result)
+    }
+
+    /// Words fade at the bottom only while more of them wait below.
+    static func wordsContinueBelow(offset: CGFloat, visible: CGFloat, content: CGFloat) -> Bool {
+        content - (offset + visible) > 1
+    }
+
     /// `outcomeHeight` is what the outcome's SwiftUI content last measured; `visible` is the screen's usable size.
     @MainActor
     static func size(
@@ -68,5 +82,24 @@ enum DictationPanelLayout {
     static func wordsHeight(forContent height: CGFloat) -> CGFloat {
         guard height.isFinite, height > 0 else { return 0 }
         return min(height.rounded(.up), wordsMaxHeight)
+    }
+}
+
+/// Which outcome the panel shows, so a new one never inherits the last one's state or measured height.
+struct DictationPanelOutcome: Equatable {
+    enum Kind: Equatable { case result, notSent, sent, noSpeech }
+
+    let kind: Kind
+    let delivery: UUID?
+
+    init?(phase: DictationController.Phase, delivery: UUID?) {
+        switch phase {
+        case .verified: kind = .result
+        case .recovery: kind = .notSent
+        case .dispatched: kind = .sent
+        case .noSpeech: kind = .noSpeech
+        case .idle, .preparing, .listening, .delivering, .failed: return nil
+        }
+        self.delivery = delivery
     }
 }

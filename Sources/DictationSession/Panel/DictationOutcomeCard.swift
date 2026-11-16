@@ -20,19 +20,18 @@ struct DictationOutcomeCard<Actions: View>: View {
                 SecreteoGlyph(face, ink: SecreteoPalette.capsuleSecondaryText.color)
                     .frame(width: 22, height: 20)
                     .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 4 }
-                Text(title)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(SecreteoPalette.capsuleText.color)
-                    .fixedSize()
-                    .accessibilityAddTraits(.isHeader)
-                    .accessibilityIdentifier(titleIdentifier)
-                Text(reason)
-                    .font(.system(size: 12))
-                    .foregroundStyle(SecreteoPalette.capsuleSecondaryText.color)
-                    .lineLimit(3)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityIdentifier(reasonIdentifier)
+                // The reason sits beside the title while it fits on that line, and under it otherwise.
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline, spacing: 9) {
+                        heading.fixedSize()
+                        explanation.lineLimit(1).fixedSize()
+                    }
+                    VStack(alignment: .leading, spacing: 3) {
+                        heading.lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                        explanation.lineLimit(4).fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 if let close {
                     Button(action: close) {
                         Image(systemName: "xmark")
@@ -72,6 +71,21 @@ struct DictationOutcomeCard<Actions: View>: View {
         .accessibilityElement(children: .contain)
     }
 
+    private var heading: some View {
+        Text(title)
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(SecreteoPalette.capsuleText.color)
+            .accessibilityAddTraits(.isHeader)
+            .accessibilityIdentifier(titleIdentifier)
+    }
+
+    private var explanation: some View {
+        Text(reason)
+            .font(.system(size: 12))
+            .foregroundStyle(SecreteoPalette.capsuleSecondaryText.color)
+            .accessibilityIdentifier(reasonIdentifier)
+    }
+
     private var outline: RoundedRectangle {
         RoundedRectangle(cornerRadius: DictationPanelLayout.cardRadius, style: .continuous)
     }
@@ -82,6 +96,7 @@ private struct DictationOutcomeWords: View {
     let text: String
     let identifier: String
     @State private var contentHeight = DictationPanelLayout.wordsFontSize * 1.25
+    @State private var continuesBelow = false
 
     var body: some View {
         ScrollView {
@@ -96,16 +111,21 @@ private struct DictationOutcomeWords: View {
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
         }
         .scrollBounceBehavior(.basedOnSize)
+        .onScrollGeometryChange(for: Bool.self) {
+            DictationPanelLayout.wordsContinueBelow(
+                offset: $0.contentOffset.y, visible: $0.containerSize.height, content: $0.contentSize.height)
+        } action: { continuesBelow = $1 }
         .frame(height: DictationPanelLayout.wordsHeight(forContent: contentHeight))
         // Words that continue below fade out instead of ending on half a line.
         .mask {
             LinearGradient(
-                stops: [.init(color: .black, location: 0.86), .init(color: scrolls ? .clear : .black, location: 1)],
+                stops: [
+                    .init(color: .black, location: 0.86),
+                    .init(color: continuesBelow ? .clear : .black, location: 1)
+                ],
                 startPoint: .top, endPoint: .bottom)
         }
     }
-
-    private var scrolls: Bool { contentHeight > DictationPanelLayout.wordsMaxHeight }
 }
 
 /// The card's buttons: one copper primary at most, the rest quiet.

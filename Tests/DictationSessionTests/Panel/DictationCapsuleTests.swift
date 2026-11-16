@@ -123,6 +123,61 @@ struct DictationCapsuleTests {
         #expect(!DictationPanelLayout.isCard(.idle) && !DictationPanelLayout.isCapsule(.idle))
     }
 
+    @Test
+    func aNewOutcomeStartsFreshAndARetainedCardStaysAsItIs() {
+        typealias Outcome = DictationPanelOutcome
+        let first = UUID(), second = UUID()
+        for phase: DictationController.Phase in [.idle, .preparing, .listening, .delivering, .failed("x")] {
+            #expect(Outcome(phase: phase, delivery: first) == nil)
+        }
+        let pill = Outcome(phase: .verified(3), delivery: first)
+        let card = Outcome(phase: .recovery(.cancelled), delivery: first)
+        #expect(pill?.kind == .result && card?.kind == .notSent)
+        #expect(Outcome(phase: .dispatched(3), delivery: first)?.kind == .sent)
+        #expect(Outcome(phase: .noSpeech, delivery: first)?.kind == .noSpeech)
+
+        #expect(DictationPanelLayout.startsNewOutcome(card, after: nil, presented: true), "after the capsule")
+        #expect(!DictationPanelLayout.startsNewOutcome(card, after: card, presented: true), "shown again, not replaced")
+        #expect(!DictationPanelLayout.startsNewOutcome(card, after: card, presented: false))
+        #expect(
+            DictationPanelLayout.startsNewOutcome(
+                Outcome(phase: .recovery(.targetChanged), delivery: second), after: card, presented: true),
+            "another delivery never inherits this card's height")
+        #expect(DictationPanelLayout.startsNewOutcome(pill, after: card, presented: true), "reinserted")
+        #expect(
+            DictationPanelLayout.startsNewOutcome(pill, after: pill, presented: true),
+            "a second confirmation must not inherit a faded pill")
+        #expect(!DictationPanelLayout.startsNewOutcome(pill, after: pill, presented: false), "a relayout is not one")
+        #expect(!DictationPanelLayout.startsNewOutcome(nil, after: card, presented: true))
+    }
+
+    @Test
+    func theWordsFadeOnlyWhileMoreWaitBelow() {
+        #expect(DictationPanelLayout.wordsContinueBelow(offset: 0, visible: 118, content: 400))
+        #expect(DictationPanelLayout.wordsContinueBelow(offset: 200, visible: 118, content: 400))
+        #expect(!DictationPanelLayout.wordsContinueBelow(offset: 282, visible: 118, content: 400), "at the end")
+        #expect(!DictationPanelLayout.wordsContinueBelow(offset: 300, visible: 118, content: 400), "bounced past it")
+        #expect(!DictationPanelLayout.wordsContinueBelow(offset: 0, visible: 58, content: 58), "it all fits")
+        #expect(!DictationPanelLayout.wordsContinueBelow(offset: 0, visible: 58, content: 58.6), "a rounding sliver")
+    }
+
+    @Test
+    func wordsOnlyInMemorySaySoUntilTheyAreCopied() {
+        let nothing = "Nothing was saved in Secreteo.", saved = "Saved to your dictation history."
+        let warning = "Kept only in memory. Copy it before quitting Secreteo."
+        func message(_ status: DictationController.CopyStatus, _ privacy: String, inHistory: Bool) -> String {
+            DictationCopyStatusLabel.message(status: status, privacy: privacy, inHistory: inHistory)
+        }
+        #expect(message(.idle, nothing, inHistory: false) == warning)
+        #expect(message(.idle, saved, inHistory: true) == saved)
+        #expect(message(.failed, nothing, inHistory: false) == "Couldn't copy. Your text is still here. " + warning)
+        #expect(message(.failed, saved, inHistory: true) == "Couldn't copy. Your text is still here. " + saved)
+        #expect(
+            message(.copied, nothing, inHistory: false) == "Copied. You can paste the text yourself. " + nothing,
+            "what was kept stays on screen after Copy")
+        #expect(message(.copied, saved, inHistory: true) == "Copied. You can paste the text yourself. " + saved)
+    }
+
     @Test @MainActor
     func theResultPillStaysWhileThereIsSomethingToReadOrAnswer() {
         #expect(DictationPanelLayout.resultFades(showsNotice: false, offersCorrection: false))

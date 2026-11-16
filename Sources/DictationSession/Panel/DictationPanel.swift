@@ -9,10 +9,12 @@ import DictationKit
 final class DictationPanelController {
     private var panel: NSPanel?
     private let placement = DictationPanelPlacement()
-    /// The last height an outcome's content measured.
+    private var outcome: DictationPanelOutcome?
+    /// What the shown outcome's content measured; nil until it has.
     private var outcomeHeight: CGFloat?
 
     func show(controller: DictationController) {
+        track(controller, presented: true)
         let size = size(for: controller)
         if let panel {
             shade(panel, for: controller)
@@ -36,7 +38,7 @@ final class DictationPanelController {
         shade(panel, for: controller)
         let content = NSHostingView(
             rootView: DictationStripView(controller: controller, placement: placement) { [weak self] measured in
-                self?.relayout(for: controller, outcomeHeight: measured)
+                self?.relayout(for: controller, measured: measured)
             }.secreteoLocalized())
         // The layout decides the size; the hosting view must not constrain the window too.
         content.sizingOptions = []
@@ -49,7 +51,17 @@ final class DictationPanelController {
     func close() {
         panel?.orderOut(nil)
         panel = nil
+        outcome = nil
         outcomeHeight = nil
+    }
+
+    private func track(_ controller: DictationController, presented: Bool) {
+        let shown = DictationPanelOutcome(phase: controller.phase, delivery: controller.deliveryID)
+        if DictationPanelLayout.startsNewOutcome(shown, after: outcome, presented: presented) {
+            placement.outcomeSerial += 1
+            outcomeHeight = nil
+        }
+        outcome = shown
     }
 
     private func size(for controller: DictationController) -> NSSize {
@@ -72,9 +84,11 @@ final class DictationPanelController {
     }
 
     /// Follows a layout change without ever reopening a closed panel.
-    private func relayout(for controller: DictationController, outcomeHeight measured: CGFloat?) {
+    private func relayout(for controller: DictationController, measured: DictationStripView.Measurement?) {
         guard let panel else { return }
-        if let measured { outcomeHeight = measured }
+        track(controller, presented: false)
+        // A height that arrives late from the outcome before this one is not this one's.
+        if let measured, measured.serial == placement.outcomeSerial { outcomeHeight = measured.height }
         shade(panel, for: controller)
         resize(panel, to: size(for: controller))
     }
@@ -108,14 +122,21 @@ private final class DictationPanelWindow: NSPanel {
 @Observable
 final class DictationPanelPlacement {
     var pinnedEdge = DictationPanelAnchor.PinnedEdge.bottom
+    /// Changes with every new outcome, so its view starts from fresh state.
+    var outcomeSerial = 0
 }
 
 private struct DictationStripView: View {
+    struct Measurement {
+        let serial: Int
+        let height: CGFloat
+    }
+
     let controller: DictationController
     let placement: DictationPanelPlacement
     /// Lets the panel follow phases that change without an explicit re-show, such as a failure,
     /// and the height an outcome's content measures.
-    let relayout: (CGFloat?) -> Void
+    let relayout: (Measurement?) -> Void
 
     var body: some View {
         Group {
@@ -124,9 +145,13 @@ private struct DictationStripView: View {
             } else if DictationPanelLayout.isCapsule(controller.phase) {
                 DictationCapsuleView(controller: controller)
             } else {
+                let serial = placement.outcomeSerial
                 outcome
                     .fixedSize(horizontal: false, vertical: true)
-                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { relayout($0) }
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                        relayout(Measurement(serial: serial, height: $0))
+                    }
+                    .id(serial)
                     // Dark over any app and in either appearance, like the capsule.
                     .environment(\.colorScheme, .dark)
             }

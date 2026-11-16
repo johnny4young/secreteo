@@ -19,7 +19,9 @@ struct DictationUnverifiedDeliveryView: View {
             Button("Discard", role: .cancel, action: controller.cancel)
                 .buttonStyle(DictationCardButtonStyle(kind: .bare))
                 .accessibilityIdentifier("dictation-unverified-discard")
-            DictationCopyStatusLabel(status: controller.copyStatus, kept: controller.deliveryPrivacyLine)
+            DictationCopyStatusLabel(
+                status: controller.copyStatus, privacy: controller.deliveryPrivacyLine,
+                inHistory: controller.historyKeptDelivery)
                 .accessibilityIdentifier("dictation-unverified-copy-status")
         }
     }

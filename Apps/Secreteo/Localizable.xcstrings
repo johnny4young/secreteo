@@ -2546,6 +2546,22 @@
         }
       }
     },
+    "Kept only in memory. Copy it before quitting Secreteo." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kept only in memory. Copy it before quitting Secreteo."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo se conserva en memoria. Cópialo antes de cerrar Secreteo."
+          }
+        }
+      }
+    },
     "Language" : {
       "localizations" : {
         "en" : {

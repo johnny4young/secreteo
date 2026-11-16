@@ -51,6 +51,8 @@ struct DictationResultPill: View {
                 .foregroundStyle(SecreteoPalette.capsuleText.color)
                 .lineLimit(1)
                 .accessibilityIdentifier("dictation-panel-delivery-status")
+                // Read right after the title and from its place, never from an empty spot.
+                .overlay(alignment: .leading) { if !controller.historySaveFailed { kept(visible: false) } }
             if controller.historySaveFailed { kept(visible: true).fixedSize() }
             if let learnable = controller.learnableCorrection {
                 Button { controller.learnCorrection() } label: {
@@ -73,17 +75,16 @@ struct DictationResultPill: View {
         .background { DictationLacquer() }
         .clipShape(Capsule())
         .overlay { DictationRimStroke(style: .verified, outline: Capsule(), end: 0.16) }
-        .background { if !controller.historySaveFailed { kept(visible: false) } }
     }
 
     /// What Secreteo kept is read aloud on every pill and drawn only when saving failed.
     private func kept(visible: Bool) -> some View {
         Text(controller.deliveryPrivacyLine)
-            .font(.system(size: visible ? 12 : 1))
+            .font(.system(size: visible ? 12 : 15, weight: visible ? .regular : .medium))
             .foregroundStyle(visible ? SecreteoPalette.capsuleNotSent.color : .clear)
             .lineLimit(1)
-            .frame(maxWidth: visible ? nil : 28, maxHeight: visible ? nil : 26)
-            .clipped()
+            .frame(maxWidth: visible ? nil : .infinity, alignment: .leading)
+            .allowsHitTesting(false)
             .accessibilityIdentifier("dictation-panel-delivery-detail")
     }
 

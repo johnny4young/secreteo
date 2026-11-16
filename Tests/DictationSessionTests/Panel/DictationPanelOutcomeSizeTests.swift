@@ -18,7 +18,15 @@ final class DictationPanelOutcomeSizeTests: XCTestCase {
         XCTAssertLessThan(endless, 288, "past a few lines the words scroll")
     }
 
-    private func cardHeight(for text: String) async throws -> CGFloat {
+    func testALongAppNameWrapsTheReasonInsteadOfCuttingIt() async throws {
+        guard NSScreen.screens.first != nil else { throw XCTSkip("A panel needs a display") }
+        let short = try await cardHeight(for: "Send the report.")
+        let long = try await cardHeight(
+            for: "Send the report.", app: "Administrador de Documentos Compartidos del Departamento de Finanzas")
+        XCTAssertGreaterThan(long, short, "the reason takes another line under the title")
+    }
+
+    private func cardHeight(for text: String, app: String = "Mail") async throws -> CGFloat {
         let harness = DictationControllerHarness(text: text)
         let panels = DictationPanelController()
         defer {
@@ -27,7 +35,7 @@ final class DictationPanelOutcomeSizeTests: XCTestCase {
         }
         var dependencies = harness.dependencies
         dependencies.captureDestination = {
-            CapturedDictationDestination(name: "Original app", canRetry: true) { _ in .refused(.targetChanged) }
+            CapturedDictationDestination(name: app, canRetry: true) { _ in .refused(.targetChanged) }
         }
         harness.controller.toggle(using: dependencies)
         let heard = await TestPolling.until { harness.controller.partialText == text }
