@@ -33,7 +33,7 @@ enum SecreteoGlyphGeometry {
     private static func core(_ face: SecreteoGlyphFace) -> [Mark] {
         switch face {
         case .ready: [Mark(path: disc(12, 11, 1.7), filled: true)]
-        case .listening: [Mark(path: listeningBars, filled: false, ink: .voice)]
+        case .listening: [Mark(path: listeningBars(), filled: false, ink: .voice)]
         case .loading: [9.3, 12, 14.7].map { Mark(path: disc($0, 11, 1), filled: true) }
         case .polishing: [Mark(path: spark, filled: true)]
         case .inserted: [Mark(path: check, filled: false)]
@@ -64,11 +64,13 @@ enum SecreteoGlyphGeometry {
         return path
     }
 
-    private static var listeningBars: CGPath {
+    /// Three bars around the middle line; the small indicator shortens them in silence.
+    static func listeningBars(scale: CGFloat = 1) -> CGPath {
         let path = CGMutablePath()
-        for (x, top, height) in [(9.4, 9.2, 3.6), (12, 6.4, 9.2), (14.6, 8.4, 5.2)] as [(CGFloat, CGFloat, CGFloat)] {
-            path.move(to: CGPoint(x: x, y: top))
-            path.addLine(to: CGPoint(x: x, y: top + height))
+        for (x, height) in [(9.4, 3.6), (12, 9.2), (14.6, 5.2)] as [(CGFloat, CGFloat)] {
+            let half = height * scale / 2
+            path.move(to: CGPoint(x: x, y: 11 - half))
+            path.addLine(to: CGPoint(x: x, y: 11 + half))
         }
         return path
     }

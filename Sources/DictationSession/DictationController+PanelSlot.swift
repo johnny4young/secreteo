@@ -5,7 +5,7 @@ extension DictationController {
     func panelSlotMoved(to slot: NSRect) {
         guard case .slot = panelAnchor, phase != .idle else { return }
         panelAnchor = .slot(slot)
-        panel.move(to: .slot(slot))
+        panel.move(for: self)
     }
 
     /// Without its window the panel would float over nothing, so the dictation in it ends.

@@ -134,6 +134,35 @@ struct DictationIndicatorChoice: View {
     }
 }
 
+/// A look the small indicator can add, with its picture; it waits while the capsule is chosen.
+struct DictationIndicatorOption<Picture: View>: View {
+    private let title: Text
+    private let identifier: String
+    @Binding private var isOn: Bool
+    private let isAvailable: Bool
+    private let picture: Picture
+
+    init(
+        _ title: Text, identifier: String, isOn: Binding<Bool>, isAvailable: Bool,
+        @ViewBuilder picture: () -> Picture
+    ) {
+        self.title = title
+        self.identifier = identifier
+        _isOn = isOn
+        self.isAvailable = isAvailable
+        self.picture = picture()
+    }
+
+    var body: some View {
+        SettingsSwitch(title, identifier: identifier, isOn: $isOn) {
+            picture.accessibilityHidden(true)
+        }
+        .padding(.leading, 17)
+        .disabled(!isAvailable)
+        .opacity(isAvailable ? 1 : 0.45)
+    }
+}
+
 /// What Polish does to a sentence: the words heard, then the words typed.
 struct DictationPolishPreview: View {
     var body: some View {

@@ -4946,6 +4946,22 @@
         }
       }
     },
+    "Show Elapsed Time" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Elapsed Time"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar el tiempo transcurrido"
+          }
+        }
+      }
+    },
     "Show Older Dictations" : {
       "localizations" : {
         "en" : {
@@ -4974,6 +4990,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mostrar solo un indicador pequeño"
+          }
+        }
+      }
+    },
+    "Show a Backdrop" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show a Backdrop"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar un fondo"
           }
         }
       }

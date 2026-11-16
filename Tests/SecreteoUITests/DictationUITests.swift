@@ -254,47 +254,66 @@ final class DictationUITests: SecreteoUITestCase {
     }
 
     @MainActor
-    func testCompactIndicatorShowsOnlyTheLevelAndTime() throws {
-        let app = try XCUIApplication.secreteo(showMenuBarContent: true)
-        app.launchArguments += ["-seed-dictation", "-seed-dictation-model-loading"]
-        app.launchEnvironment["SECRETEO_UI_TEST_DEFAULTS"] =
-            #"{"globalDictationEnabled":true,"dictationCompactIndicator":true}"#
-        app.launchSecreteo()
+    func testCompactIndicatorIsOnlyTheGlyphUntilItIsClicked() throws {
+        let app = try launchCompactDictation()
         defer { finishUITestApplication(app) }
-        let dictate = app.buttons["menu-bar-dictate"]
-        XCTAssertTrue(dictate.waitForStableFrame(timeout: 5))
-        dictate.click()
         let compact = app.descendants(matching: .any)["dictation-panel-compact"]
         XCTAssertTrue(compact.waitForExistenceFast(timeout: 5))
-        let elapsed = app.staticTexts["dictation-panel-elapsed"]
-        XCTAssertTrue(waitForUITestCondition(timeout: 5) {
-            renderedText(of: elapsed).range(of: #"^\d+:\d{2}$"#, options: .regularExpression) != nil
-        }, "the elapsed time reads as m:ss")
-        XCTAssertTrue(app.descendants(matching: .any)["dictation-panel-meter"].exists)
-        XCTAssertFalse(app.buttons["dictation-panel-cancel"].exists, "no buttons in the compact indicator")
+        let panel = app.dialogs["dictation-panel"]
+        XCTAssertEqual(
+            panel.frame.size, CGSize(width: 38, height: 32), "the two parentheses and the room for their shadow")
+        XCTAssertFalse(app.staticTexts["dictation-panel-elapsed"].exists, "the time is an option")
+        XCTAssertFalse(app.buttons["dictation-panel-cancel"].exists, "no buttons in the small indicator")
         XCTAssertFalse(app.staticTexts["dictation-panel-state"].exists, "no live text or title")
-        XCTAssertLessThan(app.dialogs["dictation-panel"].frame.width, 200)
+        attachScreenshot(named: "pr-indicator-default")
+
+        compact.click()
+
+        XCTAssertTrue(app.buttons["dictation-panel-cancel"].waitForStableFrame(timeout: 5), "a click opens the capsule")
+        XCTAssertGreaterThan(panel.frame.width, 500)
+        XCTAssertFalse(compact.exists)
+    }
+
+    @MainActor
+    func testCompactIndicatorOptionsAddTheTimeAndTheBead() throws {
+        let app = try launchCompactDictation(
+            defaults: #","dictationCompactShowsElapsedTime":true,"dictationCompactShowsBackdrop":true"#)
+        defer { finishUITestApplication(app) }
+        let compact = app.descendants(matching: .any)["dictation-panel-compact"]
+        XCTAssertTrue(compact.waitForExistenceFast(timeout: 5))
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) {
+            renderedText(of: compact).range(of: #"^Secreteo, .+, \d+:\d{2}$"#, options: .regularExpression) != nil
+        }, "one button that reads the app, the state and the time as m:ss")
+        XCTAssertEqual(app.dialogs["dictation-panel"].frame.size, CGSize(width: 76, height: 38))
+        XCTAssertFalse(app.staticTexts["dictation-panel-state"].exists, "no live text or title")
+        attachScreenshot(named: "pr-indicator-options")
     }
 
     @MainActor
     func testCompactIndicatorCanBeDraggedWhileDictating() throws {
-        let app = try XCUIApplication.secreteo(showMenuBarContent: true)
-        app.launchArguments += ["-seed-dictation", "-seed-dictation-model-loading"]
-        app.launchEnvironment["SECRETEO_UI_TEST_DEFAULTS"] =
-            #"{"globalDictationEnabled":true,"dictationCompactIndicator":true}"#
-        app.launchSecreteo()
+        let app = try launchCompactDictation()
         defer { finishUITestApplication(app) }
-        let dictate = app.buttons["menu-bar-dictate"]
-        XCTAssertTrue(dictate.waitForStableFrame(timeout: 5))
-        dictate.click()
         let panel = app.dialogs["dictation-panel"]
         XCTAssertTrue(panel.waitForExistenceFast(timeout: 5))
         let before = panel.frame
-        let grab = panel.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5))
+        let grab = panel.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
         grab.press(forDuration: 0.2, thenDragTo: grab.withOffset(CGVector(dx: -160, dy: -120)))
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { panel.frame.origin != before.origin },
                       "the floating indicator moves where the user drags it")
-        XCTAssertEqual(panel.frame.size, before.size)
+        XCTAssertEqual(panel.frame.size, before.size, "a drag is not a click")
+    }
+
+    @MainActor
+    private func launchCompactDictation(defaults: String = "") throws -> XCUIApplication {
+        let app = try XCUIApplication.secreteo(showMenuBarContent: true)
+        app.launchArguments += ["-seed-dictation", "-seed-dictation-model-loading"]
+        app.launchEnvironment["SECRETEO_UI_TEST_DEFAULTS"] =
+            #"{"globalDictationEnabled":true,"dictationCompactIndicator":true"# + defaults + "}"
+        app.launchSecreteo()
+        let dictate = app.buttons["menu-bar-dictate"]
+        XCTAssertTrue(dictate.waitForStableFrame(timeout: 5))
+        dictate.click()
+        return app
     }
 
     @MainActor

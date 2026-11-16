@@ -84,6 +84,27 @@ struct DictationPolishDeliveryTests {
     }
 
     @Test
+    func aPolishNoticeOpensTheFullResultEvenWithTheSmallIndicator() async throws {
+        let harness = DictationControllerHarness(text: "um don't ship it tomorrow")
+        defer { harness.controller.cancel() }
+        harness.set(DictationTextMode.polish.rawValue, forKey: DictationTextPreferences.modeKey)
+        harness.set(true, forKey: DictationCompactIndicator.defaultsKey)
+        let recorder = Recorder()
+        let routed = dependencies(harness, recorder: recorder) { _ in .kept(.changedMeaning(.negation)) }
+        harness.controller.toggle(using: routed)
+        try await eventually { harness.controller.partialText == harness.text }
+        #expect(DictationCompactIndicator.applies(to: harness.controller), "a face while dictating")
+        harness.now = harness.now.addingTimeInterval(1)
+        harness.controller.toggle(using: routed)
+        try await eventually { harness.insertions.count == 1 }
+        #expect(harness.controller.polishNotice != nil)
+        #expect(DictationCompactIndicator.hold(for: harness.controller.phase) != nil, "a delivery result")
+        #expect(!DictationCompactIndicator.applies(to: harness.controller), "the notice needs its words")
+        #expect(DictationCompactIndicator.dismissal(for: harness.controller) == nil, "the controller's longer hold")
+        #expect(DictationPanelLayout.size(for: harness.controller).width == DictationPanelLayout.width)
+    }
+
+    @Test
     func skippingWhilePolishingPastesTheCleanTextAtOnce() async throws {
         let harness = DictationControllerHarness(text: "so we ship it tomorrow")
         defer { harness.controller.cancel() }

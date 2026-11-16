@@ -75,6 +75,7 @@ final class DictationController {
     private(set) var targetApp: String?
     /// The caret or pointer the strip opens beside, read with the destination.
     var panelAnchor: DictationPanelAnchor?
+    var expandedSessionID: UUID?
 
     enum CopyStatus: Equatable { case idle, copied, failed }
     private(set) var recoveryText = ""
@@ -853,8 +854,8 @@ extension DictationController {
         showPanel()
         // Unverified output closes too; Paste last still holds it for 15 minutes.
         scheduleFeedbackDismiss(
-            after: result == .verified && polishNotice == nil
-                ? Self.verifiedFeedbackDuration : Self.unverifiedFeedbackDuration,
+            after: DictationCompactIndicator.dismissal(for: self) ?? (result == .verified && polishNotice == nil
+                ? Self.verifiedFeedbackDuration : Self.unverifiedFeedbackDuration),
             wait: dependencies.waitForFeedbackDismissal)
         if result == .dispatched { armFeedbackDismissKey(dependencies) }
     }
@@ -993,7 +994,8 @@ private extension DictationController {
         showPanel()
         // Long enough to choose "Always write"; nothing is learned unless it is pressed.
         scheduleFeedbackDismiss(
-            after: learnableCorrection == nil ? Self.verifiedFeedbackDuration : .seconds(6),
+            after: DictationCompactIndicator.dismissal(for: self)
+                ?? (learnableCorrection == nil ? Self.verifiedFeedbackDuration : .seconds(6)),
             wait: dependencies.waitForFeedbackDismissal)
         return true
     }

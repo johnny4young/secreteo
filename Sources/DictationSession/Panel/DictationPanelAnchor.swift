@@ -36,14 +36,17 @@ enum DictationPanelAnchor: Equatable {
     }
 
     /// Where a panel that changes size goes: one edge stays, and a panel that keeps its width keeps its place.
-    static func origin(resizing frame: NSRect, to size: NSSize, pinned: PinnedEdge, in visible: NSRect) -> NSPoint {
+    static func origin(
+        resizing frame: NSRect, to size: NSSize, pinned: PinnedEdge, in visible: NSRect, keepsLeading: Bool = false
+    ) -> NSPoint {
         let y = pinned == .top ? frame.maxY - size.height : frame.minY
         guard size.width != frame.width else {
             return NSPoint(x: frame.minX, y: pinned == .top ? max(visible.minY, y) : min(y, visible.maxY - size.height))
         }
-        // Keep the horizontal center when the compact indicator grows into the full panel.
+        // The indicator under a caret grows from the caret; anywhere else, around its center.
+        let x = keepsLeading ? frame.minX : frame.midX - size.width / 2
         return NSPoint(
-            x: max(visible.minX, min(frame.midX - size.width / 2, visible.maxX - size.width)),
+            x: max(visible.minX, min(x, visible.maxX - size.width)),
             y: max(visible.minY, min(y, visible.maxY - size.height)))
     }
 

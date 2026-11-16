@@ -12,15 +12,20 @@ final class DictationPanelController {
     private var outcome: DictationPanelOutcome?
     /// What the shown outcome's content measured; nil until it has.
     private var outcomeHeight: CGFloat?
+    /// What the last layout showed, so a change knows whether the indicator is growing.
+    private var showsIndicator = false
 
     func show(controller: DictationController) {
         track(controller, presented: true)
         let size = size(for: controller)
         if let panel {
             shade(panel, for: controller)
-            resize(panel, to: size)
             // A new dictation reuses a notice's panel; it still opens at its own caret.
-            if controller.phase == .preparing { place(panel, size: size, near: controller.panelAnchor) }
+            if controller.phase == .preparing {
+                place(panel, size: size, for: controller)
+            } else {
+                resize(panel, to: size, for: controller)
+            }
             panel.orderFrontRegardless()
             return
         }
@@ -35,6 +40,10 @@ final class DictationPanelController {
         panel.isMovableByWindowBackground = true
         panel.backgroundColor = .clear
         panel.isOpaque = false
+        panel.showsIndicator = { [weak controller] in
+            controller.map { DictationCompactIndicator.applies(to: $0) } ?? false
+        }
+        panel.indicatorClicked = { [weak controller] in controller?.expandCompactIndicator() }
         shade(panel, for: controller)
         let content = NSHostingView(
             rootView: DictationStripView(controller: controller, placement: placement) { [weak self] measured in
@@ -43,15 +52,15 @@ final class DictationPanelController {
         // The layout decides the size; the hosting view must not constrain the window too.
         content.sizingOptions = []
         panel.contentView = content
-        place(panel, size: size, near: controller.panelAnchor)
+        place(panel, size: size, for: controller)
         panel.orderFrontRegardless()
         self.panel = panel
     }
 
     /// The window that keeps a slot for the panel moved; the panel keeps its size and goes with it.
-    func move(to anchor: DictationPanelAnchor) {
+    func move(for controller: DictationController) {
         guard let panel else { return }
-        place(panel, size: panel.frame.size, near: anchor)
+        place(panel, size: panel.frame.size, for: controller)
     }
 
     func close() {
@@ -66,6 +75,8 @@ final class DictationPanelController {
         if DictationPanelLayout.startsNewOutcome(shown, after: outcome, presented: presented) {
             placement.outcomeSerial += 1
             outcomeHeight = nil
+            placement.outcomeIsMeasured = false
+            placement.outcomeGrowsFromGlyph = false
         }
         outcome = shown
     }
@@ -77,16 +88,27 @@ final class DictationPanelController {
     }
 
     /// Beside the caret (or pointer) when known; otherwise bottom-center above the Dock.
-    private func place(_ panel: NSPanel, size: NSSize, near anchor: DictationPanelAnchor?) {
-        if let anchor,
-           let screen = NSScreen.screens.first(where: { $0.frame.contains(anchor.point) }) ?? NSScreen.main {
-            panel.setFrameOrigin(DictationPanelAnchor.origin(for: size, near: anchor, in: screen.visibleFrame))
-            placement.pinnedEdge = DictationPanelAnchor.pinnedEdge(for: size, near: anchor, in: screen.visibleFrame)
-        } else if let screen = NSScreen.main {
+    private func place(_ panel: NSPanel, size: NSSize, for controller: DictationController) {
+        let anchor = controller.panelAnchor
+        showsIndicator = DictationCompactIndicator.applies(to: controller)
+        placement.indicatorIsAtCaret = false
+        let screen = anchor.flatMap { anchor in NSScreen.screens.first { $0.frame.contains(anchor.point) } }
+            ?? NSScreen.main
+        guard let visible = screen?.visibleFrame else { return }
+        let origin: NSPoint
+        if showsIndicator {
+            if case .caret = anchor { placement.indicatorIsAtCaret = true }
+            let glyph = DictationCompactIndicator.size(for: .current())
+            origin = DictationCompactIndicator.origin(for: glyph, near: anchor, in: visible)
+            placement.pinnedEdge = DictationCompactIndicator.pinnedEdge(for: glyph, near: anchor, in: visible)
+        } else if let anchor {
+            origin = DictationPanelAnchor.origin(for: size, near: anchor, in: visible)
+            placement.pinnedEdge = DictationPanelAnchor.pinnedEdge(for: size, near: anchor, in: visible)
+        } else {
             placement.pinnedEdge = .bottom
-            let frame = screen.visibleFrame
-            panel.setFrameOrigin(NSPoint(x: frame.midX - size.width / 2, y: frame.minY + 48))
+            origin = NSPoint(x: visible.midX - size.width / 2, y: visible.minY + DictationCompactIndicator.fallbackLift)
         }
+        panel.setFrame(NSRect(origin: origin, size: size), display: true)
     }
 
     /// Follows a layout change without ever reopening a closed panel.
@@ -96,31 +118,94 @@ final class DictationPanelController {
         // A height that arrives late from the outcome before this one is not this one's.
         if let measured, measured.serial == placement.outcomeSerial { outcomeHeight = measured.height }
         shade(panel, for: controller)
-        resize(panel, to: size(for: controller))
+        resize(panel, to: size(for: controller), for: controller)
+        // Only now, with the window at the card's height, may the card show.
+        let appears = outcomeHeight != nil && !placement.outcomeIsMeasured && placement.outcomeGrowsFromGlyph
+        placement.outcomeIsMeasured = outcomeHeight != nil
+        guard appears, panel.hasShadow else { return }
+        // The window's shadow was last drawn around a card still hidden.
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(DictationCompactIndicator.growth))
+            guard let self, self.panel === panel, panel.hasShadow else { return }
+            panel.invalidateShadow()
+        }
     }
 
-    /// The capsule and the pill draw their own edge and change shape; only the cards keep the window's shadow.
+    /// The capsule, the pill and the bare glyph draw their own edge and change shape; only the cards and
+    /// the indicator's bead keep the window's shadow.
     private func shade(_ panel: NSPanel, for controller: DictationController) {
         let wanted = DictationCompactIndicator.applies(to: controller)
-            || DictationPanelLayout.isCard(controller.phase)
+            ? DictationCompactIndicator.Options.current().showsBackdrop
+            : DictationPanelLayout.isCard(controller.phase)
         guard panel.hasShadow != wanted else { return }
         panel.hasShadow = wanted
         panel.invalidateShadow()
     }
 
-    private func resize(_ panel: NSPanel, to size: NSSize) {
-        guard panel.contentRect(forFrameRect: panel.frame).size != size else { return }
-        let before = panel.frame
-        panel.setContentSize(size)
+    /// The window takes its new frame at once; the content's own transition does the growing, so nothing is cut.
+    private func resize(_ panel: NSPanel, to size: NSSize, for controller: DictationController) {
+        let grows = showsIndicator
+        showsIndicator = DictationCompactIndicator.applies(to: controller)
+        if grows, !showsIndicator, !DictationPanelLayout.isCapsule(controller.phase) {
+            placement.outcomeGrowsFromGlyph = true
+        }
+        guard panel.frame.size != size else { return }
+        guard let visible = panel.screen?.visibleFrame else {
+            panel.setContentSize(size)
+            return
+        }
+        let margin = DictationCompactIndicator.margin
+        // The glyph, not its clear margin, is what the card grows from.
+        let origin = grows && !showsIndicator
+            ? DictationCompactIndicator.origin(
+                growingFrom: panel.frame.insetBy(dx: margin, dy: margin), to: size, pinned: placement.pinnedEdge,
+                in: visible, atCaret: placement.indicatorIsAtCaret)
+            // An option switched mid-dictation resizes the indicator from its corner.
+            : DictationPanelAnchor.origin(
+                resizing: panel.frame, to: size, pinned: placement.pinnedEdge, in: visible,
+                keepsLeading: grows && showsIndicator)
+        panel.setFrame(NSRect(origin: origin, size: size), display: true)
         if panel.hasShadow { panel.invalidateShadow() }
-        guard let visible = panel.screen?.visibleFrame else { return }
-        panel.setFrameOrigin(DictationPanelAnchor.origin(
-            resizing: before, to: panel.frame.size, pinned: placement.pinnedEdge, in: visible))
     }
 }
 
+/// While it shows the small indicator, a click opens the capsule and a drag moves it.
 private final class DictationPanelWindow: NSPanel {
+    var showsIndicator: () -> Bool = { false }
+    var indicatorClicked: () -> Void = {}
+    private var press: (pointer: NSPoint, origin: NSPoint, moved: Bool)?
+    private var expandedAt: Date?
+
     override var canBecomeKey: Bool { true }
+
+    override func sendEvent(_ event: NSEvent) {
+        let indicator = showsIndicator()
+        let isPress = event.type == .leftMouseDown || event.type == .leftMouseUp
+        if isPress, press == nil, DictationCompactIndicator.swallowsPress(
+            clickCount: indicator ? event.clickCount : 1,
+            sinceExpansion: expandedAt.map { Date.now.timeIntervalSince($0) },
+            doubleClick: NSEvent.doubleClickInterval) { return }
+        switch event.type {
+        case .leftMouseDown where indicator:
+            press = (NSEvent.mouseLocation, frame.origin, false)
+        case .leftMouseDragged where press != nil:
+            guard var held = press else { return }
+            let pointer = NSEvent.mouseLocation
+            let travel = CGSize(width: pointer.x - held.pointer.x, height: pointer.y - held.pointer.y)
+            guard held.moved || !DictationCompactIndicator.isClick(translation: travel) else { return }
+            held.moved = true
+            press = held
+            setFrameOrigin(NSPoint(x: held.origin.x + travel.width, y: held.origin.y + travel.height))
+        case .leftMouseUp where press != nil:
+            let moved = press?.moved == true
+            press = nil
+            guard !moved else { return }
+            expandedAt = .now
+            indicatorClicked()
+        default:
+            super.sendEvent(event)
+        }
+    }
 }
 
 /// The edge the panel keeps when its height changes, shared with the content it hosts.
@@ -128,6 +213,11 @@ private final class DictationPanelWindow: NSPanel {
 @Observable
 final class DictationPanelPlacement {
     var pinnedEdge = DictationPanelAnchor.PinnedEdge.bottom
+    /// The small indicator stands on a caret, so what replaces it grows from its leading corner.
+    var indicatorIsAtCaret = false
+    /// The shown outcome replaced the glyph, so it waits for its measured height and then grows from it.
+    var outcomeGrowsFromGlyph = false
+    var outcomeIsMeasured = false
     /// Changes with every new outcome, so its view starts from fresh state.
     var outcomeSerial = 0
 }
@@ -143,15 +233,28 @@ private struct DictationStripView: View {
     /// Lets the panel follow phases that change without an explicit re-show, such as a failure,
     /// and the height an outcome's content measures.
     let relayout: (Measurement?) -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// Reads the signal, so a switch flipped in Settings mid-dictation resizes the indicator.
+    private var options: DictationCompactIndicator.Options {
+        _ = DictationPreferenceSignal.shared.revision
+        return .current()
+    }
 
     var body: some View {
+        let showsIndicator = DictationCompactIndicator.applies(to: controller)
+        let options = options
         Group {
-            if DictationCompactIndicator.applies(to: controller) {
-                DictationCompactStripView(controller: controller)
+            if showsIndicator {
+                DictationAsideView(controller: controller, options: options)
+                    .transition(.identity)
             } else if DictationPanelLayout.isCapsule(controller.phase) {
                 DictationCapsuleView(controller: controller)
+                    .transition(.asymmetric(insertion: growth, removal: .identity))
             } else {
                 let serial = placement.outcomeSerial
+                let shown = DictationCompactIndicator.growthStarts(
+                    fromGlyph: placement.outcomeGrowsFromGlyph, isMeasured: placement.outcomeIsMeasured)
                 outcome
                     .fixedSize(horizontal: false, vertical: true)
                     .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
@@ -160,14 +263,39 @@ private struct DictationStripView: View {
                     .id(serial)
                     // Dark over any app and in either appearance, like the capsule.
                     .environment(\.colorScheme, .dark)
+                    // Scaling leaves the layout alone, so the hidden card still measures its real height.
+                    .scaleEffect(
+                        shown || reduceMotion ? 1 : DictationCompactIndicator.growthStart, anchor: growthAnchor)
+                    .opacity(shown ? 1 : 0)
+                    .animation(
+                        DictationCapsuleMotion.settledChange(
+                            to: controller.phase, duration: DictationCompactIndicator.growth),
+                        value: shown)
+                    .transition(.identity)
             }
         }
+        .animation(
+            DictationCapsuleMotion.indicatorChange(
+                microphoneIsOpen: DictationWaveform.animates(for: controller),
+                duration: DictationCompactIndicator.growth),
+            value: showsIndicator)
         // The content sits on the edge the panel keeps, so it never jumps while the window follows.
         .frame(
             maxWidth: .infinity, maxHeight: .infinity,
             alignment: placement.pinnedEdge == .top ? .topLeading : .bottomLeading)
-        .onChange(of: DictationPanelLayout.size(for: controller)) { relayout(nil) }
+        .onChange(of: DictationPanelLayout.size(for: controller, options: options)) { relayout(nil) }
         .onChange(of: DictationPanelLayout.isCapsule(controller.phase)) { relayout(nil) }
+    }
+
+    private var growthAnchor: UnitPoint {
+        DictationCompactIndicator.growthAnchor(pinned: placement.pinnedEdge, atCaret: placement.indicatorIsAtCaret)
+    }
+
+    /// While the microphone is open the indicator grows into its capsule; Reduce Motion cross-fades instead.
+    private var growth: AnyTransition {
+        reduceMotion
+            ? .opacity
+            : .scale(scale: DictationCompactIndicator.growthStart, anchor: growthAnchor).combined(with: .opacity)
     }
 
     @ViewBuilder private var outcome: some View {
