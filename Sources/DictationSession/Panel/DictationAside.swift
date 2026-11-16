@@ -223,6 +223,7 @@ struct DictationAsideView: View {
     let options: DictationCompactIndicator.Options
     /// What the time read at Stop; it does not count through the delivery.
     @State private var stoppedTime: String?
+    @State private var faded = false
 
     var body: some View {
         let size = DictationCompactIndicator.size(for: options)
@@ -237,6 +238,7 @@ struct DictationAsideView: View {
                 indicator(time: stillTime)
             }
         }
+        .opacity(faded ? 0 : 1)
         .frame(width: size.width, height: size.height, alignment: .leading)
         // Fully clear pixels let clicks through the window; a barely-there fill keeps the glyph a target.
         .background(Color.black.opacity(0.01))
@@ -250,11 +252,17 @@ struct DictationAsideView: View {
             AccessibilityNotification.Announcement(words).post()
         }
         .task(id: controller.phase) {
-            guard controller.phase == .noSpeech, let hold = DictationCompactIndicator.hold(for: .noSpeech)
-            else { return }
+            faded = false
+            let phase = controller.phase
+            guard let hold = DictationCompactIndicator.hold(for: phase) else { return }
             try? await Task.sleep(for: hold)
             guard !Task.isCancelled else { return }
-            controller.expandCompactIndicator()
+            if phase == .noSpeech {
+                controller.expandCompactIndicator()
+            } else {
+                withAnimation(DictationCapsuleMotion.resultFade(
+                    for: phase, duration: DictationCompactIndicator.fade)) { faded = true }
+            }
         }
     }
 

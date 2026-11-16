@@ -26,6 +26,7 @@ enum DictationCompactIndicator {
     static let caretGap: CGFloat = 6
     static let fallbackLift: CGFloat = 48
     static let faceChange: TimeInterval = 0.2
+    static let fade: TimeInterval = 0.3
     static let growth: TimeInterval = 0.32
     static let growthStart: CGFloat = 0.06
     /// Clear room around the glyph, so the window does not cut its shadow.
@@ -85,7 +86,7 @@ enum DictationCompactIndicator {
         }
     }
 
-    /// How long a result's face stays before it closes or gives way to its card.
+    /// How long a result's face stays before it fades or gives way to its card.
     static func hold(for phase: DictationController.Phase) -> Duration? {
         switch phase {
         case .verified: .milliseconds(1_400)
@@ -97,8 +98,8 @@ enum DictationCompactIndicator {
     /// When the controller closes a result shown as a face; nil leaves the full panel's timing.
     @MainActor
     static func dismissal(for controller: DictationController) -> Duration? {
-        guard applies(to: controller) else { return nil }
-        return hold(for: controller.phase)
+        guard applies(to: controller), let hold = hold(for: controller.phase) else { return nil }
+        return hold + .seconds(fade)
     }
 
     /// A second click must not land on what the first one opened.

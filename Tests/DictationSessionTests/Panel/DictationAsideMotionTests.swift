@@ -48,6 +48,27 @@ struct DictationAsideMotionTests {
     }
 
     @Test
+    func onlyASettledOutcomeGrowsOrFades() {
+        let growth = DictationCompactIndicator.growth, fade = DictationCompactIndicator.fade
+        #expect(growth == 0.32)
+        for phase: DictationController.Phase in [.recovery(.cancelled), .noSpeech] {
+            #expect(DictationCapsuleMotion.settledChange(to: phase, duration: growth) == .easeOut(duration: growth))
+            #expect(DictationCapsuleMotion.resultFade(for: phase, duration: fade) == nil, "a card stays")
+        }
+        for phase: DictationController.Phase in [.verified(3), .dispatched(3)] {
+            #expect(
+                DictationCapsuleMotion.settledChange(to: phase, duration: growth) == nil,
+                "arriving at a result from delivering is not animated")
+            #expect(DictationCapsuleMotion.resultFade(for: phase, duration: fade) == .easeOut(duration: fade))
+        }
+        for phase: DictationController.Phase in [.preparing, .listening, .delivering, .failed("x"), .idle] {
+            #expect(DictationCapsuleMotion.settledChange(to: phase, duration: growth) == nil, "\(phase)")
+            #expect(DictationCapsuleMotion.resultFade(for: phase, duration: fade) == nil, "\(phase)")
+        }
+        #expect(DictationCompactIndicator.hold(for: .verified(3)) == .milliseconds(1_400))
+    }
+
+    @Test
     func anOptionSwitchedMidDictationResizesTheIndicator() async throws {
         let harness = DictationControllerHarness(text: "no borres estas notas")
         defer { harness.controller.cancel() }

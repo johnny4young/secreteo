@@ -192,12 +192,14 @@ private struct DictationStripView: View {
         .animation(
             DictationCapsuleMotion.indicatorChange(
                 microphoneIsOpen: DictationWaveform.animates(for: controller),
-                duration: DictationCompactIndicator.growth),
+                duration: DictationCompactIndicator.growth)
+                ?? DictationCapsuleMotion.settledChange(
+                    to: controller.phase, duration: DictationCompactIndicator.growth),
             value: showsIndicator)
         .onChange(of: DictationPanelLayout.size(for: controller, options: options)) { relayout() }
     }
 
-    /// While the microphone is open the indicator grows into its capsule; Reduce Motion cross-fades instead.
+    /// The indicator grows into its capsule or its settled card; Reduce Motion cross-fades instead.
     private var growth: AnyTransition {
         reduceMotion
             ? .opacity
