@@ -8,48 +8,30 @@ struct DictationRecoveryView: View {
     let failure: DictationDeliveryOutcome.Refusal
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label("Text wasn't sent", systemImage: "exclamationmark.bubble")
-                .font(.headline)
-                .accessibilityAddTraits(.isHeader)
-                .accessibilityIdentifier("dictation-recovery-title")
-            Text(message)
-                .lineLimit(3)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("dictation-recovery-reason")
-            // The complete output stays reachable even when Copy fails: it
-            // scrolls inside the bounded panel and can be selected manually.
-            ScrollView {
-                Text(controller.recoveryText)
-                    .font(.body)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityIdentifier("dictation-recovery-text")
-            }
-            .frame(maxHeight: .infinity)
-            DictationCopyStatusLabel(status: controller.copyStatus)
-                .accessibilityIdentifier("dictation-recovery-copy-status")
-            HStack(spacing: 8) {
-                Button("Copy", action: controller.copyPendingText)
-                    .accessibilityIdentifier("dictation-recovery-copy")
-                    .disabled(controller.isRetryingDelivery)
+        DictationOutcomeCard(
+            face: .notSent, title: L10n.text("Text wasn't sent"), reason: message, words: controller.recoveryText,
+            titleIdentifier: "dictation-recovery-title", reasonIdentifier: "dictation-recovery-reason",
+            textIdentifier: "dictation-recovery-text"
+        ) {
+            if controller.canRetryDelivery {
                 Button("Reinsert", action: controller.retryUndeliveredText)
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(DictationCardButtonStyle(kind: .primary))
                     .accessibilityIdentifier("dictation-recovery-reinsert")
-                    .disabled(!controller.canRetryDelivery || controller.isRetryingDelivery)
-                Spacer()
-                // This abandons the pending operation, like discarding a Refine
-                // draft; it does not delete an already saved library item.
-                Button("Discard", role: .cancel, action: controller.cancel)
-                    .accessibilityIdentifier("dictation-recovery-discard")
+                    .disabled(controller.isRetryingDelivery)
             }
-            .controlSize(.large)
-            .frame(minHeight: 44)
+            Button("Copy", action: controller.copyPendingText)
+                .buttonStyle(DictationCardButtonStyle(kind: controller.canRetryDelivery ? .quiet : .primary))
+                .accessibilityIdentifier("dictation-recovery-copy")
+                .disabled(controller.isRetryingDelivery)
+            // This abandons the pending operation; it does not delete an already saved history entry.
+            Button("Discard", role: .cancel, action: controller.cancel)
+                .buttonStyle(DictationCardButtonStyle(kind: .bare))
+                .accessibilityIdentifier("dictation-recovery-discard")
+            DictationCopyStatusLabel(
+                status: controller.copyStatus, privacy: controller.deliveryPrivacyLine,
+                inHistory: controller.historyKeptDelivery)
+                .accessibilityIdentifier("dictation-recovery-copy-status")
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .contain)
     }
 
     private var message: String {

@@ -6,37 +6,22 @@ struct DictationNoSpeechView: View {
     let controller: DictationController
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label("No speech detected — nothing was inserted", systemImage: "waveform.slash")
-                .font(.headline)
-                .accessibilityAddTraits(.isHeader)
-                .accessibilityIdentifier("dictation-panel-delivery-status")
-            Text("If you did speak, copy the text below. Nothing was saved in Secreteo.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("dictation-panel-delivery-detail")
-            ScrollView {
-                Text(controller.recoveryText)
-                    .font(.body)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityIdentifier("dictation-no-speech-text")
-            }
-            .frame(maxHeight: .infinity)
-            DictationCopyStatusLabel(status: controller.copyStatus)
+        DictationOutcomeCard(
+            face: .noSpeech, title: L10n.text("No speech detected"), reason: L10n.text("Nothing was inserted."),
+            words: controller.recoveryText,
+            titleIdentifier: "dictation-panel-delivery-status", reasonIdentifier: "dictation-panel-delivery-detail",
+            textIdentifier: "dictation-no-speech-text"
+        ) {
+            Button("Copy", action: controller.copyPendingText)
+                .buttonStyle(DictationCardButtonStyle(kind: .primary))
+                .accessibilityIdentifier("dictation-no-speech-copy")
+            Button("Discard", role: .cancel, action: controller.cancel)
+                .buttonStyle(DictationCardButtonStyle(kind: .bare))
+                .accessibilityIdentifier("dictation-no-speech-discard")
+            DictationCopyStatusLabel(
+                status: controller.copyStatus, privacy: controller.deliveryPrivacyLine,
+                inHistory: controller.historyKeptDelivery)
                 .accessibilityIdentifier("dictation-no-speech-copy-status")
-            HStack(spacing: 8) {
-                Button("Copy", action: controller.copyPendingText)
-                    .accessibilityIdentifier("dictation-no-speech-copy")
-                Spacer()
-                Button("Discard", role: .cancel, action: controller.cancel)
-                    .accessibilityIdentifier("dictation-no-speech-discard")
-            }
-            .controlSize(.large)
-            .frame(minHeight: 44)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .contain)
     }
 }

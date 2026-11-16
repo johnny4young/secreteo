@@ -8,13 +8,16 @@ import DictationKit
 @MainActor
 final class DictationPanelController {
     private var panel: NSPanel?
-    private var pinnedEdge = DictationPanelAnchor.PinnedEdge.bottom
+    private let placement = DictationPanelPlacement()
+    private var outcome: DictationPanelOutcome?
+    /// What the shown outcome's content measured; nil until it has.
+    private var outcomeHeight: CGFloat?
     /// What the last layout showed, so a change knows whether the indicator is growing.
     private var showsIndicator = false
-    private var indicatorIsAtCaret = false
 
     func show(controller: DictationController) {
-        let size = DictationPanelLayout.size(for: controller)
+        track(controller, presented: true)
+        let size = size(for: controller)
         if let panel {
             shade(panel, for: controller)
             // A new dictation reuses a notice's panel; it still opens at its own caret.
@@ -42,15 +45,13 @@ final class DictationPanelController {
         }
         panel.indicatorClicked = { [weak controller] in controller?.expandCompactIndicator() }
         shade(panel, for: controller)
-        panel.contentView = NSHostingView(
-            rootView: DictationStripView(
-                controller: controller,
-                growthAnchor: { [weak self] in
-                    DictationCompactIndicator.growthAnchor(
-                        pinned: self?.pinnedEdge ?? .bottom, atCaret: self?.indicatorIsAtCaret ?? false)
-                },
-                relayout: { [weak self] in self?.relayout(for: controller) }
-            ).secreteoLocalized())
+        let content = NSHostingView(
+            rootView: DictationStripView(controller: controller, placement: placement) { [weak self] measured in
+                self?.relayout(for: controller, measured: measured)
+            }.secreteoLocalized())
+        // The layout decides the size; the hosting view must not constrain the window too.
+        content.sizingOptions = []
+        panel.contentView = content
         place(panel, size: size, for: controller)
         panel.orderFrontRegardless()
         self.panel = panel
@@ -59,50 +60,71 @@ final class DictationPanelController {
     func close() {
         panel?.orderOut(nil)
         panel = nil
+        outcome = nil
+        outcomeHeight = nil
+    }
+
+    private func track(_ controller: DictationController, presented: Bool) {
+        let shown = DictationPanelOutcome(phase: controller.phase, delivery: controller.deliveryID)
+        if DictationPanelLayout.startsNewOutcome(shown, after: outcome, presented: presented) {
+            placement.outcomeSerial += 1
+            outcomeHeight = nil
+        }
+        outcome = shown
+    }
+
+    private func size(for controller: DictationController) -> NSSize {
+        DictationPanelLayout.size(
+            for: controller, outcomeHeight: outcomeHeight,
+            visible: (panel?.screen ?? NSScreen.main)?.visibleFrame.size)
     }
 
     /// Beside the caret (or pointer) when known; otherwise bottom-center above the Dock.
     private func place(_ panel: NSPanel, size: NSSize, for controller: DictationController) {
         let anchor = controller.panelAnchor
         showsIndicator = DictationCompactIndicator.applies(to: controller)
-        indicatorIsAtCaret = false
+        placement.indicatorIsAtCaret = false
         let screen = anchor.flatMap { anchor in NSScreen.screens.first { $0.frame.contains(anchor.point) } }
             ?? NSScreen.main
         guard let visible = screen?.visibleFrame else { return }
         let origin: NSPoint
         if showsIndicator {
-            if case .caret = anchor { indicatorIsAtCaret = true }
+            if case .caret = anchor { placement.indicatorIsAtCaret = true }
             let glyph = DictationCompactIndicator.size(for: .current())
             origin = DictationCompactIndicator.origin(for: glyph, near: anchor, in: visible)
-            pinnedEdge = DictationCompactIndicator.pinnedEdge(for: glyph, near: anchor, in: visible)
+            placement.pinnedEdge = DictationCompactIndicator.pinnedEdge(for: glyph, near: anchor, in: visible)
         } else if let anchor {
             origin = DictationPanelAnchor.origin(for: size, near: anchor, in: visible)
-            pinnedEdge = DictationPanelAnchor.pinnedEdge(for: size, near: anchor, in: visible)
+            placement.pinnedEdge = DictationPanelAnchor.pinnedEdge(for: size, near: anchor, in: visible)
         } else {
-            pinnedEdge = .bottom
+            placement.pinnedEdge = .bottom
             origin = NSPoint(x: visible.midX - size.width / 2, y: visible.minY + DictationCompactIndicator.fallbackLift)
         }
         panel.setFrame(NSRect(origin: origin, size: size), display: true)
     }
 
     /// Follows a layout change without ever reopening a closed panel.
-    private func relayout(for controller: DictationController) {
+    private func relayout(for controller: DictationController, measured: DictationStripView.Measurement?) {
         guard let panel else { return }
+        track(controller, presented: false)
+        // A height that arrives late from the outcome before this one is not this one's.
+        if let measured, measured.serial == placement.outcomeSerial { outcomeHeight = measured.height }
         shade(panel, for: controller)
-        resize(panel, to: DictationPanelLayout.size(for: controller), for: controller)
+        resize(panel, to: size(for: controller), for: controller)
     }
 
-    /// The capsule and the bare glyph draw their own edge; the window's shadow would outline a rectangle.
+    /// The capsule, the pill and the bare glyph draw their own edge and change shape; only the cards and
+    /// the indicator's bead keep the window's shadow.
     private func shade(_ panel: NSPanel, for controller: DictationController) {
         let wanted = DictationCompactIndicator.applies(to: controller)
             ? DictationCompactIndicator.Options.current().showsBackdrop
-            : !DictationPanelLayout.isCapsule(controller.phase)
+            : DictationPanelLayout.isCard(controller.phase)
         guard panel.hasShadow != wanted else { return }
         panel.hasShadow = wanted
         panel.invalidateShadow()
     }
 
-    /// The window takes its new frame at once; the card's own transition does the growing, so nothing is cut.
+    /// The window takes its new frame at once; the content's own transition does the growing, so nothing is cut.
     private func resize(_ panel: NSPanel, to size: NSSize, for controller: DictationController) {
         let grows = showsIndicator
         showsIndicator = DictationCompactIndicator.applies(to: controller)
@@ -115,13 +137,14 @@ final class DictationPanelController {
         // The glyph, not its clear margin, is what the card grows from.
         let origin = grows && !showsIndicator
             ? DictationCompactIndicator.origin(
-                growingFrom: panel.frame.insetBy(dx: margin, dy: margin), to: size, pinned: pinnedEdge,
-                in: visible, atCaret: indicatorIsAtCaret)
+                growingFrom: panel.frame.insetBy(dx: margin, dy: margin), to: size, pinned: placement.pinnedEdge,
+                in: visible, atCaret: placement.indicatorIsAtCaret)
             // An option switched mid-dictation resizes the indicator from its corner.
             : DictationPanelAnchor.origin(
-                resizing: panel.frame, to: size, pinned: pinnedEdge, in: visible,
+                resizing: panel.frame, to: size, pinned: placement.pinnedEdge, in: visible,
                 keepsLeading: grows && showsIndicator)
         panel.setFrame(NSRect(origin: origin, size: size), display: true)
+        if panel.hasShadow { panel.invalidateShadow() }
     }
 }
 
@@ -164,11 +187,28 @@ private final class DictationPanelWindow: NSPanel {
     }
 }
 
+/// The edge the panel keeps when its height changes, shared with the content it hosts.
+@MainActor
+@Observable
+final class DictationPanelPlacement {
+    var pinnedEdge = DictationPanelAnchor.PinnedEdge.bottom
+    /// The small indicator stands on a caret, so what replaces it grows from its leading corner.
+    var indicatorIsAtCaret = false
+    /// Changes with every new outcome, so its view starts from fresh state.
+    var outcomeSerial = 0
+}
+
 private struct DictationStripView: View {
+    struct Measurement {
+        let serial: Int
+        let height: CGFloat
+    }
+
     let controller: DictationController
-    let growthAnchor: () -> UnitPoint
-    /// Lets the panel follow phases that change without an explicit re-show, such as a failure.
-    let relayout: () -> Void
+    let placement: DictationPanelPlacement
+    /// Lets the panel follow phases that change without an explicit re-show, such as a failure,
+    /// and the height an outcome's content measures.
+    let relayout: (Measurement?) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Reads the signal, so a switch flipped in Settings mid-dictation resizes the indicator.
@@ -184,8 +224,19 @@ private struct DictationStripView: View {
             if showsIndicator {
                 DictationAsideView(controller: controller, options: options)
                     .transition(.identity)
+            } else if DictationPanelLayout.isCapsule(controller.phase) {
+                DictationCapsuleView(controller: controller)
+                    .transition(.asymmetric(insertion: growth, removal: .identity))
             } else {
-                fullStrip
+                let serial = placement.outcomeSerial
+                outcome
+                    .fixedSize(horizontal: false, vertical: true)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                        relayout(Measurement(serial: serial, height: $0))
+                    }
+                    .id(serial)
+                    // Dark over any app and in either appearance, like the capsule.
+                    .environment(\.colorScheme, .dark)
                     .transition(.asymmetric(insertion: growth, removal: .identity))
             }
         }
@@ -196,77 +247,30 @@ private struct DictationStripView: View {
                 ?? DictationCapsuleMotion.settledChange(
                     to: controller.phase, duration: DictationCompactIndicator.growth),
             value: showsIndicator)
-        .onChange(of: DictationPanelLayout.size(for: controller, options: options)) { relayout() }
+        // The content sits on the edge the panel keeps, so it never jumps while the window follows.
+        .frame(
+            maxWidth: .infinity, maxHeight: .infinity,
+            alignment: placement.pinnedEdge == .top ? .topLeading : .bottomLeading)
+        .onChange(of: DictationPanelLayout.size(for: controller, options: options)) { relayout(nil) }
+        .onChange(of: DictationPanelLayout.isCapsule(controller.phase)) { relayout(nil) }
     }
 
     /// The indicator grows into its capsule or its settled card; Reduce Motion cross-fades instead.
     private var growth: AnyTransition {
-        reduceMotion
+        let anchor = DictationCompactIndicator.growthAnchor(
+            pinned: placement.pinnedEdge, atCaret: placement.indicatorIsAtCaret)
+        return reduceMotion
             ? .opacity
-            : .scale(scale: DictationCompactIndicator.growthStart, anchor: growthAnchor()).combined(with: .opacity)
+            : .scale(scale: DictationCompactIndicator.growthStart, anchor: anchor).combined(with: .opacity)
     }
 
-    @ViewBuilder private var fullStrip: some View {
-        if DictationPanelLayout.isCapsule(controller.phase) {
-            DictationCapsuleView(controller: controller)
-        } else {
-            Group {
-                if case .recovery(let failure) = controller.phase {
-                    DictationRecoveryView(controller: controller, failure: failure)
-                } else if case .verified(let words) = controller.phase {
-                    verifiedDeliveryView(words)
-                } else if controller.phase == .noSpeech {
-                    DictationNoSpeechView(controller: controller)
-                } else if case .dispatched = controller.phase {
-                    DictationUnverifiedDeliveryView(controller: controller)
-                }
-            }
-            .padding(12)
-            .frame(width: DictationPanelLayout.width, height: DictationPanelLayout.size(for: controller).height)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+    @ViewBuilder private var outcome: some View {
+        switch controller.phase {
+        case .recovery(let failure): DictationRecoveryView(controller: controller, failure: failure)
+        case .verified(let words): DictationResultPill(controller: controller, words: words)
+        case .noSpeech: DictationNoSpeechView(controller: controller)
+        case .dispatched: DictationUnverifiedDeliveryView(controller: controller)
+        default: EmptyView()
         }
-    }
-
-    /// The brief confirmation after insertion: N words → the target app,
-    /// and whether the dictation history kept it.
-    private func verifiedDeliveryView(_ words: Int) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: SecreteoSymbol.success)
-                .foregroundStyle(SecreteoDesign.verified)
-                .font(.title3)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(controller.correctionSummary ?? insertedTitle(words))
-                    .accessibilityIdentifier("dictation-panel-delivery-status")
-                    .font(.callout.weight(.medium))
-                Text(controller.deliveryPrivacyLine)
-                    .accessibilityIdentifier("dictation-panel-delivery-detail")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                if let notice = controller.polishNotice {
-                    Text(notice)
-                        .accessibilityIdentifier("dictation-panel-polish-notice")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-            }
-            Spacer()
-            if let learnable = controller.learnableCorrection {
-                Button(L10n.format("Always write “%@”", learnable.rule.replacement)) {
-                    controller.learnCorrection()
-                }
-                .controlSize(.small)
-                .help(L10n.format(
-                    "Adds “%@” → “%@” to your text replacements.", learnable.rule.trigger, learnable.rule.replacement))
-                .accessibilityIdentifier("dictation-panel-learn-correction")
-            }
-        }
-    }
-
-    private func insertedTitle(_ words: Int) -> String {
-        if let target = controller.targetApp {
-            return L10n.format("%d words inserted into %@.", words, target)
-        }
-        return L10n.format("%d words inserted.", words)
     }
 }
