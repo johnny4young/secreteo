@@ -204,9 +204,14 @@ public final class SecreteoAppDelegate: NSObject, NSApplicationDelegate {
         } ?? MenuContentView(model: model)
         let host = NSHostingController(rootView: content)
         host.sizingOptions = [.preferredContentSize]
+        host.safeAreaRegions = []
         let window = NSWindow(contentViewController: host)
         window.title = "Menu"
-        window.styleMask = [.titled]
+        // Looks like the popover it stands in for: no title bar over the content.
+        window.styleMask = [.titled, .fullSizeContentView]
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
         window.center()
         window.makeKeyAndOrderFront(nil)
