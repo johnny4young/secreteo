@@ -51,7 +51,7 @@ struct OnboardingPracticeStep: View {
             .frame(minWidth: 46, minHeight: 42)
             .background(SecreteoDesign.amber, in: shape)
             .overlay { shape.strokeBorder(SecreteoPalette.capsuleInk.color.opacity(0.25)) }
-            .shadow(color: SecreteoDesign.amber.opacity(controller.isActive ? 0.75 : 0), radius: 13)
+            .shadow(color: SecreteoDesign.amber.opacity(sessionIsHere ? 0.75 : 0), radius: 13)
             .accessibilityElement(children: .ignore)
             // A text's own label is read as its value, so the key is given as the value of a named element.
             .accessibilityAddTraits(.isStaticText)
@@ -62,52 +62,64 @@ struct OnboardingPracticeStep: View {
 
     private var field: some View {
         let shape = RoundedRectangle(cornerRadius: 18)
-        return words
-            .textSelection(.enabled)
-            .lineLimit(3)
-            .truncationMode(.head)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .padding(.horizontal, 20)
-            .padding(.top, 18)
-            // The capsule opens over the bottom of the field, never over the words.
-            .padding(.bottom, Self.slotInset * 2 + DictationPanelLayout.capsuleHeight)
-            .frame(height: 190)
-            .background(SecreteoDesign.card, in: shape)
-            .overlay { shape.strokeBorder(SecreteoDesign.accent, lineWidth: 1.5) }
-            .padding(5)
-            .background(SecreteoDesign.accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 23))
-            .padding(-5)
-            .overlay(alignment: .bottom) {
-                OnboardingPanelSlot(practice: practice)
-                    .frame(height: DictationPanelLayout.capsuleHeight)
-                    .padding(.bottom, Self.slotInset)
-                    .accessibilityHidden(true)
-            }
-            .accessibilityElement(children: .ignore)
-            // Without a role that has a value, accessibility clients read none.
-            .accessibilityAddTraits(.isStaticText)
-            .accessibilityLabel(L10n.text("Dictated Text"))
-            .accessibilityValue(practice.text)
-            .accessibilityIdentifier(identifiers.field)
+        return VStack(spacing: 0) {
+            words
+                .textSelection(.enabled)
+                .lineLimit(3)
+                .truncationMode(.head)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+                .frame(height: Self.wordsHeight, alignment: .topLeading)
+                .padding(.horizontal, 20)
+                .padding(.top, Self.wordsTop)
+            // The capsule opens under the words and grows downward, so it never covers them.
+            OnboardingPanelSlot(
+                practice: practice,
+                moved: { controller.panelSlotMoved(to: $0) }, closed: { controller.panelSlotClosed() })
+                .frame(height: DictationPanelLayout.capsuleHeight)
+                .padding(.top, Self.slotGap)
+                .accessibilityHidden(true)
+            Spacer(minLength: 0)
+        }
+        .frame(height: Self.fieldHeight)
+        .background(SecreteoDesign.card, in: shape)
+        .overlay { shape.strokeBorder(SecreteoDesign.accent, lineWidth: 1.5) }
+        .padding(5)
+        .background(SecreteoDesign.accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 23))
+        .padding(-5)
+        .accessibilityElement(children: .ignore)
+        // Without a role that has a value, accessibility clients read none.
+        .accessibilityAddTraits(.isStaticText)
+        .accessibilityLabel(L10n.text("Dictated Text"))
+        .accessibilityValue(practice.text)
+        .accessibilityIdentifier(identifiers.field)
     }
+
+    /// Only a dictation into this field: one started in another app never shows here.
+    private var sessionIsHere: Bool { controller.isActive && controller.sessionIsPractice }
 
     private var words: Text {
         let live = Self.words(
             delivered: practice.text, confirmed: controller.confirmedText, partial: controller.partialText,
-            isLive: controller.isActive && practice.isArmed)
+            isLive: sessionIsHere)
         let settled = Text(live.settled)
             .font(.system(size: 20, weight: .medium))
             .foregroundStyle(SecreteoDesign.text)
         let provisional = Text(live.provisional)
             .font(.secreteoSerif(24, italic: true))
             .foregroundStyle(SecreteoDesign.accent)
-        let caret = Text(verbatim: controller.isActive ? " |" : "")
+        let caret = Text(verbatim: sessionIsHere ? " |" : "")
             .font(.system(size: 20, weight: .light))
             .foregroundStyle(SecreteoDesign.amber)
         return Text("\(settled)\(provisional)\(caret)")
     }
 
-    static let slotInset: CGFloat = 14
+    nonisolated static let fieldHeight: CGFloat = 190
+    nonisolated static let wordsTop: CGFloat = 18
+    /// Three lines of the field's text.
+    nonisolated static let wordsHeight: CGFloat = 78
+    nonisolated static let slotGap: CGFloat = 8
+    /// What the field keeps under the words, for the capsule and a notice hanging from it.
+    nonisolated static var roomUnderWords: CGFloat { fieldHeight - wordsTop - wordsHeight - slotGap }
 
     nonisolated static func keyLabel(modifier: ModifierKeySetting, shortcut: String) -> String {
         switch modifier {
@@ -129,24 +141,59 @@ struct OnboardingPracticeStep: View {
     }
 }
 
-/// Tells the practice field where on screen the capsule belongs while this window is key.
+/// Tells the practice field where on screen the capsule belongs while this window is key,
+/// and the controller when that place moves or goes away.
 private struct OnboardingPanelSlot: NSViewRepresentable {
     let practice: DictationPracticeField
+    let moved: (NSRect) -> Void
+    let closed: () -> Void
 
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
+    func makeNSView(context: Context) -> PanelSlotView {
+        let view = PanelSlotView()
+        view.moved = moved
+        view.closed = closed
         practice.panelSlot = { [weak view] in
-            guard let view, let window = view.window, window.isKeyWindow else { return nil }
-            return window.convertToScreen(view.convert(view.bounds, to: nil))
+            guard let view, view.window?.isKeyWindow == true else { return nil }
+            return view.screenRect
         }
         return view
     }
 
-    func updateNSView(_ view: NSView, context: Context) {}
+    func updateNSView(_ view: PanelSlotView, context: Context) {}
 
     func makeCoordinator() -> DictationPracticeField { practice }
 
-    static func dismantleNSView(_ view: NSView, coordinator: DictationPracticeField) {
+    static func dismantleNSView(_ view: PanelSlotView, coordinator: DictationPracticeField) {
         coordinator.panelSlot = nil
+        view.closed?()
+    }
+}
+
+/// Closing the window does not take the view down, so the view watches its window itself.
+private final class PanelSlotView: NSView {
+    var moved: ((NSRect) -> Void)?
+    var closed: (() -> Void)?
+
+    var screenRect: NSRect? {
+        window.map { $0.convertToScreen(convert(bounds, to: nil)) }
+    }
+
+    override func viewWillMove(toWindow newWindow: NSWindow?) {
+        super.viewWillMove(toWindow: newWindow)
+        let center = NotificationCenter.default
+        center.removeObserver(self)
+        guard let newWindow else { return }
+        center.addObserver(
+            self, selector: #selector(windowMoved), name: NSWindow.didMoveNotification, object: newWindow)
+        center.addObserver(
+            self, selector: #selector(windowClosed), name: NSWindow.willCloseNotification, object: newWindow)
+    }
+
+    @objc private func windowMoved() {
+        if let screenRect { moved?(screenRect) }
+    }
+
+    @objc private func windowClosed() {
+        closed?()
     }
 }

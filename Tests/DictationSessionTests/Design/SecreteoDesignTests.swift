@@ -105,7 +105,13 @@ struct SecreteoDesignTests {
         ("empty bar, light", SecreteoPalette.emptyBar.light, SecreteoPalette.card.light),
         ("empty bar, dark", SecreteoPalette.emptyBar.dark, SecreteoPalette.card.dark),
         ("today's bar, light", SecreteoPalette.todayBar.light, SecreteoPalette.card.light),
-        ("today's bar, dark", SecreteoPalette.todayBar.dark, SecreteoPalette.card.dark)
+        ("today's bar, dark", SecreteoPalette.todayBar.dark, SecreteoPalette.card.dark),
+        ("current step, light", SecreteoPalette.progressEdge.light, SecreteoPalette.window.light),
+        ("current step, dark", SecreteoPalette.progressEdge.dark, SecreteoPalette.window.dark),
+        ("step ahead, light", SecreteoPalette.tertiaryText.light, SecreteoPalette.window.light),
+        ("step ahead, dark", SecreteoPalette.tertiaryText.dark, SecreteoPalette.window.dark),
+        ("step done, light", SecreteoPalette.accent.light, SecreteoPalette.window.light),
+        ("step done, dark", SecreteoPalette.accent.dark, SecreteoPalette.window.dark)
     ] as [(String, UInt32, UInt32)])
     func chartMarksMeetGraphicContrast(_ pair: (String, UInt32, UInt32)) {
         #expect(Self.contrast(pair.1, pair.2) >= 3, "\(pair.0)")

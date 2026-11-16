@@ -10,14 +10,17 @@ struct OnboardingProgress: View {
             bracket("(")
             ForEach(0..<count, id: \.self) { index in
                 if index == step {
+                    // Amber alone is too pale on paper; its edge carries the contrast.
                     RoundedRectangle(cornerRadius: 4)
                         .fill(SecreteoDesign.amber)
+                        .strokeBorder(SecreteoPalette.progressEdge.color, lineWidth: 1.5)
                         .frame(width: 26, height: 8)
                         .shadow(color: SecreteoDesign.amber.opacity(0.7), radius: 5)
+                } else if index < step {
+                    Circle().fill(SecreteoDesign.accent).frame(width: 8, height: 8)
                 } else {
-                    Circle()
-                        .fill(index < step ? SecreteoDesign.accent : SecreteoDesign.tertiaryText.opacity(0.3))
-                        .frame(width: 8, height: 8)
+                    // Hollow, so a step ahead differs from one done by more than colour.
+                    Circle().strokeBorder(SecreteoDesign.tertiaryText, lineWidth: 1.5).frame(width: 8, height: 8)
                 }
             }
             bracket(")")

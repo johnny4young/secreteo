@@ -33,6 +33,9 @@ public struct OnboardingView: View {
             footer
         }
         .frame(width: 520, height: 520)
+        .onChange(of: step) { _, shown in
+            AccessibilityNotification.Announcement(Self.announcement(step: shown, count: lastStep + 1)).post()
+        }
         .background(SecreteoDesign.windowBackground)
     }
 
@@ -82,13 +85,20 @@ public struct OnboardingView: View {
         .overlay(alignment: .top) { Rectangle().fill(SecreteoDesign.hairline).frame(height: 1) }
     }
 
+    /// What VoiceOver says when the step changes: the screen's title, then where it stands.
+    nonisolated static func announcement(step: Int, count: Int) -> String {
+        let titles = [L10n.text("Dictate Anywhere"), L10n.text("Speech Model"), L10n.text("Try It Here")]
+        let title = titles.indices.contains(step) ? titles[step] : ""
+        return [title, L10n.format("Step %d of %d", step + 1, count)].filter { !$0.isEmpty }.joined(separator: ". ")
+    }
+
     // MARK: - Actions
 
     private func prepareModels() {
         Task { @MainActor in
             await modelPreparation.prepare {
                 try await dictation.prepareSpeechModel(attempt: modelPreparation.attempt) {
-                    modelPreparation.startedWarming(copiedFromPortavoz: $0)
+                    modelPreparation.entered($0)
                 }
             }
         }

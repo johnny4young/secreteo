@@ -37,17 +37,24 @@ struct OnboardingModelStep: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("onboarding-model-prepare")
         case .preparing:
-            let fraction = Self.fraction(downloaded: dictation.modelDownloadFraction, isWarming: preparation.isWarming)
-            OnboardingModelCapsule(face: .loading, fraction: fraction ?? 0) {
+            let fraction = preparation.fraction
+            let isWarming = preparation.isWarming
+            // Warming up has no measure: a full capsule with light passing over it, and no number.
+            OnboardingModelCapsule(
+                face: .loading, fraction: isWarming ? 1 : fraction ?? 0, isIndeterminate: isWarming
+            ) {
                 // On the text, not the container: a container identifier stamps every descendant on macOS.
-                Text("Preparing the speech model for this Mac")
+                (isWarming ? Text("Warming up") : Text("Preparing the speech model for this Mac"))
                     .accessibilityIdentifier("onboarding-model-preparing")
                 Spacer(minLength: 8)
-                if let fraction, !preparation.isWarming {
+                if let fraction {
                     Text(verbatim: "\(Int(fraction * 100))%")
                         .font(.system(size: 13, weight: .medium, design: .monospaced))
                         .accessibilityIdentifier("onboarding-model-percent")
                 }
+            }
+            .onChange(of: dictation.modelDownloadFraction, initial: true) { _, reported in
+                preparation.downloaded(reported)
             }
         case .ready:
             OnboardingModelCapsule(face: .inserted, fraction: 1) {
@@ -90,10 +97,14 @@ struct OnboardingModelStep: View {
         .onboardingCard(cornerRadius: 14)
     }
 
-    /// The share of the missing bytes in place. Nil while the store has reported none: no made-up number.
-    nonisolated static func fraction(downloaded: Double?, isWarming: Bool) -> Double? {
-        isWarming ? 1 : downloaded
+    /// Where the passing light starts, for a time in seconds: from off the left edge to off the right.
+    nonisolated static func sweepOffset(at time: TimeInterval, width: CGFloat) -> CGFloat {
+        let phase = time.truncatingRemainder(dividingBy: sweepPeriod) / sweepPeriod
+        return width * ((1 + sweepShare) * phase - sweepShare)
     }
+
+    nonisolated static let sweepPeriod: TimeInterval = 1.8
+    nonisolated static let sweepShare: CGFloat = 0.35
 }
 
 extension OnboardingModelPreparation.PartStatus {
@@ -103,9 +114,9 @@ extension OnboardingModelPreparation.PartStatus {
         switch self {
         case .missing: L10n.text("Not Downloaded")
         case .downloading: L10n.text("Downloading")
-        case .installed: L10n.text("Downloaded")
-        case .warming(copied: true): L10n.text("Copied from Portavoz · warming up")
-        case .warming(copied: false): L10n.text("Warming up")
+        case .copying: L10n.text("Copying from Portavoz")
+        case .installed(copied: true): L10n.text("Copied from Portavoz")
+        case .installed(copied: false): L10n.text("Downloaded")
         case .ready(copied: true): L10n.text("Copied from Portavoz")
         case .ready(copied: false): L10n.text("Ready")
         }
@@ -116,6 +127,7 @@ extension OnboardingModelPreparation.PartStatus {
 private struct OnboardingModelCapsule<Content: View>: View {
     let face: SecreteoGlyphFace
     let fraction: Double
+    var isIndeterminate = false
     @ViewBuilder let content: Content
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -152,6 +164,16 @@ private struct OnboardingModelCapsule<Content: View>: View {
                     // Dim enough that the words over it keep their contrast.
                     .opacity(0.38)
                     .frame(width: width)
+                if isIndeterminate, !reduceMotion {
+                    TimelineView(.animation(minimumInterval: 1.0 / 30)) { context in
+                        LinearGradient(
+                            colors: [.clear, SecreteoPalette.capsuleVoiceCrest.color.opacity(0.22), .clear],
+                            startPoint: .leading, endPoint: .trailing)
+                            .frame(width: proxy.size.width * OnboardingModelStep.sweepShare)
+                            .offset(x: OnboardingModelStep.sweepOffset(
+                                at: context.date.timeIntervalSinceReferenceDate, width: proxy.size.width))
+                    }
+                }
             }
             .animation(reduceMotion ? nil : .easeOut(duration: 0.3), value: fraction)
         }

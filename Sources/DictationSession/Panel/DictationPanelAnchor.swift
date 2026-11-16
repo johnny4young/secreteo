@@ -7,7 +7,7 @@ enum DictationPanelAnchor: Equatable {
     /// Cocoa screen coordinates (bottom-left origin).
     case caret(NSRect)
     case pointer(NSPoint)
-    /// A place a window keeps for the strip: centred in it, on its bottom edge.
+    /// A place a window keeps for the strip: centred in it, hanging from its top edge.
     case slot(NSRect)
 
     /// Reads only geometry, never text; secure fields fall back to the pointer.
@@ -30,8 +30,8 @@ enum DictationPanelAnchor: Equatable {
 
     /// A panel under its anchor grows downward, away from the line being written.
     static func pinnedEdge(for size: NSSize, near anchor: Self, in visible: NSRect, gap: CGFloat = 8) -> PinnedEdge {
-        // A slot's bottom edge is the place the window kept, so a taller notice grows up into it.
-        if case .slot = anchor { return .bottom }
+        // The window's own words sit above its slot, so anything taller grows down from it.
+        if case .slot = anchor { return .top }
         return anchor.target.minY - gap - size.height >= visible.minY ? .top : .bottom
     }
 
@@ -52,7 +52,7 @@ enum DictationPanelAnchor: Equatable {
         if case .slot(let slot) = anchor {
             return NSPoint(
                 x: min(max(slot.midX - size.width / 2, visible.minX), visible.maxX - size.width),
-                y: min(max(slot.minY, visible.minY), visible.maxY - size.height))
+                y: min(max(slot.maxY - size.height, visible.minY), visible.maxY - size.height))
         }
         let target = anchor.target
         var y = target.minY - gap - size.height

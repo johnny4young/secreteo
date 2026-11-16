@@ -65,6 +65,8 @@ public enum SecreteoPalette {
     /// The Settings tab bar, and the well behind a picker or a segment.
     public static let bar = SecreteoColor(light: 0xF4ECE3, dark: 0x231A15)
     public static let control = SecreteoColor(light: 0xF4ECE3, dark: 0x33261F)
+    /// The edge of the amber mark for the current step, dark enough to stand out from paper.
+    public static let progressEdge = SecreteoColor(light: 0xAD7208, dark: 0xF4B63C)
     public static let segment = SecreteoColor(light: 0xFFFFFF, dark: 0xE8936A)
     public static let segmentText = SecreteoColor(light: 0x1E1612, dark: 0x2A1206)
     public static let onAmber = SecreteoColor(0x2A1206)

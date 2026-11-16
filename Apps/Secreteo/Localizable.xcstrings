@@ -1266,22 +1266,6 @@
         }
       }
     },
-    "Copied from Portavoz · warming up" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copied from Portavoz · warming up"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copiado de Portavoz · preparándose"
-          }
-        }
-      }
-    },
     "Copied. You can paste the text yourself." : {
       "localizations" : {
         "en" : {
@@ -1310,6 +1294,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Copiar"
+          }
+        }
+      }
+    },
+    "Copying from Portavoz" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copying from Portavoz"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiando de Portavoz"
           }
         }
       }

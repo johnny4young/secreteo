@@ -61,24 +61,39 @@ final class OnboardingModelPreparation {
         case failed(Failure)
     }
 
+    /// What the wait is for. Warming up is the longer one, and has no number to show.
+    enum Stage: Equatable {
+        case installing(copying: Bool)
+        case warming(copied: Bool)
+    }
+
     /// What a model's card says. The store reports bytes only for the whole install.
     enum PartStatus: Equatable {
         case missing
         case downloading
-        case installed
-        case warming(copied: Bool)
+        case copying
+        case installed(copied: Bool)
         case ready(copied: Bool)
     }
 
     private(set) var phase: Phase = .idle
     private(set) var attempt = 0
-    private(set) var isWarming = false
-    private(set) var speechWasCopied = false
+    private(set) var stage = Stage.installing(copying: false)
+    /// The furthest the download got in this attempt, kept when the store stops reporting.
+    private(set) var downloaded: Double?
+
+    var isWarming: Bool {
+        if case .warming = stage { return true }
+        return false
+    }
+
+    private var speechWasCopied: Bool { stage == .warming(copied: true) }
 
     func prepare(using load: @MainActor () async throws -> Void) async {
         guard phase != .preparing, phase != .ready else { return }
         phase = .preparing
-        isWarming = false
+        stage = .installing(copying: false)
+        downloaded = nil
         attempt += 1
         do {
             try await load()
@@ -88,17 +103,28 @@ final class OnboardingModelPreparation {
         }
     }
 
-    func startedWarming(copiedFromPortavoz: Bool) {
-        isWarming = true
-        speechWasCopied = copiedFromPortavoz
+    func entered(_ stage: Stage) {
+        guard phase == .preparing else { return }
+        self.stage = stage
     }
+
+    /// The store clears its fraction when it finishes, which must not empty the capsule.
+    func downloaded(_ fraction: Double?) {
+        guard phase == .preparing, let fraction else { return }
+        downloaded = max(downloaded ?? 0, fraction)
+    }
+
+    /// The share of the missing bytes in place. Nil while the store has reported none, and
+    /// while warming up, which has no measure: no made-up number.
+    var fraction: Double? { isWarming ? nil : downloaded }
 
     func speechStatus(isInstalled: Bool) -> PartStatus {
         switch phase {
         case .ready: .ready(copied: speechWasCopied)
-        case .preparing where isWarming: .warming(copied: speechWasCopied)
-        case .preparing: isInstalled ? .installed : .downloading
-        case .idle, .failed: isInstalled ? .installed : .missing
+        case .preparing where isWarming: .installed(copied: speechWasCopied)
+        case .preparing where isInstalled: .installed(copied: false)
+        case .preparing: stage == .installing(copying: true) ? .copying : .downloading
+        case .idle, .failed: isInstalled ? .installed(copied: false) : .missing
         }
     }
 
