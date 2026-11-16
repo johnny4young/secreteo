@@ -55,6 +55,12 @@ enum SelectionRewriteLayout {
         }
     }
 
+    /// The instruction's own capsule opens where the card rests, so the card steps above it,
+    /// microphone notice included, and Done stays in reach.
+    static func lift(for phase: SelectionRewriteController.Phase) -> CGFloat {
+        phase == .listening ? DictationPanelLayout.capsuleHeight(showsNotice: true) + 8 : 0
+    }
+
     static func isBusy(_ phase: SelectionRewriteController.Phase) -> Bool {
         [.capturing, .rewriting, .replacing].contains(phase)
     }

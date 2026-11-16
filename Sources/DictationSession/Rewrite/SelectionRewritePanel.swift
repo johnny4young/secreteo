@@ -6,12 +6,15 @@ import SwiftUI
 @MainActor
 final class SelectionRewritePanelController {
     private var panel: NSPanel?
+    private var lift: CGFloat = 0
 
     /// The controller re-shows on every phase change; AppKit owns the one height.
     func show(controller: SelectionRewriteController) {
         let size = SelectionRewriteView.size(for: controller)
         if let panel {
-            resize(panel, to: size)
+            let lift = SelectionRewriteLayout.lift(for: controller.phase)
+            resize(panel, to: size, raisedBy: lift - self.lift)
+            self.lift = lift
             panel.orderFrontRegardless()
             return
         }
@@ -41,16 +44,17 @@ final class SelectionRewritePanelController {
     func close() {
         panel?.orderOut(nil)
         panel = nil
+        lift = 0
     }
 
     /// Grows upward from the bottom edge and stays on screen.
-    private func resize(_ panel: NSPanel, to size: NSSize) {
-        guard panel.contentRect(forFrameRect: panel.frame).size != size else { return }
+    private func resize(_ panel: NSPanel, to size: NSSize, raisedBy rise: CGFloat) {
+        guard panel.contentRect(forFrameRect: panel.frame).size != size || rise != 0 else { return }
         let origin = panel.frame.origin
         panel.setContentSize(size)
         guard let visible = panel.screen?.visibleFrame else { return }
         panel.setFrameOrigin(NSPoint(
-            x: origin.x, y: max(visible.minY, min(origin.y, visible.maxY - panel.frame.height))))
+            x: origin.x, y: max(visible.minY, min(origin.y + rise, visible.maxY - panel.frame.height))))
     }
 }
 

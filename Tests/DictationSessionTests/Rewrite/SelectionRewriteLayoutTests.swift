@@ -65,6 +65,14 @@ struct SelectionRewriteLayoutTests {
     }
 
     @Test
+    func theCardStepsAboveTheCapsuleOnlyWhileTheInstructionIsSpoken() {
+        #expect(Layout.lift(for: .listening) > DictationPanelLayout.capsuleHeight(showsNotice: true))
+        for phase: SelectionRewriteController.Phase in [.capturing, .choosing, .rewriting, .preview("x"), .replaced] {
+            #expect(Layout.lift(for: phase) == 0)
+        }
+    }
+
+    @Test
     func chipsThatDoNotFitGoBehindTheOverflow() {
         #expect(Layout.visibleChips(widths: [60, 70, 80], overflowWidth: 50, available: 300, spacing: 8) == 3)
         #expect(Layout.visibleChips(widths: [60, 70, 80], overflowWidth: 50, available: 226, spacing: 8) == 3)
