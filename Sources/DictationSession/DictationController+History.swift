@@ -118,4 +118,16 @@ extension DictationController {
         case .failed: L10n.text("Not saved to your dictation history.")
         }
     }
+
+    /// Whether the shown delivery's words outlive this run of the app.
+    var historyKeptDelivery: Bool {
+        guard let history, history.sessionID == deliveryID else { return false }
+        return history.state == .saved
+    }
+
+    /// The one privacy outcome worth drawing on the result pill.
+    var historySaveFailed: Bool {
+        guard let history, history.sessionID == deliveryID else { return false }
+        return history.state == .failed
+    }
 }

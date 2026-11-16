@@ -1,9 +1,9 @@
 import DictationKit
 import SwiftUI
 
-/// What the capsule's rim says about the phase.
+/// What the rim of a capsule, pill or card says about the phase.
 enum DictationCapsuleRim: Equatable {
-    case quiet, loading, voice, polish, notSent
+    case quiet, loading, voice, polish, notSent, verified, sent
 
     /// `transforms`: polishing or translating. A plain paste shares their face but not their copper.
     init(face: SecreteoGlyphFace, transforms: Bool = false) {
@@ -12,6 +12,8 @@ enum DictationCapsuleRim: Equatable {
         case .loading: self = .loading
         case .polishing: self = transforms ? .polish : .quiet
         case .notSent: self = .notSent
+        case .inserted: self = .verified
+        case .sent: self = .sent
         default: self = .quiet
         }
     }
@@ -24,10 +26,56 @@ enum DictationCapsuleRim: Equatable {
         case .voice: return (SecreteoPalette.capsuleAmber.color, SecreteoDesign.ember)
         case .polish: return (SecreteoPalette.capsuleText.color, SecreteoPalette.capsuleAccent.color)
         case .notSent: return (SecreteoPalette.capsuleNotSent.color, SecreteoPalette.capsuleNotSent.color)
+        case .verified: return (SecreteoPalette.capsuleVerified.color, SecreteoPalette.capsuleVerified.color)
+        case .sent: return (SecreteoPalette.capsuleAmber.color, SecreteoPalette.capsuleAmber.color)
         }
     }
 
-    var glows: Bool { self != .quiet && self != .loading }
+    var glows: Bool { self == .voice || self == .polish || self == .notSent }
+}
+
+/// Both ends light up like parentheses; the edges between them stay a hairline.
+struct DictationRimStroke<Outline: InsettableShape>: View {
+    let style: DictationCapsuleRim
+    let outline: Outline
+    /// How much of the width each lit end takes.
+    var end = 0.056
+
+    var body: some View {
+        let ends = style.ends
+        let gradient = LinearGradient(
+            stops: [
+                .init(color: ends.leading, location: 0), .init(color: ends.leading.opacity(0.14), location: end),
+                .init(color: ends.trailing.opacity(0.14), location: 1 - end), .init(color: ends.trailing, location: 1)
+            ],
+            startPoint: .leading, endPoint: .trailing)
+        let dash: [CGFloat] = style == .loading ? [3, 4] : []
+        ZStack {
+            if style.glows {
+                outline.strokeBorder(gradient, lineWidth: 2.4).blur(radius: 3).opacity(0.75)
+            }
+            outline.strokeBorder(gradient, style: StrokeStyle(lineWidth: 1.2, dash: dash))
+        }
+        // The glow's blur would otherwise spill past the corners and square off the window's shadow.
+        .clipShape(outline)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+/// The capsule family's dark glass, solid under Reduce Transparency.
+struct DictationLacquer: View {
+    var tint = 0.8
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    var body: some View {
+        if reduceTransparency {
+            SecreteoPalette.lacquer.color
+        } else {
+            Rectangle().fill(.ultraThinMaterial)
+            SecreteoPalette.lacquer.color.opacity(tint)
+        }
+    }
 }
 
 /// When the capsule may animate. Once the microphone has closed, every frame competes with the
@@ -106,7 +154,7 @@ struct DictationCapsuleView: View {
         }
         .frame(
             width: DictationPanelLayout.width,
-            height: DictationPanelLayout.height(for: controller.phase, showsNotice: controller.microphoneNotice != nil))
+            height: DictationPanelLayout.capsuleHeight(showsNotice: controller.microphoneNotice != nil))
         // Dark over any app and in either appearance, so the words stay legible.
         .environment(\.colorScheme, .dark)
     }
@@ -289,12 +337,7 @@ struct DictationCapsuleView: View {
     }
 
     @ViewBuilder private var glass: some View {
-        if reduceTransparency {
-            SecreteoPalette.lacquer.color
-        } else {
-            Rectangle().fill(.ultraThinMaterial)
-            SecreteoPalette.lacquer.color.opacity(0.8)
-        }
+        DictationLacquer()
         if controller.phase == .listening {
             DictationLiquidLevel(
                 level: controller.micLevel,
@@ -312,25 +355,10 @@ struct DictationCapsuleView: View {
     }
 
     private var rim: some View {
-        let style = DictationCapsuleRim(
-            face: controller.statusFace, transforms: controller.isPolishing || controller.isTranslating)
-        let ends = style.ends
-        // Both ends light up like parentheses; the edges between them stay a hairline.
-        let gradient = LinearGradient(
-            stops: [
-                .init(color: ends.leading, location: 0), .init(color: ends.leading.opacity(0.14), location: 0.056),
-                .init(color: ends.trailing.opacity(0.14), location: 0.944), .init(color: ends.trailing, location: 1)
-            ],
-            startPoint: .leading, endPoint: .trailing)
-        let dash: [CGFloat] = style == .loading ? [3, 4] : []
-        return ZStack {
-            if style.glows {
-                Capsule().strokeBorder(gradient, lineWidth: 2.4).blur(radius: 3).opacity(0.75)
-            }
-            Capsule().strokeBorder(gradient, style: StrokeStyle(lineWidth: 1.2, dash: dash))
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
+        DictationRimStroke(
+            style: DictationCapsuleRim(
+                face: controller.statusFace, transforms: controller.isPolishing || controller.isTranslating),
+            outline: Capsule())
     }
 
     private var showsModelLoading: Bool { controller.phase == .listening && controller.isLoadingModel }

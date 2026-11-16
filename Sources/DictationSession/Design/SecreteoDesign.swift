@@ -72,6 +72,7 @@ public enum SecreteoPalette {
     /// Text on the always-dark capsule, whatever the system appearance.
     public static let capsuleText = SecreteoColor(0xFBF1E6)
     public static let capsuleSecondaryText = SecreteoColor(0xCDB9A8)
+    public static let capsuleTertiaryText = SecreteoColor(0xA08C7C)
     public static let capsuleVerified = SecreteoColor(0x7FD1B9)
     public static let capsuleNotSent = SecreteoColor(0xFF8D73)
     public static let capsuleAccent = SecreteoColor(0xE8936A)
@@ -85,6 +86,10 @@ public enum SecreteoPalette {
     /// The crest of the voice light.
     public static let capsuleVoiceCrest = SecreteoColor(0xFFE2A8)
     public static let capsuleCopper = SecreteoColor(0x9A4A1F)
+    /// The one primary button on a capsule card, lit from above.
+    public static let capsulePrimaryTop = SecreteoColor(0xF0A078)
+    public static let capsulePrimaryBottom = SecreteoColor(0xDD7F52)
+    public static let capsulePrimaryText = SecreteoColor(0x2A1206)
     /// Words the engine has heard but not confirmed.
     public static let capsuleProvisionalText = SecreteoColor(0xFFD8AA)
 }
