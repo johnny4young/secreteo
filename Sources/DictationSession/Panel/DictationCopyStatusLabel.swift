@@ -17,7 +17,9 @@ struct DictationCopyStatusLabel: View {
     }
 
     /// Words the history did not keep live only in memory, which is worth saying until they are copied.
-    nonisolated static func message(status: DictationController.CopyStatus, privacy: String, inHistory: Bool) -> String {
+    nonisolated static func message(
+        status: DictationController.CopyStatus, privacy: String, inHistory: Bool
+    ) -> String {
         let kept = inHistory ? privacy : L10n.text("Kept only in memory. Copy it before quitting Secreteo.")
         return switch status {
         case .idle: kept
