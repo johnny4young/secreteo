@@ -147,7 +147,7 @@ final class DictationHistoryUITests: SecreteoUITestCase {
         app.buttons["menu-settings"].click()
         let root = app.control(withIdentifier: "settings-root")
         XCTAssertTrue(root.waitForExistence(timeout: 5))
-        root.scroll(byDeltaX: 0, deltaY: -1_800)
+        app.openSettingsTab(.history)
 
         let toggle = app.control(withIdentifier: "settings-dictation-history")
         XCTAssertTrue(toggle.waitForStableFrame(timeout: 5))
@@ -190,7 +190,7 @@ final class DictationHistoryUITests: SecreteoUITestCase {
         app.buttons["menu-settings"].click()
         let root = app.control(withIdentifier: "settings-root")
         XCTAssertTrue(root.waitForExistence(timeout: 5))
-        root.scroll(byDeltaX: 0, deltaY: -1_800)
+        app.openSettingsTab(.history)
 
         let toggle = app.control(withIdentifier: "settings-dictation-stats")
         XCTAssertTrue(toggle.waitForStableFrame(timeout: 5))
@@ -198,6 +198,7 @@ final class DictationHistoryUITests: SecreteoUITestCase {
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-stats-error").exists)
         toggle.click()
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { self.isOn(toggle) })
+        XCTAssertTrue(app.revealInSettings(app.buttons["settings-dictation-stats-delete"]))
         app.buttons["settings-dictation-stats-delete"].click()
         let confirm = app.buttons["settings-dictation-stats-delete-confirm"]
         XCTAssertTrue(confirm.waitForExistence(timeout: 5))

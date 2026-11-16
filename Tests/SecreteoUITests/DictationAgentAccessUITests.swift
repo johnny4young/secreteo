@@ -11,7 +11,7 @@ final class DictationAgentAccessUITests: SecreteoUITestCase {
         app.buttons["menu-settings"].click()
         let root = app.control(withIdentifier: "settings-root")
         XCTAssertTrue(root.waitForExistence(timeout: 5))
-        root.scroll(byDeltaX: 0, deltaY: -1_800)
+        app.openSettingsTab(.history)
 
         let history = app.control(withIdentifier: "settings-dictation-history")
         XCTAssertTrue(history.waitForStableFrame(timeout: 5))

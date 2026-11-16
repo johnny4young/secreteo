@@ -4,33 +4,15 @@ import SwiftUI
 /// Polish recipes: the four built-ins can only be duplicated; custom ones are edited here.
 struct DictationRecipeSettings: View {
     let model: DictationTextSettingsModel
-    @State private var showsRecipes = false
     @State private var draft: DictationRecipe?
 
     var body: some View {
-        Button {
-            showsRecipes.toggle()
-        } label: {
-            HStack {
-                Text("Polish Recipes")
-                Spacer()
-                Image(systemName: showsRecipes ? "chevron.down" : "chevron.right")
-                    .accessibilityHidden(true)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityValue(showsRecipes ? Text("Expanded") : Text("Collapsed"))
-        .accessibilityIdentifier("settings-dictation-recipes")
-        if showsRecipes { recipes }
-    }
-
-    private var recipes: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        Group {
             if model.hasInvalidRecipes {
                 Text("Your recipes could not be read. Polish uses the built-in ones until you reset them.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("settings-dictation-recipes-invalid")
                 Button("Reset Recipes") { model.resetRecipes() }
                     .accessibilityIdentifier("settings-dictation-recipe-reset")
@@ -39,11 +21,13 @@ struct DictationRecipeSettings: View {
             Button("New Recipe…") {
                 draft = DictationRecipe(id: UUID().uuidString, name: "", instruction: "")
             }
+            .buttonStyle(SettingsLinkStyle())
             .disabled(!model.canAddRecipe)
             .accessibilityIdentifier("settings-dictation-recipe-new")
-        }
-        .sheet(item: $draft) { recipe in
-            DictationRecipeEditor(recipe: recipe) { saved in model.saveRecipe(saved) }
+            // On the row that always shows, so the editor outlives a recipe row it replaces.
+            .sheet(item: $draft) { recipe in
+                DictationRecipeEditor(recipe: recipe) { saved in model.saveRecipe(saved) }
+            }
         }
     }
 
@@ -51,6 +35,7 @@ struct DictationRecipeSettings: View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(verbatim: DictationTextModePicker.name(of: recipe))
+                    .fontWeight(.semibold)
                 Text(verbatim: recipe.instruction)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -65,15 +50,15 @@ struct DictationRecipeSettings: View {
                         id: UUID().uuidString, name: DictationTextModePicker.name(of: recipe),
                         instruction: recipe.instruction)
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(SettingsLinkStyle())
                 .disabled(!model.canAddRecipe)
                 .accessibilityIdentifier("settings-dictation-recipe-duplicate-" + recipe.id)
             } else {
                 Button("Edit") { draft = recipe }
-                    .buttonStyle(.borderless)
+                    .buttonStyle(SettingsLinkStyle())
                     .accessibilityIdentifier("settings-dictation-recipe-edit-" + recipe.id)
                 Button("Delete") { model.deleteRecipe(id: recipe.id) }
-                    .buttonStyle(.borderless)
+                    .buttonStyle(SettingsLinkStyle())
                     .accessibilityIdentifier("settings-dictation-recipe-delete-" + recipe.id)
             }
         }

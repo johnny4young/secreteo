@@ -11,10 +11,18 @@ struct DictationTranslationSettings: View {
     @State private var downloadFailed = false
 
     var body: some View {
-        DictationTranslationPicker(
-            identifier: "settings-dictation-translate", label: Text("Translate Dictation Into"),
-            selection: Binding(get: { model.globalTranslationTarget }, set: { model.setGlobalTranslationTarget($0) }))
-            .task { await refresh() }
+        SettingsRow(Text("Translate Dictation Into")) {
+            SettingsSegments(
+                identifier: "settings-dictation-translate", label: Text("Translate Dictation Into"),
+                selection: Binding(
+                    get: { model.globalTranslationTarget }, set: { model.setGlobalTranslationTarget($0) }),
+                options: [
+                    .init(value: DictationTranslationTarget.off, title: Text("Off"), suffix: "off"),
+                    .init(value: .english, title: Text("English"), suffix: "en"),
+                    .init(value: .spanish, title: Text("Spanish"), suffix: "es")
+                ])
+        }
+        .task { await refresh() }
         if let status {
             Text(status)
                 .foregroundStyle(.secondary)

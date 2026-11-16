@@ -7,13 +7,14 @@ struct DictationStatsSettingsSection: View {
 
     private var model: DictationStatsModel { dictation.stats }
 
-    // Modifiers on a Form section reach every row, so each row carries its own.
     var body: some View {
-        Section("Dictation Statistics") {
-            Toggle("Keep Dictation Statistics", isOn: Binding(
-                get: { model.isEnabled },
-                set: { value in Task { await model.update(isEnabled: value) } }))
-                .accessibilityIdentifier("settings-dictation-stats")
+        SettingsEyebrow(Text("Dictation Statistics"))
+        SettingsCard {
+            SettingsSwitch(
+                Text("Keep Dictation Statistics"), identifier: "settings-dictation-stats",
+                isOn: Binding(
+                    get: { model.isEnabled },
+                    set: { value in Task { await model.update(isEnabled: value) } }))
             Button("Delete Statistics", role: .destructive) { confirmingDelete = true }
                 .accessibilityIdentifier("settings-dictation-stats-delete")
                 .confirmationDialog(

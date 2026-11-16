@@ -48,6 +48,14 @@ public enum SecreteoPalette {
     public static let text = SecreteoColor(light: 0x1E1612, dark: 0xFBF1E6)
     public static let secondaryText = SecreteoColor(light: 0x5F4F44, dark: 0xCDB9A8)
     public static let tertiaryText = SecreteoColor(light: 0x7A685B, dark: 0xA08C7C)
+    public static let card = SecreteoColor(light: 0xFFFFFF, dark: 0x261C17)
+    /// The Settings tab bar, and the well behind a picker or a segment.
+    public static let bar = SecreteoColor(light: 0xF4ECE3, dark: 0x231A15)
+    public static let control = SecreteoColor(light: 0xF4ECE3, dark: 0x33261F)
+    public static let segment = SecreteoColor(light: 0xFFFFFF, dark: 0xE8936A)
+    public static let segmentText = SecreteoColor(light: 0x1E1612, dark: 0x2A1206)
+    public static let onAmber = SecreteoColor(0x2A1206)
+    public static let keyCap = SecreteoColor(light: 0xFFFFFF, dark: 0x33261F)
     /// Text on the always-dark capsule, whatever the system appearance.
     public static let capsuleText = SecreteoColor(0xFBF1E6)
     public static let capsuleSecondaryText = SecreteoColor(0xCDB9A8)
@@ -61,8 +69,6 @@ public enum SecreteoPalette {
     public static let capsuleInk = SecreteoColor(0x2A1206)
     /// Text on a row filled with the accent.
     public static let onAccent = SecreteoColor(light: 0xFFF6EC, dark: 0x2A1206)
-    /// A card raised from the window.
-    public static let card = SecreteoColor(light: 0xFFFFFF, dark: 0x261C17)
     /// The crest of the voice light.
     public static let capsuleVoiceCrest = SecreteoColor(0xFFE2A8)
     public static let capsuleCopper = SecreteoColor(0x9A4A1F)
@@ -79,6 +85,16 @@ public enum SecreteoDesign {
     public static let windowBackground = SecreteoPalette.window.color
     public static let secondaryText = SecreteoPalette.secondaryText.color
     public static let tertiaryText = SecreteoPalette.tertiaryText.color
+    public static let card = SecreteoPalette.card.color
+    public static let settingsBar = SecreteoPalette.bar.color
+    public static let control = SecreteoPalette.control.color
+    public static let segment = SecreteoPalette.segment.color
+    public static let segmentText = SecreteoPalette.segmentText.color
+    public static let onAmber = SecreteoPalette.onAmber.color
+    public static let keyCap = SecreteoPalette.keyCap.color
+    public static let hairline = SecreteoPalette.text.color.opacity(0.1)
+    public static let keyEdge = SecreteoPalette.text.color.opacity(0.18)
+    public static let accentWash = SecreteoPalette.accent.color.opacity(0.1)
     public static let text = SecreteoPalette.text.color
     public static let onAccent = SecreteoPalette.onAccent.color
 }
