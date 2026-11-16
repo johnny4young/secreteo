@@ -93,6 +93,39 @@ public struct DictationStatsSummary: Equatable, Sendable {
     }
 }
 
+/// One segment of the per-app share bar; a nil name is every other app together.
+public struct DictationApplicationShare: Equatable, Sendable {
+    public let name: String?
+    public let percent: Int
+
+    public init(name: String?, percent: Int) {
+        self.name = name
+        self.percent = percent
+    }
+}
+
+extension DictationStatsSummary {
+    /// Each busiest app's share of the range's dictations, then every other app and the
+    /// dictations without one. The percentages add up to 100; a share that rounds to nothing is left out.
+    public func applicationShares(limit: Int = 4) -> [DictationApplicationShare] {
+        let total = totals.dictations
+        guard total > 0, limit > 0 else { return [] }
+        let named = topApplications.filter { $0.dictations > 0 }.prefix(limit)
+        var counts = named.map { min($0.dictations, total) }
+        counts.append(max(0, total - counts.reduce(0, +)))
+        var percents = counts.map { $0 * 100 / total }
+        let remainders = counts.enumerated().sorted {
+            let lhs = $0.element * 100 % total, rhs = $1.element * 100 % total
+            return lhs == rhs ? $0.offset < $1.offset : lhs > rhs
+        }
+        for index in remainders.prefix(max(0, 100 - percents.reduce(0, +))).map(\.offset) {
+            percents[index] += 1
+        }
+        let names: [String?] = named.map(\.name) + [nil]
+        return zip(names, percents).filter { $0.1 > 0 }.map { DictationApplicationShare(name: $0.0, percent: $0.1) }
+    }
+}
+
 public enum DictationStatsCalendar {
     public static let retentionDays = 365
     public static let typingWordsPerMinute = 40.0
