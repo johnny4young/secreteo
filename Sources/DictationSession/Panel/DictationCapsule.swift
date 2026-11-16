@@ -56,6 +56,8 @@ struct DictationRimStroke<Outline: InsettableShape>: View {
             }
             outline.strokeBorder(gradient, style: StrokeStyle(lineWidth: 1.2, dash: dash))
         }
+        // The glow's blur would otherwise spill past the corners and square off the window's shadow.
+        .clipShape(outline)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }

@@ -17,10 +17,10 @@ struct DictationResultPill: View {
                     .foregroundStyle(SecreteoPalette.capsuleSecondaryText.color)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("dictation-panel-polish-notice")
                     .padding(.horizontal, 12)
                     .padding(.vertical, 4)
                     .background(SecreteoPalette.lacquer.color.opacity(0.94), in: RoundedRectangle(cornerRadius: 11))
-                    .accessibilityIdentifier("dictation-panel-polish-notice")
             }
         }
         .frame(width: DictationPanelLayout.width, alignment: .leading)
@@ -28,14 +28,18 @@ struct DictationResultPill: View {
         .onAppear {
             withAnimation(.easeInOut(duration: DictationPanelLayout.resultContraction)) { settled = true }
         }
-        // An offered correction waits for its answer; everything else leaves on its own.
-        .task(id: controller.learnableCorrection == nil) {
+        .task(id: fades) {
             faded = false
-            guard controller.learnableCorrection == nil else { return }
+            guard fades else { return }
             try? await Task.sleep(for: DictationPanelLayout.resultHold)
             guard !Task.isCancelled else { return }
             withAnimation(.easeIn(duration: 0.2)) { faded = true }
         }
+    }
+
+    private var fades: Bool {
+        DictationPanelLayout.resultFades(
+            showsNotice: controller.polishNotice != nil, offersCorrection: controller.learnableCorrection != nil)
     }
 
     private var pill: some View {

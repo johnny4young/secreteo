@@ -124,6 +124,19 @@ struct DictationCapsuleTests {
     }
 
     @Test @MainActor
+    func theResultPillStaysWhileThereIsSomethingToReadOrAnswer() {
+        #expect(DictationPanelLayout.resultFades(showsNotice: false, offersCorrection: false))
+        #expect(!DictationPanelLayout.resultFades(showsNotice: true, offersCorrection: false))
+        #expect(!DictationPanelLayout.resultFades(showsNotice: false, offersCorrection: true))
+        #expect(!DictationPanelLayout.resultFades(showsNotice: true, offersCorrection: true))
+        #expect(
+            DictationPanelLayout.resultHold + DictationPanelLayout.resultFade
+                == DictationController.verifiedFeedbackDuration,
+            "the fade ends as the panel closes")
+        #expect(DictationController.unverifiedFeedbackDuration > DictationController.verifiedFeedbackDuration)
+    }
+
+    @Test @MainActor
     func cancellingDoesNotResizeAPanelStillOnScreen() {
         let idle = DictationController(presentsPanel: false)
         #expect(idle.phase == .idle)

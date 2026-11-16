@@ -16,6 +16,11 @@ enum DictationPanelLayout {
     static let resultFade: Duration = .milliseconds(200)
     @MainActor static var resultHold: Duration { DictationController.verifiedFeedbackDuration - resultFade }
 
+    /// A notice to read or a correction to answer keeps the panel open longer, and the pill with it.
+    static func resultFades(showsNotice: Bool, offersCorrection: Bool) -> Bool {
+        !showsNotice && !offersCorrection
+    }
+
     /// `outcomeHeight` is what the outcome's SwiftUI content last measured; `visible` is the screen's usable size.
     @MainActor
     static func size(
