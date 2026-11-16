@@ -184,6 +184,7 @@ struct SelectionRewriteSayHowTests {
         var recipes: [String?] = []
         var insertions: [String] = []
         var dictating = false
+        var capsuleIsShown = false
     }
 
     private func dependencies(_ recorder: Recorder) -> SelectionRewriteController.Dependencies {
@@ -205,12 +206,38 @@ struct SelectionRewriteSayHowTests {
             recipes: { [] }, protectedTerms: { [] }, copyText: { _ in true },
             wait: { _ in try await Task.sleep(for: .seconds(3_600)) })
         dependencies.isDictating = { recorder.dictating }
+        dependencies.capsuleIsShown = { recorder.capsuleIsShown }
         return dependencies
     }
 
     private func eventually(_ condition: @MainActor () -> Bool) async throws {
         _ = await TestPolling.until(condition)
         try #require(condition())
+    }
+
+    @Test
+    func theCardStaysAboveAFailedInstructionUntilItsCapsuleCloses() async throws {
+        let recorder = Recorder()
+        let rewrite = SelectionRewriteController(presentsPanel: false)
+        defer { rewrite.cancel() }
+        rewrite.start(using: dependencies(recorder))
+        try await eventually { rewrite.phase == .choosing }
+        #expect(!rewrite.staysAboveCapsule)
+
+        let harness = DictationControllerHarness(text: "")
+        defer { harness.controller.cancel() }
+        // The session is admitted and then fails: the capsule keeps showing why.
+        recorder.capsuleIsShown = true
+        rewrite.instructionDependencies(harness.dependencies).sessionAdmitted()
+        #expect(rewrite.phase == .listening)
+        #expect(rewrite.staysAboveCapsule)
+        try await eventually { rewrite.phase == .choosing }
+        #expect(rewrite.notice != nil)
+        #expect(rewrite.staysAboveCapsule, "the capsule's error is still on screen")
+
+        recorder.capsuleIsShown = false
+        try await eventually { !rewrite.staysAboveCapsule }
+        #expect(rewrite.phase == .choosing)
     }
 
     @Test

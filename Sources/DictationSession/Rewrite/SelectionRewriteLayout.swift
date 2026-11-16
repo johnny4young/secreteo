@@ -55,10 +55,45 @@ enum SelectionRewriteLayout {
         }
     }
 
-    /// The instruction's own capsule opens where the card rests, so the card steps above it,
-    /// microphone notice included, and Done stays in reach.
-    static func lift(for phase: SelectionRewriteController.Phase) -> CGFloat {
-        phase == .listening ? DictationPanelLayout.capsuleHeight(showsNotice: true) + 8 : 0
+    /// The room the dictation's capsule takes where the card rests, microphone notice included.
+    static let capsuleClearance = DictationPanelLayout.capsuleHeight(showsNotice: true) + 8
+
+    /// The instruction's capsule opens where the card rests, so the card steps above it and stays
+    /// there while that panel shows, whatever it ends up saying.
+    static func staysAboveCapsule(phase: SelectionRewriteController.Phase, capsuleIsShown: Bool) -> Bool {
+        phase == .listening || (capsuleIsShown && phase != .idle)
+    }
+
+    /// The step above the capsule, remembered as the distance really moved so the way back is exact.
+    struct Lift: Equatable {
+        private(set) var rise: CGFloat?
+
+        var isLifted: Bool { rise != nil }
+
+        mutating func origin(
+            from y: CGFloat, height: CGFloat, lifted: Bool, within visible: ClosedRange<CGFloat>
+        ) -> CGFloat {
+            let highest = max(visible.lowerBound, visible.upperBound - height)
+            func clamped(_ y: CGFloat) -> CGFloat { min(max(y, visible.lowerBound), highest) }
+            guard lifted != isLifted else { return clamped(y) }
+            let target = clamped(y + (lifted ? capsuleClearance : -(rise ?? 0)))
+            rise = lifted ? target - y : nil
+            return target
+        }
+    }
+
+    /// A recipe that cannot be chosen right now dims once; the one that is running keeps its outline.
+    static func chipOpacity(isEnabled: Bool, selected: Bool) -> Double {
+        isEnabled || selected ? 1 : 0.45
+    }
+
+    /// One keyboard stop on the row of recipes.
+    enum ChipStop: Hashable {
+        case polish, recipe(String), more
+    }
+
+    static func chipStops(recipeIDs: [String], shown: Int) -> [ChipStop] {
+        [.polish] + recipeIDs.prefix(shown).map(ChipStop.recipe) + (shown < recipeIDs.count ? [.more] : [])
     }
 
     static func isBusy(_ phase: SelectionRewriteController.Phase) -> Bool {

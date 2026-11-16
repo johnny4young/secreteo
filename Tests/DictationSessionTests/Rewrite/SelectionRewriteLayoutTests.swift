@@ -65,11 +65,70 @@ struct SelectionRewriteLayoutTests {
     }
 
     @Test
-    func theCardStepsAboveTheCapsuleOnlyWhileTheInstructionIsSpoken() {
-        #expect(Layout.lift(for: .listening) > DictationPanelLayout.capsuleHeight(showsNotice: true))
+    func theCardStaysAboveTheCapsuleWhileItShows() {
+        #expect(Layout.capsuleClearance > DictationPanelLayout.capsuleHeight(showsNotice: true))
+        #expect(Layout.staysAboveCapsule(phase: .listening, capsuleIsShown: false))
+        #expect(Layout.staysAboveCapsule(phase: .choosing, capsuleIsShown: true), "the capsule may be showing an error")
+        #expect(Layout.staysAboveCapsule(phase: .rewriting, capsuleIsShown: true))
         for phase: SelectionRewriteController.Phase in [.capturing, .choosing, .rewriting, .preview("x"), .replaced] {
-            #expect(Layout.lift(for: phase) == 0)
+            #expect(!Layout.staysAboveCapsule(phase: phase, capsuleIsShown: false))
         }
+        #expect(!Layout.staysAboveCapsule(phase: .idle, capsuleIsShown: true))
+    }
+
+    @Test
+    func theWayBackFromTheLiftIsExactlyTheWayUp() {
+        let screen: ClosedRange<CGFloat> = 0...1_000
+        var lift = Layout.Lift()
+        #expect(lift.origin(from: 48, height: 200, lifted: false, within: screen) == 48)
+        #expect(!lift.isLifted)
+        #expect(lift.origin(from: 48, height: 160, lifted: true, within: screen) == 48 + Layout.capsuleClearance)
+        #expect(lift.rise == Layout.capsuleClearance)
+        #expect(
+            lift.origin(from: 48 + Layout.capsuleClearance, height: 160, lifted: true, within: screen)
+                == 48 + Layout.capsuleClearance,
+            "a re-show while lifted does not lift again")
+        #expect(lift.origin(from: 48 + Layout.capsuleClearance, height: 200, lifted: false, within: screen) == 48)
+        #expect(!lift.isLifted)
+    }
+
+    @Test
+    func aCardAtTheTopEdgeNeverCreepsDown() {
+        let screen: ClosedRange<CGFloat> = 0...1_000
+        var lift = Layout.Lift()
+        var y: CGFloat = 800
+        for _ in 0..<3 {
+            y = lift.origin(from: y, height: 200, lifted: true, within: screen)
+            #expect(y == 800, "there is no room above")
+            #expect(lift.rise == 0)
+            y = lift.origin(from: y, height: 200, lifted: false, within: screen)
+            #expect(y == 800)
+        }
+        // A shorter card while listening has some room; it gives back exactly that.
+        y = lift.origin(from: 800, height: 150, lifted: true, within: screen)
+        #expect(y == 850)
+        #expect(lift.rise == 50)
+        #expect(lift.origin(from: y, height: 200, lifted: false, within: screen) == 800)
+    }
+
+    @Test
+    func aChipDimsOnceAndTheRunningRecipeKeepsItsOutline() {
+        #expect(Layout.chipOpacity(isEnabled: true, selected: false) == 1)
+        #expect(Layout.chipOpacity(isEnabled: true, selected: true) == 1)
+        #expect(Layout.chipOpacity(isEnabled: false, selected: true) == 1)
+        let dimmed = Layout.chipOpacity(isEnabled: false, selected: false)
+        #expect(dimmed < 1 && dimmed >= 0.4, "one dimming, not two")
+    }
+
+    @Test
+    func theArrowKeysWalkTheChipsAndStopAtEitherEnd() {
+        let stops = Layout.chipStops(recipeIDs: ["a", "b", "c"], shown: 2)
+        #expect(stops == [.polish, .recipe("a"), .recipe("b"), .more])
+        #expect(Layout.chipStops(recipeIDs: ["a"], shown: 1) == [.polish, .recipe("a")])
+        #expect(SettingsArrowKeys.neighbor(of: Layout.ChipStop.polish, in: stops, by: 1) == .recipe("a"))
+        #expect(SettingsArrowKeys.neighbor(of: Layout.ChipStop.recipe("b"), in: stops, by: 1) == .more)
+        #expect(SettingsArrowKeys.neighbor(of: Layout.ChipStop.more, in: stops, by: 1) == .more)
+        #expect(SettingsArrowKeys.neighbor(of: Layout.ChipStop.polish, in: stops, by: -1) == .polish)
     }
 
     @Test

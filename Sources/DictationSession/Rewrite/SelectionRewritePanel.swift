@@ -6,16 +6,15 @@ import SwiftUI
 @MainActor
 final class SelectionRewritePanelController {
     private var panel: NSPanel?
-    private var lift: CGFloat = 0
+    private var lift = SelectionRewriteLayout.Lift()
 
     /// The controller re-shows on every phase change; AppKit owns the one height.
-    func show(controller: SelectionRewriteController) {
+    /// `behindCapsule`: the dictation's panel is showing, and the card never covers it.
+    func show(controller: SelectionRewriteController, behindCapsule: Bool) {
         let size = SelectionRewriteView.size(for: controller)
         if let panel {
-            let lift = SelectionRewriteLayout.lift(for: controller.phase)
-            resize(panel, to: size, raisedBy: lift - self.lift)
-            self.lift = lift
-            panel.orderFrontRegardless()
+            resize(panel, to: size, lifted: controller.staysAboveCapsule)
+            if !behindCapsule { panel.orderFrontRegardless() }
             return
         }
         let panel = SelectionRewritePanelWindow(
@@ -37,6 +36,7 @@ final class SelectionRewritePanelController {
             let frame = screen.visibleFrame
             panel.setFrameOrigin(NSPoint(x: frame.midX - size.width / 2, y: frame.minY + 48))
         }
+        resize(panel, to: size, lifted: controller.staysAboveCapsule)
         panel.orderFrontRegardless()
         self.panel = panel
     }
@@ -44,17 +44,18 @@ final class SelectionRewritePanelController {
     func close() {
         panel?.orderOut(nil)
         panel = nil
-        lift = 0
+        lift = SelectionRewriteLayout.Lift()
     }
 
     /// Grows upward from the bottom edge and stays on screen.
-    private func resize(_ panel: NSPanel, to size: NSSize, raisedBy rise: CGFloat) {
-        guard panel.contentRect(forFrameRect: panel.frame).size != size || rise != 0 else { return }
+    private func resize(_ panel: NSPanel, to size: NSSize, lifted: Bool) {
+        guard panel.contentRect(forFrameRect: panel.frame).size != size || lifted != lift.isLifted else { return }
         let origin = panel.frame.origin
         panel.setContentSize(size)
         guard let visible = panel.screen?.visibleFrame else { return }
-        panel.setFrameOrigin(NSPoint(
-            x: origin.x, y: max(visible.minY, min(origin.y + rise, visible.maxY - panel.frame.height))))
+        let y = lift.origin(
+            from: origin.y, height: panel.frame.height, lifted: lifted, within: visible.minY...visible.maxY)
+        panel.setFrameOrigin(NSPoint(x: origin.x, y: y))
     }
 }
 

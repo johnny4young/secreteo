@@ -48,6 +48,25 @@ final class SelectionRewriteUITests: SecreteoUITestCase {
     }
 
     @MainActor
+    func testTheLastChosenRecipeIsTheSelectedChip() throws {
+        let app = try launchRewrite()
+        defer { finishUITestApplication(app) }
+        openRewrite(app)
+        let polish = app.buttons["rewrite-choice-polish"]
+        let formal = app.buttons["rewrite-choice-builtin.formal"]
+        XCTAssertTrue(formal.waitForHittable(timeout: 5))
+        XCTAssertTrue(polish.isSelected, "Polish is the choice until another is made")
+        XCTAssertFalse(formal.isSelected)
+        XCTAssertEqual(app.buttons["rewrite-choice-builtin.bullets"].label, "Bullet list")
+        formal.click()
+        XCTAssertTrue(app.staticTexts["rewrite-preview"].waitForExistenceFast(timeout: 5))
+        app.buttons["rewrite-choose-again"].click()
+        XCTAssertTrue(formal.waitForHittable(timeout: 5))
+        XCTAssertTrue(formal.isSelected)
+        XCTAssertFalse(polish.isSelected)
+    }
+
+    @MainActor
     func testRecipesThatDoNotFitAsChipsStayReachable() throws {
         let recipes = (1...3).map {
             #"{\"id\":\"custom.\#($0)\",\"name\":\"Weekly status update \#($0)\",\"instruction\":\"Short lines.\"}"#
@@ -66,6 +85,10 @@ final class SelectionRewriteUITests: SecreteoUITestCase {
         let preview = app.staticTexts["rewrite-preview"]
         XCTAssertTrue(preview.waitForExistenceFast(timeout: 5))
         XCTAssertTrue(renderedText(of: preview).hasPrefix("- "))
+        app.buttons["rewrite-choose-again"].click()
+        XCTAssertTrue(more.waitForHittable(timeout: 5))
+        XCTAssertTrue(more.isSelected, "The chosen recipe is behind More")
+        XCTAssertFalse(app.buttons["rewrite-choice-polish"].isSelected)
     }
 
     @MainActor
@@ -118,6 +141,12 @@ extension SelectionRewriteUITests {
         sayHow.click()
         XCTAssertTrue(app.staticTexts["dictation-panel-transcript"].waitForExistenceFast(timeout: 5))
         XCTAssertTrue(app.staticTexts["rewrite-live-instruction"].waitForExistenceFast(timeout: 5))
+        let card = app.dialogs["rewrite-panel"]
+        let capsule = app.dialogs["dictation-panel"]
+        XCTAssertTrue(
+            waitForUITestCondition(timeout: 5) { card.frame.maxY <= capsule.frame.minY },
+            "The card sits above the capsule: \(card.frame) over \(capsule.frame)")
+        XCTAssertFalse(card.frame.intersects(capsule.frame))
         let done = app.buttons["rewrite-say-how-done"]
         XCTAssertTrue(done.waitForHittable(timeout: 5))
         done.click()

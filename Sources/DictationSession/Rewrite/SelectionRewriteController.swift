@@ -38,6 +38,8 @@ final class SelectionRewriteController {
         var startDictation: () -> Void = {}
         var finishDictation: () -> Void = {}
         var isDictating: () -> Bool = { false }
+        /// The dictation's own panel, error included, which the card keeps clear of.
+        var capsuleIsShown: () -> Bool = { false }
         /// The instruction as it is being said: settled words and the engine's tail.
         var liveInstruction: () -> (confirmed: String, partial: String) = { ("", "") }
     }
@@ -56,6 +58,9 @@ final class SelectionRewriteController {
     private(set) var copied = false
     /// What the user said for this rewrite; it acts as a one-time recipe.
     private(set) var spokenInstruction: String?
+    /// The card holds its place above the dictation's panel until that panel closes.
+    @ObservationIgnored private(set) var staysAboveCapsule = false
+    @ObservationIgnored private var capsuleWatch: Task<Void, Never>?
     @ObservationIgnored private var selection: CapturedSelection?
     @ObservationIgnored private var selectionGeneration: Int?
     @ObservationIgnored private var replaceIsRevoked = false
@@ -273,6 +278,9 @@ final class SelectionRewriteController {
         result = nil
         copied = false
         spokenInstruction = nil
+        capsuleWatch?.cancel()
+        capsuleWatch = nil
+        staysAboveCapsule = false
         phase = .idle
         panel?.close()
     }
@@ -295,7 +303,25 @@ final class SelectionRewriteController {
     }
 
     private func show() {
-        panel?.show(controller: self)
+        let capsuleIsShown = dependencies?.capsuleIsShown() ?? false
+        staysAboveCapsule = SelectionRewriteLayout.staysAboveCapsule(phase: phase, capsuleIsShown: capsuleIsShown)
+        panel?.show(controller: self, behindCapsule: capsuleIsShown)
+        watchCapsule()
+    }
+
+    /// Nothing tells the card that the dictation's panel closed, so it looks until it has.
+    private func watchCapsule() {
+        capsuleWatch?.cancel()
+        capsuleWatch = nil
+        guard staysAboveCapsule, phase != .listening, let dependencies else { return }
+        let id = generation
+        capsuleWatch = Task { [weak self] in
+            while dependencies.capsuleIsShown() {
+                do { try await Task.sleep(for: .milliseconds(100)) } catch { return }
+            }
+            guard let self, self.generation == id else { return }
+            self.show()
+        }
     }
 
     private func armKeys(replaces: Bool) {

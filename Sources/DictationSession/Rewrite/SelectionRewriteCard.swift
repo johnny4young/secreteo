@@ -5,6 +5,9 @@ import SwiftUI
 /// and one copper action once there is a rewrite to accept.
 struct SelectionRewriteView: View {
     let controller: SelectionRewriteController
+    @FocusState private var focusedChip: SelectionRewriteLayout.ChipStop?
+    @FocusState private var replaceIsFocused: Bool
+    @Environment(\.layoutDirection) private var layoutDirection
 
     private typealias Layout = SelectionRewriteLayout
 
@@ -27,6 +30,16 @@ struct SelectionRewriteView: View {
         VStack(alignment: .leading, spacing: 0) {
             header
             content
+        }
+        // The card opens with only its close button; the keyboard belongs on what each phase offers.
+        .onChange(of: controller.phase) { _, phase in
+            Task { @MainActor in
+                switch phase {
+                case .choosing: focusedChip = .polish
+                case .preview: replaceIsFocused = true
+                default: break
+                }
+            }
         }
         .padding(.horizontal, Layout.horizontalPadding)
         .padding(.vertical, Layout.verticalPadding)
@@ -71,6 +84,7 @@ struct SelectionRewriteView: View {
                     .contentShape(Circle())
             }
             .buttonStyle(.plain)
+            .modifier(DictationCardFocusRing(radius: 9, isRound: true))
             .disabled(controller.phase == .replacing)
             .opacity(controller.phase == .replacing ? 0.4 : 1)
             .accessibilityLabel(L10n.text("Cancel rewrite"))
@@ -109,6 +123,7 @@ struct SelectionRewriteView: View {
             actions { EmptyView() } trailing: {
                 Button("Done") { controller.finishSayingHow() }
                     .buttonStyle(DictationCardButtonStyle())
+                    .modifier(DictationCardFocusRing())
                     .accessibilityIdentifier("rewrite-say-how-done")
             }
         case .preview(let text):
@@ -127,6 +142,7 @@ struct SelectionRewriteView: View {
             actions {
                 Button("Choose another") { controller.chooseAgain() }
                     .buttonStyle(DictationCardButtonStyle())
+                    .modifier(DictationCardFocusRing())
                     .accessibilityIdentifier("rewrite-choose-again")
                 copyButton
             } trailing: {
@@ -177,15 +193,13 @@ struct SelectionRewriteView: View {
         let widths = ([L10n.text("Polish")] + names).map { Layout.chipWidth(for: $0) }
         let shown = Layout.visibleChips(widths: widths, overflowWidth: Layout.chipWidth(for: L10n.text("More"))) - 1
         let recipes = Array(controller.recipes.enumerated())
-        let polishIsChosen = controller.chosenRecipeID == nil && controller.spokenInstruction == nil
+        let stops = Layout.chipStops(recipeIDs: controller.recipes.map(\.id), shown: shown)
+        let isRewriting = controller.phase == .rewriting
         return HStack(spacing: Layout.chipSpacing) {
-            Button("Polish") { controller.choose(nil) }
-                .buttonStyle(SelectionRewriteChipStyle(selected: polishIsChosen))
-                .accessibilityIdentifier("rewrite-choice-polish")
+            chip(L10n.text("Polish"), stop: .polish, identifier: "rewrite-choice-polish") { controller.choose(nil) }
             ForEach(Array(recipes.prefix(shown)), id: \.element.id) { index, recipe in
-                Button(names[index]) { controller.choose(recipe) }
-                    .buttonStyle(SelectionRewriteChipStyle(selected: controller.chosenRecipeID == recipe.id))
-                    .accessibilityIdentifier("rewrite-choice-" + recipe.id)
+                let identifier = "rewrite-choice-" + recipe.id
+                chip(names[index], stop: .recipe(recipe.id), identifier: identifier) { controller.choose(recipe) }
             }
             if shown < controller.recipes.count {
                 Menu {
@@ -200,14 +214,49 @@ struct SelectionRewriteView: View {
                 .buttonStyle(.plain)
                 .menuIndicator(.hidden)
                 .fixedSize()
+                .accessibilityAddTraits(isChosen(.more, shown: shown) ? .isSelected : [])
                 .accessibilityIdentifier("rewrite-recipes")
-                .modifier(SelectionRewriteChip(
-                    selected: controller.recipes.dropFirst(shown).contains { $0.id == controller.chosenRecipeID }))
+                // The chip dims itself, once; the system would dim a disabled menu's label again.
+                .environment(\.isEnabled, true)
+                .allowsHitTesting(!isRewriting)
+                .modifier(SelectionRewriteChip(selected: isChosen(.more, shown: shown)))
+                .focused($focusedChip, equals: .more)
+                .modifier(DictationCardFocusRing())
             }
         }
         .frame(height: Layout.chipHeight)
-        .disabled(controller.phase == .rewriting)
-        .opacity(controller.phase == .rewriting ? 0.5 : 1)
+        .disabled(isRewriting)
+        .onMoveCommand { direction in
+            guard let focusedChip, direction == .left || direction == .right else { return }
+            let forward = layoutDirection == .leftToRight ? 1 : -1
+            self.focusedChip = SettingsArrowKeys.neighbor(
+                of: focusedChip, in: stops, by: direction == .right ? forward : -forward)
+        }
+    }
+
+    private func chip(
+        _ name: String, stop: Layout.ChipStop, identifier: String, action: @escaping () -> Void
+    ) -> some View {
+        let selected = isChosen(stop, shown: 0)
+        return Button(name, action: action)
+            .buttonStyle(SelectionRewriteChipStyle(selected: selected))
+            .focused($focusedChip, equals: stop)
+            .modifier(DictationCardFocusRing())
+            // A long name is cut in the middle; the whole of it is here.
+            .help(name)
+            .accessibilityLabel(name)
+            .accessibilityAddTraits(selected ? .isSelected : [])
+            .accessibilityIdentifier(identifier)
+    }
+
+    /// The last choice wears the outline; a spoken instruction is none of the chips.
+    private func isChosen(_ stop: Layout.ChipStop, shown: Int) -> Bool {
+        guard controller.spokenInstruction == nil else { return false }
+        switch stop {
+        case .polish: return controller.chosenRecipeID == nil
+        case .recipe(let id): return controller.chosenRecipeID == id
+        case .more: return controller.recipes.dropFirst(shown).contains { $0.id == controller.chosenRecipeID }
+        }
     }
 
     private var sayHow: some View {
@@ -218,6 +267,7 @@ struct SelectionRewriteView: View {
             }
         }
         .buttonStyle(DictationCardButtonStyle())
+        .modifier(DictationCardFocusRing())
         .disabled(controller.phase == .rewriting)
         .help(Text("Or hold your dictation shortcut and say how to rewrite it."))
         .accessibilityIdentifier("rewrite-say-how")
@@ -231,6 +281,8 @@ struct SelectionRewriteView: View {
             }
         }
         .buttonStyle(DictationCardButtonStyle(kind: .primary))
+        .focused($replaceIsFocused)
+        .modifier(DictationCardFocusRing())
         .keyboardShortcut(.defaultAction)
         .accessibilityIdentifier("rewrite-replace")
     }
@@ -238,6 +290,7 @@ struct SelectionRewriteView: View {
     private var copyButton: some View {
         Button(controller.copied ? L10n.text("Copied") : L10n.text("Copy")) { controller.copyResult() }
             .buttonStyle(DictationCardButtonStyle())
+            .modifier(DictationCardFocusRing())
             .accessibilityIdentifier("rewrite-copy")
     }
 
@@ -281,12 +334,14 @@ struct SelectionRewriteView: View {
 /// A recipe on the card; the last one chosen wears the amber outline.
 struct SelectionRewriteChip: ViewModifier {
     let selected: Bool
+    @Environment(\.isEnabled) private var isEnabled
 
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: 9, style: .continuous)
         content
             .font(.system(size: 12, weight: .semibold))
             .lineLimit(1)
+            .truncationMode(.middle)
             .foregroundStyle(selected ? SecreteoPalette.capsuleVoiceCrest.color : SecreteoPalette.capsuleText.color)
             .frame(maxWidth: SelectionRewriteLayout.maximumChipLabelWidth)
             .fixedSize()
@@ -299,16 +354,38 @@ struct SelectionRewriteChip: ViewModifier {
                     selected ? SecreteoPalette.capsuleAmber.color : .white.opacity(0.13), lineWidth: selected ? 1.5 : 1)
             }
             .contentShape(shape)
+            .opacity(SelectionRewriteLayout.chipOpacity(isEnabled: isEnabled, selected: selected))
     }
 }
 
 struct SelectionRewriteChipStyle: ButtonStyle {
     let selected: Bool
-    @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .modifier(SelectionRewriteChip(selected: selected))
-            .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.45)
+            .opacity(configuration.isPressed ? 0.8 : 1)
+    }
+}
+
+/// Custom-styled buttons draw no focus ring of their own, so full keyboard access would not show where it is.
+struct DictationCardFocusRing: ViewModifier {
+    var radius: CGFloat = 9
+    var isRound = false
+    @FocusState private var isFocused: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .focused($isFocused)
+            .focusEffectDisabled()
+            .overlay {
+                if isFocused {
+                    RoundedRectangle(cornerRadius: isRound ? 99 : radius + 3, style: .continuous)
+                        .strokeBorder(Color(nsColor: .keyboardFocusIndicatorColor), lineWidth: 3)
+                        .padding(-3)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+            }
     }
 }
