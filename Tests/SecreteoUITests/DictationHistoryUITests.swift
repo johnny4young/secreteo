@@ -26,7 +26,7 @@ final class DictationHistoryUITests: SecreteoUITestCase {
         })
         XCTAssertFalse(app.control(withIdentifier: "dictation-history-delete-all").exists)
         app.buttons["dictation-history-enable"].click()
-        XCTAssertTrue(waitForUITestCondition(timeout: 5) { renderedText(of: status) == "Kept on this Mac for 30 days." })
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) { renderedText(of: status) == "Kept on this Mac for 30 days" })
         XCTAssertTrue(app.control(withIdentifier: "dictation-history-empty").waitForExistence(timeout: 5))
         XCTAssertFalse(app.control(withIdentifier: "dictation-history-error").exists)
         attachScreenshot(named: "pr-dictation-history-empty")
@@ -44,7 +44,19 @@ final class DictationHistoryUITests: SecreteoUITestCase {
         XCTAssertTrue(renderedText(of: app.control(withIdentifier: details(1))).contains("Not delivered"))
         XCTAssertFalse(app.control(withIdentifier: "dictation-history-more").exists, "Two rows fit one page")
         XCTAssertTrue(app.control(withIdentifier: "dictation-history-app-filter").exists)
-        attachScreenshot(named: "pr-dictation-history-list")
+        XCTAssertTrue(app.control(withIdentifier: day(0)).exists)
+        XCTAssertEqual(app.control(withIdentifier: state(0)).label, "Inserted", "a delivered Polish row is Inserted")
+        XCTAssertTrue(renderedText(of: app.control(withIdentifier: details(0))).contains("Polish"))
+        XCTAssertEqual(app.control(withIdentifier: state(1)).label, "Text wasn’t sent")
+        XCTAssertTrue(renderedText(of: app.control(withIdentifier: details(0))).contains("4 words"))
+        XCTAssertFalse(app.control(withIdentifier: "dictation-history-meaning-divider").exists)
+        XCTAssertFalse(app.control(withIdentifier: heard(0)).exists)
+        app.buttons[original(0)].click()
+        let heardText = app.control(withIdentifier: heard(0))
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) {
+            renderedText(of: heardText) == "eh no borres estas notas"
+        })
+        attachScreenshot(named: "pr-history-day-log")
 
         app.control(withIdentifier: "dictation-history-undelivered-filter").click()
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { renderedText(of: newest) == "Send the report on Friday." })
@@ -77,7 +89,9 @@ final class DictationHistoryUITests: SecreteoUITestCase {
         XCTAssertTrue(waitForUITestCondition(timeout: 5) {
             renderedText(of: first) == "No borres estas notas." && !second.exists
         })
-        attachScreenshot(named: "pr-dictation-history-meaning")
+        XCTAssertTrue(app.control(withIdentifier: "dictation-history-meaning-divider").exists)
+        XCTAssertFalse(app.control(withIdentifier: day(0)).exists, "a row found by meaning belongs to no day")
+        attachScreenshot(named: "pr-history-meaning")
     }
 
     func testSearchAndFiltersNarrowTheHistory() throws {
@@ -94,6 +108,8 @@ final class DictationHistoryUITests: SecreteoUITestCase {
         XCTAssertTrue(waitForUITestCondition(timeout: 5) {
             renderedText(of: first) == "Send the report on Friday." && !second.exists
         })
+        XCTAssertTrue(app.control(withIdentifier: day(0)).exists)
+        XCTAssertFalse(app.control(withIdentifier: "dictation-history-meaning-divider").exists)
         search.typeText("tzz")
         XCTAssertTrue(app.control(withIdentifier: "dictation-history-no-results").waitForExistence(timeout: 5))
         attachScreenshot(named: "pr-dictation-history-search")
@@ -125,7 +141,7 @@ final class DictationHistoryUITests: SecreteoUITestCase {
         XCTAssertTrue(history.waitForStableFrame(timeout: 30))
         history.click()
         let status = app.control(withIdentifier: "dictation-history-status")
-        XCTAssertTrue(waitForUITestCondition(timeout: 5) { renderedText(of: status) == "Kept on this Mac for 30 days." })
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) { renderedText(of: status) == "Kept on this Mac for 30 days" })
         // The history window covers the menu's window, so it closes before Dictate is clicked.
         app.windows["Dictation History"].buttons[XCUIIdentifierCloseWindow].click()
         let dictate = app.buttons["menu-bar-dictate"]
@@ -147,7 +163,7 @@ final class DictationHistoryUITests: SecreteoUITestCase {
         app.buttons["menu-settings"].click()
         let root = app.control(withIdentifier: "settings-root")
         XCTAssertTrue(root.waitForExistence(timeout: 5))
-        root.scroll(byDeltaX: 0, deltaY: -1_800)
+        app.openSettingsTab(.history)
 
         let toggle = app.control(withIdentifier: "settings-dictation-history")
         XCTAssertTrue(toggle.waitForStableFrame(timeout: 5))
@@ -171,7 +187,10 @@ final class DictationHistoryUITests: SecreteoUITestCase {
         for identifier in ["dictation-stats-words", "dictation-stats-speaking", "dictation-stats-saved"] {
             XCTAssertTrue(app.control(withIdentifier: identifier).exists, identifier)
         }
+        XCTAssertTrue(app.control(withIdentifier: "dictation-stats-app-share").exists)
         XCTAssertTrue(renderedText(of: app.control(withIdentifier: statsApp(0))).contains("Slack"))
+        XCTAssertTrue(renderedText(of: app.control(withIdentifier: statsApp(0))).contains("50"))
+        XCTAssertTrue(app.control(withIdentifier: "dictation-stats-days").exists)
         XCTAssertTrue(app.control(withIdentifier: "dictation-stats-not-delivered").exists)
         XCTAssertFalse(app.control(withIdentifier: "dictation-stats-empty").exists)
         XCTAssertTrue(app.control(withIdentifier: "dictation-history-enable").exists, "the history itself stays off")
@@ -190,7 +209,7 @@ final class DictationHistoryUITests: SecreteoUITestCase {
         app.buttons["menu-settings"].click()
         let root = app.control(withIdentifier: "settings-root")
         XCTAssertTrue(root.waitForExistence(timeout: 5))
-        root.scroll(byDeltaX: 0, deltaY: -1_800)
+        app.openSettingsTab(.history)
 
         let toggle = app.control(withIdentifier: "settings-dictation-stats")
         XCTAssertTrue(toggle.waitForStableFrame(timeout: 5))
@@ -198,6 +217,7 @@ final class DictationHistoryUITests: SecreteoUITestCase {
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-stats-error").exists)
         toggle.click()
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { self.isOn(toggle) })
+        XCTAssertTrue(app.revealInSettings(app.buttons["settings-dictation-stats-delete"]))
         app.buttons["settings-dictation-stats-delete"].click()
         let confirm = app.buttons["settings-dictation-stats-delete-confirm"]
         XCTAssertTrue(confirm.waitForExistence(timeout: 5))
@@ -215,5 +235,8 @@ final class DictationHistoryUITests: SecreteoUITestCase {
     private func details(_ index: Int) -> String { "dictation-history-details-\(index)" }
     private func copy(_ index: Int) -> String { "dictation-history-copy-\(index)" }
     private func delete(_ index: Int) -> String { "dictation-history-delete-\(index)" }
+    private func day(_ index: Int) -> String { "dictation-history-day-\(index)" }
+    private func state(_ index: Int) -> String { "dictation-history-state-\(index)" }
+    private func heard(_ index: Int) -> String { "dictation-history-heard-\(index)" }
     private func statsApp(_ index: Int) -> String { "dictation-stats-app-\(index)" }
 }

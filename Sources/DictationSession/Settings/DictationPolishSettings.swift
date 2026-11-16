@@ -11,28 +11,31 @@ struct DictationPolishSettings: View {
 
     var body: some View {
         let capability = dictation.foundationModelsCapability
-        Section("Polish") {
-            Picker("Polish With", selection: dictation.polishEngineBinding(capability: capability)) {
-                Text("Apple Intelligence").tag(DictationPolishEngine.appleOnDevice)
-                Text("Ollama").tag(DictationPolishEngine.ollama)
-            }
-            .accessibilityIdentifier("settings-dictation-polish-engine")
-            switch dictation.polishEngine(capability: capability) {
-            case .appleOnDevice:
-                if case .unavailable(let reason) = capability {
-                    Text(L10n.format("Apple Intelligence is unavailable: %@.", reason))
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityIdentifier("settings-dictation-polish-unavailable")
-                }
-            case .ollama:
-                ollamaRows
-            }
+        SettingsRow(Text("Polish With")) {
+            SettingsSegments(
+                identifier: "settings-dictation-polish-engine", label: Text("Polish With"),
+                selection: dictation.polishEngineBinding(capability: capability),
+                options: [
+                    .init(
+                        value: DictationPolishEngine.appleOnDevice, title: Text("Apple Intelligence"), suffix: "apple"),
+                    .init(value: .ollama, title: Text("Ollama"), suffix: "ollama")
+                ])
         }
         // The window is kept when closed, so Ollama may have started or pulled a model since.
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
             guard checkedOllama, dictation.polishEngine(capability: capability) == .ollama else { return }
             Task { await refresh() }
+        }
+        switch dictation.polishEngine(capability: capability) {
+        case .appleOnDevice:
+            if case .unavailable(let reason) = capability {
+                Text(L10n.format("Apple Intelligence is unavailable: %@.", reason))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("settings-dictation-polish-unavailable")
+            }
+        case .ollama:
+            ollamaRows
         }
     }
 
@@ -45,18 +48,24 @@ struct DictationPolishSettings: View {
                 .accessibilityIdentifier("settings-dictation-polish-ollama-empty")
             checkAgain
         } else if let ollamaModels {
-            Picker("Ollama Model", selection: model) {
-                if model.wrappedValue.isEmpty {
-                    Text("None").tag("")
+            SettingsRow(Text("Ollama Model")) {
+                Picker(selection: model) {
+                    if model.wrappedValue.isEmpty {
+                        Text("None").tag("")
+                    }
+                    ForEach(ollamaModels) { entry in
+                        Text(verbatim: entry.name).tag(entry.name)
+                    }
+                    if !model.wrappedValue.isEmpty, !ollamaModels.contains(where: { $0.name == model.wrappedValue }) {
+                        Text(L10n.format("%@ (Not Installed)", model.wrappedValue)).tag(model.wrappedValue)
+                    }
+                } label: {
+                    Text("Ollama Model")
                 }
-                ForEach(ollamaModels) { entry in
-                    Text(verbatim: entry.name).tag(entry.name)
-                }
-                if !model.wrappedValue.isEmpty, !ollamaModels.contains(where: { $0.name == model.wrappedValue }) {
-                    Text(L10n.format("%@ (Not Installed)", model.wrappedValue)).tag(model.wrappedValue)
-                }
+                .labelsHidden()
+                .fixedSize()
+                .accessibilityIdentifier("settings-dictation-polish-ollama-model")
             }
-            .accessibilityIdentifier("settings-dictation-polish-ollama-model")
         } else if checkedOllama {
             Text("Ollama is not running on this Mac.")
                 .foregroundStyle(.secondary)

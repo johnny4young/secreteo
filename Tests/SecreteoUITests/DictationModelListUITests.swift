@@ -22,7 +22,7 @@ final class DictationModelListUITests: SecreteoUITestCase {
 
         let detector = 0, speech = 1
         let sharedRemove = app.control(withIdentifier: remove(speech))
-        XCTAssertTrue(app.revealInSettings(sharedRemove))
+        XCTAssertTrue(app.revealInSettings(sharedRemove, tab: .general))
         XCTAssertTrue(app.control(withIdentifier: row(speech)).exists)
         XCTAssertTrue(renderedText(of: app.control(withIdentifier: name(speech))).contains("Sample Speech Model"))
         XCTAssertTrue(renderedText(of: app.control(withIdentifier: name(detector))).contains("Sample Voice Detector"))

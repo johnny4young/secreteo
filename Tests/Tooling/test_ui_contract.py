@@ -21,7 +21,7 @@ LITERAL = re.compile(
 PLACEHOLDER = re.compile(r"%(\d+\$)?((?:\.\d+)?(?:ll|l)?[@dfsiu])")
 # Brand names and words Spanish shares with English. Anything else left in English is untranslated.
 SAME_IN_SPANISH = {
-    "%d min", "App", "Apple Intelligence", "Apple Speech", "Fn (🌐)", "Formal", "Literal", "Ollama",
+    "%d min", "App", "Apple Intelligence", "Apple Speech", "Fn (🌐)", "Formal", "General", "Literal", "Ollama", "Original",
     "Parakeet", "Parakeet Ultra",
 }
 # A locale also takes `identifier:`, and it names no control. A label may end in `Identifier:`.

@@ -19,7 +19,11 @@ final class HistoryWindowController {
                     rootView: DictationHistoryView(dictation: dictation).tint(SecreteoDesign.accent)))
             created.title = String(localized: "Dictation History")
             created.styleMask = [.titled, .closable, .resizable]
-            created.setContentSize(NSSize(width: 640, height: 560))
+            // The page has its own heading; the title stays for the Window menu and VoiceOver.
+            created.titleVisibility = .hidden
+            created.titlebarAppearsTransparent = true
+            created.backgroundColor = SecreteoPalette.window.nsColor
+            created.setContentSize(NSSize(width: 900, height: 720))
             created.isReleasedWhenClosed = false
             created.center()
             window = created

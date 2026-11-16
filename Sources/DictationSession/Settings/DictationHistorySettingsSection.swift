@@ -8,24 +8,30 @@ struct DictationHistorySettingsSection: View {
     private var model: DictationHistoryModel { dictation.history }
 
     var body: some View {
-        Section("Dictation History") {
-            Toggle("Save Dictation History", isOn: binding(\.isEnabled) { await model.update(isEnabled: $0) })
-                .accessibilityIdentifier("settings-dictation-history")
+        SettingsEyebrow(Text("Dictation History"))
+        SettingsCard {
+            SettingsSwitch(
+                Text("Save Dictation History"), identifier: "settings-dictation-history",
+                isOn: binding(\.isEnabled) { await model.update(isEnabled: $0) })
             if model.policy.isEnabled {
-                Picker("Keep Dictations For", selection: retention) {
-                    ForEach(DictationHistoryPolicy.retentionChoices, id: \.self) { days in
-                        Text(L10n.format("%d days", days)).tag(days)
+                SettingsRow(Text("Keep Dictations For")) {
+                    Picker(selection: retention) {
+                        ForEach(DictationHistoryPolicy.retentionChoices, id: \.self) { days in
+                            Text(L10n.format("%d days", days)).tag(days)
+                        }
+                    } label: {
+                        Text("Keep Dictations For")
                     }
+                    .labelsHidden()
+                    .fixedSize()
+                    .accessibilityIdentifier("settings-dictation-history-retention")
                 }
-                .accessibilityIdentifier("settings-dictation-history-retention")
-                Toggle(
-                    "Also Keep the Words Before Clean Mode",
+                SettingsSwitch(
+                    Text("Also Keep the Words Before Clean Mode"), identifier: "settings-dictation-history-original",
                     isOn: binding(\.keepsOriginal) { await model.update(keepsOriginal: $0) })
-                    .accessibilityIdentifier("settings-dictation-history-original")
-                Toggle(
-                    "Let Agents and Shortcuts Read History",
+                SettingsSwitch(
+                    Text("Let Agents and Shortcuts Read History"), identifier: "settings-dictation-history-agents",
                     isOn: binding(\.exposesToAgents) { await model.update(exposesToAgents: $0) })
-                    .accessibilityIdentifier("settings-dictation-history-agents")
             }
             if let failure = model.failure {
                 Text(failure)

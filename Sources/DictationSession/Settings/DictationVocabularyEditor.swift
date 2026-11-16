@@ -12,7 +12,7 @@ struct DictationVocabularyEditor: View {
     }
 
     var body: some View {
-        Section("Vocabulary") {
+        Group {
             ForEach(terms, id: \.self) { term in
                 HStack {
                     Text(term)

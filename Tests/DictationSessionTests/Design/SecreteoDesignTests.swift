@@ -35,6 +35,30 @@ struct SecreteoDesignTests {
         ("capsule not sent", SecreteoPalette.capsuleNotSent.light, SecreteoPalette.lacquer.light),
         ("amber on capsule", SecreteoPalette.amber.dark, SecreteoPalette.lacquer.light),
         ("white on accent", 0xFFFFFF, SecreteoPalette.accent.light),
+        ("text on card", SecreteoPalette.text.light, SecreteoPalette.card.light),
+        ("secondary on card", SecreteoPalette.secondaryText.light, SecreteoPalette.card.light),
+        ("tertiary on card", SecreteoPalette.tertiaryText.light, SecreteoPalette.card.light),
+        ("accent on card", SecreteoPalette.accent.light, SecreteoPalette.card.light),
+        ("not sent on card", SecreteoPalette.notSent.light, SecreteoPalette.card.light),
+        ("verified on card", SecreteoPalette.verified.light, SecreteoPalette.card.light),
+        ("text on dark card", SecreteoPalette.text.dark, SecreteoPalette.card.dark),
+        ("secondary on dark card", SecreteoPalette.secondaryText.dark, SecreteoPalette.card.dark),
+        ("tertiary on dark card", SecreteoPalette.tertiaryText.dark, SecreteoPalette.card.dark),
+        ("accent on dark card", SecreteoPalette.accent.dark, SecreteoPalette.card.dark),
+        ("not sent on dark card", SecreteoPalette.notSent.dark, SecreteoPalette.card.dark),
+        ("verified on dark card", SecreteoPalette.verified.dark, SecreteoPalette.card.dark),
+        ("secondary on bar", SecreteoPalette.secondaryText.light, SecreteoPalette.bar.light),
+        ("accent on bar", SecreteoPalette.accent.light, SecreteoPalette.bar.light),
+        ("secondary on dark bar", SecreteoPalette.secondaryText.dark, SecreteoPalette.bar.dark),
+        ("accent on dark bar", SecreteoPalette.accent.dark, SecreteoPalette.bar.dark),
+        ("secondary on control", SecreteoPalette.secondaryText.light, SecreteoPalette.control.light),
+        ("tertiary on control", SecreteoPalette.tertiaryText.light, SecreteoPalette.control.light),
+        ("secondary on dark control", SecreteoPalette.secondaryText.dark, SecreteoPalette.control.dark),
+        ("tertiary on dark control", SecreteoPalette.tertiaryText.dark, SecreteoPalette.control.dark),
+        ("segment text", SecreteoPalette.segmentText.light, SecreteoPalette.segment.light),
+        ("dark segment text", SecreteoPalette.segmentText.dark, SecreteoPalette.segment.dark),
+        ("text on amber", SecreteoPalette.onAmber.light, SecreteoPalette.amber.light),
+        ("text on dark amber", SecreteoPalette.onAmber.dark, SecreteoPalette.amber.dark),
         ("row text on accent", SecreteoPalette.onAccent.light, SecreteoPalette.accent.light),
         ("row text on dark accent", SecreteoPalette.onAccent.dark, SecreteoPalette.accent.dark),
         ("capsule text on its highlight", SecreteoPalette.capsuleText.light, SecreteoPalette.capsuleHighlight.light),
@@ -49,10 +73,39 @@ struct SecreteoDesignTests {
         ("text on a dark card", SecreteoPalette.text.dark, SecreteoPalette.card.dark),
         ("secondary on a dark card", SecreteoPalette.secondaryText.dark, SecreteoPalette.card.dark),
         ("tertiary on a dark card", SecreteoPalette.tertiaryText.dark, SecreteoPalette.card.dark),
-        ("accent on a dark card", SecreteoPalette.accent.dark, SecreteoPalette.card.dark)
+        ("accent on a dark card", SecreteoPalette.accent.dark, SecreteoPalette.card.dark),
+        ("text on card, light", SecreteoPalette.text.light, SecreteoPalette.card.light),
+        ("text on card, dark", SecreteoPalette.text.dark, SecreteoPalette.card.dark),
+        ("text on field, light", SecreteoPalette.text.light, SecreteoPalette.field.light),
+        ("text on field, dark", SecreteoPalette.text.dark, SecreteoPalette.field.dark),
+        ("secondary on card, light", SecreteoPalette.secondaryText.light, SecreteoPalette.card.light),
+        ("secondary on card, dark", SecreteoPalette.secondaryText.dark, SecreteoPalette.card.dark),
+        ("secondary on field, light", SecreteoPalette.secondaryText.light, SecreteoPalette.field.light),
+        ("secondary on field, dark", SecreteoPalette.secondaryText.dark, SecreteoPalette.field.dark),
+        ("tertiary on card, light", SecreteoPalette.tertiaryText.light, SecreteoPalette.card.light),
+        ("tertiary on card, dark", SecreteoPalette.tertiaryText.dark, SecreteoPalette.card.dark),
+        ("tertiary on field, light", SecreteoPalette.tertiaryText.light, SecreteoPalette.field.light),
+        ("tertiary on field, dark", SecreteoPalette.tertiaryText.dark, SecreteoPalette.field.dark),
+        ("accent on card, light", SecreteoPalette.accent.light, SecreteoPalette.card.light),
+        ("accent on card, dark", SecreteoPalette.accent.dark, SecreteoPalette.card.dark),
+        ("not sent on card, light", SecreteoPalette.notSent.light, SecreteoPalette.card.light),
+        ("not sent on card, dark", SecreteoPalette.notSent.dark, SecreteoPalette.card.dark),
+        ("white on accent", 0xFFFFFF, SecreteoPalette.accent.light)
     ] as [(String, UInt32, UInt32)])
     func textMeetsContrast(_ pair: (String, UInt32, UInt32)) {
         #expect(Self.contrast(pair.1, pair.2) >= 4.5, "\(pair.0)")
+    }
+
+    @Test(arguments: [
+        ("bar, light", SecreteoPalette.dayBar.light, SecreteoPalette.card.light),
+        ("bar, dark", SecreteoPalette.dayBar.dark, SecreteoPalette.card.dark),
+        ("empty bar, light", SecreteoPalette.emptyBar.light, SecreteoPalette.card.light),
+        ("empty bar, dark", SecreteoPalette.emptyBar.dark, SecreteoPalette.card.dark),
+        ("today's bar, light", SecreteoPalette.todayBar.light, SecreteoPalette.card.light),
+        ("today's bar, dark", SecreteoPalette.todayBar.dark, SecreteoPalette.card.dark)
+    ] as [(String, UInt32, UInt32)])
+    func chartMarksMeetGraphicContrast(_ pair: (String, UInt32, UInt32)) {
+        #expect(Self.contrast(pair.1, pair.2) >= 3, "\(pair.0)")
     }
 
     @Test
