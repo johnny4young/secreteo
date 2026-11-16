@@ -89,6 +89,28 @@ enum DictationCapsuleMotion {
         microphoneIsOpen && !reduceMotion ? .easeOut(duration: 0.2) : nil
     }
 
+    /// The small indicator's faces cross-fade and its capsule grows only while the microphone is open.
+    static func indicatorChange(microphoneIsOpen: Bool, duration: TimeInterval) -> Animation? {
+        microphoneIsOpen ? .easeOut(duration: duration) : nil
+    }
+
+    /// A settled outcome has no delivery left to hold back, so the indicator may grow into the
+    /// card of a refusal or of no speech. Never on the way into or out of delivering.
+    static func settledChange(to phase: DictationController.Phase, duration: TimeInterval) -> Animation? {
+        switch phase {
+        case .recovery, .noSpeech: .easeOut(duration: duration)
+        default: nil
+        }
+    }
+
+    /// A result's face fades once it has been held; arriving at it is not animated.
+    static func resultFade(for phase: DictationController.Phase, duration: TimeInterval) -> Animation? {
+        switch phase {
+        case .verified, .dispatched: .easeOut(duration: duration)
+        default: nil
+        }
+    }
+
     /// The elapsed time reads the moment of Stop from then on.
     static func clock(tick: Date, stoppedAt: Date?) -> Date { stoppedAt ?? tick }
 }

@@ -82,6 +82,7 @@ final class DictationSettingsUITests: SecreteoUITestCase {
             "settings-dictation-practice-field", "settings-dictation-practice-start",
             "settings-dictation-mouse-recorder", "settings-dictation-modifier-key", "settings-dictation-sounds",
             "settings-dictation-compact", "settings-dictation-indicator-capsule", "settings-dictation-speech-gate",
+            "settings-dictation-compact-elapsed", "settings-dictation-compact-backdrop",
             "settings-dictation-auto-stop", "settings-dictation-engine", "settings-dictation-language",
             "settings-dictation-microphone-device"
         ], in: app)
@@ -124,6 +125,11 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         ], in: app)
     }
 
+    /// A system switch reports its own value.
+    private func switchIsOn(_ element: XCUIElement) -> Bool {
+        element.value as? Int == 1 || element.value as? String == "1"
+    }
+
     func testTheIndicatorIsChosenByPicture() throws {
         let app = try launchEnabled()
         defer { finishUITestApplication(app) }
@@ -132,10 +138,22 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         XCTAssertTrue(app.revealInSettings(small))
         XCTAssertTrue(capsule.isSelected, "The capsule with your words is the default")
         XCTAssertFalse(small.isSelected)
+        let elapsed = app.control(withIdentifier: "settings-dictation-compact-elapsed")
+        let backdrop = app.control(withIdentifier: "settings-dictation-compact-backdrop")
+        XCTAssertTrue(app.revealInSettings(backdrop))
+        XCTAssertFalse(elapsed.isEnabled, "The small indicator's looks wait while the capsule is chosen")
+        XCTAssertFalse(backdrop.isEnabled)
+        XCTAssertFalse(switchIsOn(elapsed), "Off by default")
+        XCTAssertFalse(switchIsOn(backdrop), "Off by default")
 
         small.click()
 
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { small.isSelected && !capsule.isSelected })
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) { elapsed.isEnabled && backdrop.isEnabled })
+        elapsed.click()
+        backdrop.click()
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) { self.switchIsOn(elapsed) && self.switchIsOn(backdrop) })
+        attachScreenshot(named: "pr-indicator-settings")
     }
 
     func testTheTabsKeepTheirLookInDark() throws {

@@ -38,9 +38,12 @@ enum DictationPanelLayout {
     /// `outcomeHeight` is what the outcome's SwiftUI content last measured; `visible` is the screen's usable size.
     @MainActor
     static func size(
-        for controller: DictationController, outcomeHeight: CGFloat? = nil, visible: CGSize? = nil
+        for controller: DictationController, options: DictationCompactIndicator.Options = .current(),
+        outcomeHeight: CGFloat? = nil, visible: CGSize? = nil
     ) -> NSSize {
-        if DictationCompactIndicator.applies(to: controller) { return DictationCompactIndicator.size }
+        if DictationCompactIndicator.applies(to: controller) {
+            return DictationCompactIndicator.windowSize(for: options)
+        }
         if isCapsule(controller.phase) {
             return NSSize(width: width, height: capsuleHeight(showsNotice: controller.microphoneNotice != nil))
         }
