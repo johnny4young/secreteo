@@ -4,95 +4,78 @@ import Foundation
 import MicCapture
 import SwiftUI
 
-/// What a dictation does and how it starts, shown once dictation is on.
+/// How a dictation starts, what hears it and what shows meanwhile. Off, only the shortcut shows.
 struct DictationSettingsControls: View {
     let dictation: DictationFeature
     @State private var microphones: [AudioInputDevice] = []
 
     var body: some View {
-        Section("Triggers") {
-            MouseButtonRecorder(
-                button: dictation.mouseButton,
-                onRecord: { dictation.recordMouseButton($0) })
-            modifierKeyControls
-            Toggle("Paste the Last Dictation with ⌃⌥⌘V", isOn: dictation.pasteLastShortcutBinding)
-                .accessibilityIdentifier("settings-dictation-paste-last-hotkey")
-            if dictation.pasteLastShortcutIsUnavailable {
-                Text("Another shortcut already uses ⌃⌥⌘V.")
-                    .foregroundStyle(SecreteoDesign.notSent)
-                    .accessibilityIdentifier("settings-dictation-paste-last-taken")
-            }
-            Toggle("Rewrite the Selection with ⌃⌥⌘R", isOn: dictation.rewriteSelectionShortcutBinding)
-                .accessibilityIdentifier("settings-dictation-rewrite-hotkey")
-            if dictation.rewriteSelectionShortcutIsUnavailable {
-                Text("Another shortcut already uses ⌃⌥⌘R.")
-                    .foregroundStyle(SecreteoDesign.notSent)
-                    .accessibilityIdentifier("settings-dictation-rewrite-taken")
+        SettingsEyebrow(Text("Triggers"))
+        SettingsCard {
+            if dictation.isEnabled { modifierKeyControls }
+            DictationShortcutSettings(
+                shortcut: dictation.controller.shortcut,
+                isUnavailable: dictation.shortcutIsUnavailable,
+                record: { dictation.recordShortcut($0) },
+                recordingChanged: { dictation.shortcutRecording($0) },
+                retry: { dictation.triggersChanged() })
+            if dictation.isEnabled {
+                MouseButtonRecorder(
+                    button: dictation.mouseButton,
+                    onRecord: { dictation.recordMouseButton($0) })
+                autoStopControls
             }
         }
-        Section("While Dictating") {
-            Toggle("Play Start and Stop Sounds", isOn: dictation.preference(
-                DictationSoundCue.defaultsKey, default: false))
-                .accessibilityIdentifier("settings-dictation-sounds")
-            Toggle("Show Only a Small Indicator", isOn: dictation.preference(
-                DictationCompactIndicator.defaultsKey, default: false))
-                .accessibilityIdentifier("settings-dictation-compact")
-            Toggle("Skip Dictations Without Speech", isOn: dictation.preference(
-                DictationSpeechGate.defaultsKey, default: DictationSpeechGate.enabledByDefault))
-                .accessibilityIdentifier("settings-dictation-speech-gate")
-            autoStopControls
-            Toggle("Correct the Last Dictation by Voice", isOn: dictation.preference(
-                DictationCorrections.defaultsKey, default: false))
-                .help(L10n.text("Start a dictation with “change Friday to Monday”, “delete Friday” or “scratch that”."))
-                .accessibilityIdentifier("settings-dictation-corrections")
-            Toggle("Match Capitalization to the Cursor", isOn: dictation.preference(
-                DictationCaretCase.defaultsKey, default: false))
-                .accessibilityIdentifier("settings-dictation-caret-case")
-        }
-        Section("Model Memory") {
-            Toggle("Free the Model Soon After Dictating", isOn: dictation.usesLightweightMemory)
-                .accessibilityIdentifier("settings-model-memory-lightweight")
-            Toggle("Load the Speech Model at Launch", isOn: dictation.prewarmBinding)
-                .disabled(dictation.usesLightweightMemory.wrappedValue)
-                .accessibilityIdentifier("settings-dictation-prewarm")
-        }
-        Section("Language and Microphone") {
-            Picker("Language", selection: dictation.preference(DictationController.languageKey, default: "auto")) {
-                Text("Automatic").tag("auto")
-                Text("Spanish").tag("es")
-                Text("English").tag("en")
+        if dictation.isEnabled { whileOn }
+    }
+
+    @ViewBuilder private var whileOn: some View {
+        SettingsEyebrow(Text("Speech"))
+        SettingsCard {
+            SettingsRow(Text("Speech Engine")) {
+                SettingsSegments(
+                    identifier: "settings-dictation-engine", label: Text("Speech Engine"),
+                    selection: dictation.speechEngineBinding,
+                    options: [
+                        .init(value: LiveSpeechSelection.parakeet, title: Text("Parakeet"), suffix: "parakeet"),
+                        .init(value: .parakeetUltra, title: Text("Parakeet Ultra"), suffix: "ultra"),
+                        .init(value: .appleSpeech, title: Text("Apple Speech"), suffix: "apple")
+                    ])
             }
-            .accessibilityIdentifier("settings-dictation-language")
-            Picker("Speech Engine", selection: dictation.speechEngineBinding) {
-                Text("Parakeet").tag(LiveSpeechSelection.parakeet)
-                Text("Parakeet Ultra").tag(LiveSpeechSelection.parakeetUltra)
-                Text("Apple Speech").tag(LiveSpeechSelection.appleSpeech)
-            }
-            .accessibilityIdentifier("settings-dictation-engine")
             .task(id: dictation.speechEngine) { await dictation.refreshUltra() }
             if dictation.speechEngine == .parakeetUltra, dictation.environment.models != nil {
                 ultraRow
             }
-            microphonePicker
+            SettingsRow(Text("Language")) {
+                Picker(selection: dictation.preference(DictationController.languageKey, default: "auto")) {
+                    Text("Automatic").tag("auto")
+                    Text("Spanish").tag("es")
+                    Text("English").tag("en")
+                } label: {
+                    Text("Language")
+                }
+                .labelsHidden()
+                .fixedSize()
+                .accessibilityIdentifier("settings-dictation-language")
+            }
+            SettingsRow(Text("Microphone")) {
+                DictationMicrophoneMeter(controller: dictation.controller)
+                microphonePicker
+            }
+            SettingsSwitch(
+                Text("Skip Dictations Without Speech"), identifier: "settings-dictation-speech-gate",
+                isOn: dictation.preference(
+                    DictationSpeechGate.defaultsKey, default: DictationSpeechGate.enabledByDefault))
         }
-        Section("Text") {
-            let text = dictation.textSettings
-            DictationTextModePicker(
-                identifier: "settings-dictation-text-mode", label: Text("Text Mode"),
-                selection: Binding(get: { text.globalChoice }, set: { text.setGlobalChoice($0) }),
-                recipes: text.recipes)
-            Toggle("Filter Out Filler Words", isOn: dictation.preference(
-                DictationController.fillerFilterKey, default: true))
-                .disabled(!text.cleanModeInUse)
-                .accessibilityIdentifier("settings-dictation-filler")
-            DictationDictionaryEditor(stored: dictation.preference(DictationController.replacementsKey, default: ""))
-                .disabled(!text.cleanModeInUse)
-            DictationProfileSettings(model: text) { await dictation.selectDictationProfileApplication() }
-            DictationRecipeSettings(model: text)
-            DictationTranslationSettings(model: text)
+        SettingsEyebrow(Text("While Dictating"))
+        SettingsCard {
+            DictationIndicatorChoice(
+                isCompact: dictation.preference(DictationCompactIndicator.defaultsKey, default: false))
+                .padding(.vertical, 3)
+            SettingsSwitch(
+                Text("Play Start and Stop Sounds"), identifier: "settings-dictation-sounds",
+                isOn: dictation.preference(DictationSoundCue.defaultsKey, default: false))
         }
-        DictationVocabularyEditor(stored: dictation.preference("customVocabulary", default: ""))
-        DictationPolishSettings(dictation: dictation)
     }
 
     /// Until Ultra is downloaded, dictation keeps using Parakeet.
@@ -101,8 +84,22 @@ struct DictationSettingsControls: View {
         case .ready:
             EmptyView()
         case .downloading:
-            ProgressView("Downloading Parakeet Ultra…", value: dictation.ultra.fraction)
-                .accessibilityIdentifier("settings-dictation-ultra-progress")
+            HStack(spacing: 10) {
+                Text("Downloading Parakeet Ultra…")
+                    .foregroundStyle(SecreteoDesign.secondaryText)
+                    .accessibilityHidden(true)
+                Spacer(minLength: 8)
+                ProgressView(value: dictation.ultra.fraction)
+                    .frame(width: 160)
+                    .accessibilityLabel(L10n.text("Downloading Parakeet Ultra…"))
+                    .accessibilityIdentifier("settings-dictation-ultra-progress")
+                if let fraction = dictation.ultra.fraction {
+                    Text(verbatim: fraction.formatted(.percent.precision(.fractionLength(0))))
+                        .monospacedDigit()
+                        .foregroundStyle(SecreteoDesign.secondaryText)
+                        .accessibilityHidden(true)
+                }
+            }
         case .missing, .failed:
             Button("Download Parakeet Ultra") { dictation.downloadUltra() }
                 .accessibilityIdentifier("settings-dictation-ultra-download")
@@ -116,7 +113,7 @@ struct DictationSettingsControls: View {
 
     @ViewBuilder private var modifierKeyControls: some View {
         let key = dictation.preference(ModifierKeySetting.defaultsKey, default: ModifierKeySetting.off.rawValue)
-        Picker("Hold a Key to Dictate", selection: Binding(
+        let picker = Picker(selection: Binding(
             get: { key.wrappedValue },
             set: {
                 key.wrappedValue = $0
@@ -126,8 +123,22 @@ struct DictationSettingsControls: View {
             Text("Fn (🌐)").tag(ModifierKeySetting.function.rawValue)
             Text("Right Option").tag(ModifierKeySetting.rightOption.rawValue)
             Text("Right Command").tag(ModifierKeySetting.rightCommand.rawValue)
+        } label: {
+            Text("Hold a Key to Dictate")
         }
+        .labelsHidden()
+        .fixedSize()
         .accessibilityIdentifier("settings-dictation-modifier-key")
+        SettingsRow(Text("Hold a Key to Dictate")) {
+            // The strip is the first thing to go when the label needs the room.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) {
+                    DictationHoldKeyStrip(key: ModifierKeySetting(rawValue: key.wrappedValue) ?? .off)
+                    picker
+                }
+                picker
+            }
+        }
         if key.wrappedValue != ModifierKeySetting.off.rawValue, dictation.controller.modifierTrigger.unavailable {
             Text("Holding a key needs Accessibility permission.")
                 .foregroundStyle(SecreteoDesign.notSent)
@@ -140,31 +151,38 @@ struct DictationSettingsControls: View {
         }
     }
 
-    @ViewBuilder private var autoStopControls: some View {
+    private var autoStopControls: some View {
         let autoStops = dictation.preference(DictationAutoStop.defaultsKey, default: false)
-        Toggle("Stop After a Pause", isOn: autoStops)
-            .accessibilityIdentifier("settings-dictation-auto-stop")
-        if autoStops.wrappedValue {
-            let pause = dictation.preference(DictationAutoStop.pauseKey, default: DictationAutoStop.defaultPause)
-            // An unknown value stops at the default, so the picker says so.
-            Picker("Pause Length", selection: Binding(
-                get: {
-                    DictationAutoStop.pauses.contains(pause.wrappedValue)
-                        ? pause.wrappedValue : DictationAutoStop.defaultPause
-                },
-                set: { pause.wrappedValue = $0 })) {
-                ForEach(DictationAutoStop.pauses, id: \.self) { seconds in
-                    Text(L10n.format("%.1f seconds", seconds)).tag(seconds)
+        let pause = dictation.preference(DictationAutoStop.pauseKey, default: DictationAutoStop.defaultPause)
+        return SettingsSwitch(
+            Text("Stop After a Pause"), identifier: "settings-dictation-auto-stop", isOn: autoStops
+        ) {
+            DictationPauseDiagram()
+            if autoStops.wrappedValue {
+                // An unknown value stops at the default, so the picker says so.
+                Picker(selection: Binding(
+                    get: {
+                        DictationAutoStop.pauses.contains(pause.wrappedValue)
+                            ? pause.wrappedValue : DictationAutoStop.defaultPause
+                    },
+                    set: { pause.wrappedValue = $0 })) {
+                    ForEach(DictationAutoStop.pauses, id: \.self) { seconds in
+                        Text(L10n.format("%.1f seconds", seconds)).tag(seconds)
+                    }
+                } label: {
+                    Text("Pause Length")
                 }
+                .labelsHidden()
+                .fixedSize()
+                .accessibilityIdentifier("settings-dictation-auto-stop-pause")
             }
-            .accessibilityIdentifier("settings-dictation-auto-stop-pause")
         }
     }
 
     private var microphonePicker: some View {
         let selection = dictation.preference(
             MicrophoneInputSelection.preferenceKey, default: MicrophoneInputSelection.systemDefault)
-        return Picker("Microphone", selection: selection) {
+        return Picker(selection: selection) {
             Text("System Default").tag(MicrophoneInputSelection.systemDefault)
             ForEach(microphones) { device in
                 Text(device.name).tag(device.uid)
@@ -173,7 +191,11 @@ struct DictationSettingsControls: View {
                !microphones.contains(where: { $0.uid == selection.wrappedValue }) {
                 Text("Unavailable — Using System Default").tag(selection.wrappedValue)
             }
+        } label: {
+            Text("Microphone")
         }
+        .labelsHidden()
+        .fixedSize()
         .accessibilityIdentifier("settings-dictation-microphone-device")
         .task { await refreshMicrophones() }
         // The window is kept when closed, so a microphone plugged in since needs another look.

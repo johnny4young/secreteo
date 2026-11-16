@@ -9,12 +9,13 @@ final class DictationPolishUITests: SecreteoUITestCase {
             #""dictationTextMode":"polish","dictationPolishEngine":"ollama""#, arguments: ["-seed-ollama-models"])
         defer { finishUITestApplication(app) }
         let mode = app.control(withIdentifier: "settings-dictation-text-mode")
-        XCTAssertTrue(mode.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.revealInSettings(mode, tab: .text))
         XCTAssertTrue(renderedText(of: mode).contains("Polish"))
-        let engine = app.control(withIdentifier: "settings-dictation-polish-engine")
         let model = app.control(withIdentifier: "settings-dictation-polish-ollama-model")
-        XCTAssertTrue(app.revealInSettings(model))
-        XCTAssertTrue(renderedText(of: engine).contains("Ollama"))
+        XCTAssertTrue(app.revealInSettings(model, tab: .polish))
+        XCTAssertTrue(app.control(withIdentifier: "settings-dictation-polish-engine").exists)
+        XCTAssertTrue(app.control(withIdentifier: "settings-dictation-polish-engine-ollama").isSelected)
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-polish-engine-apple").isSelected)
         XCTAssertTrue(renderedText(of: model).contains("None"))
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-polish-ollama-missing").exists)
 
@@ -25,8 +26,6 @@ final class DictationPolishUITests: SecreteoUITestCase {
         qwen.click()
 
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { renderedText(of: model).contains("qwen3:8b") })
-        // Polish is the last section, so the evidence shows it whole at the bottom.
-        app.control(withIdentifier: "settings-root").scroll(byDeltaX: 0, deltaY: -2_000)
         attachScreenshot(named: "pr-settings-polish-ollama")
     }
 
@@ -34,12 +33,10 @@ final class DictationPolishUITests: SecreteoUITestCase {
     func testARecipeCanBeCreatedAndChosenAsTheDefault() throws {
         let app = try XCUIApplication.launchSettings(#""dictationTextMode":"literal","dictationRecipes":"[]""#)
         defer { finishUITestApplication(app) }
-        let disclosure = app.control(withIdentifier: "settings-dictation-recipes")
-        XCTAssertTrue(app.revealInSettings(disclosure))
-        XCTAssertTrue(renderedText(of: disclosure).contains("Collapsed"))
-        disclosure.click()
+        app.openSettingsTab(.polish)
+        XCTAssertTrue(app.control(withIdentifier: "settings-dictation-recipes").waitForExistence(timeout: 5))
         let new = app.buttons["settings-dictation-recipe-new"]
-        XCTAssertTrue(app.revealInSettings(new))
+        XCTAssertTrue(app.revealInSettings(new), "The recipes show without opening anything")
         XCTAssertTrue(app.buttons["settings-dictation-recipe-duplicate-builtin.bullets"].exists)
         XCTAssertTrue(renderedText(of: app.control(withIdentifier: "settings-dictation-recipe-builtin.bullets"))
             .contains("Bullet list"))
@@ -69,7 +66,7 @@ final class DictationPolishUITests: SecreteoUITestCase {
             NSPredicate(format: "identifier BEGINSWITH 'settings-dictation-recipe-delete-'")).firstMatch.exists)
         attachScreenshot(named: "pr-settings-recipes")
         let picker = app.control(withIdentifier: "settings-dictation-text-mode")
-        XCTAssertTrue(app.revealInSettings(picker))
+        XCTAssertTrue(app.revealInSettings(picker, tab: .text))
         picker.click()
         let bullets = app.menuItems["settings-dictation-text-mode-recipe-builtin.bullets"]
         XCTAssertTrue(bullets.waitForExistenceFast(timeout: 5))
@@ -83,11 +80,8 @@ final class DictationPolishUITests: SecreteoUITestCase {
     func testUnreadableRecipesCanBeReset() throws {
         let app = try XCUIApplication.launchSettings(#""dictationRecipes":"not json""#)
         defer { finishUITestApplication(app) }
-        let disclosure = app.control(withIdentifier: "settings-dictation-recipes")
-        XCTAssertTrue(app.revealInSettings(disclosure))
-        disclosure.click()
         let reset = app.control(withIdentifier: "settings-dictation-recipe-reset")
-        XCTAssertTrue(app.revealInSettings(reset))
+        XCTAssertTrue(app.revealInSettings(reset, tab: .polish))
         XCTAssertTrue(app.control(withIdentifier: "settings-dictation-recipes-invalid").exists)
         XCTAssertFalse(app.buttons["settings-dictation-recipe-new"].isEnabled)
 
@@ -102,7 +96,7 @@ final class DictationPolishUITests: SecreteoUITestCase {
         let app = try XCUIApplication.launchSettings(#""dictationPolishEngine":"ollama""#)
         defer { finishUITestApplication(app) }
         let missing = app.control(withIdentifier: "settings-dictation-polish-ollama-missing")
-        XCTAssertTrue(app.revealInSettings(missing))
+        XCTAssertTrue(app.revealInSettings(missing, tab: .polish))
         XCTAssertTrue(app.control(withIdentifier: "settings-dictation-polish-ollama-retry").exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-polish-ollama-model").exists)
     }
@@ -112,7 +106,7 @@ final class DictationPolishUITests: SecreteoUITestCase {
         let app = try XCUIApplication.launchSettings(#""dictationPolishEngine":"ollama""#, arguments: ["-seed-ollama-empty"])
         defer { finishUITestApplication(app) }
         let empty = app.control(withIdentifier: "settings-dictation-polish-ollama-empty")
-        XCTAssertTrue(app.revealInSettings(empty))
+        XCTAssertTrue(app.revealInSettings(empty, tab: .polish))
         XCTAssertTrue(app.control(withIdentifier: "settings-dictation-polish-ollama-retry").exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-polish-ollama-model").exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-polish-ollama-checking").exists)
@@ -124,16 +118,13 @@ final class DictationPolishUITests: SecreteoUITestCase {
             #""dictationPolishEngine":"appleOnDevice""#, arguments: ["-simulate-no-apple-intelligence"])
         defer { finishUITestApplication(app) }
         let unavailable = app.control(withIdentifier: "settings-dictation-polish-unavailable")
-        XCTAssertTrue(app.revealInSettings(unavailable))
+        XCTAssertTrue(app.revealInSettings(unavailable, tab: .polish))
         XCTAssertTrue(renderedText(of: unavailable).contains("Apple Intelligence is turned off"))
-        // Polish is the last section, so the evidence shows it whole at the bottom.
-        app.control(withIdentifier: "settings-root").scroll(byDeltaX: 0, deltaY: -2_000)
         attachScreenshot(named: "pr-settings-polish-apple-unavailable")
-        let engine = app.control(withIdentifier: "settings-dictation-polish-engine")
+        let ollama = app.control(withIdentifier: "settings-dictation-polish-engine-ollama")
+        XCTAssertTrue(app.control(withIdentifier: "settings-dictation-polish-engine-apple").isSelected)
+        XCTAssertTrue(app.revealInSettings(ollama))
 
-        engine.click()
-        let ollama = app.menuItems["Ollama"]
-        XCTAssertTrue(ollama.waitForExistenceFast(timeout: 5))
         ollama.click()
 
         XCTAssertTrue(unavailable.waitForDisappearance(timeout: 5))

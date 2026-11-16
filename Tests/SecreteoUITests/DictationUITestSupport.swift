@@ -70,9 +70,22 @@ extension XCUIApplication {
         return app
     }
 
-    /// The form leaves rows out of the accessibility tree once they scroll away, so it looks
-    /// down first and then back up. Scrolling is synthesized globally, so it happens only while
-    /// this app is in front.
+    /// Settings shows one tab at a time, so a control is reached through its tab.
+    @MainActor
+    func openSettingsTab(_ tab: SettingsTabIdentifier) {
+        let button = control(withIdentifier: tab.rawValue)
+        XCTAssertTrue(button.waitForStableFrame(timeout: 5), tab.rawValue)
+        button.click()
+    }
+
+    @MainActor
+    func revealInSettings(_ element: XCUIElement, tab: SettingsTabIdentifier) -> Bool {
+        openSettingsTab(tab)
+        return revealInSettings(element)
+    }
+
+    /// A row may be scrolled out of its tab, so it looks down first and then back up.
+    /// Scrolling is synthesized globally, so it happens only while this app is in front.
     @MainActor
     func revealInSettings(_ element: XCUIElement) -> Bool {
         guard state == .runningForeground else { return false }
@@ -94,6 +107,14 @@ extension XCUIApplication {
         }
         return element.waitForStableFrame(timeout: 5)
     }
+}
+
+enum SettingsTabIdentifier: String, CaseIterable {
+    case dictation = "settings-tab-dictation"
+    case text = "settings-tab-text"
+    case polish = "settings-tab-polish"
+    case history = "settings-tab-history"
+    case general = "settings-tab-general"
 }
 
 extension XCUIElement {

@@ -52,6 +52,7 @@ final class ShellUITests: XCTestCase {
         launchInFront()
         XCTAssertTrue(element("menu-settings").waitForExistence(timeout: 30))
         element("menu-settings").click()
+        openGeneral()
 
         let toggle = element("settings-launch-at-login")
         XCTAssertTrue(toggle.waitForExistence(timeout: 10))
@@ -72,6 +73,7 @@ final class ShellUITests: XCTestCase {
         launchInFront()
         XCTAssertTrue(element("menu-settings").waitForExistence(timeout: 30))
         element("menu-settings").click()
+        openGeneral()
 
         let toggle = element("settings-launch-at-login")
         XCTAssertTrue(toggle.waitForExistence(timeout: 10))
@@ -90,6 +92,7 @@ final class ShellUITests: XCTestCase {
         screenshot("pr-menu-update-available")
 
         element("menu-settings").click()
+        openGeneral()
         XCTAssertTrue(element("settings-check-updates").waitForExistence(timeout: 10))
     }
 
@@ -105,6 +108,9 @@ final class ShellUITests: XCTestCase {
         element("menu-settings").click()
         let notices = element("settings-open-notices")
         XCTAssertTrue(element("settings-root").waitForExistence(timeout: 10))
+        openGeneral()
+        // The window grows to the tab first; scrolling is only for a screen too short for it.
+        _ = waitForUITestCondition(timeout: 5) { notices.isHittable }
         for _ in 0..<12 where !notices.isHittable {
             element("settings-root").scroll(byDeltaX: 0, deltaY: -600)
         }
@@ -114,7 +120,13 @@ final class ShellUITests: XCTestCase {
         XCTAssertTrue(text(of: element("settings-credit-parakeet")).contains("NVIDIA"))
         XCTAssertTrue(text(of: element("settings-credit-silero")).contains("Silero"))
         XCTAssertTrue(element("settings-source-code").exists)
-        screenshot("pr-settings-about")
+        screenshot("pr-settings-tab-general")
+    }
+
+    private func openGeneral() {
+        let tab = element("settings-tab-general")
+        XCTAssertTrue(tab.waitForExistence(timeout: 10))
+        tab.click()
     }
 
     /// A labeled row reads its value from its children, not its own label.

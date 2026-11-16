@@ -190,7 +190,7 @@ private struct DictationStatsDays: View {
 
     private func fill(words: Int, isToday: Bool) -> Color {
         if words == 0 { return SecreteoPalette.emptyBar.color }
-        return isToday ? SecreteoPalette.todayBar.color : SecreteoPalette.bar.color
+        return isToday ? SecreteoPalette.todayBar.color : SecreteoPalette.dayBar.color
     }
 
     /// A week names each weekday; a month numbers every seventh day back from today.

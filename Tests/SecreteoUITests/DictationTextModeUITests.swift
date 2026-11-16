@@ -63,6 +63,7 @@ final class DictationTextModeUITests: SecreteoUITestCase {
         let app = try XCUIApplication.launchSettings(
             #""dictationTextMode":"literal","dictationApplicationTextProfiles":"not json""#)
         defer { finishUITestApplication(app) }
+        app.openSettingsTab(.text)
         try openProfiles(in: app)
         let warning = app.staticTexts["settings-dictation-profiles-invalid"]
         XCTAssertTrue(warning.waitForExistenceFast(timeout: 5))
@@ -112,6 +113,7 @@ final class DictationTextModeUITests: SecreteoUITestCase {
         XCTAssertTrue(app.buttons["menu-settings"].waitForStableFrame(timeout: 30))
         app.buttons["menu-settings"].click()
         XCTAssertTrue(app.control(withIdentifier: "settings-root").waitForExistence(timeout: 5))
+        app.openSettingsTab(.text)
     }
 
     @MainActor

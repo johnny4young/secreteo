@@ -4,6 +4,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- 🗂️ **Settings in five tabs**: Dictation, Text, Polish, History and General, with a readiness header that shows what dictation still needs, shortcuts drawn as keys, and the indicator chosen by picture.
 - 📋 **The menu is a small dashboard**: what dictation is doing and who owns it, Dictate with its real keys, the last dictation ready to paste again, today's words over the last seven days, and each row's shortcut.
 - 🫧 **The dictation panel is a living capsule**: one dark line under your caret whose light rises with your voice. Words you are still saying appear in italics and stand upright once they are settled, with the elapsed time beside them.
 - 📖 **Dictation History reads as a day log**: dictations are grouped under Today, Yesterday and each earlier day, with the time, what happened to the text, the app, the mode, the words and the seconds. The statistics show the words of the period, each app's share and the words of every day, and a search marks where the dictations close in meaning begin.
