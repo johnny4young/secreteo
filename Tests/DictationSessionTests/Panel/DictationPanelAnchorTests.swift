@@ -71,6 +71,28 @@ final class DictationPanelAnchorTests: XCTestCase {
         XCTAssertEqual(origin, NSPoint(x: 284, y: 400 - 20 - 8 - 32))
     }
 
+    func testASlotHangsTheStripFromItsTopEdgeSoItGrowsAwayFromTheWordsAbove() {
+        let slot = NSRect(x: 400, y: 300, width: 448, height: 56)
+        let capsule = NSSize(width: 520, height: 56)
+        let origin = DictationPanelAnchor.origin(for: capsule, near: .slot(slot), in: visible)
+        XCTAssertEqual(origin, NSPoint(x: 624 - 260, y: 300))
+        XCTAssertEqual(DictationPanelAnchor.pinnedEdge(for: capsule, near: .slot(slot), in: visible), .top)
+
+        // The notice under the capsule, the pill with four lines of words, and a card.
+        let frame = NSRect(origin: origin, size: capsule)
+        for height in [DictationPanelLayout.capsuleHeight(showsNotice: true), 174, 288] {
+            let size = NSSize(width: 520, height: height)
+            let grown = DictationPanelAnchor.origin(resizing: frame, to: size, pinned: .top, in: visible)
+            XCTAssertEqual(grown.y + height, slot.maxY, "\(height) pt never rises over the words")
+            let moved = DictationPanelAnchor.origin(for: size, near: .slot(slot), in: visible)
+            XCTAssertEqual(moved.y + height, slot.maxY, "and stays under them when the window moves")
+        }
+
+        let offScreen = NSRect(x: -200, y: 0, width: 448, height: 56)
+        let clamped = DictationPanelAnchor.origin(for: size, near: .slot(offScreen), in: visible)
+        XCTAssertTrue(visible.contains(NSRect(origin: clamped, size: size)))
+    }
+
     func testAccessibilityGeometryFlipsToCocoaCoordinates() {
         let rect = DictationPanelAnchor.cocoaRect(
             fromAccessibility: CGRect(x: 100, y: 200, width: 2, height: 18), primaryScreenHeight: 900)
@@ -91,5 +113,32 @@ extension DictationControllerTests {
 
         harness.controller.toggle(using: harness.dependencies)
         XCTAssertNil(harness.controller.panelAnchor, "a new dictation never keeps the last one's anchor")
+    }
+
+    func testAPanelInAWindowsSlotFollowsTheWindowAndEndsWithIt() async {
+        let harness = DictationControllerHarness(text: "Send the report.")
+        defer { harness.controller.cancel() }
+        let first = NSRect(x: 200, y: 300, width: 448, height: 56)
+        let second = first.offsetBy(dx: 120, dy: -80)
+        var dependencies = harness.dependencies
+        dependencies.locatePanelAnchor = { .slot(first) }
+        harness.controller.toggle(using: dependencies)
+        XCTAssertFalse(harness.controller.sessionIsPractice, "A dictation into another app is not the field's")
+
+        harness.controller.panelSlotMoved(to: second)
+        XCTAssertEqual(harness.controller.panelAnchor, .slot(second))
+        harness.controller.panelSlotClosed()
+        XCTAssertEqual(harness.controller.phase, .idle, "Without its window the dictation ends")
+        harness.controller.panelSlotMoved(to: first)
+        XCTAssertEqual(harness.controller.panelAnchor, .slot(second), "Nothing is left to move")
+
+        dependencies.locatePanelAnchor = { .pointer(NSPoint(x: 300, y: 400)) }
+        dependencies.admissionKind = .practice
+        harness.controller.toggle(using: dependencies)
+        XCTAssertTrue(harness.controller.sessionIsPractice)
+        harness.controller.panelSlotMoved(to: second)
+        XCTAssertEqual(harness.controller.panelAnchor, .pointer(NSPoint(x: 300, y: 400)), "Only a slot follows")
+        harness.controller.panelSlotClosed()
+        XCTAssertNotEqual(harness.controller.phase, .idle, "A panel by the pointer has no window to lose")
     }
 }

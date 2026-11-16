@@ -21,6 +21,98 @@ final class OnboardingModelPreparationTests: XCTestCase {
     }
 
     @MainActor
+    func testEachModelSaysWhereItStands() async {
+        let model = OnboardingModelPreparation()
+        XCTAssertEqual(model.speechStatus(isInstalled: false), .missing)
+        XCTAssertEqual(model.speechStatus(isInstalled: true), .installed(copied: false))
+        XCTAssertEqual(model.detectorStatus(isInstalled: false), .missing)
+        XCTAssertEqual(model.detectorStatus(isInstalled: true), .ready(copied: false))
+
+        await model.prepare {
+            XCTAssertEqual(model.speechStatus(isInstalled: false), .downloading)
+            XCTAssertEqual(model.speechStatus(isInstalled: true), .installed(copied: false))
+            XCTAssertEqual(model.detectorStatus(isInstalled: false), .downloading)
+            model.entered(.installing(copying: true))
+            XCTAssertEqual(model.speechStatus(isInstalled: false), .copying, "A copy is not called a download")
+
+            model.entered(.warming(copied: true))
+            XCTAssertEqual(model.speechStatus(isInstalled: true), .installed(copied: true))
+            XCTAssertEqual(model.detectorStatus(isInstalled: false), .ready(copied: false))
+        }
+        XCTAssertEqual(model.speechStatus(isInstalled: true), .ready(copied: true))
+        XCTAssertFalse(model.speechStatus(isInstalled: true).isReady, "A copy says where it came from")
+        XCTAssertTrue(model.detectorStatus(isInstalled: true).isReady)
+        model.entered(.warming(copied: false))
+        XCTAssertEqual(model.speechStatus(isInstalled: true), .ready(copied: true), "A late report changes nothing")
+    }
+
+    @MainActor
+    func testTheCapsuleNeverEmptiesOrShowsAMadeUpNumber() async {
+        let model = OnboardingModelPreparation()
+        model.downloaded(0.5)
+        XCTAssertNil(model.fraction, "Nothing is being prepared yet")
+        await model.prepare {
+            XCTAssertNil(model.fraction, "No bytes reported, no number")
+            model.downloaded(0.4)
+            model.downloaded(0.72)
+            model.downloaded(0.6)
+            XCTAssertEqual(model.fraction, 0.72)
+            model.downloaded(nil)
+            XCTAssertEqual(model.fraction, 0.72, "The store clearing its fraction does not empty the capsule")
+
+            model.entered(.warming(copied: false))
+            XCTAssertTrue(model.isWarming)
+            XCTAssertNil(model.fraction, "Warming up has no measure")
+            throw URLError(.timedOut)
+        }
+        await model.prepare {
+            XCTAssertFalse(model.isWarming, "A retry starts before the warm-up again")
+            XCTAssertNil(model.fraction)
+        }
+    }
+
+    func testThePassingLightCrossesTheWholeCapsule() {
+        let width: CGFloat = 448, band = width * OnboardingModelStep.sweepShare
+        XCTAssertEqual(OnboardingModelStep.sweepOffset(at: 0, width: width), -band, accuracy: 0.001)
+        let end = OnboardingModelStep.sweepOffset(at: OnboardingModelStep.sweepPeriod - 0.0001, width: width)
+        XCTAssertEqual(end, width, accuracy: 0.1)
+    }
+
+    func testAStepChangeIsAnnouncedWithItsTitleAndPlace() {
+        XCTAssertEqual(OnboardingView.announcement(step: 0, count: 3), "Dictate Anywhere. Step 1 of 3")
+        XCTAssertEqual(OnboardingView.announcement(step: 2, count: 3), "Try It Here. Step 3 of 3")
+    }
+
+    func testTheFieldKeepsRoomUnderItsWordsForTheCapsuleAndItsNotice() {
+        XCTAssertGreaterThanOrEqual(
+            OnboardingPracticeStep.roomUnderWords, DictationPanelLayout.capsuleHeight(showsNotice: true))
+    }
+
+    func testTheTitleLeansItsLastWord() {
+        XCTAssertEqual(OnboardingTitle.split("Dictate Anywhere").lead, "Dictate ")
+        XCTAssertEqual(OnboardingTitle.split("Dictate Anywhere").emphasis, "Anywhere")
+        XCTAssertEqual(OnboardingTitle.split("Dictar en cualquier app").lead, "Dictar en cualquier ")
+        XCTAssertEqual(OnboardingTitle.split("Listo").lead, "")
+        XCTAssertEqual(OnboardingTitle.split("Listo").emphasis, "Listo")
+    }
+
+    func testThePracticeFieldKeepsTheTailProvisionalAndShowsTheRealKey() {
+        let idle = OnboardingPracticeStep.words(delivered: "Hola.", confirmed: "old", partial: "tail", isLive: false)
+        XCTAssertEqual(idle.settled, "Hola.")
+        XCTAssertEqual(idle.provisional, "")
+        let live = OnboardingPracticeStep.words(delivered: "Hola.", confirmed: "Esto es", partial: "una prueba", isLive: true)
+        XCTAssertEqual(live.settled, "Hola. Esto es")
+        XCTAssertEqual(live.provisional, " una prueba")
+        let first = OnboardingPracticeStep.words(delivered: "", confirmed: "", partial: "hola", isLive: true)
+        XCTAssertEqual(first.settled + first.provisional, "hola")
+
+        XCTAssertEqual(OnboardingPracticeStep.keyLabel(modifier: .function, shortcut: "⌃⌥⌘D"), "fn")
+        XCTAssertEqual(OnboardingPracticeStep.keyLabel(modifier: .rightOption, shortcut: "⌃⌥⌘D"), "⌥")
+        XCTAssertEqual(OnboardingPracticeStep.keyLabel(modifier: .rightCommand, shortcut: "⌃⌥⌘D"), "⌘")
+        XCTAssertEqual(OnboardingPracticeStep.keyLabel(modifier: .off, shortcut: "⌃⌥⌘D"), "⌃⌥⌘D")
+    }
+
+    @MainActor
     func testRepeatedAdmissionWhilePreparingDoesNotStartAnotherLoad() async {
         let model = OnboardingModelPreparation()
         await model.prepare {

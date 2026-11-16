@@ -22,6 +22,11 @@ final class DictationPracticeFieldTests: XCTestCase {
         let routed = practice.route(base, appIsActive: true)
         XCTAssertTrue(routed.canInsert(), "Practice needs no Accessibility")
         XCTAssertEqual(routed.locatePanelAnchor(), DictationPracticeField.panelAnchor(around: NSEvent.mouseLocation))
+        let slot = NSRect(x: 200, y: 300, width: 448, height: 56)
+        practice.panelSlot = { slot }
+        XCTAssertEqual(routed.locatePanelAnchor(), .slot(slot), "A view that keeps room for the strip gets it there")
+        practice.panelSlot = { nil }
+        XCTAssertEqual(routed.locatePanelAnchor(), DictationPracticeField.panelAnchor(around: NSEvent.mouseLocation))
         let destination = routed.captureDestination()
         XCTAssertFalse(destination.canRetry)
         let outcome = await destination.insert("Hola")

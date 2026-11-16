@@ -57,6 +57,12 @@ final class DictationPanelController {
         self.panel = panel
     }
 
+    /// The window that keeps a slot for the panel moved; the panel keeps its size and goes with it.
+    func move(for controller: DictationController) {
+        guard let panel else { return }
+        place(panel, size: panel.frame.size, for: controller)
+    }
+
     func close() {
         panel?.orderOut(nil)
         panel = nil

@@ -14,6 +14,9 @@ final class DictationPracticeField {
     /// Runs when the words go, so they leave wherever else they are held.
     @ObservationIgnored var onForget: (() -> Void)?
 
+    /// Where a view keeps room for the strip, in screen coordinates. Nil while its window is not key.
+    @ObservationIgnored var panelSlot: (@MainActor () -> NSRect?)?
+
     /// Completion is a local boolean; the delivered words never enter preferences.
     @ObservationIgnored var onVerifiedDelivery: (() -> Void)?
 
@@ -55,7 +58,9 @@ final class DictationPracticeField {
         routed.canInsert = { true }
         routed.beginHistory = { nil }
         routed.recordStats = { _ in }
-        routed.locatePanelAnchor = { Self.panelAnchor(around: NSEvent.mouseLocation) }
+        routed.locatePanelAnchor = { [weak self] in
+            self?.panelSlot?().map(DictationPanelAnchor.slot) ?? Self.panelAnchor(around: NSEvent.mouseLocation)
+        }
         routed.captureDestination = { [weak self] in
             CapturedDictationDestination(name: L10n.text("the practice field"), canRetry: false) { text in
                 guard isStillShown() else { return .refused(.targetChanged) }

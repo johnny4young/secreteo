@@ -74,7 +74,7 @@ final class DictationController {
     /// will land. The strip shows it so you never dictate "blind" (4b).
     private(set) var targetApp: String?
     /// The caret or pointer the strip opens beside, read with the destination.
-    private(set) var panelAnchor: DictationPanelAnchor?
+    var panelAnchor: DictationPanelAnchor?
     var expandedSessionID: UUID?
 
     enum CopyStatus: Equatable { case idle, copied, failed }
@@ -114,7 +114,7 @@ final class DictationController {
     /// Set once delivery has prepared its text; a later panel choice could not apply.
     /// Only `start` clears it: between sessions `canChangeTextMode` is already false.
     private var textPolicySealed = false
-    private let panel = DictationPanelController()
+    let panel = DictationPanelController()
     private let presentsPanel: Bool
     private var sessionClock: (() -> Date)?
     @ObservationIgnored private var cancelKey: (any GlobalHotkeyRegistration)?

@@ -942,6 +942,7 @@ final class VerifiedModelRecordTests: XCTestCase {
         let installed: Void? = try? await models.install(.speechDetector) { _ in }
 
         XCTAssertNil(installed, "A seed that does not hash right is not the model")
+        XCTAssertFalse(models.wasCopiedFromPortavoz(.speechDetector))
         XCTAssertEqual(try Data(contentsOf: seeded), Data("not the model".utf8))
     }
 
@@ -960,11 +961,52 @@ final class VerifiedModelRecordTests: XCTestCase {
         let models = DictationModels.live(
             store: try offlineStore(), defaults: try scratchDefaults(), seedRoot: seedRoot, manifests: { _ in pinned })
 
+        let comes = await models.comesFromPortavoz(.speechDetector)
+        XCTAssertTrue(comes, "Known before the install, so the wait is called a copy")
         try await models.install(.speechDetector) { _ in }
 
         let isVerified = await models.isVerified(.speechDetector)
         XCTAssertTrue(isVerified, "Installed with no network, so from the seed")
+        let again = await models.comesFromPortavoz(.speechDetector)
+        XCTAssertFalse(again, "Installed files come first from then on")
+        XCTAssertTrue(models.wasCopiedFromPortavoz(.speechDetector))
+        XCTAssertFalse(models.wasCopiedFromPortavoz(.speech), "Only the part that was copied")
         XCTAssertEqual(try Data(contentsOf: seeded), bytes)
+    }
+
+    func testFilesTheStoreAlreadyKeptAreNotCalledACopy() async throws {
+        let bytes = Data("model".utf8)
+        let digest = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
+        let pinned = ModelManifest(
+            id: "kept", displayName: "Kept", resolveBase: URL(string: "https://example.invalid")!, revision: "a",
+            artifacts: [ModelArtifact(path: "nested/model.bin", sha256: digest, sizeBytes: bytes.count)],
+            minimumRAMGB: 1, license: "MIT")
+        for seedBytes in [Data("not the model".utf8), bytes] {
+            let seedRoot = try makeScratch()
+            let seeded = DictationModels.Part.speechDetector.seed(in: seedRoot)
+                .appendingPathComponent("nested/model.bin")
+            try FileManager.default.createDirectory(
+                at: seeded.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try seedBytes.write(to: seeded)
+            let store = try offlineStore()
+            // A download the store kept from an interrupted install, in its documented place.
+            let version = try await store.directory(for: pinned)
+                .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            let kept = version.appendingPathComponent("partial/\(pinned.shelfKey)/\(digest)")
+            try FileManager.default.createDirectory(
+                at: kept.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try bytes.write(to: kept)
+            let models = DictationModels.live(
+                store: store, defaults: try scratchDefaults(), seedRoot: seedRoot, manifests: { _ in pinned })
+
+            let comes = await models.comesFromPortavoz(.speechDetector)
+            XCTAssertFalse(comes)
+            try await models.install(.speechDetector) { _ in }
+
+            let isVerified = await models.isVerified(.speechDetector)
+            XCTAssertTrue(isVerified, "Installed with no network, from the kept download")
+            XCTAssertFalse(models.wasCopiedFromPortavoz(.speechDetector), "seed of \(seedBytes.count) bytes")
+        }
     }
 
     private func offlineStore() throws -> LocalModelStore {

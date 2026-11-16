@@ -18,6 +18,10 @@ final class OnboardingUITests: SecreteoUITestCase {
         guard app.state == .runningForeground else { throw XCTSkip("The app is not in front") }
     }
 
+    private static func stepLabel(_ step: Int) -> String {
+        "Step \(step) of 3"
+    }
+
     private func isOn(_ element: XCUIElement) -> Bool {
         element.value as? Int == 1 || element.value as? String == "1"
     }
@@ -30,19 +34,32 @@ final class OnboardingUITests: SecreteoUITestCase {
         XCTAssertFalse(isOn(toggle))
         XCTAssertTrue(app.control(withIdentifier: "onboarding-skip").exists)
         XCTAssertFalse(app.control(withIdentifier: "onboarding-back").exists, "The first step has nothing behind it")
-        XCTAssertFalse(app.control(withIdentifier: "onboarding-microphone-allow").exists, "Off, only the switch shows")
+        XCTAssertEqual(app.control(withIdentifier: "onboarding-progress").label, Self.stepLabel(1))
+        XCTAssertTrue(
+            app.control(withIdentifier: "onboarding-microphone-allowed").waitForExistence(timeout: 5),
+            "The permissions show before dictation is on")
+        XCTAssertTrue(app.control(withIdentifier: "onboarding-accessibility-allowed").exists)
+        XCTAssertFalse(app.control(withIdentifier: "onboarding-microphone-allow").exists)
+        XCTAssertFalse(
+            app.control(withIdentifier: "settings-dictation-hotkey-recorder").exists, "Off, no shortcut to record")
         attachScreenshot(named: "pr-onboarding-dictation")
 
         try requireForeground(app)
         let next = app.control(withIdentifier: "onboarding-continue")
         next.click()
         XCTAssertTrue(app.control(withIdentifier: "onboarding-model").waitForExistence(timeout: 5))
+        XCTAssertEqual(app.control(withIdentifier: "onboarding-progress").label, Self.stepLabel(2))
         let prepare = app.control(withIdentifier: "onboarding-model-prepare")
         XCTAssertTrue(prepare.waitForStableFrame(timeout: 5))
+        XCTAssertTrue(app.control(withIdentifier: "onboarding-model-speech-status").exists)
+        XCTAssertTrue(app.control(withIdentifier: "onboarding-model-detector-status").exists)
         prepare.click()
         XCTAssertTrue(app.control(withIdentifier: "onboarding-model-ready").waitForExistence(timeout: 5))
         XCTAssertFalse(app.control(withIdentifier: "onboarding-model-preparing").exists)
+        XCTAssertFalse(app.control(withIdentifier: "onboarding-model-percent").exists, "No bytes, no number")
         XCTAssertFalse(app.control(withIdentifier: "onboarding-model-error").exists)
+        XCTAssertEqual(renderedText(of: app.control(withIdentifier: "onboarding-model-speech-status")), "Ready")
+        XCTAssertEqual(renderedText(of: app.control(withIdentifier: "onboarding-model-detector-status")), "Ready")
         attachScreenshot(named: "pr-onboarding-model")
 
         app.control(withIdentifier: "onboarding-back").click()
@@ -57,6 +74,10 @@ final class OnboardingUITests: SecreteoUITestCase {
         XCTAssertTrue(start.exists)
         XCTAssertFalse(start.isEnabled, "Off, the field waits instead of explaining")
         XCTAssertTrue(app.control(withIdentifier: "onboarding-dictation-practice-field").exists)
+        XCTAssertEqual(app.control(withIdentifier: "onboarding-progress").label, Self.stepLabel(3))
+        XCTAssertEqual(
+            app.control(withIdentifier: "onboarding-practice-key").value as? String, "⌃⌥⌘D",
+            "With no key to hold, the cap shows the shortcut")
         XCTAssertEqual(next.label, "Done")
         attachScreenshot(named: "pr-onboarding-practice")
 
@@ -144,12 +165,16 @@ final class OnboardingUITests: SecreteoUITestCase {
         start.click()
         let transcript = app.staticTexts["dictation-panel-transcript"]
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { renderedText(of: transcript).contains(expected) })
+        let panel = app.dialogs["dictation-panel"].frame
+        let field = app.control(withIdentifier: "onboarding-dictation-practice-field")
+        XCTAssertTrue(field.frame.insetBy(dx: -40, dy: 0).contains(panel), "The capsule opens in the field")
+        XCTAssertFalse(panel.intersects(start.frame), "Finish stays in reach")
+        attachScreenshot(named: "pr-onboarding-practice-live")
         start.click()
 
-        let field = app.control(withIdentifier: "onboarding-dictation-practice-field")
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { field.value as? String == expected })
         XCTAssertEqual(NSPasteboard.general.changeCount, clipboard, "Practice never borrows the clipboard")
-        attachScreenshot(named: "onboarding-dictation-practice")
+        attachScreenshot(named: "pr-onboarding-practice-delivered")
         XCTAssertTrue(app.dialogs["dictation-panel"].waitForDisappearance(timeout: 5))
         app.buttons["onboarding-dictation-practice-clear"].click()
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { field.value as? String != expected })

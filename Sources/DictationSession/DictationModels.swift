@@ -38,6 +38,10 @@ struct DictationModels: Sendable {
     var changes: @Sendable () -> AsyncStream<Void> = { AsyncStream { $0.finish() } }
     /// The folder name the store gives a part, to match it with a listed model.
     var key: @Sendable (Part) -> String = { _ in "" }
+    /// Whether an install now would take every file of the part from Portavoz's folder. Hashes the folder.
+    var comesFromPortavoz: @Sendable (Part) async -> Bool = { _ in false }
+    /// Whether this launch installed every file of the part from Portavoz's folder.
+    var wasCopiedFromPortavoz: @Sendable (Part) -> Bool = { _ in false }
 
     /// Throws the first failure, so the caller can say what went wrong.
     /// `progress` gets the share of the missing bytes in place, from 0 to 1, once per whole percent:
@@ -85,6 +89,11 @@ struct DictationModels: Sendable {
             guard let directory = try? await store.directory(for: manifests(part)) else { return nil }
             return VerifiedModelRecord.fingerprint(of: manifests(part), in: directory)
         }
+        let copied = CopiedParts()
+        @Sendable func comesFromSeed(_ part: Part) async -> Bool {
+            guard let payload = try? await store.directory(for: manifests(part)) else { return false }
+            return PortavozSeed.suppliesEveryFile(of: manifests(part), seed: part.seed(in: seedRoot), payload: payload)
+        }
         return Self(
             isVerified: { await store.verifiedInstallation(manifests($0)) != nil },
             wasVerified: { part in
@@ -95,13 +104,11 @@ struct DictationModels: Sendable {
                 defaults.set(isVerified ? await fingerprint(part) : nil, forKey: part.recordKey)
             },
             install: { part, placedBytes in
-                _ = try await store.ensureAvailable(manifests(part), seeds: [part.seed(in: seedRoot)]) { event in
-                    switch event {
-                    case .downloading(let state): placedBytes(state.completedBytes)
-                    case .waitingForOtherProcess(let completed, _): placedBytes(completed)
-                    case .verifying: break
-                    }
-                }
+                // Read before the install, which is the only time the store's own files say nothing was there.
+                let comesFromSeed = await comesFromSeed(part)
+                let downloaded = try await install(
+                    manifests(part), from: part.seed(in: seedRoot), into: store, placedBytes: placedBytes)
+                if comesFromSeed, !downloaded { copied.parts.withLock { _ = $0.insert(part) } }
             },
             size: { manifests($0).totalSizeBytes },
             // Never worth failing a launch over, and the next launch tries again.
@@ -126,8 +133,36 @@ struct DictationModels: Sendable {
                 return outcome
             },
             changes: { store.changes() },
-            key: { manifests($0).shelfKey })
+            key: { manifests($0).shelfKey },
+            comesFromPortavoz: { await comesFromSeed($0) },
+            wasCopiedFromPortavoz: { part in copied.parts.withLock { $0.contains(part) } })
     }
+}
+
+extension DictationModels {
+    /// Returns whether any byte came over the network, from this process or one it waited for.
+    fileprivate static func install(
+        _ manifest: ModelManifest, from seed: URL, into store: LocalModelStore,
+        placedBytes: @escaping @Sendable (Int) -> Void
+    ) async throws -> Bool {
+        let downloaded = Mutex(false)
+        _ = try await store.ensureAvailable(manifest, seeds: [seed]) { event in
+            switch event {
+            case .downloading(let state):
+                downloaded.withLock { $0 = true }
+                placedBytes(state.completedBytes)
+            case .waitingForOtherProcess(let completed, _):
+                downloaded.withLock { $0 = true }
+                placedBytes(completed)
+            case .verifying: break
+            }
+        }
+        return downloaded.withLock { $0 }
+    }
+}
+
+private final class CopiedParts: Sendable {
+    let parts = Mutex<Set<DictationModels.Part>>([])
 }
 
 extension DictationModels.Part {

@@ -91,6 +91,9 @@ struct SecreteoDesignTests {
         ("not sent on card, light", SecreteoPalette.notSent.light, SecreteoPalette.card.light),
         ("not sent on card, dark", SecreteoPalette.notSent.dark, SecreteoPalette.card.dark),
         ("white on accent", 0xFFFFFF, SecreteoPalette.accent.light),
+        ("verified on a card", SecreteoPalette.verified.light, SecreteoPalette.card.light),
+        ("verified on a dark card", SecreteoPalette.verified.dark, SecreteoPalette.card.dark),
+        ("ink on a light amber key", SecreteoPalette.capsuleInk.light, SecreteoPalette.amber.light),
         ("indicator stroke on its outline", SecreteoPalette.capsuleText.light, SecreteoPalette.asideOutline.light),
         ("indicator amber on its outline", SecreteoPalette.capsuleAmber.light, SecreteoPalette.asideOutline.light),
         ("indicator verified on its outline", SecreteoPalette.capsuleVerified.light, SecreteoPalette.asideOutline.light),
@@ -107,7 +110,13 @@ struct SecreteoDesignTests {
         ("empty bar, light", SecreteoPalette.emptyBar.light, SecreteoPalette.card.light),
         ("empty bar, dark", SecreteoPalette.emptyBar.dark, SecreteoPalette.card.dark),
         ("today's bar, light", SecreteoPalette.todayBar.light, SecreteoPalette.card.light),
-        ("today's bar, dark", SecreteoPalette.todayBar.dark, SecreteoPalette.card.dark)
+        ("today's bar, dark", SecreteoPalette.todayBar.dark, SecreteoPalette.card.dark),
+        ("current step, light", SecreteoPalette.progressEdge.light, SecreteoPalette.window.light),
+        ("current step, dark", SecreteoPalette.progressEdge.dark, SecreteoPalette.window.dark),
+        ("step ahead, light", SecreteoPalette.tertiaryText.light, SecreteoPalette.window.light),
+        ("step ahead, dark", SecreteoPalette.tertiaryText.dark, SecreteoPalette.window.dark),
+        ("step done, light", SecreteoPalette.accent.light, SecreteoPalette.window.light),
+        ("step done, dark", SecreteoPalette.accent.dark, SecreteoPalette.window.dark)
     ] as [(String, UInt32, UInt32)])
     func chartMarksMeetGraphicContrast(_ pair: (String, UInt32, UInt32)) {
         #expect(Self.contrast(pair.1, pair.2) >= 3, "\(pair.0)")
