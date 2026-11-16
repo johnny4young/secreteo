@@ -69,6 +69,21 @@ struct DictationAsideMotionTests {
     }
 
     @Test
+    func aCardFromTheGlyphWaitsForItsMeasuredHeight() {
+        #expect(
+            !DictationCompactIndicator.growthStarts(fromGlyph: true, isMeasured: false),
+            "unmeasured, the window still has the capsule's height")
+        #expect(DictationCompactIndicator.growthStarts(fromGlyph: true, isMeasured: true))
+        #expect(DictationCompactIndicator.growthStarts(fromGlyph: false, isMeasured: false), "the capsule's card shows at once")
+        #expect(DictationPanelLayout.outcomeSize(measuredHeight: nil, visible: nil).height == DictationPanelLayout.capsuleHeight)
+
+        let placement = DictationPanelPlacement()
+        #expect(!placement.outcomeGrowsFromGlyph && !placement.outcomeIsMeasured)
+        #expect(DictationCompactIndicator.growthStarts(
+            fromGlyph: placement.outcomeGrowsFromGlyph, isMeasured: placement.outcomeIsMeasured))
+    }
+
+    @Test
     func anOptionSwitchedMidDictationResizesTheIndicator() async throws {
         let harness = DictationControllerHarness(text: "no borres estas notas")
         defer { harness.controller.cancel() }

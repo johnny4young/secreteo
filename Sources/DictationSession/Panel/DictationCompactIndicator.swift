@@ -102,6 +102,12 @@ enum DictationCompactIndicator {
         return hold + .seconds(fade)
     }
 
+    /// A card that replaces the glyph shows only once its content has been measured, so it never
+    /// appears at the capsule's height first. Any other outcome shows at once.
+    static func growthStarts(fromGlyph: Bool, isMeasured: Bool) -> Bool {
+        !fromGlyph || isMeasured
+    }
+
     /// A second click must not land on what the first one opened.
     static func swallowsPress(clickCount: Int, sinceExpansion: TimeInterval?, doubleClick: TimeInterval) -> Bool {
         if clickCount > 1 { return true }
