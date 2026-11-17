@@ -2,6 +2,61 @@
 
 Ready-to-paste texts for each Secreteo release, newest first. Copy, adjust, post.
 
+## Introducing Secreteo
+
+A first post that shows what Secreteo is, not what one release changed. Post the thread, or the single post on its own.
+
+### X / Bluesky thread 1/6 — 186 characters · attach a short video of the capsule while dictating
+
+Meet Secreteo: hold a key, speak, and your words land in whatever Mac app you're using.
+
+Speech recognition runs on your Mac. Nothing leaves it by default. Free and open source (MIT).
+
+🧵
+
+### X / Bluesky thread 2/6 — 219 characters
+
+What makes it different: it never needs the cloud.
+
+Parakeet or Apple Speech run on-device, in English and Spanish. The only network calls are a one-time model download, update checks, and Ollama if you point it at one.
+
+### X / Bluesky thread 3/6 — 187 characters · attach a screenshot of the capsule with words in italics
+
+It shows you what it hears.
+
+One dark capsule sits under your caret, and its light rises with your voice. Words you're still saying appear in italics, then stand upright once they settle.
+
+### X / Bluesky thread 4/6 — 146 characters
+
+It doesn't lose your words.
+
+If a field can't take the text, a card holds it with Reinsert first. Trigger with Fn, a mouse button or any shortcut.
+
+### X / Bluesky thread 5/6 — 243 characters
+
+Beyond typing:
+• Polish with Apple Intelligence or a local Ollama model
+• Rewrite Selection: select text, say how
+• Optional history you can search by meaning
+• Shortcuts actions and a read-only MCP server, so agents can search your dictations
+
+### X / Bluesky thread 6/6 — 243 characters
+
+Honest about limits: Apple silicon and macOS 26, measured only on an M4 Max. Some paths are covered by tests but not yet checked by hand in other apps. That list is public.
+
+brew install --cask johnny4young/tap/secreteo
+https://secreteo.pages.dev
+
+### X / Bluesky single post — 260 characters
+
+Secreteo: hold a key, speak, and the text lands in any Mac app. Recognition runs on-device, nothing leaves your Mac by default. A capsule under your caret shows your words as you say them. Polish, Rewrite Selection, MCP for agents. MIT. https://secreteo.pages.dev
+
+### Links
+
+- Site: https://secreteo.pages.dev
+- Known limits: https://github.com/johnny4young/secreteo/blob/main/docs/GAPS.md
+- `brew install --cask johnny4young/tap/secreteo`
+
 ## v1.1.0 — 2026-11-16
 
 Secreteo 1.1 redraws every surface: one dark capsule under your caret that rises with your voice, and the same look across the menu, Settings, History and setup.
