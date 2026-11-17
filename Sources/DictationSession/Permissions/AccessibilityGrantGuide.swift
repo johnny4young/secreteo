@@ -17,17 +17,32 @@ final class AccessibilityGrantGuide {
         }
         let panel = panel ?? makePanel()
         self.panel = panel
-        place(panel)
+        place(panel, beside: Self.systemSettingsFrame())
         panel.orderFrontRegardless()
         watch?.cancel()
         watch = Task { @MainActor [weak self] in
+            let start = ContinuousClock.now
+            var sawSettings = false
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(500))
                 guard !Task.isCancelled, let self else { return }
                 if isGranted() { return self.close() }
-                if let panel = self.panel { self.place(panel) }
+                let settings = Self.systemSettingsFrame()
+                if Self.shouldClose(
+                    settingsOnScreen: settings != nil, sawSettings: sawSettings, elapsed: ContinuousClock.now - start) {
+                    return self.close()
+                }
+                sawSettings = sawSettings || settings != nil
+                if let panel = self.panel { self.place(panel, beside: settings) }
             }
         }
+    }
+
+    nonisolated static let timeLimit: Duration = .seconds(300)
+
+    /// Leaving System Settings, or never finishing, ends the guide.
+    nonisolated static func shouldClose(settingsOnScreen: Bool, sawSettings: Bool, elapsed: Duration) -> Bool {
+        (sawSettings && !settingsOnScreen) || elapsed >= timeLimit
     }
 
     func close() {
@@ -56,11 +71,10 @@ final class AccessibilityGrantGuide {
     }
 
     /// Beside System Settings while it is on screen, else low on the main screen.
-    private func place(_ panel: NSPanel) {
+    private func place(_ panel: NSPanel, beside settings: CGRect?) {
         let size = panel.frame.size
         guard let screen = NSScreen.main else { return }
-        let origin = Self.origin(
-            for: size, beside: Self.systemSettingsFrame(), in: screen.visibleFrame)
+        let origin = Self.origin(for: size, beside: settings, in: screen.visibleFrame)
         if panel.frame.origin != origin { panel.setFrameOrigin(origin) }
     }
 

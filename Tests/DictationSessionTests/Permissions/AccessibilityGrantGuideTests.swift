@@ -7,6 +7,15 @@ final class AccessibilityGrantGuideTests: XCTestCase {
     private let screen = CGRect(x: 0, y: 0, width: 1_440, height: 900)
     private let size = CGSize(width: 300, height: 80)
 
+    func testTheGuideClosesWhenSystemSettingsLeavesOrTimeRunsOut() {
+        let early = Duration.seconds(5)
+        XCTAssertFalse(AccessibilityGrantGuide.shouldClose(settingsOnScreen: false, sawSettings: false, elapsed: early))
+        XCTAssertFalse(AccessibilityGrantGuide.shouldClose(settingsOnScreen: true, sawSettings: true, elapsed: early))
+        XCTAssertTrue(AccessibilityGrantGuide.shouldClose(settingsOnScreen: false, sawSettings: true, elapsed: early))
+        XCTAssertTrue(AccessibilityGrantGuide.shouldClose(
+            settingsOnScreen: true, sawSettings: true, elapsed: AccessibilityGrantGuide.timeLimit))
+    }
+
     func testTheGuideSitsBesideSystemSettings() {
         let settings = CGRect(x: 200, y: 200, width: 700, height: 500)
         XCTAssertEqual(AccessibilityGrantGuide.origin(for: size, beside: settings, in: screen), CGPoint(x: 912, y: 410))

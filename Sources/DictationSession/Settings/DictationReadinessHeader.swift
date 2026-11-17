@@ -28,7 +28,7 @@ struct DictationReadinessHeader: View {
                             .accessibilityIdentifier("settings-dictation-accessibility")
                     }
                     model
-                    if dictation.isEnabled { practice }
+                    if dictation.practiceIsShown { practice }
                 }
                 .font(.system(size: 11))
                 .foregroundStyle(SecreteoDesign.secondaryText)

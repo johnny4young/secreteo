@@ -105,7 +105,7 @@ Each participant derives its state locally, and re-derives it on every event in 
 
 Outside that one step, only `owned` arms triggers, so a non-owner gives up exclusive shortcuts and event taps. Disarming is not what keeps a Mac safe: a stale trigger reaches admission and is refused there.
 
-A participant in `available` may offer to take ownership. Secreteo offers it only then, and ships with a shortcut other than ⌥⌘D and with Fn off by default.
+A participant in `available` may offer to take ownership. Secreteo offers it only then, and ships with a shortcut other than ⌥⌘D and with holding Fn on by default ([D32](../DECISIONS.md#d32-holding-fn-dictates-by-default)).
 
 Prewarm needs `owned` but no lease. A stale read can waste a model load, not cause a capture. Leaving `owned` disarms the triggers and unloads a prewarmed model, so two apps do not keep one each.
 

@@ -438,6 +438,15 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         XCTAssertTrue(app.control(withIdentifier: "settings-dictation-practice-field").exists, "Right below it")
     }
 
+    func testPracticeIsNotNamedBeforeTheModelIsInstalled() throws {
+        let app = try launchEnabled(arguments: ["-seed-dictation-practice-missing", "-seed-model-download-held"])
+        defer { finishUITestApplication(app) }
+
+        XCTAssertTrue(app.control(withIdentifier: "settings-dictation-model-download").waitForExistence(timeout: 5))
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-practice-field").exists)
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-practice-missing").exists, "Nothing below yet")
+    }
+
     func testAnOlderPortavozGetsOneInstructionAndNoDictate() throws {
         let app = try XCUIApplication.secreteo(showMenuBarContent: true)
         app.launchArguments.append("-seed-dictation-legacy-peer")
