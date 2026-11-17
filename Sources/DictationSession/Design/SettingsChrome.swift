@@ -374,6 +374,23 @@ struct SettingsLinkStyle: ButtonStyle {
     }
 }
 
+/// A missing setup item: filled when it is the next fix, so one thing reads as first, else a link.
+struct SettingsStepStyle: ButtonStyle {
+    let isNext: Bool
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .fontWeight(.semibold)
+            .foregroundStyle(isNext ? SecreteoDesign.onAccent : SecreteoDesign.accent)
+            .padding(.horizontal, isNext ? 9 : 0)
+            .padding(.vertical, isNext ? 3 : 0)
+            .background(isNext ? SecreteoDesign.accent : .clear, in: Capsule())
+            .opacity(!isEnabled ? 0.4 : configuration.isPressed ? 0.6 : 1)
+            .contentShape(Capsule())
+    }
+}
+
 /// The label leads and the control trails, as a grouped form lays them out.
 struct SettingsLabeledStyle: LabeledContentStyle {
     func makeBody(configuration: Configuration) -> some View {

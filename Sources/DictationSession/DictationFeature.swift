@@ -59,7 +59,7 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored let history: DictationHistoryModel
     @ObservationIgnored let stats: DictationStatsModel
     @ObservationIgnored private let pendingWrites: DictationPendingWrites
-    @ObservationIgnored private let settingsWindowHolder = UUID()
+    @ObservationIgnored let settingsWindowHolder = UUID()
 
     /// Created on first use, because creating it writes the initial text mode.
     @ObservationIgnored var textSettingsIfCreated: DictationTextSettingsModel?
@@ -74,6 +74,10 @@ public final class DictationFeature: AppServices {
     public private(set) var isEnabled: Bool
     public private(set) var microphoneIsAuthorized: Bool
     public private(set) var accessibilityIsGranted: Bool
+    /// A disposable launch never asks for practice, so it reads as done there.
+    var practiceIsComplete = false
+    /// Whether macOS leaves the 🌐 key alone, read again with the permissions.
+    var fnKeyIsFree = false
     private(set) var handoffProblem: HandoffProblem?
     public private(set) var lastResetFailed = false
     private(set) var pasteLastShortcutIsUnavailable = false
@@ -147,7 +151,8 @@ public final class DictationFeature: AppServices {
         preferencesObserver = NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification, object: defaults, queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.preferenceRevision += 1 }
+            // AppKit can register defaults while SwiftUI lays out text, and a change mid-update aborts.
+            DispatchQueue.main.async { self?.preferenceRevision += 1 }
         }
         // A disposable launch owns its own scratch folder, because no user is there to take it.
         if usesTemporaryStore, !arguments.contains("-seed-dictation-no-owner") { ownership.claimScratchOwnership() }
@@ -155,6 +160,7 @@ public final class DictationFeature: AppServices {
     }
 
     public func start() {
+        practiceIsComplete = practiceStartsComplete
         DictationTextPreferences.initialize(in: defaults, temporary: usesTemporaryMeetingStore)
         // Created here so a Settings body never creates it and writes defaults mid-update.
         _ = textSettings
@@ -257,26 +263,6 @@ public final class DictationFeature: AppServices {
 
     public func finishUpdateCycle() {
         ownership.finishUpdateCycle()
-    }
-    /// A disposable launch has its own fixtures, so it needs no model.
-    var canPractice: Bool { environment.models == nil || speechModelIsInstalled || !speechModelIsRequired }
-    var practiceIsShown: Bool { isEnabled && canPractice }
-
-    /// The window holds the practice field, because the form's rows come and go as it scrolls.
-    public func practiceWindowChanged(_ holder: UUID, isKey: Bool) {
-        practice.show(holder, isKey: isKey)
-    }
-
-    public func practiceWindowClosed(_ holder: UUID) {
-        practice.hide(holder)
-    }
-
-    public func settingsWindowChanged(isKey: Bool) {
-        practiceWindowChanged(settingsWindowHolder, isKey: isKey)
-    }
-
-    public func settingsWindowClosed() {
-        practiceWindowClosed(settingsWindowHolder)
     }
     /// Off, or owned by another app, a start would be refused with nothing to show for it.
     public var canDictate: Bool { ownership.state == .owned || controller.isActive }
@@ -465,6 +451,7 @@ public final class DictationFeature: AppServices {
     func refreshReadiness() async {
         microphoneIsAuthorized = environment.microphoneState() == .authorized
         accessibilityIsGranted = environment.accessibilityIsGranted()
+        refreshFnKey()
         guard let models = environment.models else {
             ownership.reevaluate()
             return
@@ -549,6 +536,7 @@ extension DictationFeature {
         guard practiceIsShown else { return }
         store([ReadinessGap.practiceCompletionKey: true])
         readiness.practiceIsComplete.withLock { $0 = true }
+        practiceIsComplete = true
         ownership.reevaluate()
         watchReadiness()
     }

@@ -11,6 +11,9 @@ struct DictationFeatureEnvironment {
     var askForMicrophone: @Sendable () async -> Void
     var askForAccessibility: @MainActor () -> Void
     var openMicrophoneSettings: @MainActor () -> Void
+    /// macOS's “Press 🌐 key to” choice, nil when it was never set.
+    var fnKeyUsage: @Sendable () -> Int? = { nil }
+    var openKeyboardSettings: @MainActor () -> Void = {}
     /// Nil when no real model is involved.
     var models: DictationModels?
     /// Portavoz's saved settings, read only when Settings asks.
@@ -21,10 +24,18 @@ struct DictationFeatureEnvironment {
             microphoneState: { microphone.state() },
             accessibilityIsGranted: { AXIsProcessTrusted() },
             askForMicrophone: { _ = await microphone.authorizeIfNeeded() },
-            askForAccessibility: { _ = TextInserter.canInsert(promptIfNeeded: true) },
+            askForAccessibility: {
+                AccessibilityGrantGuide.shared.show(opensSystemSettings: true) { AXIsProcessTrusted() }
+            },
             openMicrophoneSettings: {
                 let pane = "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
                 if let url = URL(string: pane) { NSWorkspace.shared.open(url) }
+            },
+            fnKeyUsage: { ModifierKeySetting.systemFnUsage() },
+            openKeyboardSettings: {
+                if let url = URL(string: "x-apple.systempreferences:com.apple.Keyboard-Settings.extension") {
+                    NSWorkspace.shared.open(url)
+                }
             },
             models: models,
             portavozPreferences: {
@@ -40,7 +51,10 @@ struct DictationFeatureEnvironment {
             microphoneState: { permissionsAreMissing ? .notDetermined : .authorized },
             accessibilityIsGranted: { !permissionsAreMissing },
             askForMicrophone: {},
-            askForAccessibility: {},
+            // Shows the guide so it can be tested, without opening System Settings.
+            askForAccessibility: {
+                AccessibilityGrantGuide.shared.show(opensSystemSettings: false) { !permissionsAreMissing }
+            },
             openMicrophoneSettings: {},
             models: models,
             portavozPreferences: { seedsPortavozPreferences ? PortavozPreferenceImport.fixture : [:] })

@@ -38,4 +38,20 @@ final class MenuDashboardUITests: SecreteoUITestCase {
         XCTAssertTrue(app.buttons["menu-settings"].isHittable, "The window grew with the card")
         attachScreenshot(named: "pr-menu-dashboard")
     }
+
+    func testTheSetupButtonRunsTheMissingStep() throws {
+        let app = try XCUIApplication.secreteo(showMenuBarContent: true)
+        app.launchSecreteo()
+        defer { finishUITestApplication(app) }
+
+        let setUp = app.buttons["menu-bar-set-up-dictation"]
+        XCTAssertTrue(setUp.waitForStableFrame(timeout: 30))
+        XCTAssertTrue(renderedText(of: setUp).contains("Turn On Dictation"))
+
+        setUp.click()
+
+        XCTAssertTrue(app.buttons["menu-bar-dictate"].waitForExistence(timeout: 5), "On, nothing else is missing here")
+        XCTAssertFalse(setUp.exists)
+        XCTAssertFalse(app.control(withIdentifier: "settings-root").exists, "The step ran without opening Settings")
+    }
 }

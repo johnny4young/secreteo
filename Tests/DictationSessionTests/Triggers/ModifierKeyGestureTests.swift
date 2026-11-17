@@ -45,11 +45,20 @@ final class ModifierKeyGestureTests: XCTestCase {
         let suite = "modifier-key-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
-        XCTAssertEqual(ModifierKeySetting.load(from: defaults), .off, "the trigger is opt-in")
+        XCTAssertEqual(ModifierKeySetting.load(from: defaults), .function, "Holding Fn works out of the box")
         defaults.set("capsLock", forKey: ModifierKeySetting.defaultsKey)
-        XCTAssertEqual(ModifierKeySetting.load(from: defaults), .off)
-        defaults.set("function", forKey: ModifierKeySetting.defaultsKey)
         XCTAssertEqual(ModifierKeySetting.load(from: defaults), .function)
+        defaults.set("off", forKey: ModifierKeySetting.defaultsKey)
+        XCTAssertEqual(ModifierKeySetting.load(from: defaults), .off, "A key turned off stays off")
+        defaults.set("rightOption", forKey: ModifierKeySetting.defaultsKey)
+        XCTAssertEqual(ModifierKeySetting.load(from: defaults), .rightOption)
+    }
+
+    func testOnlyDoNothingLeavesTheGlobeKeyFree() {
+        XCTAssertTrue(ModifierKeySetting.systemFnKeyIsFree(usage: 0))
+        for usage in [nil, 1, 2, 3] {
+            XCTAssertFalse(ModifierKeySetting.systemFnKeyIsFree(usage: usage), "\(String(describing: usage))")
+        }
     }
 
     func testTappedEventsMapToTheGestureForOnlyTheChosenKey() async {

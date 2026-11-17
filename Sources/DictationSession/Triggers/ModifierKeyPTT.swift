@@ -1,7 +1,7 @@
 import AppKit
 import Carbon.HIToolbox
 
-/// A modifier held on its own as push-to-talk. Off by default.
+/// A modifier held on its own as push-to-talk. Holding Fn is the default.
 enum ModifierKeySetting: String, CaseIterable {
     case off
     case function
@@ -9,9 +9,17 @@ enum ModifierKeySetting: String, CaseIterable {
     case rightCommand
 
     static let defaultsKey = "dictationModifierKey"
+    static let standard = Self.function
 
     static func load(from defaults: UserDefaults = .standard) -> Self {
-        Self(rawValue: defaults.string(forKey: defaultsKey) ?? "") ?? .off
+        Self(rawValue: defaults.string(forKey: defaultsKey) ?? "") ?? standard
+    }
+
+    /// macOS's “Press 🌐 key to” choice; only “Do Nothing” (0) leaves the key to Secreteo alone.
+    static func systemFnKeyIsFree(usage: Int?) -> Bool { usage == 0 }
+
+    static func systemFnUsage() -> Int? {
+        CFPreferencesCopyAppValue("AppleFnUsageType" as CFString, "com.apple.HIToolbox" as CFString) as? Int
     }
 
     var keyCode: Int64? {

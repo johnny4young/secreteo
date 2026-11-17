@@ -41,7 +41,8 @@ struct OnboardingPracticeStep: View {
     /// The key that dictates everywhere else, lit while the microphone is open.
     private var keyCap: some View {
         let modifier = ModifierKeySetting(
-            rawValue: dictation.preference(ModifierKeySetting.defaultsKey, default: "").wrappedValue) ?? .off
+            rawValue: dictation.preference(
+                ModifierKeySetting.defaultsKey, default: ModifierKeySetting.standard.rawValue).wrappedValue) ?? .off
         let label = Self.keyLabel(modifier: modifier, shortcut: controller.shortcut.setting.label)
         let shape = RoundedRectangle(cornerRadius: 10)
         return Text(verbatim: label)

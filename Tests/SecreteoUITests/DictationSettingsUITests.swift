@@ -57,7 +57,9 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-shortcut-retry").exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-sounds").exists, "Off, only the toggle shows")
         XCTAssertTrue(app.control(withIdentifier: "settings-dictation-model-download").exists)
-        XCTAssertTrue(app.buttons["menu-bar-set-up-dictation"].exists, "Off, the menu offers setup, not a dead Dictate")
+        let setUp = app.buttons["menu-bar-set-up-dictation"]
+        XCTAssertTrue(setUp.exists, "Off, the menu offers setup, not a dead Dictate")
+        XCTAssertTrue(renderedText(of: setUp).contains("Turn On Dictation"), "The button names the missing step")
         XCTAssertFalse(app.buttons["menu-bar-dictate"].exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-failed-to-start").exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-tab-text").exists, "Off, there is no text to shape")
@@ -89,7 +91,10 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-mouse-clear").exists, "No button is set")
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-auto-stop-pause").exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-modifier-unavailable").exists)
-        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-modifier-fn-note").exists)
+        XCTAssertTrue(
+            app.control(withIdentifier: "settings-dictation-modifier-fn-note").exists, "Fn is held by default")
+        XCTAssertTrue(app.control(withIdentifier: "settings-dictation-modifier-fn-settings").exists)
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-practice-missing").exists)
         attachScreenshot(named: "pr-settings-tab-dictation")
 
         try requireForeground(app)
@@ -411,7 +416,26 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         defer { finishUITestApplication(app) }
 
         XCTAssertTrue(app.control(withIdentifier: "settings-dictation-microphone").waitForExistence(timeout: 5))
-        XCTAssertTrue(app.control(withIdentifier: "settings-dictation-accessibility").exists)
+        let allow = app.control(withIdentifier: "settings-dictation-accessibility")
+        XCTAssertTrue(allow.exists)
+
+        allow.click()
+
+        let guide = app.control(withIdentifier: "accessibility-guide")
+        XCTAssertTrue(guide.waitForExistence(timeout: 5), "The icon to drag floats beside System Settings")
+        XCTAssertTrue(app.control(withIdentifier: "accessibility-guide-icon").exists)
+        attachScreenshot(named: "pr-accessibility-guide")
+        app.control(withIdentifier: "accessibility-guide-close").click()
+        XCTAssertTrue(guide.waitForDisappearance(timeout: 5))
+    }
+
+    func testUnfinishedPracticeIsNamedInTheHeader() throws {
+        let app = try launchEnabled(arguments: ["-seed-dictation-practice-missing"])
+        defer { finishUITestApplication(app) }
+
+        let practice = app.control(withIdentifier: "settings-dictation-practice-missing")
+        XCTAssertTrue(practice.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.control(withIdentifier: "settings-dictation-practice-field").exists, "Right below it")
     }
 
     func testAnOlderPortavozGetsOneInstructionAndNoDictate() throws {

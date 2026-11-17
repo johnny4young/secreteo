@@ -4,6 +4,10 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- 🧭 **Setup says what is missing**: the menu's button is the next step itself (turn on, allow the microphone, allow Accessibility, download the model or try it once) and runs it, and Settings fills that step in.
+- 🌐 **Hold Fn to dictate, out of the box**: Fn is the default push-to-talk key, and Settings points to the macOS 🌐 setting only when it would also react.
+- 🫳 **Drag the icon to allow Accessibility**: Allow Accessibility opens the right System Settings list with Secreteo's icon beside it to drag in, and the icon goes away once it is on.
+
 ## 1.1.0
 
 - ✍️ **Rewrite Selection is a card in the same dark glass**: your selection quoted in serif, Polish and your recipes as chips, the words you say for “Say how” as you say them, and one Replace button once the preview is ready.

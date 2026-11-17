@@ -402,18 +402,18 @@
         }
       }
     },
-    "Allow Accessibility" : {
+    "Allow Accessibility…" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Allow Accessibility"
+            "value" : "Allow Accessibility…"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Permitir Accesibilidad"
+            "value" : "Permitir Accesibilidad…"
           }
         }
       }
@@ -1650,6 +1650,22 @@
         }
       }
     },
+    "Dictate once below" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictate once below"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dicta una vez abajo"
+          }
+        }
+      }
+    },
     "Dictated Text" : {
       "localizations" : {
         "en" : {
@@ -2094,6 +2110,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Descargando modelo de voz…"
+          }
+        }
+      }
+    },
+    "Drag into the list, then turn it on." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag into the list, then turn it on."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrástralo a la lista y actívalo."
           }
         }
       }
@@ -3394,6 +3426,22 @@
         }
       }
     },
+    "Open Keyboard Settings" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Keyboard Settings"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir ajustes de Teclado"
+          }
+        }
+      }
+    },
     "Open at Login" : {
       "localizations" : {
         "en" : {
@@ -4030,6 +4078,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Puliendo…"
+          }
+        }
+      }
+    },
+    "Practice" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Practice"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Práctica"
           }
         }
       }
@@ -5042,18 +5106,18 @@
         }
       }
     },
-    "So macOS doesn't also react, set “Press 🌐 key to” to “Do Nothing” in System Settings › Keyboard." : {
+    "So macOS doesn't also react, set “Press 🌐 key to” to “Do Nothing”." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "So macOS doesn't also react, set “Press 🌐 key to” to “Do Nothing” in System Settings › Keyboard."
+            "value" : "So macOS doesn't also react, set “Press 🌐 key to” to “Do Nothing”."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Para que macOS no reaccione también, elige “No hacer nada” en “Al pulsar la tecla 🌐” en Ajustes del Sistema › Teclado."
+            "value" : "Para que macOS no reaccione también, elige “No hacer nada” en “Al pulsar la tecla 🌐”."
           }
         }
       }
@@ -5950,6 +6014,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reintentar"
+          }
+        }
+      }
+    },
+    "Try Dictation…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try Dictation…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Probar el dictado…"
           }
         }
       }
