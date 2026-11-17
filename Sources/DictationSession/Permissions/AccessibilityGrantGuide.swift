@@ -20,7 +20,7 @@ final class AccessibilityGrantGuide {
         place(panel)
         panel.orderFrontRegardless()
         watch?.cancel()
-        watch = Task { [weak self] in
+        watch = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(500))
                 guard !Task.isCancelled, let self else { return }

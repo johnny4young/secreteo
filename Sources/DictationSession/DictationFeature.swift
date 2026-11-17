@@ -74,7 +74,7 @@ public final class DictationFeature: AppServices {
     public private(set) var isEnabled: Bool
     public private(set) var microphoneIsAuthorized: Bool
     public private(set) var accessibilityIsGranted: Bool
-    /// A disposable launch never asks for practice, so it reads as done there.
+    /// A disposable launch reads practice as done unless a test seeds it missing.
     var practiceIsComplete = false
     /// Whether macOS leaves the 🌐 key alone, read again with the permissions.
     var fnKeyIsFree = false
