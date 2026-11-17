@@ -2,6 +2,57 @@
 
 Ready-to-paste texts for each Secreteo release, newest first. Copy, adjust, post.
 
+## v1.1.0 — 2026-11-16
+
+Secreteo 1.1 redraws every surface: one dark capsule under your caret that rises with your voice, and the same look across the menu, Settings, History and setup.
+
+![Secreteo icon](https://secreteo.pages.dev/icon.png)
+
+### X / Bluesky — 263 characters
+
+Secreteo 1.1: dictation is now one dark capsule under your caret. Its light rises with your voice, words still being said show in italics, then settle. The menu, Settings, History and setup are redrawn to match. Still on-device, still MIT. https://secreteo.pages.dev
+
+### Hacker News
+
+**Title:** `Secreteo 1.1 – the on-device Mac dictation app gets a look of its own`
+
+**Text:**
+
+Secreteo 1.0 moved dictation over from Portavoz and wrote down every limit it still had. 1.1 changes nothing about where your audio goes. It changes everything you see.
+
+The panel is now one dark capsule under the caret. Its light follows your voice, and the words you are still saying appear in italics, then stand upright once the recognizer settles them. After an insertion it shrinks to a pill that says how many words went where, then leaves. When text did not land, it opens a card as tall as the words, with Reinsert first if the field can take them again. The small indicator is just two parentheses, 30 × 24 pt, showing each state as a face.
+
+The rest follows: a menu that works as a small dashboard (state, the real keys, the last dictation, words over seven days), Settings in five tabs with a readiness header, History as a day log, Rewrite Selection as a card, and a setup that ends with a real first dictation instead of a checklist.
+
+Every control in the new UI has an XCUITest assertion. The 15 declared limits from 1.0 are unchanged: paths covered by tests but not yet checked by hand against other apps, measured only on an M4 Max with 36 GB.
+
+### Reddit (r/macapps)
+
+**Title:** `Secreteo 1.1: redesigned on-device dictation for the Mac menu bar`
+
+**Text:**
+
+Free, MIT, recognition on your Mac. 1.1 is a full redesign:
+
+- One dark capsule under the caret that rises with your voice
+- Results sized to their words, with Reinsert first when text didn't land
+- Menu as a small dashboard, Settings in five tabs, History as a day log
+- Menu bar icon that shows what dictation is doing
+- Setup that ends with a real first dictation
+
+Same limits as 1.0: Apple silicon and macOS 26, measured only on an M4 Max 36 GB. Update from the menu or `brew upgrade --greedy`.
+
+### Platform notes
+
+> Tagged and waiting for the release approval. Publish v1.1.0 before posting. Homebrew users need `brew upgrade --greedy`: the cask updates itself, so plain `brew upgrade` skips it.
+
+### Links
+
+- Release: https://github.com/johnny4young/secreteo/releases/tag/v1.1.0
+- Site: https://secreteo.pages.dev
+- Known limits: https://github.com/johnny4young/secreteo/blob/main/docs/GAPS.md
+- `brew install --cask johnny4young/tap/secreteo`
+
 ## v1.0.0 — 2026-11-15
 
 Secreteo 1.0: global dictation from the Mac menu bar, fully moved over from Portavoz, with every limit it still has written down.
