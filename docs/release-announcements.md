@@ -44,7 +44,7 @@ Same limits as 1.0: Apple silicon and macOS 26, measured only on an M4 Max 36 GB
 
 ### Platform notes
 
-> Tagged and waiting for the release approval. Publish v1.1.0 before posting. Homebrew users need `brew upgrade --greedy`: the cask updates itself, so plain `brew upgrade` skips it.
+> Homebrew users need `brew upgrade --greedy`: the cask updates itself, so plain `brew upgrade` skips it.
 
 ### Links
 
