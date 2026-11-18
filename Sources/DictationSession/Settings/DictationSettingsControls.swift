@@ -126,7 +126,7 @@ struct DictationSettingsControls: View {
     }
 
     @ViewBuilder private var modifierKeyControls: some View {
-        let key = dictation.preference(ModifierKeySetting.defaultsKey, default: ModifierKeySetting.off.rawValue)
+        let key = dictation.preference(ModifierKeySetting.defaultsKey, default: ModifierKeySetting.standard.rawValue)
         let picker = Picker(selection: Binding(
             get: { key.wrappedValue },
             set: {
@@ -158,10 +158,16 @@ struct DictationSettingsControls: View {
                 .foregroundStyle(SecreteoDesign.notSent)
                 .accessibilityIdentifier("settings-dictation-modifier-unavailable")
         }
-        if key.wrappedValue == ModifierKeySetting.function.rawValue {
-            Text("So macOS doesn't also react, set “Press 🌐 key to” to “Do Nothing” in System Settings › Keyboard.")
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("settings-dictation-modifier-fn-note")
+        if key.wrappedValue == ModifierKeySetting.function.rawValue, !dictation.fnKeyIsFree {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("So macOS doesn't also react, set “Press 🌐 key to” to “Do Nothing”.")
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("settings-dictation-modifier-fn-note")
+                Spacer(minLength: 4)
+                Button("Open Keyboard Settings") { dictation.openKeyboardSettings() }
+                    .buttonStyle(SettingsLinkStyle())
+                    .accessibilityIdentifier("settings-dictation-modifier-fn-settings")
+            }
         }
     }
 

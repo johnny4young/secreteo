@@ -13,19 +13,22 @@ struct DictationReadinessHeader: View {
                     .accessibilityHidden(true)
                 SettingsFlow {
                     if isReady { check(Text("Ready")) }
-                    model
                     if dictation.microphoneIsAuthorized {
                         check(Text("Microphone"))
                     } else {
                         Button("Allow Microphone") { dictation.requestMicrophone() }
+                            .buttonStyle(stepStyle(.allowMicrophone))
                             .accessibilityIdentifier("settings-dictation-microphone")
                     }
                     if dictation.accessibilityIsGranted {
                         check(Text("Accessibility"))
                     } else {
-                        Button("Allow Accessibility") { dictation.requestAccessibility() }
+                        Button("Allow Accessibility…") { dictation.requestAccessibility() }
+                            .buttonStyle(stepStyle(.allowAccessibility))
                             .accessibilityIdentifier("settings-dictation-accessibility")
                     }
+                    model
+                    if dictation.practiceIsShown { practice }
                 }
                 .font(.system(size: 11))
                 .foregroundStyle(SecreteoDesign.secondaryText)
@@ -95,8 +98,26 @@ struct DictationReadinessHeader: View {
             }
         case .missing, .failed:
             Button("Download Speech Model") { dictation.downloadModel() }
+                .buttonStyle(stepStyle(.downloadModel))
                 .accessibilityIdentifier("settings-dictation-model-download")
         }
+    }
+
+    /// Practice happens in the card right below, so the item only names it.
+    @ViewBuilder private var practice: some View {
+        if dictation.practiceIsComplete {
+            check(Text("Practice"))
+        } else {
+            let isNext = dictation.setupStep == .practice
+            Text("Dictate once below")
+                .fontWeight(isNext ? .semibold : .regular)
+                .foregroundStyle(isNext ? SecreteoDesign.accent : SecreteoDesign.secondaryText)
+                .accessibilityIdentifier("settings-dictation-practice-missing")
+        }
+    }
+
+    private func stepStyle(_ step: DictationSetupStep) -> SettingsStepStyle {
+        SettingsStepStyle(isNext: dictation.setupStep == step)
     }
 
     private var hasStatus: Bool {

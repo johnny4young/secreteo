@@ -61,6 +61,12 @@ extension DictationFeature {
         return ModifierKeySetting.load(from: defaults).keyCapLabel
     }
 
+    /// Held Fn also runs macOS's own “Press 🌐 key to” action unless that is set to Do Nothing.
+    var fnKeyConflicts: Bool {
+        _ = preferenceRevision
+        return ModifierKeySetting.load(from: defaults) == .function && !fnKeyIsFree
+    }
+
     /// Nil while another app holds the shortcut, because pressing it would do nothing.
     var dictationShortcutLabel: String? {
         shortcutIsUnavailable ? nil : controller.shortcut.setting.label

@@ -86,6 +86,11 @@ public struct DictationMenuDashboard: View {
             .accessibilityLabel(dictation.isActive ? L10n.text("Stop Dictating") : L10n.text("Dictate"))
             .accessibilityValue(triggers)
             .accessibilityIdentifier("menu-bar-dictate")
+            if dictation.fnKeyConflicts {
+                Button("Set 🌐 Key to Do Nothing…") { dictation.openKeyboardSettings() }
+                    .buttonStyle(SettingsLinkStyle())
+                    .accessibilityIdentifier("menu-bar-fn-key-settings")
+            }
         case .standingBy:
             Button(action: dictation.takeOwnership) {
                 Text("Use Secreteo for Dictation")
@@ -103,11 +108,18 @@ public struct DictationMenuDashboard: View {
             .background(DictationMenuStyle.capsule, in: RoundedRectangle(cornerRadius: 14))
             .overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(DictationMenuStyle.rim) }
         case .setUp, .notReady:
-            Button(action: openSettings) {
+            // Another app or a damaged state has its own instruction in Settings, not a setup step.
+            let step = dictation.unavailableMessage == nil ? dictation.setupStep : nil
+            Button {
+                if let step { dictation.perform(step, openSettings: openSettings) } else { openSettings() }
+            } label: {
                 DictationMenuCapsuleLabel(
-                    title: L10n.text("Set Up Dictation…"), showsGlyph: false, holdKey: nil, shortcut: nil)
+                    title: step?.title ?? L10n.text("Set Up Dictation…"), showsGlyph: false, holdKey: nil,
+                    shortcut: nil,
+                    progress: step == .downloadingModel ? .some(dictation.modelDownloadFraction) : nil)
             }
             .buttonStyle(DictationMenuPressStyle())
+            .disabled(step == .downloadingModel)
             .accessibilityIdentifier("menu-bar-set-up-dictation")
         }
     }
@@ -138,6 +150,8 @@ private struct DictationMenuCapsuleLabel: View {
     let showsGlyph: Bool
     let holdKey: String?
     let shortcut: String?
+    /// Set while a download runs; an inner nil is a download that has not reported bytes yet.
+    var progress: Double??
 
     var body: some View {
         HStack(spacing: 7) {
@@ -157,6 +171,13 @@ private struct DictationMenuCapsuleLabel: View {
                 if shortcut != nil { word(L10n.text("or")) }
             }
             if let shortcut { keyCap(shortcut, isHeld: false) }
+            if let progress {
+                ProgressView(value: progress)
+                    .controlSize(.small)
+                    .frame(width: 60)
+                    .tint(SecreteoPalette.capsuleAmber.color)
+                    .accessibilityHidden(true)
+            }
         }
         .padding(.horizontal, 16)
         .frame(height: 46)

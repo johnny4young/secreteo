@@ -26,6 +26,7 @@ final class DictationFeatureTests: XCTestCase {
         let collections = Mutex(0)
         let asked = Mutex(0)
         let opened = Mutex(0)
+        let onGranted = Mutex<(@MainActor () -> Void)?>(nil)
         /// When set, a model check waits here until the test releases it.
         let modelGate = Mutex<AsyncStream<Void>?>(nil)
         /// When set, an install reports half its bytes and waits here until the test releases it.
@@ -36,7 +37,7 @@ final class DictationFeatureTests: XCTestCase {
                 microphoneState: { self.microphone.withLock { $0 } },
                 accessibilityIsGranted: { self.accessibility.withLock { $0 } },
                 askForMicrophone: { self.asked.withLock { $0 += 1 } },
-                askForAccessibility: {},
+                askForAccessibility: { done in self.onGranted.withLock { $0 = done } },
                 openMicrophoneSettings: { self.opened.withLock { $0 += 1 } },
                 models: DictationModels(
                     isVerified: { part in
@@ -113,6 +114,62 @@ final class DictationFeatureTests: XCTestCase {
         XCTAssertEqual(changed.withLock { $0 }, 2)
         XCTAssertTrue(feature.microphoneIsAuthorized)
         XCTAssertTrue(feature.accessibilityIsGranted)
+    }
+
+    func testAGrantThroughTheGuideMovesSetupOnWithoutWaitingForAPoll() async throws {
+        let system = System()
+        system.microphone.withLock { $0 = .authorized }
+        let defaults = makeDefaults()
+        // Enabled from the start, so no refresh but the grant's own can run.
+        defaults.set(true, forKey: DictationController.defaultsKey)
+        let feature = try makeFeature(system, defaults: defaults)
+        XCTAssertEqual(feature.setupStep, .allowAccessibility)
+
+        feature.perform(.allowAccessibility) {}
+        let granted = try XCTUnwrap(system.onGranted.withLock { $0 })
+        system.accessibility.withLock { $0 = true }
+        granted()
+
+        let deadline = ContinuousClock.now + .seconds(1)
+        while !feature.accessibilityIsGranted, ContinuousClock.now < deadline { await Task.yield() }
+        XCTAssertTrue(feature.accessibilityIsGranted)
+        XCTAssertNotEqual(feature.setupStep, .allowAccessibility)
+    }
+
+    func testEachSetupStepRunsItsOwnFix() async throws {
+        let system = System()
+        let feature = try makeFeature(system)
+        var settingsOpened = 0
+
+        feature.perform(.turnOn) { settingsOpened += 1 }
+        XCTAssertTrue(feature.isEnabled)
+        // A disposable launch stores the switch in the process-wide argument domain.
+        addTeardownBlock { Self.forgetChoices([DictationController.defaultsKey]) }
+        feature.perform(.allowMicrophone) { settingsOpened += 1 }
+        feature.perform(.allowAccessibility) { settingsOpened += 1 }
+        feature.perform(.downloadingModel) { settingsOpened += 1 }
+        XCTAssertEqual(settingsOpened, 0)
+        let deadline = ContinuousClock.now + .seconds(1)
+        while system.asked.withLock({ $0 }) == 0, ContinuousClock.now < deadline { await Task.yield() }
+        XCTAssertEqual(system.asked.withLock { $0 }, 1, "The microphone is asked")
+        XCTAssertNotNil(system.onGranted.withLock { $0 }, "Accessibility opens the guide")
+        feature.perform(.practice) { settingsOpened += 1 }
+        XCTAssertEqual(settingsOpened, 1, "Practice happens in Settings")
+    }
+
+    func testTheDownloadStepInstallsTheModel() async throws {
+        let system = System()
+        system.verified.withLock { $0 = [] }
+        let feature = try makeFeature(system)
+        await feature.refreshReadiness()
+        XCTAssertEqual(feature.modelState, .missing)
+
+        feature.perform(.downloadModel) {}
+        XCTAssertEqual(feature.modelState, .downloading)
+        let deadline = ContinuousClock.now + .seconds(2)
+        while feature.modelState == .downloading, ContinuousClock.now < deadline { await Task.yield() }
+        XCTAssertFalse(system.installed.withLock { $0 }.isEmpty)
+        XCTAssertEqual(feature.modelState, .ready)
     }
 
     func testADeniedMicrophoneLeadsToSystemSettingsBecauseMacOSWillNotAskAgain() throws {
@@ -219,10 +276,13 @@ final class DictationFeatureTests: XCTestCase {
     }
 
     private nonisolated static func forgetPasteLastChoice() {
+        forgetChoices([PasteLastShortcut.defaultsKey, RewriteSelectionShortcut.defaultsKey])
+    }
+
+    private nonisolated static func forgetChoices(_ keys: [String]) {
         let defaults = UserDefaults.standard
         var domain = defaults.volatileDomain(forName: UserDefaults.argumentDomain)
-        domain.removeValue(forKey: PasteLastShortcut.defaultsKey)
-        domain.removeValue(forKey: RewriteSelectionShortcut.defaultsKey)
+        for key in keys { domain.removeValue(forKey: key) }
         defaults.setVolatileDomain(domain, forName: UserDefaults.argumentDomain)
     }
 
