@@ -9,7 +9,8 @@ struct DictationFeatureEnvironment {
     var microphoneState: @Sendable () -> MicrophonePermissionState
     var accessibilityIsGranted: @Sendable () -> Bool
     var askForMicrophone: @Sendable () async -> Void
-    var askForAccessibility: @MainActor () -> Void
+    /// Calls back once the grant arrives, so readiness need not wait for the next poll.
+    var askForAccessibility: @MainActor (_ onGranted: @escaping @MainActor () -> Void) -> Void
     var openMicrophoneSettings: @MainActor () -> Void
     /// macOS's “Press 🌐 key to” choice, nil when it was never set.
     var fnKeyUsage: @Sendable () -> Int? = { nil }
@@ -24,8 +25,9 @@ struct DictationFeatureEnvironment {
             microphoneState: { microphone.state() },
             accessibilityIsGranted: { AXIsProcessTrusted() },
             askForMicrophone: { _ = await microphone.authorizeIfNeeded() },
-            askForAccessibility: {
-                AccessibilityGrantGuide.shared.show(opensSystemSettings: true) { AXIsProcessTrusted() }
+            askForAccessibility: { onGranted in
+                AccessibilityGrantGuide.shared.show(
+                    opensSystemSettings: true, isGranted: { AXIsProcessTrusted() }, onGranted: onGranted)
             },
             openMicrophoneSettings: {
                 let pane = "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
@@ -43,19 +45,32 @@ struct DictationFeatureEnvironment {
             })
     }
 
+    /// A disposable launch reads its fixtures from its arguments.
+    static func disposable(arguments: [String], shelf: () -> DictationModels) -> Self {
+        disposable(
+            permissionsAreMissing: arguments.contains("-seed-dictation-permissions-missing"),
+            seedsPortavozPreferences: arguments.contains("-seed-portavoz-preferences"),
+            fnKeyIsFree: arguments.contains("-seed-fn-key-free"),
+            models: arguments.contains("-seed-model-download-held") ? .heldDownload
+                : arguments.contains("-seed-model-shelf") ? shelf() : nil)
+    }
+
     /// A disposable launch never reads a real Portavoz install, only the fixture.
     static func disposable(
-        permissionsAreMissing: Bool, seedsPortavozPreferences: Bool = false, models: DictationModels? = nil
+        permissionsAreMissing: Bool, seedsPortavozPreferences: Bool = false, fnKeyIsFree: Bool = false,
+        models: DictationModels? = nil
     ) -> Self {
         Self(
             microphoneState: { permissionsAreMissing ? .notDetermined : .authorized },
             accessibilityIsGranted: { !permissionsAreMissing },
             askForMicrophone: {},
             // Shows the guide so it can be tested, without opening System Settings.
-            askForAccessibility: {
-                AccessibilityGrantGuide.shared.show(opensSystemSettings: false) { !permissionsAreMissing }
+            askForAccessibility: { onGranted in
+                AccessibilityGrantGuide.shared.show(
+                    opensSystemSettings: false, isGranted: { !permissionsAreMissing }, onGranted: onGranted)
             },
             openMicrophoneSettings: {},
+            fnKeyUsage: { fnKeyIsFree ? 0 : nil },
             models: models,
             portavozPreferences: { seedsPortavozPreferences ? PortavozPreferenceImport.fixture : [:] })
     }

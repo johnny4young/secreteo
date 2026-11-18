@@ -20,6 +20,7 @@ final class MenuDashboardUITests: SecreteoUITestCase {
         XCTAssertTrue(
             renderedText(of: app.control(withIdentifier: "menu-state-detail")).contains("Secreteo owns dictation"))
         XCTAssertTrue(renderedText(of: dictate).contains("⌃⌥⌘D"), "The key cap is the real shortcut")
+        XCTAssertTrue(app.buttons["menu-bar-fn-key-settings"].exists, "Fn is held by default and macOS also reacts")
 
         XCTAssertTrue(app.control(withIdentifier: "menu-today").waitForExistence(timeout: 5))
         XCTAssertTrue(renderedText(of: app.control(withIdentifier: "menu-today-words")).contains("162"))
@@ -53,5 +54,16 @@ final class MenuDashboardUITests: SecreteoUITestCase {
         XCTAssertTrue(app.buttons["menu-bar-dictate"].waitForExistence(timeout: 5), "On, nothing else is missing here")
         XCTAssertFalse(setUp.exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-root").exists, "The step ran without opening Settings")
+    }
+
+    func testAFreeFnKeyLeavesTheMenuWithoutTheKeyboardLink() throws {
+        let app = try XCUIApplication.secreteo(showMenuBarContent: true)
+        app.launchArguments += ["-seed-dictation", "-seed-dictation-verified", "-seed-fn-key-free"]
+        app.launchEnvironment["SECRETEO_UI_TEST_DEFAULTS"] = #"{"globalDictationEnabled":true}"#
+        app.launchSecreteo()
+        defer { finishUITestApplication(app) }
+
+        XCTAssertTrue(app.buttons["menu-bar-dictate"].waitForStableFrame(timeout: 30))
+        XCTAssertFalse(app.buttons["menu-bar-fn-key-settings"].exists)
     }
 }

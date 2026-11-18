@@ -10,7 +10,10 @@ final class AccessibilityGrantGuide {
     private var panel: NSPanel?
     private var watch: Task<Void, Never>?
 
-    func show(opensSystemSettings: Bool, isGranted: @escaping @Sendable () -> Bool) {
+    func show(
+        opensSystemSettings: Bool, isGranted: @escaping @Sendable () -> Bool,
+        onGranted: @escaping @MainActor () -> Void = {}
+    ) {
         if opensSystemSettings,
            let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
             NSWorkspace.shared.open(url)
@@ -26,7 +29,10 @@ final class AccessibilityGrantGuide {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(500))
                 guard !Task.isCancelled, let self else { return }
-                if isGranted() { return self.close() }
+                if isGranted() {
+                    self.close()
+                    return onGranted()
+                }
                 let settings = Self.systemSettingsFrame()
                 if Self.shouldClose(
                     settingsOnScreen: settings != nil, sawSettings: sawSettings, elapsed: ContinuousClock.now - start) {
@@ -39,10 +45,12 @@ final class AccessibilityGrantGuide {
     }
 
     nonisolated static let timeLimit: Duration = .seconds(300)
+    nonisolated static let unseenLimit: Duration = .seconds(15)
 
-    /// Leaving System Settings, or never finishing, ends the guide.
+    /// Leaving System Settings, never seeing it, or never finishing ends the guide.
     nonisolated static func shouldClose(settingsOnScreen: Bool, sawSettings: Bool, elapsed: Duration) -> Bool {
-        (sawSettings && !settingsOnScreen) || elapsed >= timeLimit
+        (sawSettings && !settingsOnScreen) || (!sawSettings && !settingsOnScreen && elapsed >= unseenLimit)
+            || elapsed >= timeLimit
     }
 
     func close() {
@@ -70,10 +78,13 @@ final class AccessibilityGrantGuide {
         return panel
     }
 
-    /// Beside System Settings while it is on screen, else low on the main screen.
+    /// Beside System Settings, on its screen, while it is on screen, else low on the main screen.
     private func place(_ panel: NSPanel, beside settings: CGRect?) {
         let size = panel.frame.size
-        guard let screen = NSScreen.main else { return }
+        let settingsScreen = settings.flatMap { frame in
+            NSScreen.screens.first { $0.frame.contains(CGPoint(x: frame.midX, y: frame.midY)) }
+        }
+        guard let screen = settingsScreen ?? NSScreen.main else { return }
         let origin = Self.origin(for: size, beside: settings, in: screen.visibleFrame)
         if panel.frame.origin != origin { panel.setFrameOrigin(origin) }
     }

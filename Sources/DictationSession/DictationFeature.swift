@@ -116,16 +116,13 @@ public final class DictationFeature: AppServices {
         fixture = DictationUITestFixture(arguments: arguments, usesTemporaryStore: usesTemporaryStore)
         launchArguments = arguments
         let environment = environment ?? (usesTemporaryStore
-            ? .disposable(
-                permissionsAreMissing: arguments.contains("-seed-dictation-permissions-missing"),
-                seedsPortavozPreferences: arguments.contains("-seed-portavoz-preferences"),
-                models: arguments.contains("-seed-model-download-held") ? .heldDownload
-                    : arguments.contains("-seed-model-shelf") ? .shelf(store: modelStore, root: scratchModels) : nil)
+            ? .disposable(arguments: arguments) { .shelf(store: modelStore, root: scratchModels) }
             : .live(microphone: microphonePermissions, models: .live(
                 store: modelStore, defaults: defaults, seedRoot: DictationModels.portavozModels)))
         self.environment = environment
         microphoneIsAuthorized = environment.microphoneState() == .authorized
         accessibilityIsGranted = environment.accessibilityIsGranted()
+        fnKeyIsFree = ModifierKeySetting.systemFnKeyIsFree(usage: environment.fnKeyUsage())
         let seedsLegacyPeer = usesTemporaryStore && arguments.contains("-seed-dictation-legacy-peer")
         let readiness = ReadinessGap(isDisposable: usesTemporaryStore, defaults: defaults)
         self.readiness = readiness
@@ -251,7 +248,9 @@ public final class DictationFeature: AppServices {
     }
 
     public func requestAccessibility() {
-        environment.askForAccessibility()
+        environment.askForAccessibility { [weak self] in
+            Task { await self?.refreshReadiness() }
+        }
     }
 
     public var isActive: Bool { controller.isActive }

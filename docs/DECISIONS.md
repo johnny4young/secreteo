@@ -142,4 +142,4 @@ Instrument Serif (OFL-1.1) is bundled unmodified in `Contents/Resources/Fonts` a
 
 ## D32. Holding Fn dictates by default
 
-Holding Fn is the push-to-talk key out of the box, and ⌃⌥⌘D ([D19](#d19-the-default-shortcut-is-d)) stays as the shortcut. A saved choice, Off included, is kept. Portavoz no longer offers dictation, so the two apps do not compete for the key, and ownership still decides if they ever do. macOS's own “Press 🌐 key to” action fires too unless it is set to Do Nothing, so Settings says so, with a way to open Keyboard settings, only while it is set to something else.
+Holding Fn is the push-to-talk key out of the box, and ⌃⌥⌘D ([D19](#d19-the-default-shortcut-is-d)) stays as the shortcut. A saved choice, Off included, is kept. Portavoz no longer offers dictation, so the two apps do not compete for the key, and ownership still decides if they ever do. macOS's own “Press 🌐 key to” action fires too unless it is set to Do Nothing, so the menu and Settings say so, with a way to open Keyboard settings, only while it is set to something else.

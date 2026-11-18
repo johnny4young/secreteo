@@ -16,6 +16,13 @@ final class AccessibilityGrantGuideTests: XCTestCase {
             settingsOnScreen: true, sawSettings: true, elapsed: AccessibilityGrantGuide.timeLimit))
     }
 
+    func testTheGuideClosesSoonWhenSystemSettingsNeverShows() {
+        let unseen = AccessibilityGrantGuide.unseenLimit
+        XCTAssertTrue(AccessibilityGrantGuide.shouldClose(settingsOnScreen: false, sawSettings: false, elapsed: unseen))
+        XCTAssertFalse(AccessibilityGrantGuide.shouldClose(settingsOnScreen: true, sawSettings: false, elapsed: unseen))
+        XCTAssertFalse(AccessibilityGrantGuide.shouldClose(settingsOnScreen: true, sawSettings: true, elapsed: unseen))
+    }
+
     func testTheGuideSitsBesideSystemSettings() {
         let settings = CGRect(x: 200, y: 200, width: 700, height: 500)
         XCTAssertEqual(AccessibilityGrantGuide.origin(for: size, beside: settings, in: screen), CGPoint(x: 912, y: 410))

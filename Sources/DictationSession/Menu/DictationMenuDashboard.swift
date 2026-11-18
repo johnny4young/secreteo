@@ -86,6 +86,11 @@ public struct DictationMenuDashboard: View {
             .accessibilityLabel(dictation.isActive ? L10n.text("Stop Dictating") : L10n.text("Dictate"))
             .accessibilityValue(triggers)
             .accessibilityIdentifier("menu-bar-dictate")
+            if dictation.fnKeyConflicts {
+                Button("Set 🌐 Key to Do Nothing…") { dictation.openKeyboardSettings() }
+                    .buttonStyle(SettingsLinkStyle())
+                    .accessibilityIdentifier("menu-bar-fn-key-settings")
+            }
         case .standingBy:
             Button(action: dictation.takeOwnership) {
                 Text("Use Secreteo for Dictation")

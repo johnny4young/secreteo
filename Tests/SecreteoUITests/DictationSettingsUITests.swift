@@ -438,6 +438,15 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         XCTAssertTrue(app.control(withIdentifier: "settings-dictation-practice-field").exists, "Right below it")
     }
 
+    func testAFreeFnKeyNeedsNoNote() throws {
+        let app = try launchEnabled(arguments: ["-seed-fn-key-free"])
+        defer { finishUITestApplication(app) }
+
+        XCTAssertTrue(app.control(withIdentifier: "settings-dictation-modifier-key").waitForExistence(timeout: 5))
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-modifier-fn-note").exists)
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-modifier-fn-settings").exists)
+    }
+
     func testPracticeIsNotNamedBeforeTheModelIsInstalled() throws {
         let app = try launchEnabled(arguments: ["-seed-dictation-practice-missing", "-seed-model-download-held"])
         defer { finishUITestApplication(app) }

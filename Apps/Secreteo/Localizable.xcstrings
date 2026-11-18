@@ -4946,6 +4946,22 @@
         }
       }
     },
+    "Set 🌐 Key to Do Nothing…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set 🌐 Key to Do Nothing…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurar 🌐 en No hacer nada…"
+          }
+        }
+      }
+    },
     "Set Up Secreteo" : {
       "localizations" : {
         "en" : {
