@@ -144,6 +144,14 @@ func renderedText(of element: XCUIElement) -> String {
     [element.value as? String, element.label].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
 }
 
+/// A delivery with nothing to read closes the panel at once and shows no result.
+@MainActor
+func waitForQuietDelivery(_ app: XCUIApplication, timeout: TimeInterval = 5) -> Bool {
+    let panel = app.dialogs["dictation-panel"]
+    return waitForUITestCondition(timeout: timeout) { !panel.exists }
+        && !app.staticTexts["dictation-panel-delivery-status"].exists
+}
+
 /// Reads every identified element in one tree pass, for UI that closes on its own.
 @MainActor
 func renderedTexts(in app: XCUIApplication) -> [String: String] {

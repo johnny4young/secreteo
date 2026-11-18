@@ -747,7 +747,7 @@ private extension DictationController {
 extension DictationController {
     private var hasPendingOutput: Bool {
         switch phase {
-        case .recovery, .dispatched, .noSpeech: true
+        case .recovery, .noSpeech: true
         case .failed: !recoveryText.isEmpty
         default: false
         }
@@ -757,11 +757,6 @@ extension DictationController {
         guard hasPendingOutput, !isRetryingDelivery, let dependencies else { return }
         copyStatus = dependencies.copyText(recoveryText) ? .copied : .failed
         if copyStatus == .copied { endRecoveryHold() }
-        // Someone using the panel decides when it closes; Escape returns to the destination.
-        if case .dispatched = phase {
-            cancelFeedbackDismissal()
-            releaseCancelKey()
-        }
     }
 
     /// Closes a delivery notice now, keeping the text for Paste last.
@@ -849,15 +844,14 @@ extension DictationController {
         endRecoveryHold()
         let words = text.split(whereSeparator: \.isWhitespace).count
         phase = result == .verified ? .verified(words) : .dispatched(words)
-        // A posted event may arrive late; retained output never authorizes replay.
-        recoveryText = result == .dispatched ? text : ""
-        showPanel()
-        // Unverified output closes too; Paste last still holds it for 15 minutes.
+        recoveryText = ""
+        // The words in the field are the result. Many apps never let a paste be verified,
+        // so an unverified one stays quiet too; Paste Last and history still hold the words.
+        let showsNotice = polishNotice != nil
+        if showsNotice { showPanel() } else { panel.close() }
         scheduleFeedbackDismiss(
-            after: DictationCompactIndicator.dismissal(for: self) ?? (result == .verified && polishNotice == nil
-                ? Self.verifiedFeedbackDuration : Self.unverifiedFeedbackDuration),
+            after: showsNotice ? Self.noticeFeedbackDuration : Self.verifiedFeedbackDuration,
             wait: dependencies.waitForFeedbackDismissal)
-        if result == .dispatched { armFeedbackDismissKey(dependencies) }
     }
 }
 
@@ -866,7 +860,8 @@ extension DictationController {
     var isActive: Bool { phase == .preparing || phase == .listening || phase == .delivering }
     /// When the first audio arrived, for the compact indicator's elapsed time.
     var captureStartedAt: Date? { microphoneReadiness?.firstFrameAt }
-    static let unverifiedFeedbackDuration: Duration = .seconds(4)
+    static let noticeFeedbackDuration: Duration = .seconds(4)
+    /// How long a result stays: the pill with a correction, or only the menu bar face.
     static let verifiedFeedbackDuration: Duration = .milliseconds(1600)
     /// Listening while the model still loads; the relay holds the speech.
     var isLoadingModel: Bool { loadingModelSessionID != nil && loadingModelSessionID == activeSessionID }
@@ -1265,18 +1260,6 @@ private extension DictationController {
         wait: @escaping @MainActor (Duration) async throws -> Void
     ) {
         feedback.schedule(after: delay, wait: wait) { [weak self] in self?.closeFeedback() }
-    }
-
-    /// Escape closes the unverified notice only while it counts down.
-    func armFeedbackDismissKey(_ dependencies: DictationSessionDependencies) {
-        releaseCancelKey()
-        cancelKey = dependencies.registerCancelKey { [weak self] in
-            Task { @MainActor [weak self] in
-                // A queued press after Copy or a newer session must not close anything.
-                guard let self, case .dispatched = self.phase, self.feedback.isCounting else { return }
-                self.dismissFeedback()
-            }
-        }
     }
 
     func closeFeedback() {

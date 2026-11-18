@@ -10,8 +10,6 @@ struct DictationOutcomeCard<Actions: View>: View {
     let titleIdentifier: String
     let reasonIdentifier: String
     let textIdentifier: String
-    /// Closes the card and keeps the words, where the outcome allows it.
-    var close: (() -> Void)?
     @ViewBuilder let actions: Actions
 
     var body: some View {
@@ -32,19 +30,6 @@ struct DictationOutcomeCard<Actions: View>: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                if let close {
-                    Button(action: close) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(SecreteoPalette.capsuleSecondaryText.color)
-                            .frame(width: 18, height: 18)
-                            .background(.white.opacity(0.08), in: Circle())
-                            .contentShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(L10n.text("Close"))
-                    .accessibilityIdentifier("dictation-unverified-close")
-                }
             }
             if let notice {
                 Text(notice)

@@ -303,9 +303,8 @@ private struct DictationStripView: View {
     @ViewBuilder private var outcome: some View {
         switch controller.phase {
         case .recovery(let failure): DictationRecoveryView(controller: controller, failure: failure)
-        case .verified(let words): DictationResultPill(controller: controller, words: words)
+        case .verified(let words), .dispatched(let words): DictationResultPill(controller: controller, words: words)
         case .noSpeech: DictationNoSpeechView(controller: controller)
-        case .dispatched: DictationUnverifiedDeliveryView(controller: controller)
         default: EmptyView()
         }
     }

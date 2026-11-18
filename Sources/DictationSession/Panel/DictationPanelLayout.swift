@@ -61,7 +61,7 @@ enum DictationPanelLayout {
 
     static func isCard(_ phase: DictationController.Phase) -> Bool {
         switch phase {
-        case .recovery, .dispatched, .noSpeech: true
+        case .recovery, .noSpeech: true
         default: false
         }
     }
@@ -90,16 +90,15 @@ enum DictationPanelLayout {
 
 /// Which outcome the panel shows, so a new one never inherits the last one's state or measured height.
 struct DictationPanelOutcome: Equatable {
-    enum Kind: Equatable { case result, notSent, sent, noSpeech }
+    enum Kind: Equatable { case result, notSent, noSpeech }
 
     let kind: Kind
     let delivery: UUID?
 
     init?(phase: DictationController.Phase, delivery: UUID?) {
         switch phase {
-        case .verified: kind = .result
+        case .verified, .dispatched: kind = .result
         case .recovery: kind = .notSent
-        case .dispatched: kind = .sent
         case .noSpeech: kind = .noSpeech
         case .idle, .preparing, .listening, .delivering, .failed: return nil
         }

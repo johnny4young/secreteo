@@ -14,14 +14,16 @@ final class DictationCorrectionUITests: SecreteoUITestCase {
         XCTAssertTrue(app.prepareForInteraction())
         let dictate = app.buttons["menu-bar-dictate"]
         let status = app.staticTexts["dictation-panel-delivery-status"]
-        for _ in 0..<2 {
+        for attempt in 0..<2 {
             XCTAssertTrue(dictate.waitForStableFrame(timeout: 5))
             dictate.click()
             XCTAssertTrue(app.staticTexts["dictation-panel-transcript"].waitForExistenceFast(timeout: 5))
             dictate.click()
-            XCTAssertTrue(status.waitForExistenceFast(timeout: 5))
-            if renderedText(of: status).contains("Changed") { break }
-            XCTAssertTrue(status.waitForDisappearance(timeout: 5))
+            if attempt == 0 {
+                XCTAssertTrue(waitForQuietDelivery(app), "A plain dictation leaves no result")
+            } else {
+                XCTAssertTrue(status.waitForExistenceFast(timeout: 5), "A correction has something to offer")
+            }
         }
         XCTAssertTrue(renderedText(of: status).contains("“notes” to “files”"))
         let learn = app.buttons["dictation-panel-learn-correction"]

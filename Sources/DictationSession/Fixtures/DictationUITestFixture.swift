@@ -73,7 +73,7 @@ final class DictationUITestFixture {
         try Task.checkCancellation()
     }
 
-    /// UI journeys inspect unverified notices, and a loaded runner can miss the verified
+    /// UI journeys inspect notices, and a loaded runner can miss the verified
     /// confirmation's real window; unit tests own both expiries.
     static func waitHoldingFeedback(_ delay: Duration) async throws {
         try await Task.sleep(for: heldFeedback(delay))
@@ -81,7 +81,7 @@ final class DictationUITestFixture {
 
     static func heldFeedback(_ delay: Duration) -> Duration {
         switch delay {
-        case DictationController.unverifiedFeedbackDuration: .seconds(3_600)
+        case DictationController.noticeFeedbackDuration: .seconds(3_600)
         case DictationController.verifiedFeedbackDuration: .seconds(3)
         default: delay
         }

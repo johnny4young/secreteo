@@ -368,7 +368,7 @@ final class DictationUITests: SecreteoUITestCase {
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { board.string(forType: .string) == recoveryFixtureText })
         XCTAssertTrue(text.exists, "Copy does not discard the user's recovery option")
         app.buttons["dictation-recovery-reinsert"].click()
-        XCTAssertTrue(app.staticTexts["dictation-panel-delivery-status"].waitForExistenceFast(timeout: 5))
+        XCTAssertTrue(waitForQuietDelivery(app), "Reinserted words close the card without a result")
         XCTAssertFalse(text.exists)
     }
 
@@ -412,57 +412,26 @@ final class DictationUITests: SecreteoUITestCase {
     }
 
     @MainActor
-    func testDeliveredDictationDistinguishesDispatchFromVerification() throws {
+    func testADeliveredDictationLeavesNoPanelVerifiedOrNot() throws {
         for verified in [false, true] {
-            let name = "com.johnny4young.secreteo.dictation-test." + UUID().uuidString
-            let board = NSPasteboard(name: .init(name))
-            defer { board.releaseGlobally() }
-            board.setString("Original delivery clipboard", forType: .string)
             let app = try XCUIApplication.secreteo(showMenuBarContent: true)
             app.launchArguments += ["-seed-dictation", "-seed-dictation-delivery"]
             app.launchEnvironment["SECRETEO_UI_TEST_DEFAULTS"] = #"{"globalDictationEnabled":true}"#
-            app.launchEnvironment["SECRETEO_UI_TEST_DICTATION_PASTEBOARD"] = name
             if UITestLocale.environmentLocale == "en" { app.launchArguments.append("-seed-dictation-english") }
             if verified { app.launchArguments.append("-seed-dictation-verified") }
             app.launchSecreteo()
             defer { finishUITestApplication(app) }
-            enterDestinationDelivery(app)
-            // The verified confirmation closes after 1.6 s, so one tree read sees all of it.
-            let texts = renderedTexts(in: app)
-            let status = app.staticTexts["dictation-panel-delivery-status"]
-            let title = texts["dictation-panel-delivery-status"] ?? ""
-            let detail = texts["dictation-panel-delivery-detail"]
-            XCTAssertNotNil(detail)
-            XCTAssertNil(texts["dictation-recovery-reinsert"],
-                         "An unacknowledged event is not an automatically retryable refusal")
-            if verified {
-                XCTAssertTrue(
-                    [" words in ", " words inserted.", " palabras en ", " palabras insertadas."]
-                        .contains { title.contains($0) }, title)
-                XCTAssertTrue(["Nothing was saved in Secreteo.", "No se guardó nada en Secreteo."]
-                    .contains(detail ?? ""), detail ?? "")
-                XCTAssertNil(texts["dictation-unverified-copy"])
-                XCTAssertTrue(waitForUITestCondition(timeout: 5) { !status.exists })
-            } else {
-                XCTAssertTrue(["Sent, not verified", "Enviado, sin verificar"].contains(title), title)
-                assertUnverifiedRecovery(app, board: board)
-            }
+            XCTAssertTrue(app.prepareForInteraction())
+            let dictate = app.buttons["menu-bar-dictate"]
+            XCTAssertTrue(dictate.waitForStableFrame(timeout: 5))
+            dictate.click()
+            XCTAssertTrue(app.staticTexts["dictation-panel-transcript"].waitForExistenceFast(timeout: 5))
+            dictate.click()
+            XCTAssertTrue(waitForQuietDelivery(app), verified ? "verified" : "sent, not verified")
+            XCTAssertFalse(app.buttons["dictation-recovery-reinsert"].exists)
+            XCTAssertTrue(app.control(withIdentifier: "menu-last-dictation").waitForExistence(timeout: 5),
+                          "Paste Last still holds the words")
         }
-    }
-
-    @MainActor
-    func testUnverifiedNoticeClosesWithItsCloseButton() throws {
-        let app = try XCUIApplication.secreteo(showMenuBarContent: true)
-        app.launchArguments += ["-seed-dictation", "-seed-dictation-delivery"]
-        app.launchEnvironment["SECRETEO_UI_TEST_DEFAULTS"] = #"{"globalDictationEnabled":true}"#
-        app.launchSecreteo()
-        defer { finishUITestApplication(app) }
-        enterDestinationDelivery(app)
-        let close = app.buttons["dictation-unverified-close"]
-        XCTAssertTrue(close.waitForStableFrame(timeout: 5))
-        close.click()
-        XCTAssertTrue(waitForUITestCondition(timeout: 5) { !close.exists }, "× closes the notice at once")
-        XCTAssertFalse(app.staticTexts["dictation-unverified-text"].exists)
     }
 
     @MainActor
@@ -566,42 +535,4 @@ private extension DictationUITests {
         dictate.click()
         XCTAssertTrue(app.staticTexts["dictation-panel-delivery-status"].waitForExistenceFast(timeout: 5))
     }
-
-    @MainActor
-    func assertUnverifiedRecovery(_ app: XCUIApplication, board: NSPasteboard) {
-        let text = app.staticTexts["dictation-unverified-text"]
-        XCTAssertEqual(renderedText(of: text), recoveryFixtureText)
-        let status = app.staticTexts["dictation-unverified-copy-status"]
-        let originalStatus = renderedText(of: status)
-        let panel = app.dialogs["dictation-panel"]
-        let originalFrame = panel.frame
-        for identifier in ["dictation-unverified-copy", "dictation-unverified-discard", "dictation-unverified-close"] {
-            let button = app.buttons[identifier]
-            XCTAssertTrue(button.waitForStableFrame(timeout: 5))
-            XCTAssertFalse(button.label.isEmpty)
-            XCTAssertEqual(app.buttons.matching(identifier: identifier).count, 1)
-            XCTAssertTrue(originalFrame.contains(button.frame))
-        }
-        attachScreenshot(named: "pr-panel-unverified")
-        let copy = app.buttons["dictation-unverified-copy"]
-        copy.click()
-        XCTAssertTrue(waitForUITestCondition(timeout: 5) { renderedText(of: status) != originalStatus })
-        XCTAssertEqual(board.string(forType: .string), "Original delivery clipboard")
-        XCTAssertTrue(text.exists, "Failed Copy must preserve output")
-        copy.click()
-        XCTAssertTrue(waitForUITestCondition(timeout: 5) { board.string(forType: .string) == recoveryFixtureText })
-        let dictate = app.buttons["menu-bar-dictate"]
-        XCTAssertFalse(originalFrame.intersects(dictate.frame))
-        dictate.click()
-        // An unverified notice is non-modal: the next dictation starts and
-        // replaces it, and the previous output is not sent again.
-        XCTAssertTrue(waitForUITestCondition(timeout: 5) { !text.exists }, "Another trigger starts a new capture")
-        let cancel = app.buttons["dictation-panel-cancel"]
-        XCTAssertTrue(cancel.waitForStableFrame(timeout: 5))
-        XCTAssertEqual(board.string(forType: .string), recoveryFixtureText, "A new capture never re-sends output")
-        app.activate()
-        cancel.click()
-        XCTAssertTrue(waitForUITestCondition(timeout: 5) { !panel.exists }, "Cancel must exit in one action")
-    }
-
 }

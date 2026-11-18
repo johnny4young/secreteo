@@ -994,22 +994,6 @@
         }
       }
     },
-    "Check the destination before pasting again." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Check the destination before pasting again."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Revisa el destino antes de volver a pegar."
-          }
-        }
-      }
-    },
     "Choose English or Spanish for Apple Speech in Dictation settings." : {
       "localizations" : {
         "en" : {

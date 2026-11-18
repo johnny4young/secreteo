@@ -15,7 +15,7 @@ final class DictationTranslationUITests: SecreteoUITestCase {
         XCTAssertTrue(renderedText(of: target).contains("EN"))
         XCTAssertTrue(app.staticTexts["dictation-panel-transcript"].waitForExistenceFast(timeout: 5))
         dictate.click()
-        XCTAssertTrue(app.staticTexts["dictation-panel-delivery-status"].waitForExistenceFast(timeout: 5))
+        XCTAssertTrue(waitForQuietDelivery(app))
         XCTAssertFalse(app.staticTexts["dictation-panel-polish-notice"].exists)
         XCTAssertTrue(app.buttons["menu-bar-paste-original"].waitForExistenceFast(timeout: 5))
         XCTAssertFalse(app.buttons["menu-bar-paste-unpolished"].exists)

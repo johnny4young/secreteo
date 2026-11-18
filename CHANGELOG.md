@@ -4,6 +4,8 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- 🤫 **Dictate, paste, done**: words that reach the app leave nothing on screen, no word count and no “Sent, not verified” notice. Only text that could not be sent still opens its card.
+
 ## 1.2.0
 
 - 🧭 **Setup says what is missing**: the menu's button is the next step itself (turn on, allow the microphone, allow Accessibility, download the model or try it once) and runs it, and Settings fills that step in.

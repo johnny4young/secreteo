@@ -429,7 +429,7 @@ final class DictationControllerTests: XCTestCase {
     }
 
     func testUIJourneysHoldFeedbackLongEnoughToReadIt() {
-        XCTAssertEqual(DictationUITestFixture.heldFeedback(DictationController.unverifiedFeedbackDuration), .seconds(3_600))
+        XCTAssertEqual(DictationUITestFixture.heldFeedback(DictationController.noticeFeedbackDuration), .seconds(3_600))
         XCTAssertEqual(DictationUITestFixture.heldFeedback(DictationController.verifiedFeedbackDuration), .seconds(3))
         XCTAssertEqual(DictationUITestFixture.heldFeedback(.seconds(6)), .seconds(6))
     }
