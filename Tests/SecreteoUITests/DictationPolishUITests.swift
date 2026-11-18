@@ -135,7 +135,7 @@ final class DictationPolishUITests: SecreteoUITestCase {
     func testAPolishedDictationCanStillBePastedWithoutPolish() throws {
         let app = try launchPolishing()
         defer { finishUITestApplication(app) }
-        deliver(app)
+        deliver(app, quietly: true)
         XCTAssertFalse(app.staticTexts["dictation-panel-polish-notice"].exists)
         XCTAssertTrue(app.buttons["menu-bar-paste-unpolished"].waitForExistenceFast(timeout: 5))
         XCTAssertTrue(app.buttons["menu-bar-paste-last"].exists)
@@ -192,7 +192,7 @@ final class DictationPolishUITests: SecreteoUITestCase {
         XCTAssertTrue(renderedText(of: mode).contains("Bullet list"))
         XCTAssertTrue(app.staticTexts["dictation-panel-transcript"].waitForExistenceFast(timeout: 5))
         dictate.click()
-        XCTAssertTrue(app.staticTexts["dictation-panel-delivery-status"].waitForExistenceFast(timeout: 5))
+        XCTAssertTrue(waitForQuietDelivery(app))
         XCTAssertFalse(app.staticTexts["dictation-panel-polish-notice"].exists)
         XCTAssertTrue(app.buttons["menu-bar-paste-unpolished"].waitForExistenceFast(timeout: 5))
     }
@@ -209,13 +209,12 @@ final class DictationPolishUITests: SecreteoUITestCase {
     }
 
     @MainActor
-    private func deliver(_ app: XCUIApplication) {
-        XCTAssertTrue(app.prepareForInteraction())
-        let dictate = app.buttons["menu-bar-dictate"]
-        XCTAssertTrue(dictate.waitForStableFrame(timeout: 5))
-        dictate.click()
-        XCTAssertTrue(app.staticTexts["dictation-panel-transcript"].waitForExistenceFast(timeout: 5))
-        dictate.click()
-        XCTAssertTrue(app.staticTexts["dictation-panel-delivery-status"].waitForExistenceFast(timeout: 5))
+    private func deliver(_ app: XCUIApplication, quietly: Bool = false) {
+        dictateOnce(app)
+        if quietly {
+            XCTAssertTrue(waitForQuietDelivery(app))
+        } else {
+            XCTAssertTrue(app.staticTexts["dictation-panel-delivery-status"].waitForExistenceFast(timeout: 5))
+        }
     }
 }

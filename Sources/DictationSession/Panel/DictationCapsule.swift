@@ -104,14 +104,6 @@ enum DictationCapsuleMotion {
         }
     }
 
-    /// A result's face fades once it has been held; arriving at it is not animated.
-    static func resultFade(for phase: DictationController.Phase, duration: TimeInterval) -> Animation? {
-        switch phase {
-        case .verified, .dispatched: .easeOut(duration: duration)
-        default: nil
-        }
-    }
-
     /// The elapsed time reads the moment of Stop from then on.
     static func clock(tick: Date, stoppedAt: Date?) -> Date { stoppedAt ?? tick }
 }

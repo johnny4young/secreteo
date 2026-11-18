@@ -30,7 +30,7 @@ final class MenuDashboardUITests: SecreteoUITestCase {
         dictate.click()
         XCTAssertTrue(app.staticTexts["dictation-panel-transcript"].waitForExistenceFast(timeout: 5))
         dictate.click()
-        XCTAssertTrue(app.staticTexts["dictation-panel-delivery-status"].waitForExistenceFast(timeout: 5))
+        XCTAssertTrue(waitForQuietDelivery(app), "A delivered dictation leaves no panel behind")
 
         XCTAssertTrue(app.control(withIdentifier: "menu-last-dictation").waitForExistence(timeout: 5))
         XCTAssertFalse(renderedText(of: app.control(withIdentifier: "menu-last-dictation-text")).isEmpty)

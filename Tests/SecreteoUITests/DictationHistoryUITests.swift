@@ -127,7 +127,7 @@ final class DictationHistoryUITests: SecreteoUITestCase {
         XCTAssertTrue(app.control(withIdentifier: "dictation-history-no-results").waitForExistence(timeout: 5))
     }
 
-    func testADictationSavedToHistorySaysSoInsteadOfNothingWasSaved() throws {
+    func testADeliveredDictationIsSavedToHistoryWithoutANotice() throws {
         let app = try XCUIApplication.secreteo(showMenuBarContent: true)
         app.launchArguments += [
             "-seed-dictation", "-seed-dictation-delivery", "-seed-dictation-verified", "-seed-dictation-history"
@@ -149,10 +149,9 @@ final class DictationHistoryUITests: SecreteoUITestCase {
         dictate.click()
         XCTAssertTrue(app.staticTexts["dictation-panel-transcript"].waitForExistence(timeout: 5))
         dictate.click()
-        let detail = app.staticTexts["dictation-panel-delivery-detail"]
-        XCTAssertTrue(waitForUITestCondition(timeout: 5) {
-            renderedText(of: detail) == "Saved to your dictation history."
-        })
+        XCTAssertTrue(waitForQuietDelivery(app))
+        history.click()
+        XCTAssertTrue(app.control(withIdentifier: "dictation-history-text-0").waitForExistence(timeout: 5), "Saved without a notice")
     }
 
     func testSettingsAskForHistoryConsentWithEverySwitchOff() throws {

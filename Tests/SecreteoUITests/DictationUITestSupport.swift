@@ -144,6 +144,24 @@ func renderedText(of element: XCUIElement) -> String {
     [element.value as? String, element.label].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
 }
 
+/// Starts a dictation from the menu and stops it once the fixture's words are on screen.
+@MainActor
+func dictateOnce(_ app: XCUIApplication) {
+    XCTAssertTrue(app.prepareForInteraction())
+    let dictate = app.buttons["menu-bar-dictate"]
+    XCTAssertTrue(dictate.waitForStableFrame(timeout: 5))
+    dictate.click()
+    XCTAssertTrue(app.staticTexts["dictation-panel-transcript"].waitForExistenceFast(timeout: 5))
+    dictate.click()
+}
+
+/// A delivery with nothing to read closes the panel at once.
+@MainActor
+func waitForQuietDelivery(_ app: XCUIApplication, timeout: TimeInterval = 5) -> Bool {
+    let panel = app.dialogs["dictation-panel"]
+    return waitForUITestCondition(timeout: timeout) { !panel.exists }
+}
+
 /// Reads every identified element in one tree pass, for UI that closes on its own.
 @MainActor
 func renderedTexts(in app: XCUIApplication) -> [String: String] {

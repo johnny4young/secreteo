@@ -24,6 +24,7 @@ final class DictationHistorySession {
     @ObservationIgnored private let write: DictationHistoryWriter
     @ObservationIgnored private let pendingWrites: DictationPendingWrites?
     @ObservationIgnored private var draft: DictationRecord?
+    @ObservationIgnored var onSaveFailed: (@MainActor () -> Void)?
 
     init(sessionID: UUID, write: @escaping DictationHistoryWriter, pendingWrites: DictationPendingWrites? = nil) {
         self.sessionID = sessionID
@@ -58,6 +59,7 @@ final class DictationHistorySession {
             defer { finished?() }
             let saved = await write(draft.with(delivery: delivery))
             self?.state = saved ? .saved : .failed
+            if !saved { self?.onSaveFailed?() }
         }
     }
 
@@ -71,7 +73,34 @@ final class DictationHistorySession {
     }
 }
 
+/// A delivered dictation whose history save failed after the panel had closed.
+@MainActor
+@Observable
+final class DictationHistoryFailure {
+    private(set) var isShown = false
+    @ObservationIgnored private var hold: Task<Void, Never>?
+
+    func show(for duration: Duration, wait: (@MainActor (Duration) async throws -> Void)?) {
+        isShown = true
+        hold?.cancel()
+        let wait = wait ?? { try await Task.sleep(for: $0) }
+        hold = Task { [weak self] in
+            try? await wait(duration)
+            guard !Task.isCancelled else { return }
+            self?.isShown = false
+        }
+    }
+
+    func clear() {
+        hold?.cancel()
+        hold = nil
+        isShown = false
+    }
+}
+
 extension DictationController {
+    var historyFailureShown: Bool { historyFailure.isShown }
+
     /// Also prepares the statistics, which count a session without its text.
     func prepareHistory(original: String, text: String, dependencies: DictationSessionDependencies) {
         if let sessionID = activeSessionID {
@@ -105,6 +134,9 @@ extension DictationController {
     func recordHistory(_ result: DictationDeliveryOutcome, id: UUID) {
         recordStats(result, id: id)
         guard let history, history.sessionID == id else { return }
+        if result == .verified || result == .dispatched {
+            history.onSaveFailed = { [weak self] in self?.showHistoryFailure() }
+        }
         history.record(result)
     }
 

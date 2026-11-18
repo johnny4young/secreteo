@@ -87,6 +87,7 @@ final class DictationController {
     private var dependencies: DictationSessionDependencies?
     private(set) var deliveryID: UUID?
     private(set) var history: DictationHistorySession?
+    let historyFailure = DictationHistoryFailure()
     var statsDraft: DictationStatsDraft?
     @ObservationIgnored private(set) var retryDeliveryTask: Task<Void, Never>?
 
@@ -131,10 +132,6 @@ final class DictationController {
         practiceLastText = DictationLastText(observesSystem: presentsPanel)
         self.lastText.onClear = { [weak self] in self?.forgetDictatedText() }
         self.lastText.onSystemSleep = { [weak self] in self?.systemWillSleep() }
-    }
-
-    private func showPanel() {
-        if presentsPanel { panel.show(controller: self) }
     }
 
     /// Arms/disarms the push-to-talk mouse button to match the Settings
@@ -229,8 +226,8 @@ final class DictationController {
 
     private func start(using dependencies: DictationSessionDependencies) {
         // A global trigger cannot silently replace refused, undelivered words.
-        // An unverified dispatch was already sent: its notice is non-modal and
-        // a new dictation replaces it (never re-sending the old output).
+        // A dispatched result was already sent: a new dictation replaces it
+        // and never re-sends the old output.
         if case .recovery = phase { showPanel(); return }
         guard phase != .delivering,
               case .success(let lease) = dependencies.admission.acquire(dependencies.admissionKind)
@@ -747,7 +744,7 @@ private extension DictationController {
 extension DictationController {
     private var hasPendingOutput: Bool {
         switch phase {
-        case .recovery, .dispatched, .noSpeech: true
+        case .recovery, .noSpeech: true
         case .failed: !recoveryText.isEmpty
         default: false
         }
@@ -757,11 +754,6 @@ extension DictationController {
         guard hasPendingOutput, !isRetryingDelivery, let dependencies else { return }
         copyStatus = dependencies.copyText(recoveryText) ? .copied : .failed
         if copyStatus == .copied { endRecoveryHold() }
-        // Someone using the panel decides when it closes; Escape returns to the destination.
-        if case .dispatched = phase {
-            cancelFeedbackDismissal()
-            releaseCancelKey()
-        }
     }
 
     /// Closes a delivery notice now, keeping the text for Paste last.
@@ -849,15 +841,19 @@ extension DictationController {
         endRecoveryHold()
         let words = text.split(whereSeparator: \.isWhitespace).count
         phase = result == .verified ? .verified(words) : .dispatched(words)
-        // A posted event may arrive late; retained output never authorizes replay.
-        recoveryText = result == .dispatched ? text : ""
-        showPanel()
-        // Unverified output closes too; Paste last still holds it for 15 minutes.
+        recoveryText = ""
+        // The words in the field are the result. Many apps never let a paste be verified,
+        // so an unverified one stays quiet too; Paste Last and history still hold the words.
+        let showsNotice = polishNotice != nil
+        if showsNotice {
+            showPanel()
+        } else {
+            panel.close()
+            if presentsPanel { DictationCompactIndicator.announce(phase) }
+        }
         scheduleFeedbackDismiss(
-            after: DictationCompactIndicator.dismissal(for: self) ?? (result == .verified && polishNotice == nil
-                ? Self.verifiedFeedbackDuration : Self.unverifiedFeedbackDuration),
+            after: showsNotice ? Self.noticeFeedbackDuration : Self.resultFeedbackDuration,
             wait: dependencies.waitForFeedbackDismissal)
-        if result == .dispatched { armFeedbackDismissKey(dependencies) }
     }
 }
 
@@ -866,8 +862,9 @@ extension DictationController {
     var isActive: Bool { phase == .preparing || phase == .listening || phase == .delivering }
     /// When the first audio arrived, for the compact indicator's elapsed time.
     var captureStartedAt: Date? { microphoneReadiness?.firstFrameAt }
-    static let unverifiedFeedbackDuration: Duration = .seconds(4)
-    static let verifiedFeedbackDuration: Duration = .milliseconds(1600)
+    static let noticeFeedbackDuration: Duration = .seconds(4)
+    /// How long a result stays: the pill with a correction, or only the menu bar face.
+    static let resultFeedbackDuration: Duration = .milliseconds(1600)
     /// Listening while the model still loads; the relay holds the speech.
     var isLoadingModel: Bool { loadingModelSessionID != nil && loadingModelSessionID == activeSessionID }
     var textMode: DictationTextMode { textPolicy.mode }
@@ -994,8 +991,7 @@ private extension DictationController {
         showPanel()
         // Long enough to choose "Always write"; nothing is learned unless it is pressed.
         scheduleFeedbackDismiss(
-            after: DictationCompactIndicator.dismissal(for: self)
-                ?? (learnableCorrection == nil ? Self.verifiedFeedbackDuration : .seconds(6)),
+            after: learnableCorrection == nil ? Self.resultFeedbackDuration : .seconds(6),
             wait: dependencies.waitForFeedbackDismissal)
         return true
     }
@@ -1267,18 +1263,6 @@ private extension DictationController {
         feedback.schedule(after: delay, wait: wait) { [weak self] in self?.closeFeedback() }
     }
 
-    /// Escape closes the unverified notice only while it counts down.
-    func armFeedbackDismissKey(_ dependencies: DictationSessionDependencies) {
-        releaseCancelKey()
-        cancelKey = dependencies.registerCancelKey { [weak self] in
-            Task { @MainActor [weak self] in
-                // A queued press after Copy or a newer session must not close anything.
-                guard let self, case .dispatched = self.phase, self.feedback.isCounting else { return }
-                self.dismissFeedback()
-            }
-        }
-    }
-
     func closeFeedback() {
         releaseCancelKey()
         cancelFeedbackDismissal()
@@ -1386,6 +1370,7 @@ extension DictationController {
     }
 
     fileprivate func discardPreviousDelivery() {
+        historyFailure.clear()
         retryDeliveryTask?.cancel()
         retryDeliveryTask = nil
         isRetryingDelivery = false
@@ -1413,5 +1398,16 @@ extension DictationController {
         completeSession(id: sessionID)
         deliveryID = sessionID
         presentDelivery(refused, text: text, id: sessionID)
+    }
+}
+
+extension DictationController {
+    private func showPanel() {
+        if presentsPanel { panel.show(controller: self) }
+    }
+
+    /// Words that went out leave no panel, so a failed save shows on the menu bar for a moment.
+    func showHistoryFailure() {
+        historyFailure.show(for: Self.noticeFeedbackDuration, wait: sessionFeedbackWait)
     }
 }

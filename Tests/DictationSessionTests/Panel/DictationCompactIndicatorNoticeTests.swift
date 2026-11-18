@@ -47,7 +47,6 @@ extension DictationControllerTests {
         harness.controller.expandCompactIndicator()
         XCTAssertFalse(DictationCompactIndicator.applies(to: harness.controller))
         XCTAssertEqual(DictationPanelLayout.size(for: harness.controller).width, DictationPanelLayout.width)
-        XCTAssertNil(DictationCompactIndicator.dismissal(for: harness.controller))
         harness.controller.cancel()
 
         harness.controller.toggle(using: harness.dependencies)

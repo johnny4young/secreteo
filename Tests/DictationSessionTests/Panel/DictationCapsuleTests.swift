@@ -114,12 +114,21 @@ struct DictationCapsuleTests {
     }
 
     @Test
+    func aPillForAnUnverifiedPasteOnlyClaimsItWasSent() {
+        #expect(DictationResultPill.face(for: .verified(3)) == .inserted)
+        #expect(DictationResultPill.face(for: .dispatched(3)) == .sent)
+        #expect(DictationCapsuleRim(face: DictationResultPill.face(for: .dispatched(3))) == .sent)
+    }
+
+    @Test
     func onlyTheOutcomesWithWordsOpenIntoACard() {
-        for phase: DictationController.Phase in [.recovery(.cancelled), .dispatched(3), .noSpeech] {
+        for phase: DictationController.Phase in [.recovery(.cancelled), .noSpeech] {
             #expect(DictationPanelLayout.isCard(phase))
             #expect(!DictationPanelLayout.isCapsule(phase))
         }
-        #expect(!DictationPanelLayout.isCard(.verified(3)) && !DictationPanelLayout.isCapsule(.verified(3)))
+        for phase: DictationController.Phase in [.verified(3), .dispatched(3)] {
+            #expect(!DictationPanelLayout.isCard(phase) && !DictationPanelLayout.isCapsule(phase), "words went out")
+        }
         #expect(!DictationPanelLayout.isCard(.idle) && !DictationPanelLayout.isCapsule(.idle))
     }
 
@@ -133,7 +142,7 @@ struct DictationCapsuleTests {
         let pill = Outcome(phase: .verified(3), delivery: first)
         let card = Outcome(phase: .recovery(.cancelled), delivery: first)
         #expect(pill?.kind == .result && card?.kind == .notSent)
-        #expect(Outcome(phase: .dispatched(3), delivery: first)?.kind == .sent)
+        #expect(Outcome(phase: .dispatched(3), delivery: first)?.kind == .result)
         #expect(Outcome(phase: .noSpeech, delivery: first)?.kind == .noSpeech)
 
         #expect(DictationPanelLayout.startsNewOutcome(card, after: nil, presented: true), "after the capsule")
@@ -186,9 +195,9 @@ struct DictationCapsuleTests {
         #expect(!DictationPanelLayout.resultFades(showsNotice: true, offersCorrection: true))
         #expect(
             DictationPanelLayout.resultHold + DictationPanelLayout.resultFade
-                == DictationController.verifiedFeedbackDuration,
+                == DictationController.resultFeedbackDuration,
             "the fade ends as the panel closes")
-        #expect(DictationController.unverifiedFeedbackDuration > DictationController.verifiedFeedbackDuration)
+        #expect(DictationController.noticeFeedbackDuration > DictationController.resultFeedbackDuration)
     }
 
     @Test @MainActor

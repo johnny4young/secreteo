@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The capsule after a verified insertion: it contracts to its words, holds and fades.
+/// The capsule after words went out with something to read or press: it contracts to its words.
 struct DictationResultPill: View {
     let controller: DictationController
     let words: Int
@@ -44,7 +44,7 @@ struct DictationResultPill: View {
 
     private var pill: some View {
         HStack(spacing: 8) {
-            SecreteoGlyph(.inserted, ink: SecreteoPalette.capsuleText.color)
+            SecreteoGlyph(face, ink: SecreteoPalette.capsuleText.color)
                 .frame(width: 28, height: 26)
             Text(controller.correctionSummary ?? insertedTitle)
                 .font(.system(size: 15, weight: .medium))
@@ -74,7 +74,7 @@ struct DictationResultPill: View {
         .frame(height: DictationPanelLayout.capsuleHeight)
         .background { DictationLacquer() }
         .clipShape(Capsule())
-        .overlay { DictationRimStroke(style: .verified, outline: Capsule(), end: 0.16) }
+        .overlay { DictationRimStroke(style: DictationCapsuleRim(face: face), outline: Capsule(), end: 0.16) }
     }
 
     /// What Secreteo kept is read aloud on every pill and drawn only when saving failed.
@@ -88,10 +88,19 @@ struct DictationResultPill: View {
             .accessibilityIdentifier("dictation-panel-delivery-detail")
     }
 
+    private var face: SecreteoGlyphFace { Self.face(for: controller.phase) }
+
+    /// A paste that could not be read back only claims to have been sent.
+    nonisolated static func face(for phase: DictationController.Phase) -> SecreteoGlyphFace {
+        if case .dispatched = phase { .sent } else { .inserted }
+    }
+
     private var insertedTitle: String {
-        if let target = controller.targetApp {
-            return L10n.format("%d words in %@", words, target)
+        switch (face == .sent, controller.targetApp) {
+        case (true, let target?): L10n.format("%d words sent to %@", words, target)
+        case (true, nil): L10n.format("%d words sent.", words)
+        case (false, let target?): L10n.format("%d words in %@", words, target)
+        case (false, nil): L10n.format("%d words inserted.", words)
         }
-        return L10n.format("%d words inserted.", words)
     }
 }

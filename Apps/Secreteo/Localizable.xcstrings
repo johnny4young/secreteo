@@ -162,6 +162,38 @@
         }
       }
     },
+    "%d words sent to %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d words sent to %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d palabras enviadas a %@"
+          }
+        }
+      }
+    },
+    "%d words sent." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d words sent."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d palabras enviadas."
+          }
+        }
+      }
+    },
     "%d words inserted." : {
       "localizations" : {
         "en" : {
@@ -990,22 +1022,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Buscar actualizaciones…"
-          }
-        }
-      }
-    },
-    "Check the destination before pasting again." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Check the destination before pasting again."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Revisa el destino antes de volver a pegar."
           }
         }
       }

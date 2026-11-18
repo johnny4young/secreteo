@@ -98,9 +98,7 @@ struct DictationPolishDeliveryTests {
         harness.controller.toggle(using: routed)
         try await eventually { harness.insertions.count == 1 }
         #expect(harness.controller.polishNotice != nil)
-        #expect(DictationCompactIndicator.hold(for: harness.controller.phase) != nil, "a delivery result")
         #expect(!DictationCompactIndicator.applies(to: harness.controller), "the notice needs its words")
-        #expect(DictationCompactIndicator.dismissal(for: harness.controller) == nil, "the controller's longer hold")
         #expect(DictationPanelLayout.size(for: harness.controller).width == DictationPanelLayout.width)
     }
 

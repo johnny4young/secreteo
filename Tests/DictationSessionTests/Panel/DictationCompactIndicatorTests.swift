@@ -5,7 +5,7 @@ import XCTest
 @testable import DictationSession
 
 final class DictationCompactIndicatorTests: XCTestCase {
-    func testOnlyCaptureAndASuccessfulPasteShrinkTheStrip() throws {
+    func testOnlyCaptureShrinksTheStrip() throws {
         let suite = "compact-indicator-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
@@ -13,12 +13,16 @@ final class DictationCompactIndicatorTests: XCTestCase {
         XCTAssertFalse(DictationCompactIndicator.applies(to: .listening, defaults: defaults), "off by default")
 
         defaults.set(true, forKey: DictationCompactIndicator.defaultsKey)
-        for phase: DictationController.Phase in [.preparing, .listening, .delivering, .verified(3), .dispatched(3)] {
+        for phase: DictationController.Phase in [.preparing, .listening, .delivering] {
             XCTAssertTrue(DictationCompactIndicator.applies(to: phase, defaults: defaults), "\(phase)")
         }
         for phase: DictationController.Phase in [.idle, .noSpeech, .failed("x"), .recovery(.cancelled)] {
             XCTAssertFalse(DictationCompactIndicator.applies(to: phase, defaults: defaults),
                            "\(phase) needs the full panel's actions")
+        }
+        for phase: DictationController.Phase in [.verified(3), .dispatched(3)] {
+            XCTAssertFalse(DictationCompactIndicator.applies(to: phase, defaults: defaults),
+                           "\(phase): words that went out close the panel, and a pill needs its words")
         }
     }
 
@@ -96,9 +100,9 @@ final class DictationCompactIndicatorTests: XCTestCase {
     }
 
     func testAResultHoldsItsFaceAndAShortPressIsAClick() {
-        XCTAssertEqual(DictationCompactIndicator.hold(for: .verified(3)), .milliseconds(1_400))
-        XCTAssertEqual(DictationCompactIndicator.hold(for: .dispatched(3)), .milliseconds(1_200))
         XCTAssertEqual(DictationCompactIndicator.hold(for: .noSpeech), .milliseconds(1_200))
+        XCTAssertNil(DictationCompactIndicator.hold(for: .verified(3)), "words that went out close the panel")
+        XCTAssertNil(DictationCompactIndicator.hold(for: .dispatched(3)))
         XCTAssertNil(DictationCompactIndicator.hold(for: .listening))
         XCTAssertNil(DictationCompactIndicator.hold(for: .delivering))
         XCTAssertNil(DictationCompactIndicator.hold(for: .recovery(.cancelled)), "the card stays until you choose")
@@ -109,21 +113,6 @@ final class DictationCompactIndicatorTests: XCTestCase {
         XCTAssertEqual(DictationCompactIndicator.growthAnchor(pinned: .top, atCaret: false), .top)
         XCTAssertTrue(DictationCompactIndicator.isClick(translation: CGSize(width: 2, height: -2)))
         XCTAssertFalse(DictationCompactIndicator.isClick(translation: CGSize(width: 3, height: 3)))
-    }
-
-    func testAResultWithSomethingToReadOrPressIsNeverOnlyAFace() {
-        for phase: DictationController.Phase in [.verified(3), .dispatched(3)] {
-            XCTAssertFalse(DictationCompactIndicator.needsFullResult(
-                phase, offersCorrection: false, hasNotice: false, hasSummary: false))
-            XCTAssertTrue(DictationCompactIndicator.needsFullResult(
-                phase, offersCorrection: true, hasNotice: false, hasSummary: false), "Always write…")
-            XCTAssertTrue(DictationCompactIndicator.needsFullResult(
-                phase, offersCorrection: false, hasNotice: true, hasSummary: false), "Pasted without polish.")
-            XCTAssertTrue(DictationCompactIndicator.needsFullResult(
-                phase, offersCorrection: false, hasNotice: false, hasSummary: true), "what a correction changed")
-        }
-        XCTAssertFalse(DictationCompactIndicator.needsFullResult(
-            .listening, offersCorrection: true, hasNotice: true, hasSummary: true), "only results")
     }
 
     func testASecondClickNeverLandsOnWhatTheFirstOneOpened() {
