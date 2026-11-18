@@ -82,7 +82,7 @@ final class DictationUITestFixture {
     static func heldFeedback(_ delay: Duration) -> Duration {
         switch delay {
         case DictationController.noticeFeedbackDuration: .seconds(3_600)
-        case DictationController.verifiedFeedbackDuration: .seconds(3)
+        case DictationController.resultFeedbackDuration: .seconds(3)
         default: delay
         }
     }

@@ -210,12 +210,7 @@ final class DictationPolishUITests: SecreteoUITestCase {
 
     @MainActor
     private func deliver(_ app: XCUIApplication, quietly: Bool = false) {
-        XCTAssertTrue(app.prepareForInteraction())
-        let dictate = app.buttons["menu-bar-dictate"]
-        XCTAssertTrue(dictate.waitForStableFrame(timeout: 5))
-        dictate.click()
-        XCTAssertTrue(app.staticTexts["dictation-panel-transcript"].waitForExistenceFast(timeout: 5))
-        dictate.click()
+        dictateOnce(app)
         if quietly {
             XCTAssertTrue(waitForQuietDelivery(app))
         } else {

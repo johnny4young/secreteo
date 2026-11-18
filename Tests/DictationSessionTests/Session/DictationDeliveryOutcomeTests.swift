@@ -39,7 +39,9 @@ final class DictationDeliveryOutcomeTests: XCTestCase {
     }
 
     func testUnverifiedOutputIsQuietNeverResentAndDoesNotBlockTheNextDictation() async {
-        for text in ["Don’t remove 0.5 no punctuation", "No borres café C++ 1.250,50 €"] {
+        let longText = String(String(repeating: "café ñ 1,25 ", count: 1_500).prefix(16_384)) + "X"
+        XCTAssertEqual(longText.utf16.count, 16_385)
+        for text in ["Don’t remove 0.5 no punctuation", "No borres café C++ 1.250,50 €", longText] {
             let harness = DictationControllerHarness(text: text)
             let receiver = TextReadbackHarness()
             defer { harness.controller.cancel(); receiver.board.releaseGlobally() }
@@ -99,7 +101,7 @@ final class DictationDeliveryOutcomeTests: XCTestCase {
             XCTAssertTrue(shown)
             let waiting = await eventually { requested != nil }
             XCTAssertTrue(waiting)
-            XCTAssertEqual(requested, DictationController.verifiedFeedbackDuration, "Only the menu bar face stays")
+            XCTAssertEqual(requested, DictationController.resultFeedbackDuration, "Only the menu bar face stays")
 
             if closesByItself { feedback.release() } else { harness.controller.dismissFeedback() }
             let closed = await eventually { harness.controller.phase == .idle }

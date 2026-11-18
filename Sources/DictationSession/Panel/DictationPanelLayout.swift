@@ -14,7 +14,7 @@ enum DictationPanelLayout {
     /// The pill holds, then fades just before the controller closes the panel.
     static let resultContraction: TimeInterval = 0.32
     static let resultFade: Duration = .milliseconds(200)
-    @MainActor static var resultHold: Duration { DictationController.verifiedFeedbackDuration - resultFade }
+    @MainActor static var resultHold: Duration { DictationController.resultFeedbackDuration - resultFade }
 
     /// A notice to read or a correction to answer keeps the panel open longer, and the pill with it.
     static func resultFades(showsNotice: Bool, offersCorrection: Bool) -> Bool {

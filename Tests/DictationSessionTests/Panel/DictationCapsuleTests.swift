@@ -114,6 +114,13 @@ struct DictationCapsuleTests {
     }
 
     @Test
+    func aPillForAnUnverifiedPasteOnlyClaimsItWasSent() {
+        #expect(DictationResultPill.face(for: .verified(3)) == .inserted)
+        #expect(DictationResultPill.face(for: .dispatched(3)) == .sent)
+        #expect(DictationCapsuleRim(face: DictationResultPill.face(for: .dispatched(3))) == .sent)
+    }
+
+    @Test
     func onlyTheOutcomesWithWordsOpenIntoACard() {
         for phase: DictationController.Phase in [.recovery(.cancelled), .noSpeech] {
             #expect(DictationPanelLayout.isCard(phase))
@@ -188,9 +195,9 @@ struct DictationCapsuleTests {
         #expect(!DictationPanelLayout.resultFades(showsNotice: true, offersCorrection: true))
         #expect(
             DictationPanelLayout.resultHold + DictationPanelLayout.resultFade
-                == DictationController.verifiedFeedbackDuration,
+                == DictationController.resultFeedbackDuration,
             "the fade ends as the panel closes")
-        #expect(DictationController.noticeFeedbackDuration > DictationController.verifiedFeedbackDuration)
+        #expect(DictationController.noticeFeedbackDuration > DictationController.resultFeedbackDuration)
     }
 
     @Test @MainActor

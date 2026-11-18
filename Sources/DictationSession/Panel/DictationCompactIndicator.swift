@@ -26,7 +26,6 @@ enum DictationCompactIndicator {
     static let caretGap: CGFloat = 6
     static let fallbackLift: CGFloat = 48
     static let faceChange: TimeInterval = 0.2
-    static let fade: TimeInterval = 0.3
     static let growth: TimeInterval = 0.32
     static let growthStart: CGFloat = 0.06
     /// Clear room around the glyph, so the window does not cut its shadow.
@@ -55,51 +54,27 @@ enum DictationCompactIndicator {
         }
     }
 
-    /// A result that offers something to read or press cannot be a face.
-    static func needsFullResult(
-        _ phase: DictationController.Phase, offersCorrection: Bool, hasNotice: Bool, hasSummary: Bool
-    ) -> Bool {
-        switch phase {
-        case .verified, .dispatched: offersCorrection || hasNotice || hasSummary
-        default: false
-        }
-    }
-
     /// A microphone notice needs the full capsule's words, and a click on the glyph asks for it.
     @MainActor
     static func applies(to controller: DictationController, defaults: UserDefaults = .standard) -> Bool {
-        guard controller.microphoneNotice == nil, !controller.compactIndicatorExpanded,
-              !needsFullResult(
-                controller.phase, offersCorrection: controller.learnableCorrection != nil,
-                hasNotice: controller.polishNotice != nil, hasSummary: controller.correctionSummary != nil)
-        else { return false }
+        guard controller.microphoneNotice == nil, !controller.compactIndicatorExpanded else { return false }
         // No speech shows its face for a moment before the card with the words to keep.
         return applies(to: controller.phase, defaults: defaults)
             || (controller.phase == .noSpeech && defaults.bool(forKey: defaultsKey))
     }
 
+    /// Words that went out close the panel, and a result with something to read needs the full pill.
     static func applies(to phase: DictationController.Phase, defaults: UserDefaults = .standard) -> Bool {
         guard defaults.bool(forKey: defaultsKey) else { return false }
         switch phase {
-        case .preparing, .listening, .delivering, .verified, .dispatched: return true
+        case .preparing, .listening, .delivering: return true
         default: return false
         }
     }
 
-    /// How long a result's face stays before it fades or gives way to its card.
+    /// How long the no-speech face stays before it gives way to its card.
     static func hold(for phase: DictationController.Phase) -> Duration? {
-        switch phase {
-        case .verified: .milliseconds(1_400)
-        case .dispatched, .noSpeech: .milliseconds(1_200)
-        default: nil
-        }
-    }
-
-    /// When the controller closes a result shown as a face; nil leaves the full panel's timing.
-    @MainActor
-    static func dismissal(for controller: DictationController) -> Duration? {
-        guard applies(to: controller), let hold = hold(for: controller.phase) else { return nil }
-        return hold + .seconds(fade)
+        phase == .noSpeech ? .milliseconds(1_200) : nil
     }
 
     /// A card that replaces the glyph shows only once its content has been measured, so it never
@@ -139,13 +114,18 @@ enum DictationCompactIndicator {
             .joined(separator: ", ")
     }
 
-    /// The outcomes that are spoken, since a face says nothing to VoiceOver.
+    /// The outcomes that are spoken, since only the menu bar's face shows them.
     static func announcement(for phase: DictationController.Phase) -> String? {
         switch phase {
         case .verified: SecreteoGlyphFace.inserted.accessibilityName
         case .dispatched: SecreteoGlyphFace.sent.accessibilityName
         default: nil
         }
+    }
+
+    static func announce(_ phase: DictationController.Phase) {
+        guard let words = announcement(for: phase) else { return }
+        AccessibilityNotification.Announcement(words).post()
     }
 
     static func time(start: Date?, tick: Date, stoppedAt: Date?) -> String {

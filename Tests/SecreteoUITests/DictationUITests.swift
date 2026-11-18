@@ -421,13 +421,12 @@ final class DictationUITests: SecreteoUITestCase {
             if verified { app.launchArguments.append("-seed-dictation-verified") }
             app.launchSecreteo()
             defer { finishUITestApplication(app) }
-            XCTAssertTrue(app.prepareForInteraction())
-            let dictate = app.buttons["menu-bar-dictate"]
-            XCTAssertTrue(dictate.waitForStableFrame(timeout: 5))
-            dictate.click()
-            XCTAssertTrue(app.staticTexts["dictation-panel-transcript"].waitForExistenceFast(timeout: 5))
-            dictate.click()
+            dictateOnce(app)
             XCTAssertTrue(waitForQuietDelivery(app), verified ? "verified" : "sent, not verified")
+            // The menu's title is the result's face, which is all that is left on screen.
+            let title = renderedText(of: app.control(withIdentifier: "menu-state-title"))
+            let expected = verified ? ["Inserted", "Insertado"] : ["Sent, not verified", "Enviado, sin verificar"]
+            XCTAssertTrue(expected.contains(title), title)
             XCTAssertFalse(app.buttons["dictation-recovery-reinsert"].exists)
             XCTAssertTrue(app.control(withIdentifier: "menu-last-dictation").waitForExistence(timeout: 5),
                           "Paste Last still holds the words")
@@ -527,12 +526,7 @@ private extension DictationUITests {
 
     @MainActor
     func enterDestinationDelivery(_ app: XCUIApplication) {
-        XCTAssertTrue(app.prepareForInteraction())
-        let dictate = app.buttons["menu-bar-dictate"]
-        XCTAssertTrue(dictate.waitForStableFrame(timeout: 5))
-        dictate.click()
-        XCTAssertTrue(app.staticTexts["dictation-panel-transcript"].waitForExistenceFast(timeout: 5))
-        dictate.click()
+        dictateOnce(app)
         XCTAssertTrue(app.staticTexts["dictation-panel-delivery-status"].waitForExistenceFast(timeout: 5))
     }
 }

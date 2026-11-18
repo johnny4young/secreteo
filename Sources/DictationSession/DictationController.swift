@@ -229,8 +229,8 @@ final class DictationController {
 
     private func start(using dependencies: DictationSessionDependencies) {
         // A global trigger cannot silently replace refused, undelivered words.
-        // An unverified dispatch was already sent: its notice is non-modal and
-        // a new dictation replaces it (never re-sending the old output).
+        // A dispatched result was already sent: a new dictation replaces it
+        // and never re-sends the old output.
         if case .recovery = phase { showPanel(); return }
         guard phase != .delivering,
               case .success(let lease) = dependencies.admission.acquire(dependencies.admissionKind)
@@ -848,9 +848,14 @@ extension DictationController {
         // The words in the field are the result. Many apps never let a paste be verified,
         // so an unverified one stays quiet too; Paste Last and history still hold the words.
         let showsNotice = polishNotice != nil
-        if showsNotice { showPanel() } else { panel.close() }
+        if showsNotice {
+            showPanel()
+        } else {
+            panel.close()
+            if presentsPanel { DictationCompactIndicator.announce(phase) }
+        }
         scheduleFeedbackDismiss(
-            after: showsNotice ? Self.noticeFeedbackDuration : Self.verifiedFeedbackDuration,
+            after: showsNotice ? Self.noticeFeedbackDuration : Self.resultFeedbackDuration,
             wait: dependencies.waitForFeedbackDismissal)
     }
 }
@@ -862,7 +867,7 @@ extension DictationController {
     var captureStartedAt: Date? { microphoneReadiness?.firstFrameAt }
     static let noticeFeedbackDuration: Duration = .seconds(4)
     /// How long a result stays: the pill with a correction, or only the menu bar face.
-    static let verifiedFeedbackDuration: Duration = .milliseconds(1600)
+    static let resultFeedbackDuration: Duration = .milliseconds(1600)
     /// Listening while the model still loads; the relay holds the speech.
     var isLoadingModel: Bool { loadingModelSessionID != nil && loadingModelSessionID == activeSessionID }
     var textMode: DictationTextMode { textPolicy.mode }
@@ -989,8 +994,7 @@ private extension DictationController {
         showPanel()
         // Long enough to choose "Always write"; nothing is learned unless it is pressed.
         scheduleFeedbackDismiss(
-            after: DictationCompactIndicator.dismissal(for: self)
-                ?? (learnableCorrection == nil ? Self.verifiedFeedbackDuration : .seconds(6)),
+            after: learnableCorrection == nil ? Self.resultFeedbackDuration : .seconds(6),
             wait: dependencies.waitForFeedbackDismissal)
         return true
     }
