@@ -87,6 +87,7 @@ final class DictationController {
     private var dependencies: DictationSessionDependencies?
     private(set) var deliveryID: UUID?
     private(set) var history: DictationHistorySession?
+    let historyFailure = DictationHistoryFailure()
     var statsDraft: DictationStatsDraft?
     @ObservationIgnored private(set) var retryDeliveryTask: Task<Void, Never>?
 
@@ -131,10 +132,6 @@ final class DictationController {
         practiceLastText = DictationLastText(observesSystem: presentsPanel)
         self.lastText.onClear = { [weak self] in self?.forgetDictatedText() }
         self.lastText.onSystemSleep = { [weak self] in self?.systemWillSleep() }
-    }
-
-    private func showPanel() {
-        if presentsPanel { panel.show(controller: self) }
     }
 
     /// Arms/disarms the push-to-talk mouse button to match the Settings
@@ -1373,6 +1370,7 @@ extension DictationController {
     }
 
     fileprivate func discardPreviousDelivery() {
+        historyFailure.clear()
         retryDeliveryTask?.cancel()
         retryDeliveryTask = nil
         isRetryingDelivery = false
@@ -1400,5 +1398,16 @@ extension DictationController {
         completeSession(id: sessionID)
         deliveryID = sessionID
         presentDelivery(refused, text: text, id: sessionID)
+    }
+}
+
+extension DictationController {
+    private func showPanel() {
+        if presentsPanel { panel.show(controller: self) }
+    }
+
+    /// Words that went out leave no panel, so a failed save shows on the menu bar for a moment.
+    func showHistoryFailure() {
+        historyFailure.show(for: Self.noticeFeedbackDuration, wait: sessionFeedbackWait)
     }
 }

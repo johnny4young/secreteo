@@ -42,6 +42,8 @@ struct SecreteoGlyphTests {
         #expect(SecreteoGlyphFace.inserted.tint == SecreteoPalette.verified)
         #expect(SecreteoGlyphFace.sent.tint == SecreteoPalette.amber)
         #expect(SecreteoGlyphFace.notSent.tint == SecreteoPalette.notSent)
+        #expect(SecreteoGlyphFace.notSaved.tint == SecreteoPalette.notSent)
+        #expect(SecreteoGlyphFace.notSaved.accessibilityName == L10n.text("Not saved to your dictation history."))
         #expect(SecreteoGlyphFace.ready.tint == nil)
     }
 

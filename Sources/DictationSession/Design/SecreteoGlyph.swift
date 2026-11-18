@@ -4,7 +4,7 @@ import SwiftUI
 /// The capsule's face: what sits between the two parentheses. The menu bar, the capsule, the
 /// small indicator and History all draw from this one set.
 public enum SecreteoGlyphFace: String, CaseIterable, Sendable {
-    case ready, listening, loading, polishing, inserted, sent, notSent, noSpeech, notOwner
+    case ready, listening, loading, polishing, inserted, sent, notSent, notSaved, noSpeech, notOwner
 }
 
 /// The glyph's geometry in a 24 × 22 box, shared by SwiftUI and the template image.
@@ -38,7 +38,8 @@ enum SecreteoGlyphGeometry {
         case .polishing: [Mark(path: spark, filled: true)]
         case .inserted: [Mark(path: check, filled: false)]
         case .sent: [Mark(path: ring, filled: false), Mark(path: halfDisc, filled: true)]
-        case .notSent: [Mark(path: bang, filled: false), Mark(path: disc(12, 15.2, 1.1), filled: true)]
+        // The words got through, so the parenthesis stays whole around the warning.
+        case .notSent, .notSaved: [Mark(path: bang, filled: false), Mark(path: disc(12, 15.2, 1.1), filled: true)]
         case .noSpeech: [Mark(path: line(from: pt(9.4, 11), to: pt(14.6, 11)), filled: false)]
         case .notOwner:
             [
@@ -130,7 +131,7 @@ extension SecreteoGlyphFace {
         switch self {
         case .inserted: SecreteoPalette.verified
         case .sent: SecreteoPalette.amber
-        case .notSent: SecreteoPalette.notSent
+        case .notSent, .notSaved: SecreteoPalette.notSent
         default: nil
         }
     }

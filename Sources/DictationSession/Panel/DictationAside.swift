@@ -40,7 +40,7 @@ enum DictationAsideShape {
         switch face {
         case .inserted: SecreteoPalette.capsuleVerified
         case .sent: SecreteoPalette.capsuleAmber
-        case .notSent: SecreteoPalette.capsuleNotSent
+        case .notSent, .notSaved: SecreteoPalette.capsuleNotSent
         case .noSpeech: SecreteoPalette.asideQuiet
         default: SecreteoPalette.capsuleText
         }

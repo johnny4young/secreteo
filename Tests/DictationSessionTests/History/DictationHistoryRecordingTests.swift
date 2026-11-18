@@ -93,6 +93,39 @@ final class DictationHistoryRecordingTests: XCTestCase {
         XCTAssertNotNil(history.admit(), "History stays on after deleting its contents")
     }
 
+    func testOnlyAFailedSaveReportsItself() async {
+        for saves in [true, false] {
+            let session = DictationHistorySession(sessionID: UUID(), write: { _ in saves })
+            var failures = 0
+            session.onSaveFailed = { failures += 1 }
+            session.prepare(record())
+            session.record(.dispatched)
+            let settled = await eventually { session.state != .saving }
+            XCTAssertTrue(settled)
+            XCTAssertEqual(failures, saves ? 0 : 1, saves ? "saved" : "failed")
+        }
+    }
+
+    func testAFailedSaveShowsOnTheMenuBarUntilItsHoldEndsOrANewDictation() async throws {
+        let (controller, feature) = try makeFeature()
+        let gate = PreparationGate()
+        defer { gate.release() }
+        let before = feature.statusFace
+        feature.controller.historyFailure.show(for: .seconds(4)) { _ in await gate.wait() }
+        XCTAssertEqual(feature.statusFace, .notSaved, "words went out, only the save failed")
+        let holding = await eventually { gate.started }
+        XCTAssertTrue(holding)
+        gate.release()
+        let ended = await eventually { !feature.controller.historyFailureShown }
+        XCTAssertTrue(ended)
+        XCTAssertEqual(feature.statusFace, before)
+
+        controller.historyFailure.show(for: .seconds(4)) { _ in try await Task.sleep(for: .seconds(3_600)) }
+        XCTAssertEqual(controller.statusFace, .notSaved)
+        controller.historyFailure.clear()
+        XCTAssertEqual(controller.statusFace, .ready, "a new dictation clears it")
+    }
+
     func testSecureCancelledAndEmptyDeliveriesAreNeverSaved() async {
         XCTAssertNil(DictationHistorySession.delivery(for: .refused(.secureField)))
         XCTAssertNil(DictationHistorySession.delivery(for: .refused(.cancelled)))

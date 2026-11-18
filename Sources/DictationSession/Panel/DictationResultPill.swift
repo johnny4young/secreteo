@@ -91,7 +91,7 @@ struct DictationResultPill: View {
     private var face: SecreteoGlyphFace { Self.face(for: controller.phase) }
 
     /// A paste that could not be read back only claims to have been sent.
-    static func face(for phase: DictationController.Phase) -> SecreteoGlyphFace {
+    nonisolated static func face(for phase: DictationController.Phase) -> SecreteoGlyphFace {
         if case .dispatched = phase { .sent } else { .inserted }
     }
 

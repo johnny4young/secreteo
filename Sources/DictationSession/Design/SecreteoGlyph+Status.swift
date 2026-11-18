@@ -1,5 +1,7 @@
 extension DictationController {
-    var statusFace: SecreteoGlyphFace { Self.statusFace(for: phase, isLoadingModel: isLoadingModel) }
+    var statusFace: SecreteoGlyphFace {
+        historyFailureShown && !isActive ? .notSaved : Self.statusFace(for: phase, isLoadingModel: isLoadingModel)
+    }
 
     nonisolated static func statusFace(for phase: Phase, isLoadingModel: Bool) -> SecreteoGlyphFace {
         switch phase {
@@ -26,6 +28,7 @@ extension SecreteoGlyphFace {
         case .inserted: L10n.text("Inserted")
         case .sent: L10n.text("Sent, not verified")
         case .notSent: L10n.text("Text wasn’t sent")
+        case .notSaved: L10n.text("Not saved to your dictation history.")
         case .noSpeech: L10n.text("No speech detected")
         case .notOwner: L10n.text("Another app handles dictation")
         }
