@@ -5,6 +5,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 ## Unreleased
 
 - ⚡ **Text arrives sooner**: when you end a dictation after you have stopped speaking, the words no longer wait a full quarter second before they go out.
+- ⚡ **No wait after a macOS update**: Secreteo prepares the speech model when it opens, so the first dictation after updating macOS no longer takes several seconds to start.
 - 🔗 **Say web addresses**: “x dot com” and “github punto com” type `x.com` and `github.com`; Literal mode keeps the words as spoken.
 - 🔤 **Auto stays in Spanish and English**: with the language on Auto, short dictations no longer come out in another alphabet, such as Cyrillic.
 

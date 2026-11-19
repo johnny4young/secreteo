@@ -37,6 +37,8 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored private let ownership: DictationOwnershipCoordinator
     @ObservationIgnored let readiness: ReadinessGap
     @ObservationIgnored let warmEngine: WarmModel<ParakeetEngine>
+    /// Engines whose model loaded this launch, so Core ML already holds their compiled copy.
+    @ObservationIgnored var compiledEngines: Set<LiveSpeechSelection> = []
     @ObservationIgnored private var readinessPoll: Task<Void, Never>?
     @ObservationIgnored private var modelInstall: Task<Void, any Error>?
     @ObservationIgnored private var modelInstallParts: Set<DictationModels.Part> = []
@@ -382,12 +384,6 @@ public final class DictationFeature: AppServices {
             temporaryStore: usesTemporaryMeetingStore)
     }
 
-    /// Loads only an installed, verified model, because `warmEngine` never downloads.
-    func prewarmIfConfigured() {
-        guard DictationPrewarmPolicy.shouldWarm(prewarmConditions) else { return }
-        warmEngine.prewarm()
-    }
-
     func modelMemoryChanged() {
         warmEngine.idleLimitChanged()
         prewarmIfConfigured()
@@ -619,5 +615,28 @@ extension DictationFeature {
     func modelDownloaded(_ fraction: Double, generation: Int) {
         guard modelInstall != nil, generation == modelInstallGeneration else { return }
         modelDownloadFraction = max(modelDownloadFraction ?? 0, fraction)
+    }
+}
+
+extension DictationFeature {
+    /// Loads only an installed, verified model, because `warmEngine` never downloads.
+    func prewarmIfConfigured() {
+        let conditions = prewarmConditions
+        let engine = conditions.engine
+        if DictationPrewarmPolicy.shouldWarm(conditions) {
+            guard let prewarm = warmEngine.prewarm() else { return }
+            Task {
+                await prewarm.value
+                if warmEngine.isHoldingModel { compiledEngines.insert(engine) }
+            }
+        } else if !compiledEngines.contains(engine), ownership.state == .owned,
+            DictationPrewarmPolicy.shouldCompile(conditions), let compile = warmEngine.compileAhead() {
+            Task {
+                guard await compile.value else { return }
+                compiledEngines.insert(engine)
+                // A prewarm asked for during the load found the model busy.
+                prewarmIfConfigured()
+            }
+        }
     }
 }
