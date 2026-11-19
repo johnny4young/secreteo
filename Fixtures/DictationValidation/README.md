@@ -398,8 +398,9 @@ directory inside the repository, and nothing writes that text to a log.
 Run the matrix once per build on the same audio, then
 `python3 -I scripts/compare_dictation_controller_matrix.py BEFORE_DIR AFTER_DIR`
 (`--json` for a machine-readable report). It prints second-pass WER/CER and empty
-speech per cohort, latency p50/p95 split into short and long inputs, and every
-case whose text changed. Different audio, different cells or an empty directory
+speech per cohort, latency p50/p95 for all inputs, short ones (under 4 s) and long
+ones (8 s or more), counts of attempts (both passes) whose WER fell or rose, and
+every case whose text changed. Different audio, different cells or an empty directory
 exit 2 without a report.
 
 ## Observe the speech gate over every cell

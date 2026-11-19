@@ -63,8 +63,8 @@ class DictationControllerComparisonTests(unittest.TestCase):
         before = write_run(self.root / 'before', {})
         after = write_run(self.root / 'after', {'stress-en-short-domain.clean': 'Цдаком'})
         report = comparison.compare(before, after)
-        self.assertEqual(report['cells'], 6)
-        self.assertEqual(report['cellsWithHigherWER'], 2)
+        self.assertEqual(report['attempts'], 6)
+        self.assertEqual(report['attemptsWithHigherWER'], 2)
         self.assertEqual(report['quality']['after']['stress']['meanWER'], 1.0)
         self.assertEqual(report['quality']['before']['stress']['meanWER'], 0.0)
         self.assertEqual(report['changedTexts'], [{'caseID': 'stress-en-short-domain.clean', 'passes': [1, 2],
@@ -87,6 +87,22 @@ class DictationControllerComparisonTests(unittest.TestCase):
         self.assertFalse(report['textRecorded'])
         self.assertIsNone(report['changedTexts'])
         self.assertIn('not recorded', self.cli(before, after).stdout)
+
+    def test_the_median_does_not_move_with_the_parity_of_the_sample(self):
+        self.assertEqual([comparison.percentile(list(range(1, n + 1)), 0.5) for n in (2, 4, 6, 8)], [1, 2, 3, 4])
+        self.assertEqual(comparison.percentile(list(range(1, 21)), 0.95), 19)
+
+    def test_the_same_text_in_another_unicode_form_has_not_changed(self):
+        before = write_run(self.root / 'before', {'es-long-email.clean': 'métricas'})
+        after = write_run(self.root / 'after', {'es-long-email.clean': 'me\u0301tricas'})
+        self.assertEqual(comparison.compare(before, after)['changedTexts'], [])
+
+    def test_a_lone_surrogate_fails_without_a_traceback(self):
+        before = write_run(self.root / 'before', {})
+        after = write_run(self.root / 'after', {'es-long-email.clean': '\ud800 lone'})
+        result = self.cli(before, after)
+        self.assertEqual((result.returncode, result.stdout), (2, ''))
+        self.assertNotIn('Traceback', result.stderr)
 
     def test_empty_input_fails_without_printing_a_report(self):
         empty = self.root / 'empty'
@@ -114,6 +130,9 @@ class DictationControllerComparisonTests(unittest.TestCase):
             with self.subTest(name=name):
                 with self.assertRaises(corpus.CorpusError):
                     comparison.compare(before, write_run(self.root / name, {}, **options))
+        anonymous = [write_run(self.root / name, {}, manifest=None) for name in ('anonymous-a', 'anonymous-b')]
+        with self.assertRaises(corpus.CorpusError):
+            comparison.compare(*anonymous)
         malformed = write_run(self.root / 'malformed', {})
         receipt = json.loads((malformed / 'cohort-0000/model.json').read_text())
         del receipt['cells'][0]['proposedOutputScore']

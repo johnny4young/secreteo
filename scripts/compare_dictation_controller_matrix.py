@@ -5,9 +5,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 import statistics
 import sys
+import unicodedata
 
 sys.path.append(str(Path(__file__).resolve().parent))  # after the standard library: -I leaves this folder out
 
@@ -49,12 +51,14 @@ def load(directory):
             rows[key] = row
     corpus.require(rows and len(rows) == 2 * outcome.get('observedCells', -1), 'matrix has missing cells')
     identity = {key: request.get(key) for key in ('corpusSHA256', 'manifestSHA256')}
+    corpus.require(all(corpus.digest(value) for value in identity.values()), 'matrix has no audio identity')
     return {'identity': identity, 'rows': rows, 'texts': texts, 'testBinarySHA256': request.get('testBinarySHA256')}
 
 
 def percentile(values, share):
     ordered = sorted(values)
-    return ordered[min(len(ordered) - 1, int(round(share * (len(ordered) - 1))))] if ordered else None
+    # Nearest rank, so the median does not move with the parity of the sample size.
+    return ordered[max(0, math.ceil(share * len(ordered)) - 1)] if ordered else None
 
 
 def quality(rows):
@@ -96,7 +100,7 @@ def changed_texts(before, after):
     changes = {}
     for key in sorted(before):
         old, new = before[key].get('proposedText'), after[key].get('proposedText')
-        if old != new:
+        if unicodedata.normalize('NFC', old or '') != unicodedata.normalize('NFC', new or ''):
             changes.setdefault((key[0], old, new), []).append(key[1])
     return [{'caseID': case, 'passes': passes, 'before': old, 'after': new}
             for (case, old, new), passes in sorted(changes.items(), key=lambda item: item[0][0])]
@@ -110,12 +114,12 @@ def compare(before_directory, after_directory):
            for name, run in (('before', before), ('after', after))}
     return {
         'kind': 'dictation-controller-matrix-comparison', 'schemaVersion': 1,
-        'cells': len(before['rows']), **before['identity'],
+        'attempts': len(before['rows']), **before['identity'],
         'testBinarySHA256': {'before': before['testBinarySHA256'], 'after': after['testBinarySHA256']},
         'quality': {'before': quality(before['rows']), 'after': quality(after['rows'])},
         'latencySeconds': {'before': latency(before['rows']), 'after': latency(after['rows'])},
-        'cellsWithLowerWER': sum(wer['after'][key] < wer['before'][key] for key in wer['before']),
-        'cellsWithHigherWER': sum(wer['after'][key] > wer['before'][key] for key in wer['before']),
+        'attemptsWithLowerWER': sum(wer['after'][key] < wer['before'][key] for key in wer['before']),
+        'attemptsWithHigherWER': sum(wer['after'][key] > wer['before'][key] for key in wer['before']),
         'textRecorded': before['texts'] and after['texts'],
         'changedTexts': changed_texts(before['rows'], after['rows']) if before['texts'] and after['texts'] else None,
     }
@@ -123,8 +127,8 @@ def compare(before_directory, after_directory):
 
 def render(report):
     milliseconds = lambda value: '-' if value is None else f'{value * 1000:.0f}'
-    lines = [f"cells {report['cells']}  lower WER {report['cellsWithLowerWER']}  "
-             f"higher WER {report['cellsWithHigherWER']}", '',
+    lines = [f"attempts {report['attempts']}  lower WER {report['attemptsWithLowerWER']}  "
+             f"higher WER {report['attemptsWithHigherWER']}", '',
              f"{'cohort (pass 2)':16} {'WER before':>10} {'after':>7} {'CER before':>10} {'after':>7} "
              f"{'empty before':>12} {'after':>5}"]
     before, after = report['quality']['before'], report['quality']['after']
@@ -158,13 +162,15 @@ def main(argv=None):
     arguments = parser.parse_args(argv)
     try:
         report = compare(arguments.before, arguments.after)
+        output = json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) if arguments.json else render(report)
+        output.encode('utf-8')
     except corpus.CorpusError as error:
         print(f'matrix comparison: {error}', file=sys.stderr)
         return 2
-    except (OSError, KeyError, TypeError, AttributeError, ValueError):
+    except (OSError, KeyError, TypeError, AttributeError, ValueError, UnicodeError):
         print('matrix comparison: a receipt is incomplete or malformed', file=sys.stderr)
         return 2
-    print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) if arguments.json else render(report))
+    print(output)
     return 0
 
 

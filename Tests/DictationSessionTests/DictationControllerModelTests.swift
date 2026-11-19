@@ -20,7 +20,7 @@ final class DictationControllerModelTests: XCTestCase {
         let repetitions: Int
         let inputSeconds: Double
         let runtimeState: String
-        // Readings of the public corpus only; the receipt stays in the private output directory.
+        // Recognized text, so the receipt stays outside the repository.
         let proposedText: String
         let proposedOutputScore: DictationModelProbe.Score
         let controller: DictationSessionMeasurement
@@ -29,6 +29,14 @@ final class DictationControllerModelTests: XCTestCase {
         let fedFrames: Int
         let pipelineCompleted: Bool
         let work: [ParakeetLiveWorkSample]
+    }
+
+    func testReceiptsAreRefusedInsideTheRepositoryHoweverItIsSpelled() {
+        let root = DictationModelFixture.root.path
+        for spelling in [root, root.uppercased(), "/System/Volumes/Data" + root] {
+            XCTAssertTrue(DictationModelFixture.isInsideRepository(spelling + "/results/model.json"), spelling)
+        }
+        XCTAssertFalse(DictationModelFixture.isInsideRepository(NSTemporaryDirectory() + "results/model.json"))
     }
 
     struct Receipt: Encodable {
@@ -69,6 +77,7 @@ final class DictationControllerModelTests: XCTestCase {
             guard let ids = environment["SECRETEO_DICTATION_BASELINE_CASES"],
                   let output = environment["SECRETEO_DICTATION_BASELINE_OUTPUT"], output.hasPrefix("/"),
                   !FileManager.default.fileExists(atPath: output),
+                  !DictationModelFixture.isInsideRepository(output),
                   let repetitions = Int(environment["SECRETEO_DICTATION_REPETITIONS"] ?? "1"),
                   (1...12).contains(repetitions) else { throw DictationModelProbe.Failure.invalidInput }
             let fixture = try DictationModelFixture(

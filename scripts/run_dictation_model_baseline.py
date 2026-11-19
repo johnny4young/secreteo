@@ -27,8 +27,11 @@ CONTROLLER_SELECTOR = 'DictationSessionTests.DictationControllerModelTests/testI
 
 
 def require_private_output(output):
-    # Controller receipts carry proposed text, so they never land in the working tree.
-    corpus.require(not output.resolve().is_relative_to(ROOT), 'output must be outside the repository')
+    # Controller receipts carry proposed text, so they never land in the working tree. Comparing
+    # files, not strings, also catches another letter case and the /System/Volumes/Data path.
+    ancestors = [output.resolve(), *output.resolve().parents]
+    corpus.require(not any(a.exists() and os.path.samefile(a, ROOT) for a in ancestors),
+                   'output must be outside the repository')
 
 
 def run_deadline(entries, cases, attribute_live, repetitions=1):

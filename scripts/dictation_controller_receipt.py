@@ -1,6 +1,7 @@
 """Admit actual-controller observations without claiming native insertion."""
 
 import re
+import unicodedata
 
 import dictation_corpus as corpus
 from dictation_model_receipt import number, validate_score, validate_work
@@ -82,12 +83,18 @@ def validate_row(row, case, attempt, ready, family, entry, request):
 
 def validate_text(text, score, controller, family, repetitions):
     """The proposed output must be the text the score and outcome describe."""
-    corpus.require(type(text) is str and len(text.encode('utf-8', 'surrogatepass')) <= 64_000,
-                   'invalid proposed output text')
+    try:
+        size = len(text.encode('utf-8')) if type(text) is str else None
+    except UnicodeError:
+        size = None
+    corpus.require(size is not None and size <= 64_000, 'invalid proposed output text')
     corpus.require(type(controller) is dict and (text == '' or controller.get('outcome') == 'deliveryRejected')
                    and (score['hypothesisWords'] == 0 or text.strip()), 'proposed text contradicts its outcome')
-    references = {' '.join([accepted] * repetitions).strip() for accepted in family['acceptedTexts']}
-    corpus.require(score['exactReferenceMatch'] is (text in references), 'proposed text contradicts its score')
+    # Swift compares canonically equivalent strings as equal.
+    references = {unicodedata.normalize('NFC', ' '.join([accepted] * repetitions).strip())
+                  for accepted in family['acceptedTexts']}
+    corpus.require(score['exactReferenceMatch'] is (unicodedata.normalize('NFC', text) in references),
+                   'proposed text contradicts its score')
 
 
 def validate_controller(value, score, input_seconds, timeout, complete):

@@ -8,6 +8,7 @@ import unittest
 import test_dictation_model_runner as model_fixtures
 import run_dictation_model_baseline as runner
 import dictation_corpus as corpus
+import dictation_controller_receipt as receipt
 
 
 class DictationControllerRunnerTests(unittest.TestCase):
@@ -127,6 +128,14 @@ class DictationControllerRunnerTests(unittest.TestCase):
                 self.assertEqual(result['outcome'], 'invalid-observation')
             self.reset_run()
 
+    def test_an_exact_match_in_decomposed_accents_is_still_exact(self):
+        score = {'hypothesisWords': 1, 'exactReferenceMatch': True}
+        receipt.validate_text('Ma\u0301ndame', score, {'outcome': 'deliveryRejected'},
+                              {'acceptedTexts': ['Mándame']}, 1)
+        with self.assertRaises(corpus.CorpusError):
+            receipt.validate_text('\ud800 lone', {'hypothesisWords': 2, 'exactReferenceMatch': False},
+                                  {'outcome': 'deliveryRejected'}, {'acceptedTexts': ['Mándame']}, 1)
+
     def test_proposed_text_is_kept_only_when_it_matches_outcome_and_score(self):
         self.assertEqual(self.run_observation(self.controller_double)['outcome'], 'observed')
         rows = json.loads((self.fixture.root / 'run/model.json').read_text())['cells']
@@ -148,6 +157,9 @@ class DictationControllerRunnerTests(unittest.TestCase):
                        controller=True, invoke=self.controller_double)
         self.assertFalse(f.calls)
         self.assertFalse((runner.ROOT / 'controller-results').exists())
+        for spelling in (str(runner.ROOT).swapcase(), '/System/Volumes/Data' + str(runner.ROOT)):
+            with self.subTest(spelling=spelling), self.assertRaises(corpus.CorpusError):
+                runner.require_private_output(Path(spelling) / 'controller-results')
 
     def test_audio_first_capture_may_start_before_the_runtime_but_no_caption_may(self):
         def cold_load(caption):

@@ -8,6 +8,20 @@ struct DictationModelFixture {
     static let root = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
 
+    /// Compares file identities, so another letter case or the /System/Volumes/Data path still counts.
+    static func isInsideRepository(_ path: String) -> Bool {
+        let key = URLResourceKey.fileResourceIdentifierKey
+        guard let repository = try? root.resourceValues(forKeys: [key]).fileResourceIdentifier else { return true }
+        var url = URL(fileURLWithPath: path).standardizedFileURL
+        while true {
+            if let identity = try? url.resourceValues(forKeys: [key]).fileResourceIdentifier,
+               identity.isEqual(repository) { return true }
+            let parent = url.deletingLastPathComponent()
+            if parent.path == url.path { return false }
+            url = parent
+        }
+    }
+
     struct Source: Decodable {
         struct Family: Decodable {
             let id: String
