@@ -52,14 +52,15 @@ final class DictationTimingLogTests: XCTestCase {
         let lines = data.split(separator: 0x0A)
         XCTAssertEqual(lines.count, 2)
         let record = try JSONDecoder().decode(DictationSessionTimingRecord.self, from: Data(lines[0]))
-        XCTAssertEqual(record.schemaVersion, 1)
+        XCTAssertEqual(record.schemaVersion, 2)
         XCTAssertEqual(record.startedAt, 1_000)
         XCTAssertEqual(record.admission, "global")
         XCTAssertEqual(record.engine, "parakeetUltra")
         XCTAssertEqual(record.session.outcome, .dispatchReported)
         XCTAssertNotNil(record.session.elapsedSeconds["firstCaptionHandled"])
         let object = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(lines[0])) as? [String: Any])
-        XCTAssertEqual(Set(object.keys), ["schemaVersion", "startedAt", "admission", "engine", "session", "audio"])
+        XCTAssertEqual(
+            Set(object.keys), ["schemaVersion", "startedAt", "admission", "engine", "session", "audio", "diagnostics"])
         let mode = try FileManager.default.attributesOfItem(atPath: file.path)[.posixPermissions] as? Int
         XCTAssertEqual(mode, 0o600)
     }
@@ -116,6 +117,50 @@ final class DictationTimingLogTests: XCTestCase {
         XCTAssertEqual(record.audio.relayDroppedChunks, 1)
         XCTAssertEqual(record.audio.relayDroppedFrames, 16_000)
         XCTAssertNil(record.engine, "The model never became ready")
+    }
+
+    func testRecordExplainsTheMicrophoneTheFirstSoundAndTheTail() async throws {
+        let harness = DictationControllerHarness(text: "Diagnosed")
+        var records: [DictationSessionTimingRecord] = []
+        var dependencies = harness.dependencies
+        let make = dependencies.makeMicrophone
+        dependencies.makeMicrophone = {
+            var input = make()
+            input.transport = .builtIn
+            input.replacesBluetooth = true
+            return input
+        }
+        dependencies.timingLog = { records.append($0) }
+        harness.controller.toggle(using: dependencies)
+        await eventually { !harness.controller.partialText.isEmpty }
+        harness.now = harness.now.addingTimeInterval(1)
+        harness.controller.toggle(using: dependencies)
+        await eventually { records.count == 1 }
+        harness.controller.cancel()
+
+        let diagnostics = try XCTUnwrap(records.first?.diagnostics)
+        XCTAssertEqual(diagnostics.inputTransport, .builtIn)
+        XCTAssertTrue(diagnostics.replacedBluetooth)
+        XCTAssertNotNil(diagnostics.firstAudibleSeconds)
+        XCTAssertNotNil(diagnostics.tail)
+    }
+
+    func testDigitalSilenceIsNotTheFirstSound() throws {
+        let start = ContinuousClock.now
+        var now = start
+        var record: DictationSessionTimingRecord?
+        let recorder = DictationSessionMeasurementRecorder(now: { now }, sink: nil, recordSink: { record = $0 })
+        recorder.noteBuffer(peak: 0)
+        now = start.advanced(by: .milliseconds(300))
+        recorder.noteBuffer(peak: DictationSessionDiagnostics.audiblePeak)
+        now = start.advanced(by: .milliseconds(450))
+        recorder.noteBuffer(peak: 0.02)
+        now = start.advanced(by: .milliseconds(600))
+        recorder.noteBuffer(peak: 0.5)
+        recorder.finish(.empty)
+
+        let first = try XCTUnwrap(record?.diagnostics.firstAudibleSeconds)
+        XCTAssertEqual(first, 0.45, accuracy: 1e-9, "Zeros are a device not yet delivering sound")
     }
 
     func testUnobservedSessionBuildsNoRecorder() {

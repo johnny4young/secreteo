@@ -336,7 +336,7 @@ final class DictationReadinessTests: XCTestCase {
                                        forName: UserDefaults.argumentDomain)
             var selected: [String?] = []
             let input = DictationSessionDependencies.liveMicrophone(
-                defaults: defaults, isAvailable: { $0 == "USB-Café" }, makeSource: {
+                defaults: defaults, isAvailable: { $0 == "USB-Café" }, systemInput: { SystemInput() }, makeSource: {
                     selected.append($0)
                     return .init(source: ReadinessMicrophone(), warmUp: {})
                 })
@@ -344,6 +344,39 @@ final class DictationReadinessTests: XCTestCase {
             XCTAssertEqual(input.usesSystemFallback, fallback)
             XCTAssertEqual(defaults.object(forKey: "preferredInputUID") as? String, stored)
         }
+    }
+
+    func testABluetoothDefaultGivesWayToTheMacsOwnMicrophone() async {
+        let defaults = UserDefaults(suiteName: "microphone-bluetooth-\(UUID().uuidString)")!
+        addTeardownBlock { Self.forgetInputPreference() }
+        let headset = SystemInput(defaultTransport: .bluetooth, builtInIdentifier: "BuiltIn", transport: { _ in .builtIn })
+        let cases: [(String, String?, SystemInput, String?, Bool, Bool)] = [
+            ("headset default", nil, headset, "BuiltIn", true, false),
+            ("chosen headset stays", "AirPods", headset, "AirPods", false, false),
+            ("missing choice falls back", "missing", headset, "BuiltIn", true, true),
+            ("no built-in microphone", nil, SystemInput(defaultTransport: .bluetooth), nil, false, false),
+            ("wired default", nil, SystemInput(defaultTransport: .usb, builtInIdentifier: "BuiltIn"), nil, false, false)
+        ]
+        for (name, stored, system, expected, replaced, fallback) in cases {
+            defaults.setVolatileDomain(stored.map { ["preferredInputUID": $0] } ?? [:],
+                                       forName: UserDefaults.argumentDomain)
+            var selected: [String?] = []
+            let input = DictationSessionDependencies.liveMicrophone(
+                defaults: defaults, isAvailable: { $0 == "AirPods" }, systemInput: { system }, makeSource: {
+                    selected.append($0)
+                    return .init(source: ReadinessMicrophone(), warmUp: {})
+                })
+            XCTAssertEqual(selected, [expected], name)
+            XCTAssertEqual(input.replacesBluetooth, replaced, name)
+            XCTAssertEqual(input.usesSystemFallback, fallback, name)
+            XCTAssertEqual(input.notice?.contains("Mac's microphone"), fallback ? replaced : nil, name)
+        }
+    }
+
+    func testOnlyAnOpenLaptopLidLendsTheBuiltInMicrophone() {
+        XCTAssertTrue(SystemInput.laptopLidIsOpen(false))
+        XCTAssertFalse(SystemInput.laptopLidIsOpen(true), "closed lid")
+        XCTAssertFalse(SystemInput.laptopLidIsOpen(nil), "desktop line-in")
     }
 
     func testCorruptInputDefaultsDoNotBecomeDeviceIdentifiers() async {
@@ -355,7 +388,8 @@ final class DictationReadinessTests: XCTestCase {
             var lookups = 0
             var creations = 0
             let input = DictationSessionDependencies.liveMicrophone(
-                defaults: defaults, isAvailable: { _ in lookups += 1; return false }, makeSource: { identifier in
+                defaults: defaults, isAvailable: { _ in lookups += 1; return false }, systemInput: { SystemInput() },
+                makeSource: { identifier in
                     creations += 1
                     XCTAssertNil(identifier)
                     return .init(source: ReadinessMicrophone(), warmUp: {})

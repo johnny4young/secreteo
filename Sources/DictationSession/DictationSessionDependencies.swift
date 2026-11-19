@@ -14,6 +14,15 @@ struct DictationSessionDependencies {
         let source: any AudioCaptureSource
         let warmUp: @Sendable () async -> Void
         var usesSystemFallback = false
+        var replacesBluetooth = false
+        var transport: AudioInputTransport?
+
+        var notice: String? {
+            guard usesSystemFallback else { return nil }
+            return replacesBluetooth
+                ? L10n.text("Your preferred microphone is unavailable. Using the Mac's microphone for this dictation.")
+                : L10n.text("Your preferred microphone is unavailable. Using the system default for this dictation.")
+        }
     }
 
     var authorizeMicrophone: () async -> Bool
@@ -58,15 +67,20 @@ struct DictationSessionDependencies {
     static func liveMicrophone(
         defaults: UserDefaults,
         isAvailable: (String) -> Bool = { (try? AudioDeviceCatalog.inputDevice(matching: $0)) != nil },
+        systemInput: () -> SystemInput = SystemInput.live,
         makeSource: (String?) -> Microphone = { identifier in
             let source = MicrophoneSource(deviceIdentifier: identifier)
             return Microphone(source: source, warmUp: { await source.warmUp() })
         }
     ) -> Microphone {
+        let system = systemInput()
         let selection = MicrophoneInputSelection.resolve(
-            MicrophoneInputSelection.preferredIdentifier(defaults: defaults), isAvailable: isAvailable)
+            MicrophoneInputSelection.preferredIdentifier(defaults: defaults), isAvailable: isAvailable
+        ).avoidingBluetoothDefault(system)
         var microphone = makeSource(selection.deviceIdentifier)
         microphone.usesSystemFallback = selection.usesSystemFallback
+        microphone.replacesBluetooth = selection.replacesBluetooth
+        microphone.transport = system.transport(selection.deviceIdentifier)
         return microphone
     }
 

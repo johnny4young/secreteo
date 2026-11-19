@@ -32,7 +32,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/DictationKitTests/DictationCorrectionCommandTests.swift` | `Tests/PortavozAppTests/DictationCorrectionTests.swift` | Extract: the tests with no app |
 | `Tests/DictationKitTests/DictationRecipeFidelityTests.swift` | `Tests/PortavozAppTests/DictationRecipeTests.swift` | Extract: the tests with no app |
 | `Tests/DictationKitTests/DictationStatsTests.swift` | `Tests/PortavozAppTests/DictationStatsTests.swift` | Extract: the tests with no app |
-| `Sources/MicCapture/AudioDeviceCatalog.swift` | `Sources/AudioCaptureKit/AudioDeviceCatalog.swift` | Renames |
+| `Sources/MicCapture/AudioDeviceCatalog.swift` | `Sources/AudioCaptureKit/AudioDeviceCatalog.swift` | Renames. Later: the default input, each input's transport and the Mac's own microphone |
 | `Sources/MicCapture/Support.swift` | `Sources/AudioCaptureKit/Support.swift` | Renames |
 | `Sources/MicCapture/Downmix.swift` | `Sources/AudioCaptureKit/Downmix.swift` | Renames |
 | `Sources/MicCapture/CapturePCMGeometry.swift` | `Sources/AudioCaptureKit/CapturePCMGeometry.swift` | Renames |
@@ -111,13 +111,13 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationSession/DictationMicrophoneReadiness.swift` | `Sources/portavoz-app/DictationMicrophoneReadiness.swift` | Seam: imports `SpeechCore` |
 | `Sources/DictationSession/DictationPauseDetector.swift` | `Sources/portavoz-app/DictationPauseDetector.swift` | Seam: imports `SpeechCore`. Later: the session's analyses include `DictationTrailingSilence` |
 | `Sources/DictationSession/DictationRuntimeAcquisition.swift` | `Sources/portavoz-app/DictationRuntimeAcquisition.swift` | Renames |
-| `Sources/DictationSession/DictationSessionMeasurement.swift` | `Sources/portavoz-app/DictationSessionMeasurement.swift` | Seam: imports `SpeechCore` |
+| `Sources/DictationSession/DictationSessionMeasurement.swift` | `Sources/portavoz-app/DictationSessionMeasurement.swift` | Seam: imports `SpeechCore`. Later: the timing record's `diagnostics`, schema 2 |
 | `Sources/DictationSession/DictationSoundCue.swift` | `Sources/portavoz-app/DictationSoundCue.swift` | Renames |
 | `Sources/DictationSession/DictationSpeechGate.swift` | `Sources/portavoz-app/DictationSpeechGate.swift` | Seam: imports `SpeechCore` |
 | `Sources/DictationSession/DictationTranscriptProjection.swift` | `Sources/portavoz-app/DictationTranscriptProjection.swift` | Seam: imports `SpeechCore` and `LiveSpeech` |
 | `Sources/DictationSession/L10n.swift` | `Sources/portavoz-app/L10n.swift` | Renames |
 | `Sources/DictationSession/LiveSpeechSelection.swift` | `Sources/portavoz-app/LiveSpeechSelection.swift` | Seam: imports `LiveSpeech`, dictation only with no meeting lane. Later: names the dictation languages |
-| `Sources/DictationSession/MicrophoneInputSelection.swift` | `Sources/portavoz-app/MicrophoneInputSelection.swift` | Renames |
+| `Sources/DictationSession/MicrophoneInputSelection.swift` | `Sources/portavoz-app/MicrophoneInputSelection.swift` | Renames. Later: a Bluetooth system default gives way to the built-in microphone while the lid is open |
 | `Sources/DictationSession/LiveTranscriptionRuntime.swift` | `Sources/portavoz-app/LiveTranscriptionAttacher.swift` | Extract: only the runtime handle, the attacher is meeting code |
 | `Sources/DictationSession/DictationSpeechGate+Silero.swift` | `Sources/portavoz-app/AppServices+DictationSpeechGate.swift` | Extract: the gate rules, with `LocalModelStore` |
 | `Tests/DictationSessionTests/DictationPauseDetectorTests.swift` | `Tests/PortavozAppTests/DictationPauseDetectorTests.swift` | Seam: imports `SpeechCore` |
@@ -136,14 +136,14 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/DictationSessionTests/Triggers/HotkeySettingTests.swift` | `Tests/PortavozAppTests/HotkeySettingTests.swift` | Renames |
 | `Tests/DictationSessionTests/Triggers/ModifierKeyGestureTests.swift` | `Tests/PortavozAppTests/ModifierKeyGestureTests.swift` | Renames |
 | `Tests/DictationSessionTests/Triggers/MousePTTGestureTests.swift` | `Tests/PortavozAppTests/MousePTTGestureTests.swift` | Renames |
-| `Sources/DictationSession/DictationController.swift` | `Sources/portavoz-app/DictationController.swift` | Seam: imports the split targets, messages that named Portavoz's engine and panels are rewritten, and the panel is a placeholder for now. Fixes: a cancelled session corrects nothing, an old transform keeps its hands off a new Escape key, a capture failure keeps the words, expired words leave its state, a closed notice frees Paste last, and Paste last says whether it sent anything. Later: the stop tail ends early once the audio after Stop is silent |
+| `Sources/DictationSession/DictationController.swift` | `Sources/portavoz-app/DictationController.swift` | Seam: imports the split targets, messages that named Portavoz's engine and panels are rewritten, and the panel is a placeholder for now. Fixes: a cancelled session corrects nothing, an old transform keeps its hands off a new Escape key, a capture failure keeps the words, expired words leave its state, a closed notice frees Paste last, and Paste last says whether it sent anything. Later: the stop tail ends early once the audio after Stop is silent, and the timing log gets the microphone, the first sound and the stop tail's numbers |
 | `Sources/DictationSession/DictationController+History.swift` | `Sources/portavoz-app/DictationController+History.swift` | Seam: imports the split targets, and the draft can be forgotten |
 | `Sources/DictationSession/DictationController+Hotkey.swift` | `Sources/portavoz-app/DictationController+Hotkey.swift` | Renames |
 | `Sources/DictationSession/DictationController+ModifierKey.swift` | `Sources/portavoz-app/DictationController+ModifierKey.swift` | Renames |
 | `Sources/DictationSession/DictationController+Ownership.swift` | `Sources/portavoz-app/DictationController+Ownership.swift` | Renames |
 | `Sources/DictationSession/DictationController+PasteLast.swift` | `Sources/portavoz-app/DictationController+PasteLast.swift` | Seam: paste chooses its text by the kind of session, in `DictationController.swift` |
 | `Sources/DictationSession/DictationController+Stats.swift` | `Sources/portavoz-app/DictationController+Stats.swift` | Seam: imports the split targets |
-| `Sources/DictationSession/DictationSessionDependencies.swift` | `Sources/portavoz-app/DictationSessionDependencies.swift` | Seam: imports the split targets, and caret case reads the injected defaults. Later: dictation sends its allowed languages |
+| `Sources/DictationSession/DictationSessionDependencies.swift` | `Sources/portavoz-app/DictationSessionDependencies.swift` | Seam: imports the split targets, and caret case reads the injected defaults. Later: dictation sends its allowed languages, and the live microphone reads `SystemInput` |
 | `Sources/DictationSession/DictationAdmission.swift` | `Sources/portavoz-app/DictationAdmission.swift` | Extract: the port and lease, the composition stays out |
 | `Sources/DictationSession/DictationTextPreferences.swift` | `Sources/portavoz-app/DictationTextPreferences.swift` | Seam: imports the split targets |
 | `Sources/DictationSession/Panel/DictationPanelAnchor.swift` | `Sources/portavoz-app/DictationPanelAnchor.swift` | Renames |
@@ -199,7 +199,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/DictationSessionTests/Session/DictationTextModeDeliveryTests+NativeController.swift` | `Tests/PortavozAppTests/DictationTextModeDeliveryTests+NativeController.swift` | Seam: imports the split targets |
 | `Tests/DictationSessionTests/Session/DictationCorrectionTests.swift` | `Tests/PortavozAppTests/DictationCorrectionTests.swift` | Extract: without the practice test, which arrives with Practice |
 | `Tests/DictationSessionTests/Session/DictationColdStartTests.swift` | `Tests/PortavozAppTests/DictationColdStartTests.swift` | Extract: without the prewarm tests, which arrive with the composition |
-| `Tests/DictationSessionTests/Session/DictationReadinessTests.swift` | `Tests/PortavozAppTests/DictationReadinessTests.swift` | Extract: without the settings file test. The composition tests build the feature, and the microphone tests clear the preference they leave in the argument domain |
+| `Tests/DictationSessionTests/Session/DictationReadinessTests.swift` | `Tests/PortavozAppTests/DictationReadinessTests.swift` | Extract: without the settings file test. The composition tests build the feature, and the microphone tests clear the preference they leave in the argument domain. Later: covers the Bluetooth default and pins `SystemInput` in the selection tests |
 | `Tests/DictationSessionTests/Session/DictationTextModeDeliveryTests.swift` | `Tests/PortavozAppTests/DictationTextModeDeliveryTests.swift` | Seam: the composition and chooser tests build the feature instead of the app's services. The database admission test is rewritten for the feature's start, because a database that cannot open no longer fails it |
 | `Tests/DictationSessionTests/Delivery/DictationDestinationRecoveryTests.swift` | `Tests/PortavozAppTests/DictationDestinationRecoveryTests.swift` | Seam: imports the split targets |
 | `Tests/DictationSessionTests/DictationAutoStopTests.swift` | `Tests/PortavozAppTests/DictationAutoStopTests.swift` | Seam: imports the split targets |
