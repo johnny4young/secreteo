@@ -169,7 +169,9 @@ final class DictationTextRulesTests: XCTestCase {
             ("www dot apple dot com", "www.apple.com"),
             ("docs punto my-site punto io", "docs.my-site.io"),
             ("Write to claude dot ai, please", "Write to claude.ai, please"),
-            ("sat punto gob punto mx", "sat.gob.mx")
+            ("sat punto gob punto mx", "sat.gob.mx"),
+            ("Go to google dot com.", "Go to google.com."),
+            ("Entra a amazon punto com y compra", "Entra a amazon.com y compra")
         ]
         for (heard, typed) in cases {
             XCTAssertEqual(DictationTextRules.apply(heard, replacements: [], removeFillers: false,
@@ -184,7 +186,12 @@ final class DictationTextRulesTests: XCTestCase {
             "La punto com de mi primo",
             "Connect the dots com later",
             "We met at the dot",
-            "x dot comedy"
+            "x dot comedy",
+            "La burbuja punto com",
+            "Las empresas punto com quebraron",
+            "Many dot com companies failed",
+            "The early dot com days",
+            "She built a polka dot app"
         ]
         for text in prose {
             XCTAssertEqual(DictationTextRules.apply(text, replacements: [], removeFillers: false,
