@@ -25,14 +25,23 @@ enum DictationSpokenDomains {
     static let spanishDeterminers: Set<String> = ["el", "la", "los", "las", "un", "una", "unos", "unas"]
 
     private static let separator = "[ \\t]+(dot|punto)[ \\t]+"
+    // The recognizer spells "www" as letters: "W W W", "w. w. w.", "W.W.W.".
+    private static let spelledWeb = "w(?:[.,]?[ \\t]+|\\.)w(?:[.,]?[ \\t]+|\\.)w\\.?"
     private static let expression = try? NSRegularExpression(
-        pattern: "(?<![\\p{L}\\p{N}.])((?:[\\p{L}\\p{N}][\\p{L}\\p{N}-]*" + separator + ")+)("
+        pattern: "(?<![\\p{L}\\p{N}.])((?:" + spelledWeb + "[ \\t]+(?:dot|punto)[ \\t]+)?"
+            + "(?:[\\p{L}\\p{N}][\\p{L}\\p{N}-]*" + separator + ")+)("
             + topLevelDomains.joined(separator: "|") + ")(?![\\p{L}\\p{N}])",
         options: [.caseInsensitive])
+    private static let spelledLabel = try? NSRegularExpression(
+        pattern: "^" + spelledWeb + "$", options: [.caseInsensitive])
+    // It may also write the address after the letters: "W W www.apple.com".
+    private static let lettersBeforeWeb = try? NSRegularExpression(
+        pattern: "(?<![\\p{L}\\p{N}.])((?:w[.,]?[ \\t]+){1,3})www(?:\\.[\\p{L}\\p{N}-]+)+", options: [.caseInsensitive])
 
     /// `claimed` keeps a phrase holding a user's trigger literal.
     static func applying(to text: String, claimed: (String) -> Bool, lexicon: DictationLexicon) -> String {
         guard let expression else { return text }
+        let text = droppingLettersBeforeWeb(text, claimed: claimed)
         let source = text as NSString
         let result = NSMutableString(string: text)
         let matches = expression.matches(in: text, range: NSRange(location: 0, length: source.length))
@@ -40,6 +49,7 @@ enum DictationSpokenDomains {
             let labels = source.substring(with: match.range(at: 1))
                 .replacingOccurrences(of: separator, with: "\n", options: [.regularExpression, .caseInsensitive])
                 .split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
+                .map { isSpelledWeb($0) ? "www" : $0 }
             let spanish = source.substring(with: match.range(at: 2)).lowercased() == "punto"
             let determiners = spanish ? spanishDeterminers : englishDeterminers
             guard let first = labels.first?.lowercased(), !determiners.contains(first),
@@ -60,8 +70,23 @@ enum DictationSpokenDomains {
     private static func isProse(
         _ label: String, spanish: Bool, lexicon: DictationLexicon, followedByWord: Bool
     ) -> Bool {
-        guard spanish || followedByWord else { return false }
+        guard label != "www", spanish || followedByWord else { return false }
         return lexicon.contains(label, spanish) ?? true
+    }
+
+    private static func isSpelledWeb(_ label: String) -> Bool {
+        spelledLabel?.firstMatch(in: label, range: NSRange(location: 0, length: (label as NSString).length)) != nil
+    }
+
+    private static func droppingLettersBeforeWeb(_ text: String, claimed: (String) -> Bool) -> String {
+        guard let lettersBeforeWeb else { return text }
+        let source = text as NSString
+        let result = NSMutableString(string: text)
+        for match in lettersBeforeWeb.matches(in: text, range: NSRange(location: 0, length: source.length)).reversed()
+        where !claimed(source.substring(with: match.range)) {
+            result.replaceCharacters(in: match.range(at: 1), with: "")
+        }
+        return result as String
     }
 
     private static func word(before location: Int, in source: NSString) -> String {
