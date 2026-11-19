@@ -52,24 +52,30 @@ struct SystemInput: Equatable {
     }
 
     static func live() -> Self {
-        Self(
-            defaultTransport: AudioDeviceCatalog.defaultInputDeviceID().map(AudioDeviceCatalog.inputTransport),
-            builtInIdentifier: lidIsClosed() ? nil : AudioDeviceCatalog.builtInInput()?.uid,
+        let defaultTransport = AudioDeviceCatalog.defaultInputDeviceID().map(AudioDeviceCatalog.inputTransport)
+        let replacing = defaultTransport == .bluetooth && laptopLidIsOpen(clamshellState())
+        return Self(
+            defaultTransport: defaultTransport,
+            builtInIdentifier: replacing ? AudioDeviceCatalog.builtInInput()?.uid : nil,
             transport: { identifier in
-                guard let identifier else {
-                    return AudioDeviceCatalog.defaultInputDeviceID().map(AudioDeviceCatalog.inputTransport)
-                }
+                guard let identifier else { return defaultTransport }
                 let device = try? AudioDeviceCatalog.inputDevice(matching: identifier)
                 return device.map { AudioDeviceCatalog.inputTransport($0.id) }
             })
     }
 
-    /// A closed laptop lid mutes the built-in microphone.
-    static func lidIsClosed() -> Bool {
+    /// Only a laptop's built-in input is a microphone; a desktop's is its line-in jack.
+    /// A closed lid mutes it.
+    static func laptopLidIsOpen(_ clamshellState: Bool?) -> Bool {
+        clamshellState == false
+    }
+
+    /// `AppleClamshellState`, or nil on a Mac without a lid.
+    static func clamshellState() -> Bool? {
         let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPMrootDomain"))
-        guard service != 0 else { return false }
+        guard service != 0 else { return nil }
         defer { IOObjectRelease(service) }
         let state = IORegistryEntryCreateCFProperty(service, "AppleClamshellState" as CFString, kCFAllocatorDefault, 0)
-        return (state?.takeRetainedValue() as? Bool) ?? false
+        return state?.takeRetainedValue() as? Bool
     }
 }

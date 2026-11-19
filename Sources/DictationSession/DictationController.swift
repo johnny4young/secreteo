@@ -328,8 +328,7 @@ final class DictationController {
             self.microphone = input.source
             measurement?.observeCapture(input.source)
             measurement?.noteInput(input.transport, replacedBluetooth: input.replacesBluetooth)
-            microphoneNotice = input.usesSystemFallback ? L10n.text(
-                "Your preferred microphone is unavailable. Using the system default for this dictation.") : nil
+            microphoneNotice = input.notice
             // Audio-first: speech during a cold load waits in the bounded relay.
             acquisition.start()
             let readiness = makeMicrophoneReadiness(id: id, dependencies: dependencies, measurement: measurement)

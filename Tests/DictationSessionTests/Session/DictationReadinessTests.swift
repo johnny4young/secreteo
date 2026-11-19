@@ -369,7 +369,14 @@ final class DictationReadinessTests: XCTestCase {
             XCTAssertEqual(selected, [expected], name)
             XCTAssertEqual(input.replacesBluetooth, replaced, name)
             XCTAssertEqual(input.usesSystemFallback, fallback, name)
+            XCTAssertEqual(input.notice?.contains("Mac's microphone"), fallback ? replaced : nil, name)
         }
+    }
+
+    func testOnlyAnOpenLaptopLidLendsTheBuiltInMicrophone() {
+        XCTAssertTrue(SystemInput.laptopLidIsOpen(false))
+        XCTAssertFalse(SystemInput.laptopLidIsOpen(true), "closed lid")
+        XCTAssertFalse(SystemInput.laptopLidIsOpen(nil), "desktop line-in")
     }
 
     func testCorruptInputDefaultsDoNotBecomeDeviceIdentifiers() async {

@@ -16,6 +16,13 @@ struct DictationSessionDependencies {
         var usesSystemFallback = false
         var replacesBluetooth = false
         var transport: AudioInputTransport?
+
+        var notice: String? {
+            guard usesSystemFallback else { return nil }
+            return replacesBluetooth
+                ? L10n.text("Your preferred microphone is unavailable. Using the Mac's microphone for this dictation.")
+                : L10n.text("Your preferred microphone is unavailable. Using the system default for this dictation.")
+        }
     }
 
     var authorizeMicrophone: () async -> Bool
