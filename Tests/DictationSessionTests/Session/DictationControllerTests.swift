@@ -196,6 +196,30 @@ final class DictationControllerTests: XCTestCase {
         }
     }
 
+    func testSilenceAfterStopStopsTheMicrophoneBeforeTheTailEnds() async {
+        let harness = DictationControllerHarness(text: "Don’t delete these notes")
+        defer { harness.controller.cancel() }
+        let tail = ControlledTestSleep()
+        harness.waitForStopTail = { try await tail.wait(for: $0) }
+        harness.controller.toggle(using: harness.dependencies)
+        let partial = await awaitEventually { harness.controller.partialText == harness.text }
+        XCTAssertTrue(partial)
+        harness.now = harness.now.addingTimeInterval(1)
+        harness.controller.toggle(using: harness.dependencies)
+        let tailPending = await tail.waitUntilCallCount(1)
+        XCTAssertTrue(tailPending)
+
+        for start in [10.0, 10.1] {
+            let quiet = (0..<1_600).map { $0.isMultiple(of: 2) ? Float(0.001) : -0.001 }
+            await harness.microphone.send(AudioChunk(
+                channel: .microphone, samples: quiet, sampleRate: 16_000, timestamp: start))
+        }
+
+        let stopped = await TestPolling.untilAsync { await harness.microphone.stops > 0 }
+        XCTAssertTrue(stopped, "A silent tail stops the microphone without waiting 250 ms")
+        _ = await tail.resumeCall(at: 0)
+    }
+
     func testObsoleteProducerFailureCannotRetireReplacementCapture() async {
         let controller = DictationController(presentsPanel: false)
         let first = DictationControllerHarness(text: "No borres estas notas", controller: controller)
