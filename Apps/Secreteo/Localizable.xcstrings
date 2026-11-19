@@ -6434,6 +6434,22 @@
         }
       }
     },
+    "Your preferred microphone is unavailable. Using the Mac's microphone for this dictation." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your preferred microphone is unavailable. Using the Mac's microphone for this dictation."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu micrófono preferido no está disponible. Se usará el micrófono del Mac para este dictado."
+          }
+        }
+      }
+    },
     "Your preferred microphone is unavailable. Using the system default for this dictation." : {
       "localizations" : {
         "en" : {

@@ -54,9 +54,20 @@ struct DictationSessionAudioCounts: Codable, Equatable, Sendable {
     }
 }
 
+/// Why a dictation started or stopped when it did: the microphone and audio levels, never audio.
+struct DictationSessionDiagnostics: Codable, Equatable, Sendable {
+    /// Below this peak a buffer is digital silence, not a microphone hearing a room.
+    static let audiblePeak: Float = 1e-4
+
+    var inputTransport: AudioInputTransport?
+    var replacedBluetooth = false
+    var firstAudibleSeconds: Double?
+    var tail: DictationTrailingSilence.Report?
+}
+
 /// One line of the timing log: times, counts and an outcome, never audio or text.
 struct DictationSessionTimingRecord: Codable, Equatable, Sendable {
-    static let currentSchemaVersion = 1
+    static let currentSchemaVersion = 2
 
     let schemaVersion: Int
     /// Wall clock at the start, so an outside observer can line sessions up with its own events.
@@ -65,6 +76,7 @@ struct DictationSessionTimingRecord: Codable, Equatable, Sendable {
     let engine: String?
     let session: DictationSessionMeasurement
     let audio: DictationSessionAudioCounts
+    let diagnostics: DictationSessionDiagnostics
 }
 
 /// One bounded accumulator per observed session. Retired tasks may retain it,
@@ -84,6 +96,7 @@ final class DictationSessionMeasurementRecorder {
     private var points: [String: Double] = [:]
     private var audio = DictationSessionAudioCounts()
     private var engine: String?
+    private var diagnostics = DictationSessionDiagnostics()
     private var captureReport: (@Sendable () -> CaptureChannelReport)?
 
     init(
@@ -124,6 +137,23 @@ final class DictationSessionMeasurementRecorder {
         engine = lane
     }
 
+    func noteInput(_ transport: AudioInputTransport?, replacedBluetooth: Bool) {
+        guard isOpen else { return }
+        diagnostics.inputTransport = transport
+        diagnostics.replacedBluetooth = replacedBluetooth
+    }
+
+    func noteBuffer(peak: Float) {
+        guard isOpen, diagnostics.firstAudibleSeconds == nil, peak > DictationSessionDiagnostics.audiblePeak
+        else { return }
+        diagnostics.firstAudibleSeconds = elapsed()
+    }
+
+    func noteTail(_ report: DictationTrailingSilence.Report) {
+        guard isOpen else { return }
+        diagnostics.tail = report
+    }
+
     func noteRelayDrop(frames: Int) {
         guard isOpen else { return }
         audio.relayDroppedChunks += 1
@@ -152,7 +182,7 @@ final class DictationSessionMeasurementRecorder {
         recordSink(DictationSessionTimingRecord(
             schemaVersion: DictationSessionTimingRecord.currentSchemaVersion,
             startedAt: startedAt.timeIntervalSince1970, admission: admission, engine: engine,
-            session: measurement, audio: audio))
+            session: measurement, audio: audio, diagnostics: diagnostics))
     }
 
     func finishDelivery(_ result: DictationDeliveryOutcome) {
