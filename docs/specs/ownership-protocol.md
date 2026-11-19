@@ -161,7 +161,7 @@ Ownership moves only on a user action, with one exception: [First run](#first-ru
 
 | When the intent is seen | What the holder does |
 |---|---|
-| `preparing`, before the microphone opens | Cancels at once |
+| `preparing`, before the microphone delivers sound | Cancels at once |
 | `listening`, microphone open | Runs for at most 5 seconds more, then cancels |
 | Microphone closed: transcribing, polishing, delivering, restoring the pasteboard | Runs to the end. An operation with no microphone stage, such as paste-last or a Rewrite's read or replace, is here |
 | A practice lease, in any participant | Cancels at once, whoever the intent names |

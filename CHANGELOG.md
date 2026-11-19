@@ -4,6 +4,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- 🎧 **Bluetooth headsets keep your first words**: the panel says it is listening only once the microphone hears sound, not while a headset is still switching on.
 - ⚡ **Text arrives sooner**: when you end a dictation after you have stopped speaking, the words no longer wait a full quarter second before they go out.
 - ⚡ **No wait after a macOS update**: Secreteo prepares the speech model when it opens, so the first dictation after updating macOS no longer takes several seconds to start.
 - 🔗 **Say web addresses**: “x dot com”, “github punto com” and “w w w dot apple dot com” type `x.com`, `github.com` and `www.apple.com`; Literal mode keeps the words as spoken.

@@ -70,11 +70,12 @@ enum DictationControllerModelProbe {
                 inputCompleted = complete
                 guard complete else { break }
                 // EOF can precede the controller's asynchronous first-buffer admission.
-                while controller.phase == .preparing, !Task.isCancelled {
+                while controller.phase == .preparing, controller.captureStartedAt == nil, !Task.isCancelled {
                     try? await Task.sleep(for: .milliseconds(1))
                 }
-                guard !Task.isCancelled, controller.phase == .listening else { break }
-                controller.toggle(using: dependencies)
+                // Silent input keeps the session preparing; the stop gesture still finishes it.
+                guard !Task.isCancelled, controller.phase == .preparing || controller.phase == .listening else { break }
+                controller.finishAndInsert()
             }
         }
         var iterator = measurements.makeAsyncIterator()

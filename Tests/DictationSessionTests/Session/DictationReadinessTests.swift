@@ -251,7 +251,7 @@ final class DictationReadinessTests: XCTestCase {
             } else {
                 let consumed = await eventually { harness.observedChunks == 1 }
                 XCTAssertTrue(consumed)
-                XCTAssertEqual(harness.controller.phase, .listening)
+                XCTAssertEqual(harness.controller.phase, .preparing, "Silence disarms the deadline but is not listening yet")
                 XCTAssertEqual(harness.observedChunks, 1)
             }
             harness.controller.cancel()

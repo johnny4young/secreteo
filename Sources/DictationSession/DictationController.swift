@@ -622,7 +622,8 @@ private extension DictationController {
         measurement: DictationSessionMeasurementRecorder?
     ) -> DictationMicrophoneReadiness {
         let readiness = DictationMicrophoneReadiness(now: dependencies.now, onReady: { [weak self] in
-            guard let self, activeSessionID == id else { return }
+            // Signal can first arrive in the stop tail of a session finished while preparing.
+            guard let self, activeSessionID == id, phase == .preparing, stopTask == nil else { return }
             phase = .listening
         }, onFailure: { [weak self] failure in
             guard let self, activeSessionID == id else { return }

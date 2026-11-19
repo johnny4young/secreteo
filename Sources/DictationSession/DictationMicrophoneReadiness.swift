@@ -3,11 +3,19 @@ import Foundation
 import DictationKit
 import SpeechCore
 
-/// Session-owned first-frame admission and its bounded startup wait. Native
-/// cleanup stays with the controller; this owner cannot release model leases.
+/// Session-owned first-frame admission and its bounded startup wait. Ready means
+/// the first audible buffer, not the first buffer. Native cleanup stays with the
+/// controller; this owner cannot release model leases.
 @MainActor
 final class DictationMicrophoneReadiness {
+    /// About -80 dBFS: below any live microphone's noise floor, above digital silence.
+    static let signalFloor: Float = 1e-4
+    /// Outlasts a Bluetooth headset's switch to its call profile, so only a truly silent input waits this long.
+    static let silentFallback: Double = 1.5
+
     private(set) var firstFrameAt: Date?
+    private var hearsSignal = false
+    private var silentSeconds: Double = 0
     private var accepting = true
     private var deadlineTask: Task<Void, Never>?
     private let now: () -> Date
@@ -62,7 +70,7 @@ final class DictationMicrophoneReadiness {
         deadlineTask = nil
     }
 
-    private func accept(arrivedAt: ContinuousClock.Instant) -> Bool {
+    private func accept(arrivedAt: ContinuousClock.Instant, peak: Float, seconds: Double) -> Bool {
         guard accepting else { return false }
         if firstFrameAt == nil {
             // A main-actor stall before admission must not shorten the minimum capture.
@@ -70,7 +78,13 @@ final class DictationMicrophoneReadiness {
             firstFrameAt = now().addingTimeInterval(-(Double(lag.seconds) + Double(lag.attoseconds) * 1e-18))
             deadlineTask?.cancel()
             deadlineTask = nil
-            onReady()
+        }
+        if !hearsSignal {
+            silentSeconds += seconds
+            if peak > Self.signalFloor || silentSeconds >= Self.silentFallback {
+                hearsSignal = true
+                onReady()
+            }
         }
         return true
     }
@@ -117,7 +131,8 @@ final class DictationMicrophoneReadiness {
                         }
                         peak = max(peak, abs(sample))
                     }
-                    guard await accept(arrivedAt: arrivedAt), !Task.isCancelled else { break }
+                    guard await accept(arrivedAt: arrivedAt, peak: peak, seconds: chunk.duration), !Task.isCancelled
+                    else { break }
                     let relayed = feed.yield(chunk)
                     guard DictationRelayPolicy.admits(relayed, chunk: chunk) else {
                         if let lost = DictationRelayPolicy.lostFrames(relayed, chunk: chunk) { await onRelayDrop(lost) }
