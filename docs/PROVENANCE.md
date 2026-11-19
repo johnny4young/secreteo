@@ -61,9 +61,9 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/LiveSpeech/BoundedLiveAudioFeeds.swift` | `Sources/TranscriptionKit/BoundedLiveAudioFeeds.swift` | Renames |
 | `Sources/LiveSpeech/SpokenLanguageDetector.swift` | `Sources/TranscriptionKit/SpokenLanguageDetector.swift` | Renames |
 | `Sources/LiveSpeech/VocabularyPrompt.swift` | `Sources/TranscriptionKit/VocabularyPrompt.swift` | Renames |
-| `Sources/LiveSpeech/TranscriptionEngine.swift` | `Sources/TranscriptionKit/TranscriptionEngine.swift` | Renames |
+| `Sources/LiveSpeech/TranscriptionEngine.swift` | `Sources/TranscriptionKit/TranscriptionEngine.swift` | Renames. Later: `allowedLanguages` replaces `filtersLiveScript` |
 | `Sources/LiveSpeech/FileTranscription.swift` | `Sources/TranscriptionKit/FileTranscription.swift` | Renames |
-| `Sources/LiveSpeech/ParakeetEngine.swift` | `Sources/TranscriptionKit/ParakeetEngine.swift` | Seam: loads through `LocalModelStore`, with v3 named directly instead of a routing table, takes seeds, and holds a store lease while loaded |
+| `Sources/LiveSpeech/ParakeetEngine.swift` | `Sources/TranscriptionKit/ParakeetEngine.swift` | Seam: loads through `LocalModelStore`, with v3 named directly instead of a routing table, takes seeds, and holds a store lease while loaded. Later: the script filter follows `allowedLanguages`, Auto included |
 | `Sources/LiveSpeech/SileroVoiceActivityDetector.swift` | `Sources/TranscriptionKit/SileroVoiceActivityDetector.swift` | Seam: loads through `LocalModelStore` and holds a store lease while loaded |
 | `Sources/LiveSpeech/ModelCatalog.swift` | `Sources/ModelStoreKit/ModelRegistry.swift` | Extract: the Parakeet v3 pin as a `ModelManifest`, with no task or folder name |
 | `Sources/LiveSpeech/ModelCatalog+ParakeetUltra.swift` | `Sources/ModelStoreKit/ModelCatalog+ParakeetUltra.swift` | Seam: a `ModelManifest`, with no task or folder name |
@@ -73,7 +73,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/SpeechCore/TranscriptContentPolicy.swift` | `Sources/PortavozCore/TranscriptContentPolicy.swift` | Renames |
 | `Tests/LiveSpeechTests/CaptionCoalescerTests.swift` | `Tests/PortavozKitTests/CaptionCoalescerTests.swift` | Renames |
 | `Tests/LiveSpeechTests/CaptionCoalescerTokenModeTests.swift` | `Tests/PortavozKitTests/CaptionCoalescerTokenModeTests.swift` | Renames |
-| `Tests/LiveSpeechTests/ParakeetLanguageConfigurationTests.swift` | `Tests/PortavozKitTests/ParakeetLanguageConfigurationTests.swift` | Renames |
+| `Tests/LiveSpeechTests/ParakeetLanguageConfigurationTests.swift` | `Tests/PortavozKitTests/ParakeetLanguageConfigurationTests.swift` | Renames. Later: cases follow `allowedLanguages` |
 | `Tests/LiveSpeechTests/ParakeetTokenRevisionReducerTests.swift` | `Tests/PortavozKitTests/ParakeetTokenRevisionReducerTests.swift` | Renames |
 | `Tests/LiveSpeechTests/ParakeetAudioChunkTests.swift` | `Tests/PortavozKitTests/ParakeetAudioChunkTests.swift` | Renames |
 | `Tests/LiveSpeechTests/ParakeetLiveWorkProbeTests.swift` | `Tests/PortavozKitTests/ParakeetLiveWorkProbeTests.swift` | Renames |
@@ -116,7 +116,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationSession/DictationSpeechGate.swift` | `Sources/portavoz-app/DictationSpeechGate.swift` | Seam: imports `SpeechCore` |
 | `Sources/DictationSession/DictationTranscriptProjection.swift` | `Sources/portavoz-app/DictationTranscriptProjection.swift` | Seam: imports `SpeechCore` and `LiveSpeech` |
 | `Sources/DictationSession/L10n.swift` | `Sources/portavoz-app/L10n.swift` | Renames |
-| `Sources/DictationSession/LiveSpeechSelection.swift` | `Sources/portavoz-app/LiveSpeechSelection.swift` | Seam: imports `LiveSpeech`, dictation only with no meeting lane |
+| `Sources/DictationSession/LiveSpeechSelection.swift` | `Sources/portavoz-app/LiveSpeechSelection.swift` | Seam: imports `LiveSpeech`, dictation only with no meeting lane. Later: names the dictation languages |
 | `Sources/DictationSession/MicrophoneInputSelection.swift` | `Sources/portavoz-app/MicrophoneInputSelection.swift` | Renames |
 | `Sources/DictationSession/LiveTranscriptionRuntime.swift` | `Sources/portavoz-app/LiveTranscriptionAttacher.swift` | Extract: only the runtime handle, the attacher is meeting code |
 | `Sources/DictationSession/DictationSpeechGate+Silero.swift` | `Sources/portavoz-app/AppServices+DictationSpeechGate.swift` | Extract: the gate rules, with `LocalModelStore` |
@@ -143,7 +143,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationSession/DictationController+Ownership.swift` | `Sources/portavoz-app/DictationController+Ownership.swift` | Renames |
 | `Sources/DictationSession/DictationController+PasteLast.swift` | `Sources/portavoz-app/DictationController+PasteLast.swift` | Seam: paste chooses its text by the kind of session, in `DictationController.swift` |
 | `Sources/DictationSession/DictationController+Stats.swift` | `Sources/portavoz-app/DictationController+Stats.swift` | Seam: imports the split targets |
-| `Sources/DictationSession/DictationSessionDependencies.swift` | `Sources/portavoz-app/DictationSessionDependencies.swift` | Seam: imports the split targets, and caret case reads the injected defaults |
+| `Sources/DictationSession/DictationSessionDependencies.swift` | `Sources/portavoz-app/DictationSessionDependencies.swift` | Seam: imports the split targets, and caret case reads the injected defaults. Later: dictation sends its allowed languages |
 | `Sources/DictationSession/DictationAdmission.swift` | `Sources/portavoz-app/DictationAdmission.swift` | Extract: the port and lease, the composition stays out |
 | `Sources/DictationSession/DictationTextPreferences.swift` | `Sources/portavoz-app/DictationTextPreferences.swift` | Seam: imports the split targets |
 | `Sources/DictationSession/Panel/DictationPanelAnchor.swift` | `Sources/portavoz-app/DictationPanelAnchor.swift` | Renames |
@@ -185,7 +185,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/DictationSession/Fixtures/DictationUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationUITestFixture.swift` | Extract: without the composition extension, and the ticking clock starts at the current date so retention keeps its records |
 | `Sources/DictationSession/Fixtures/DictationNativeUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationNativeUITestFixture.swift` | Seam: a line wrapped for the longer identifier |
 | `Sources/DictationSession/Fixtures/DictationNativeControllerUITestFixture.swift` | `Sources/portavoz-app/AppServices+DictationNativeControllerUITestFixture.swift` | Renames |
-| `Tests/DictationSessionTests/Session/DictationControllerTests.swift` | `Tests/PortavozAppTests/DictationControllerTests.swift` | Seam: imports the split targets |
+| `Tests/DictationSessionTests/Session/DictationControllerTests.swift` | `Tests/PortavozAppTests/DictationControllerTests.swift` | Seam: imports the split targets. Later: asserts the allowed languages |
 | `Tests/DictationSessionTests/Session/DictationSessionLifecycleTests.swift` | `Tests/PortavozAppTests/DictationSessionLifecycleTests.swift` | Seam: imports the split targets |
 | `Tests/DictationSessionTests/Session/DictationDeliveryOutcomeTests.swift` | `Tests/PortavozAppTests/DictationDeliveryOutcomeTests.swift` | Seam: imports the split targets |
 | `Tests/DictationSessionTests/Session/DictationDeliveryPhaseTests.swift` | `Tests/PortavozAppTests/DictationDeliveryPhaseTests.swift` | Seam: imports the split targets |
