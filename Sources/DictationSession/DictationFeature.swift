@@ -37,6 +37,7 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored private let ownership: DictationOwnershipCoordinator
     @ObservationIgnored let readiness: ReadinessGap
     @ObservationIgnored let warmEngine: WarmModel<ParakeetEngine>
+    @ObservationIgnored var compiledThisLaunch = false
     @ObservationIgnored private var readinessPoll: Task<Void, Never>?
     @ObservationIgnored private var modelInstall: Task<Void, any Error>?
     @ObservationIgnored private var modelInstallParts: Set<DictationModels.Part> = []
@@ -384,8 +385,12 @@ public final class DictationFeature: AppServices {
 
     /// Loads only an installed, verified model, because `warmEngine` never downloads.
     func prewarmIfConfigured() {
-        guard DictationPrewarmPolicy.shouldWarm(prewarmConditions) else { return }
-        warmEngine.prewarm()
+        let conditions = prewarmConditions
+        if DictationPrewarmPolicy.shouldWarm(conditions) {
+            warmEngine.prewarm()
+        } else if !compiledThisLaunch, ownership.state == .owned, DictationPrewarmPolicy.shouldCompile(conditions) {
+            compiledThisLaunch = warmEngine.compileAhead() != nil
+        }
     }
 
     func modelMemoryChanged() {

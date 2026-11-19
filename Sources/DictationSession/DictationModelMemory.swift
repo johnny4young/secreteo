@@ -79,8 +79,13 @@ enum DictationPrewarmPolicy {
     }
 
     static func shouldWarm(_ conditions: Conditions) -> Bool {
-        conditions.dictationEnabled && conditions.prewarmEnabled
-            && conditions.profile == .balanced && [.parakeet, .parakeetUltra].contains(conditions.engine)
+        conditions.prewarmEnabled && conditions.profile == .balanced && shouldCompile(conditions)
+    }
+
+    /// Core ML keeps its compiled model per macOS build, so the first load after a macOS
+    /// update takes seconds. Loading once at launch moves that wait off the first dictation.
+    static func shouldCompile(_ conditions: Conditions) -> Bool {
+        conditions.dictationEnabled && [.parakeet, .parakeetUltra].contains(conditions.engine)
             && !conditions.underPressure && !conditions.lowPowerMode
             && !conditions.temporaryStore
     }

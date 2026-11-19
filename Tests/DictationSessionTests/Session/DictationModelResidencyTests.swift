@@ -160,6 +160,40 @@ final class DictationModelResidencyTests: XCTestCase {
         XCTAssertFalse(rig.warm.release(), "and nothing the second time")
     }
 
+    func testCompilingAheadLoadsOnceAndGivesTheModelBackAtOnce() async throws {
+        let rig = makeRig()
+        let compile = try XCTUnwrap(rig.warm.compileAhead())
+        await compile.value
+
+        XCTAssertEqual(rig.census.loads, 1)
+        await assertGivenBack(rig)
+        XCTAssertEqual(rig.idleClockStarts.count, 0, "Nothing waits out an idle window")
+    }
+
+    func testADictationDuringTheCompileKeepsTheModelItLoaded() async throws {
+        let rig = makeRig()
+        let compile = try XCTUnwrap(rig.warm.compileAhead())
+        _ = try await rig.warm.acquire()
+        await compile.value
+
+        XCTAssertEqual(rig.census.loads, 1, "The dictation joins the compile's load")
+        XCTAssertTrue(rig.warm.isHoldingModel)
+        rig.warm.releaseWhenIdle()
+        let waiting = await rig.clock.waitUntilCallCount(1)
+        XCTAssertTrue(waiting, "The dictation's model still gets its idle clock")
+        rig.warm.release()
+    }
+
+    func testCompilingAheadSkipsAModelAlreadyLoadedOrInUse() async throws {
+        let rig = makeRig()
+        _ = try await rig.warm.acquire()
+        XCTAssertNil(rig.warm.compileAhead())
+        rig.warm.releaseWhenIdle()
+        XCTAssertNil(rig.warm.compileAhead(), "A held model is already compiled")
+        XCTAssertEqual(rig.census.loads, 1)
+        rig.warm.release()
+    }
+
     func testANewUseAfterAReleaseLoadsAgain() async throws {
         for releasesUnderPressure in [false, true] {
             let rig = makeRig()
