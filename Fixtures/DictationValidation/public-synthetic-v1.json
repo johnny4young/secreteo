@@ -1104,6 +1104,244 @@
         "Sí."
       ],
       "critical": true
+    },
+    {
+      "id": "stress-en-short-domain",
+      "group": "short-domain",
+      "cohort": "stress",
+      "shape": "address",
+      "split": "tuning",
+      "audioKind": "speech",
+      "segments": [
+        {
+          "language": "en",
+          "text": "x dot com"
+        }
+      ],
+      "acceptedTexts": [
+        "x dot com",
+        "x.com"
+      ],
+      "critical": true
+    },
+    {
+      "id": "stress-es-short-domain",
+      "group": "short-domain",
+      "cohort": "stress",
+      "shape": "address",
+      "split": "tuning",
+      "audioKind": "speech",
+      "segments": [
+        {
+          "language": "es",
+          "text": "x punto com"
+        }
+      ],
+      "acceptedTexts": [
+        "x punto com",
+        "x.com"
+      ],
+      "critical": true
+    },
+    {
+      "id": "stress-en-brand-domain",
+      "group": "brand-domain",
+      "cohort": "stress",
+      "shape": "address",
+      "split": "tuning",
+      "audioKind": "speech",
+      "segments": [
+        {
+          "language": "en",
+          "text": "Go to github dot com."
+        }
+      ],
+      "acceptedTexts": [
+        "Go to github dot com.",
+        "Go to github.com."
+      ],
+      "critical": true
+    },
+    {
+      "id": "stress-es-brand-domain",
+      "group": "brand-domain",
+      "cohort": "stress",
+      "shape": "address",
+      "split": "tuning",
+      "audioKind": "speech",
+      "segments": [
+        {
+          "language": "es",
+          "text": "Entra a amazon punto com."
+        }
+      ],
+      "acceptedTexts": [
+        "Entra a amazon punto com.",
+        "Entra a amazon.com."
+      ],
+      "critical": true
+    },
+    {
+      "id": "stress-en-inline-switch",
+      "group": "inline-switch",
+      "cohort": "stress",
+      "shape": "code-switching",
+      "split": "tuning",
+      "audioKind": "speech",
+      "segments": [
+        {
+          "language": "en",
+          "text": "Send the factura to the contador before Friday."
+        }
+      ],
+      "acceptedTexts": [
+        "Send the factura to the contador before Friday."
+      ],
+      "critical": true
+    },
+    {
+      "id": "stress-es-inline-switch",
+      "group": "inline-switch",
+      "cohort": "stress",
+      "shape": "code-switching",
+      "split": "tuning",
+      "audioKind": "speech",
+      "segments": [
+        {
+          "language": "es",
+          "text": "Haz el merge del pull request antes del deploy."
+        }
+      ],
+      "acceptedTexts": [
+        "Haz el merge del pull request antes del deploy."
+      ],
+      "critical": true
+    },
+    {
+      "id": "stress-mixed-voice-switch",
+      "group": "voice-switch",
+      "cohort": "stress",
+      "shape": "code-switching",
+      "split": "tuning",
+      "audioKind": "speech",
+      "segments": [
+        {
+          "language": "en",
+          "text": "Open the dashboard"
+        },
+        {
+          "language": "es",
+          "text": "y revisa las métricas"
+        },
+        {
+          "language": "en",
+          "text": "before the standup."
+        }
+      ],
+      "acceptedTexts": [
+        "Open the dashboard y revisa las métricas before the standup."
+      ],
+      "critical": true
+    },
+    {
+      "id": "stress-en-subdomain",
+      "group": "subdomain",
+      "cohort": "stress",
+      "shape": "address",
+      "split": "holdout",
+      "audioKind": "speech",
+      "segments": [
+        {
+          "language": "en",
+          "text": "Visit www dot apple dot com today."
+        }
+      ],
+      "acceptedTexts": [
+        "Visit www dot apple dot com today.",
+        "Visit www.apple.com today."
+      ],
+      "critical": true
+    },
+    {
+      "id": "stress-es-subdomain",
+      "group": "subdomain",
+      "cohort": "stress",
+      "shape": "address",
+      "split": "holdout",
+      "audioKind": "speech",
+      "segments": [
+        {
+          "language": "es",
+          "text": "Abre mail punto google punto com."
+        }
+      ],
+      "acceptedTexts": [
+        "Abre mail punto google punto com.",
+        "Abre mail.google.com."
+      ],
+      "critical": true
+    },
+    {
+      "id": "stress-en-brands",
+      "group": "brands",
+      "cohort": "stress",
+      "shape": "brands",
+      "split": "holdout",
+      "audioKind": "speech",
+      "segments": [
+        {
+          "language": "en",
+          "text": "Share the Figma link on Slack and WhatsApp."
+        }
+      ],
+      "acceptedTexts": [
+        "Share the Figma link on Slack and WhatsApp."
+      ],
+      "critical": false
+    },
+    {
+      "id": "stress-es-brands",
+      "group": "brands",
+      "cohort": "stress",
+      "shape": "brands",
+      "split": "holdout",
+      "audioKind": "speech",
+      "segments": [
+        {
+          "language": "es",
+          "text": "Pide un Uber y paga con PayPal desde el iPhone."
+        }
+      ],
+      "acceptedTexts": [
+        "Pide un Uber y paga con PayPal desde el iPhone."
+      ],
+      "critical": false
+    },
+    {
+      "id": "stress-mixed-brand-switch",
+      "group": "brand-switch",
+      "cohort": "stress",
+      "shape": "code-switching",
+      "split": "holdout",
+      "audioKind": "speech",
+      "segments": [
+        {
+          "language": "es",
+          "text": "Mándame el link"
+        },
+        {
+          "language": "en",
+          "text": "of the Zoom meeting"
+        },
+        {
+          "language": "es",
+          "text": "por WhatsApp."
+        }
+      ],
+      "acceptedTexts": [
+        "Mándame el link of the Zoom meeting por WhatsApp."
+      ],
+      "critical": true
     }
   ],
   "profiles": [

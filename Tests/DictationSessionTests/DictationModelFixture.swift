@@ -4,9 +4,23 @@ import Foundation
 
 /// Selected public cells only. The corpus CLI separately admits the entire matrix.
 struct DictationModelFixture {
-    static let sourceDigest = "92de308a11ea180e10f0120b41cf2c24e713b1f4e15dc26b50b55312ef3022e3"
+    static let sourceDigest = "e4d0d477fbc2e9a413cac4dce4c34d46be2cf9a755ce0fc152898e5dbf4b8f6d"
     static let root = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+
+    /// Compares file identities, so another letter case or the /System/Volumes/Data path still counts.
+    static func isInsideRepository(_ path: String) -> Bool {
+        let key = URLResourceKey.fileResourceIdentifierKey
+        guard let repository = try? root.resourceValues(forKeys: [key]).fileResourceIdentifier else { return true }
+        var url = URL(fileURLWithPath: path).standardizedFileURL
+        while true {
+            if let identity = try? url.resourceValues(forKeys: [key]).fileResourceIdentifier,
+               identity.isEqual(repository) { return true }
+            let parent = url.deletingLastPathComponent()
+            if parent.path == url.path { return false }
+            url = parent
+        }
+    }
 
     struct Source: Decodable {
         struct Family: Decodable {

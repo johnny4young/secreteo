@@ -140,7 +140,7 @@ class DictationControllerMatrixTests(unittest.TestCase):
     def test_complete_corpus_reaches_the_launcher_without_missing_or_duplicate_attempts(self):
         result = self.observe(cases=None)
         self.assertEqual(result['outcome'], 'observed')
-        self.assertEqual(result['observedCells'], 480)
+        self.assertEqual(result['observedCells'], 576)
         self.assertTrue(result['fullPublicCorpusSelected'])
         _, cells = corpus.read_public_corpus()
         requests = [self.read(f"{item['id']}/request.json") for item in result['cohorts']]
@@ -191,7 +191,7 @@ class DictationControllerMatrixTests(unittest.TestCase):
                    json.loads((self.fixture.audio / 'manifest.json').read_text())['entries']}
         groups = matrix.partition(entries, sorted(cells), 16)
         self.assertEqual([case for group in groups for case in group], sorted(cells))
-        self.assertEqual(sum(map(len, groups)), 480)
+        self.assertEqual(sum(map(len, groups)), 576)
         self.assertTrue(all(len(group) <= 16 for group in groups))
 
     def test_cli_bad_size_refuses_before_creating_output(self):

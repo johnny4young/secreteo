@@ -81,10 +81,12 @@ final class DictationPauseDetector: Sendable {
 struct DictationSessionAnalysis: Sendable {
     var gate: DictationSpeechGate?
     var pause: DictationPauseDetector?
+    var tail = DictationTrailingSilence()
 
     func offer(_ chunk: AudioChunk) {
         gate?.offer(chunk)
         pause?.offer(chunk)
+        tail.offer(chunk)
     }
 
     func cancel() {

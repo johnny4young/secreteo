@@ -913,6 +913,18 @@ struct DictationPolishRun {
 }
 
 extension DictationController {
+    /// False when the stop itself was cancelled. Silence after the gesture ends the wait early.
+    static func stopTailEnded(
+        wait: @escaping @MainActor (Duration) async throws -> Void, silence: DictationTrailingSilence
+    ) async -> Bool {
+        let tail = Task { @MainActor in try await wait(stopTail) }
+        silence.onSilence { tail.cancel() }
+        let outcome = await withTaskCancellationHandler { await tail.result } onCancel: { tail.cancel() }
+        if Task.isCancelled { return false }
+        if case .success = outcome { return true }
+        return silence.isSilent
+    }
+
     /// Second hotkey press: stop the mic; the drained stream delivers.
     func finishAndInsert() {
         guard phase == .preparing || phase == .listening else { return }
@@ -936,12 +948,10 @@ extension DictationController {
         }
         let playCue = dependencies.playCue
         let waitForTail = dependencies.waitForStopTail
+        let silence = analysis.tail
+        silence.finishRequested()
         stopTask = Task { [weak self] in
-            do {
-                try await waitForTail(Self.stopTail)
-            } catch {
-                return
-            }
+            guard await Self.stopTailEnded(wait: waitForTail, silence: silence) else { return }
             guard let self, self.activeSessionID == sessionID else { return }
             self.stopIssuedSessionID = sessionID
             await microphone?.stop()

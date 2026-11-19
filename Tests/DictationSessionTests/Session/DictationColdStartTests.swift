@@ -210,6 +210,25 @@ final class DictationColdStartTests: XCTestCase {
         }
     }
 
+    func testCompilingAtLaunchIgnoresThePrewarmChoiceButNotTheMac() async {
+        let allowed = DictationPrewarmPolicy.Conditions(
+            dictationEnabled: true, prewarmEnabled: false, profile: .lightweight, engine: .parakeetUltra,
+            underPressure: false, lowPowerMode: false, temporaryStore: false)
+        XCTAssertTrue(DictationPrewarmPolicy.shouldCompile(allowed))
+        let blocked: [(String, (inout DictationPrewarmPolicy.Conditions) -> Void)] = [
+            ("dictation off", { $0.dictationEnabled = false }),
+            ("apple speech", { $0.engine = .appleSpeech }),
+            ("pressure", { $0.underPressure = true }),
+            ("low power", { $0.lowPowerMode = true }),
+            ("temporary store", { $0.temporaryStore = true })
+        ]
+        for (name, change) in blocked {
+            var conditions = allowed
+            change(&conditions)
+            XCTAssertFalse(DictationPrewarmPolicy.shouldCompile(conditions), name)
+        }
+    }
+
     func testRelayPolicyMeasuresQueuedAudioTime() async {
         let capacity = DictationRelayPolicy.capacity
         let limit = DictationRelayPolicy.backlogLimit

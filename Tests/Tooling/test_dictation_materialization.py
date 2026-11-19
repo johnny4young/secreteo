@@ -111,7 +111,7 @@ class SyntheticAudioFixtureTests(unittest.TestCase):
                 self.template.copy_to(destination)
                 manifest, _ = corpus.read_json(destination / "manifest.json")
                 corpus.validate_audio_manifest(manifest, cells, destination)
-                self.assertEqual(len(manifest["entries"]), 480)
+                self.assertEqual(len(manifest["entries"]), 576)
                 self.assertEqual(stat.S_IMODE(destination.stat().st_mode), 0o700)
                 for path in destination.iterdir():
                     self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
@@ -162,7 +162,7 @@ class SyntheticAudioFixtureTests(unittest.TestCase):
         self.assertIsNone(self.template.root)
         self.template.copy_to(self.root / "retry")
         manifest, _ = corpus.read_json(self.root / "retry/manifest.json")
-        self.assertEqual(len(manifest["entries"]), 480)
+        self.assertEqual(len(manifest["entries"]), 576)
 
     def test_close_removes_the_template_and_a_later_copy_regenerates(self):
         self.template.copy_to(self.root / "first")
@@ -180,10 +180,10 @@ class DictationMaterializationTests(unittest.TestCase):
             output = Path(temporary) / "audio"
             speech = SpeechDouble()
             report = producer.materialize(output, NAMES, speech)
-            self.assertEqual(report["audioCellCount"], 480)
-            self.assertEqual(report["synthesisCount"], 198)
-            self.assertEqual(report["cacheHitCount"], 330)
-            self.assertEqual(len(speech.calls), 198)
+            self.assertEqual(report["audioCellCount"], 576)
+            self.assertEqual(report["synthesisCount"], 246)
+            self.assertEqual(report["cacheHitCount"], 410)
+            self.assertEqual(len(speech.calls), 246)
             self.assertEqual(report["producerKind"], "explicit-test-double")
             self.assertFalse(report["qualityMeasured"])
             self.assertFalse(report["verifiedDeliveryMeasured"])

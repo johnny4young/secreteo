@@ -1,6 +1,7 @@
 """Admit actual-controller observations without claiming native insertion."""
 
 import re
+import unicodedata
 
 import dictation_corpus as corpus
 from dictation_model_receipt import number, validate_score, validate_work
@@ -8,7 +9,7 @@ from dictation_model_receipt import number, validate_score, validate_work
 
 def validate_observation(receipt, request, cells, entries):
     fixed = {
-        'kind': 'dictation-controller-model-observation', 'schemaVersion': 1,
+        'kind': 'dictation-controller-model-observation', 'schemaVersion': 2,
         'corpusSHA256': corpus.CORPUS_SHA256, 'manifestSHA256': request['manifestSHA256'],
         'modelID': 'parakeet-tdt-0.6b-v3-coreml',
         'loadState': 'lazy-shared-engine-uncontrolled-coreml-disk-cache',
@@ -44,7 +45,8 @@ def validate_observation(receipt, request, cells, entries):
 
 def validate_row(row, case, attempt, ready, family, entry, request):
     corpus.exact_keys(row, 'caseID audioSHA256 group cohort shape split critical pass repetitions inputSeconds '
-                     'runtimeState proposedOutputScore controller footprint inputCompleted fedFrames pipelineCompleted work', 'controller row schema mismatch')
+                     'runtimeState proposedText proposedOutputScore controller footprint inputCompleted fedFrames '
+                     'pipelineCompleted work', 'controller row schema mismatch')
     corpus.require(row['caseID'] == case and type(row['pass']) is int and row['pass'] == attempt
                    and type(row['repetitions']) is int and row['repetitions'] == request['repetitions'],
                    'controller selection mismatch')
@@ -59,6 +61,7 @@ def validate_row(row, case, attempt, ready, family, entry, request):
                    'controller runtime reuse mismatch')
     validate_score(row['proposedOutputScore'], speech_expected=family['audioKind'] == 'speech')
     corpus.require(row['proposedOutputScore']['legacyCleanupChangedText'] is False, 'controller profile is literal')
+    validate_text(row['proposedText'], row['proposedOutputScore'], row['controller'], family, request['repetitions'])
     corpus.require(type(row['inputCompleted']) is bool and type(row['pipelineCompleted']) is bool
                    and corpus.integer(row['fedFrames'], 0, frames), 'invalid controller input accounting')
     corpus.require(type(row['work']) is list and len(row['work']) <= 1, 'invalid public live-work observation count')
@@ -76,6 +79,22 @@ def validate_row(row, case, attempt, ready, family, entry, request):
     validate_controller(row['controller'], row['proposedOutputScore'], row['inputSeconds'],
                         request['timeoutSeconds'], complete)
     validate_footprint(row['footprint'], request['timeoutSeconds'])
+
+
+def validate_text(text, score, controller, family, repetitions):
+    """The proposed output must be the text the score and outcome describe."""
+    try:
+        size = len(text.encode('utf-8')) if type(text) is str else None
+    except UnicodeError:
+        size = None
+    corpus.require(size is not None and size <= 64_000, 'invalid proposed output text')
+    corpus.require(type(controller) is dict and (text == '' or controller.get('outcome') == 'deliveryRejected')
+                   and (score['hypothesisWords'] == 0 or text.strip()), 'proposed text contradicts its outcome')
+    # Swift compares canonically equivalent strings as equal.
+    references = {unicodedata.normalize('NFC', ' '.join([accepted] * repetitions).strip())
+                  for accepted in family['acceptedTexts']}
+    corpus.require(score['exactReferenceMatch'] is (unicodedata.normalize('NFC', text) in references),
+                   'proposed text contradicts its score')
 
 
 def validate_controller(value, score, input_seconds, timeout, complete):
