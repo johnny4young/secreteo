@@ -4,7 +4,7 @@ import Foundation
 
 /// Selected public cells only. The corpus CLI separately admits the entire matrix.
 struct DictationModelFixture {
-    static let sourceDigest = "92de308a11ea180e10f0120b41cf2c24e713b1f4e15dc26b50b55312ef3022e3"
+    static let sourceDigest = "e4d0d477fbc2e9a413cac4dce4c34d46be2cf9a755ce0fc152898e5dbf4b8f6d"
     static let root = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
 

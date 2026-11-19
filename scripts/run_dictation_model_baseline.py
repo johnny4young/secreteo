@@ -26,6 +26,11 @@ SELECTOR = 'DictationSessionTests.DictationModelBaselineTests/testInstalledParak
 CONTROLLER_SELECTOR = 'DictationSessionTests.DictationControllerModelTests/testInstalledParakeetThroughControllerOnExplicitPublicCells'
 
 
+def require_private_output(output):
+    # Controller receipts carry proposed text, so they never land in the working tree.
+    corpus.require(not output.resolve().is_relative_to(ROOT), 'output must be outside the repository')
+
+
 def run_deadline(entries, cases, attribute_live, repetitions=1):
     corpus.require(corpus.integer(repetitions, 1, 12), 'repetitions must be within 1...12')
     corpus.require(all(entries[case]['frames'] <= 1_920_000 // repetitions for case in cases),
@@ -83,6 +88,7 @@ def run(audio_root, cases, bundle, output, xctest, *, attribute_live=False, repe
     # This digest identifies the measured binary, not proof of a clean committed build.
     identity = bundle_identity(bundle)
     binary_digest = identity[0][0]
+    require_private_output(output)
     output.mkdir(mode=0o700)
     request = {'schemaVersion': 2, 'kind': 'dictation-model-run-request', 'cases': cases, 'passes': 2,
                'corpusSHA256': corpus.CORPUS_SHA256, 'testBinarySHA256': binary_digest,

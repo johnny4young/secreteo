@@ -7,7 +7,7 @@ import LiveSpeech
 @MainActor
 enum DictationControllerModelProbe {
     struct Result {
-        // Not Encodable: proposed output stays in memory for score comparison.
+        // Not Encodable: only the controller lane's local receipt keeps the proposed output.
         let proposedText: String
         let measurement: DictationSessionMeasurement
         let footprint: DictationFootprintObservation.Receipt

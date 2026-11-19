@@ -38,7 +38,7 @@ These are evidence about their identified trees, not this proposal's experiments
 
 | Evidence available | What it establishes | What remains missing |
 |---|---|---|
-| 60 synthetic text families, 37 related phrase groups, eight profiles, 480 variants | Public text/PCM admission and reproducible synthetic regression structure | Independent natural speakers, Colombian accents, natural switching, real devices |
+| 60 synthetic text families, 37 related phrase groups, eight profiles, 480 variants (since extended by a 12-family stress cohort to 576) | Public text/PCM admission and reproducible synthetic regression structure | Independent natural speakers, Colombian accents, natural switching, real devices |
 | September 21 controller observation: 960 attempts; 932 pipeline-complete, 28 short-capture cancellations | All attempts retained; an admitted observation | A quality acceptance or native delivery result |
 | Arithmetic mean attempt WER: EN 0.384410/320 attempts; ES 0.395312/320; mixed 0.421957/160 | Synthetic speech-stratum errors under that scorer | Word-weighted natural-speaker WER, a competitive ranking, or “percentage accuracy” |
 | 16 lexical proposals in 64 non-speech attempts | Speech-admission counterexamples; insertion double refused delivery | Native wrong-paste incidence or the cause of hallucination |

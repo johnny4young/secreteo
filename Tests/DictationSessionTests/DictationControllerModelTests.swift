@@ -20,6 +20,8 @@ final class DictationControllerModelTests: XCTestCase {
         let repetitions: Int
         let inputSeconds: Double
         let runtimeState: String
+        // Readings of the public corpus only; the receipt stays in the private output directory.
+        let proposedText: String
         let proposedOutputScore: DictationModelProbe.Score
         let controller: DictationSessionMeasurement
         let footprint: DictationFootprintObservation.Receipt
@@ -31,7 +33,7 @@ final class DictationControllerModelTests: XCTestCase {
 
     struct Receipt: Encodable {
         let kind = "dictation-controller-model-observation"
-        let schemaVersion = 1
+        let schemaVersion = 2
         let corpusSHA256 = DictationModelFixture.sourceDigest
         let manifestSHA256: String
         let modelID: String
@@ -133,7 +135,7 @@ final class DictationControllerModelTests: XCTestCase {
             caseID: id, audioSHA256: sequence.entry.audioSHA256, group: family.group,
             cohort: family.cohort, shape: family.shape, split: family.split, critical: family.critical,
             pass: pass, repetitions: repetitions, inputSeconds: Double(sequence.samples.count) / 16_000, runtimeState: state,
-            proposedOutputScore: try DictationModelProbe.score(
+            proposedText: result.proposedText, proposedOutputScore: try DictationModelProbe.score(
                 hypothesis: result.proposedText, legacyCleanedText: result.proposedText, references: sequence.references),
             controller: result.measurement, footprint: result.footprint, inputCompleted: result.inputCompleted,
             fedFrames: result.frames, pipelineCompleted: pipelineCompleted, work: observations)

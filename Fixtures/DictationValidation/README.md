@@ -7,10 +7,10 @@ that a separately authorized synthesizer might produce.
 
 ## Inventory and ground truth
 
-The matrix is 60 phrase families × 8 explicitly declared acoustic/rate profiles:
-160 English cells, 160 Spanish cells, 80 synthetic language-switching cells and
-80 adversarial cells. Paired translations and related adversarial phrases share
-one of 37 phrase groups. Variants are **not independent speakers or independent
+The matrix is 72 phrase families × 8 explicitly declared acoustic/rate profiles:
+160 English cells, 160 Spanish cells, 80 synthetic language-switching cells,
+80 adversarial cells and 96 stress cells. Paired translations and related
+adversarial phrases share one of 44 phrase groups. Variants are **not independent speakers or independent
 phrases**. Report family, phrase-group, profile and cell counts separately.
 
 Spoken segments declare their language; `acceptedTexts` records literal targets
@@ -18,6 +18,10 @@ and any reviewed alternatives. It is not an invitation to add the current model'
 mistake as an acceptable answer. Numbers, negation, names, code, URLs, email,
 typographic apostrophes, accented text, repetition, minimal utterances and quoted
 hostile instructions are represented. Non-speech families have empty references.
+The `stress` cohort was added later so that changes between builds show up:
+spoken web addresses (`x dot com`, `entra a amazon punto com`), brand names and
+English inside Spanish sentences. Its address families accept the literal words
+and the typed address; the earlier cohorts are unchanged.
 `critical` flags exact-text review cases; a formatting mismatch is not, by itself,
 a demonstrated factual error. ASR word/character error scoring and final output
 fidelity must remain separate.
@@ -129,7 +133,7 @@ of every installed voice asset. Exact rendered WAV hashes remain authoritative
 for a comparison; regenerating on another host is not assumed bit-identical.
 `materialization.json` reports actual file counts, cache use, clipping and elapsed
 rendering time without the source text. `manifest.json` is published last, only
-after all 480 files pass admission. The directory is private and output files
+after all 576 files pass admission. The directory is private and output files
 are owner-only; JSON publication never replaces an existing file. Failure keeps
 explicitly incomplete output, not a successful manifest; cached text and source
 speech files are removed. Do not resume by overwriting that directory.
@@ -290,7 +294,8 @@ actual launch boundary instead of testing only a standalone schema helper.
 Add `--controller` to the same explicit launcher. This selects
 `DictationControllerModelTests`, not the model-only consumer. Build Release
 with the matching source first. Requests/outcomes use schema 3; the distinct
-controller observation uses schema 1. Model-only schema 2 remains unchanged.
+controller observation uses schema 2, which adds each row's `proposedText`.
+Model-only schema 2 remains unchanged.
 `--controller --attribute-live` is rejected before output or a child exists:
 independent vendor attribution is a different experiment, not a controller run.
 
@@ -361,7 +366,7 @@ python3 -I scripts/run_dictation_controller_matrix.py \
 ```
 
 The command reuses the existing controller lane without changing its model,
-profile or timeout formula. `--all` explicitly selects the pinned 480-cell
+profile or timeout formula. `--all` explicitly selects the pinned 576-cell
 matrix; repeated `--case` options instead select a declared subset. Default
 cohorts contain at most 16 cells and 120 seconds of input per pass. An explicit
 `--cohort-size 1...16` can reduce the count, not enlarge those bounds.
@@ -384,12 +389,23 @@ completed cohort files. It reports selected versus observed cells and whether
 the full public corpus was selected, never accepted quality or verified
 insertion. Files are create-only and owner-only; a new attempt needs a new
 output directory. Keep failed attempts instead of replacing them with a later
-green result. Neither raw child output nor transcript text is exported.
+green result. Raw child output is never kept. Each row keeps the proposed text
+of public corpus audio so builds can be compared; the launchers refuse an output
+directory inside the repository, and nothing writes that text to a log.
+
+### Compare two builds
+
+Run the matrix once per build on the same audio, then
+`python3 -I scripts/compare_dictation_controller_matrix.py BEFORE_DIR AFTER_DIR`
+(`--json` for a machine-readable report). It prints second-pass WER/CER and empty
+speech per cohort, latency p50/p95 split into short and long inputs, and every
+case whose text changed. Different audio, different cells or an empty directory
+exit 2 without a report.
 
 ## Observe the speech gate over every cell
 
 `DictationSpeechGateCorpusTests` runs the production speech-gate rule
-(`DictationSpeechGate.heardSpeech`, Silero on CPU) over all 480 admitted cells.
+(`DictationSpeechGate.heardSpeech`, Silero on CPU) over all 576 admitted cells.
 The model comes only from an explicit scratch store; `SECRETEO_SPEECH_GATE_INSTALL=1`
 lets it download the pinned bundle there, never into the app's store:
 
@@ -437,7 +453,7 @@ reflects loading.
 ## Record the speech families with a real microphone
 
 The synthetic voices cannot show how a model handles a person and a microphone.
-A field recording is one person reading each of the 56 speech families once,
+A field recording is one person reading each of the 68 speech families once,
 as they would dictate it. Recordings and the manifest stay in a private local
 directory; never commit them:
 

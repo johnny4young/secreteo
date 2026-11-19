@@ -11,6 +11,8 @@ import dictation_corpus as corpus
 
 
 class DictationControllerRunnerTests(unittest.TestCase):
+    families = {family['id']: family for family in corpus.read_public_corpus()[0]['families']}
+
     def setUp(self):
         # Reuse its owned synthetic corpus, not its tests or a second data builder.
         self.fixture = model_fixtures.DictationModelRunnerTests()
@@ -26,7 +28,7 @@ class DictationControllerRunnerTests(unittest.TestCase):
         result = self.fixture.successful_double(arguments, **options)
         path = Path(options['env']['SECRETEO_DICTATION_BASELINE_OUTPUT'])
         document = json.loads(path.read_text())
-        document.update(kind='dictation-controller-model-observation', schemaVersion=1,
+        document.update(kind='dictation-controller-model-observation', schemaVersion=2,
                         controllerMeasured=True, memoryMeasured=True, platformChecksMeasured=False,
                         evaluationTarget='proposed-output-including-cancelled-and-failed-attempts',
                         memoryScope='sampled-whole-xctest-process-not-allocation-attribution',
@@ -36,6 +38,9 @@ class DictationControllerRunnerTests(unittest.TestCase):
             for key in ('completionSeconds', 'inputEndSeconds', 'firstUpdateSeconds', 'adapterDeltas'):
                 row.pop(key)
             row['proposedOutputScore'] = row.pop('score')
+            family = self.families[row['caseID'].rsplit('.', 1)[0]]
+            exact = row['proposedOutputScore']['exactReferenceMatch']
+            row['proposedText'] = family['acceptedTexts'][0] if exact else 'synthetic double'
             row['runtimeState'] = 'reused-engine' if index else 'first-engine-load'
             row['work'] = [row['work']]
             row.update(inputCompleted=True, fedFrames=row['work'][0]['inputFrames'], pipelineCompleted=True)
@@ -66,6 +71,7 @@ class DictationControllerRunnerTests(unittest.TestCase):
     @staticmethod
     def empty_delivery(row):
         row['controller']['outcome'] = 'empty'
+        row['proposedText'] = ''
         for phase in ('deliveryStarted', 'deliveryReturned'):
             row['controller']['elapsedSeconds'].pop(phase)
 
@@ -98,7 +104,11 @@ class DictationControllerRunnerTests(unittest.TestCase):
             lambda d: d.update(platformChecksMeasured=True),
             lambda d: d.update(modelLoadAttempts=0),
             lambda d: d['cells'].pop(),
-            lambda d: d['cells'][0].update(proposedText='never store this'),
+            lambda d: d['cells'][0].pop('proposedText'),
+            lambda d: d['cells'][0].update(proposedText=None),
+            lambda d: d['cells'][0].update(proposedText='x' * 64_001),
+            lambda d: d['cells'][0].update(proposedText='not the reference'),
+            lambda d: d['cells'][0].update(transcript='never store this'),
             lambda d: d['cells'][0].update(controller=None),
             lambda d: d['cells'][0].update(work=None),
             lambda d: d['cells'][0].update(pipelineCompleted=1),
@@ -116,6 +126,28 @@ class DictationControllerRunnerTests(unittest.TestCase):
                 result = self.run_observation(self.mutated(mutation))
                 self.assertEqual(result['outcome'], 'invalid-observation')
             self.reset_run()
+
+    def test_proposed_text_is_kept_only_when_it_matches_outcome_and_score(self):
+        self.assertEqual(self.run_observation(self.controller_double)['outcome'], 'observed')
+        rows = json.loads((self.fixture.root / 'run/model.json').read_text())['cells']
+        self.assertTrue(all(type(row['proposedText']) is str and row['proposedText'] for row in rows))
+        self.reset_run()
+
+        def undelivered_text(document):
+            row = document['cells'][0]
+            self.empty_delivery(row)
+            row['proposedOutputScore'].update(wordErrorRate=1, characterErrorRate=1,
+                                              hypothesisWords=0, exactReferenceMatch=False)
+            row['proposedText'] = 'text an empty outcome never offered'
+        self.assertEqual(self.run_observation(self.mutated(undelivered_text))['outcome'], 'invalid-observation')
+
+    def test_output_inside_the_repository_is_refused_before_launch(self):
+        f = self.fixture
+        with self.assertRaises(corpus.CorpusError):
+            runner.run(f.audio, f.cases, f.bundle, runner.ROOT / 'controller-results', f.launcher,
+                       controller=True, invoke=self.controller_double)
+        self.assertFalse(f.calls)
+        self.assertFalse((runner.ROOT / 'controller-results').exists())
 
     def test_audio_first_capture_may_start_before_the_runtime_but_no_caption_may(self):
         def cold_load(caption):
@@ -142,6 +174,7 @@ class DictationControllerRunnerTests(unittest.TestCase):
                 'firstBufferHandled': 0.01, 'stopRequested': 0.04})
             row['proposedOutputScore'].update(wordErrorRate=1, characterErrorRate=1,
                                               hypothesisWords=0, exactReferenceMatch=False)
+            row['proposedText'] = ''
             row['work'][0].update(outcome='cancelled')
         result = self.run_observation(self.mutated(cancel))
         self.assertEqual(result['outcome'], 'observed')
@@ -168,6 +201,7 @@ class DictationControllerRunnerTests(unittest.TestCase):
             row['controller'].update(outcome='pipelineFailed', elapsedSeconds={})
             row['proposedOutputScore'].update(wordErrorRate=1, characterErrorRate=1,
                                               hypothesisWords=0, exactReferenceMatch=False)
+            row['proposedText'] = ''
             document['cells'][1]['runtimeState'] = 'first-engine-load'
             document['modelLoadAttempts'] = 2
         self.assertEqual(self.run_observation(self.mutated(failure))['outcome'], 'observed')
@@ -218,6 +252,7 @@ class DictationControllerRunnerTests(unittest.TestCase):
             row['work'][0].update(outcome='cancelled')
             row['proposedOutputScore'].update(wordErrorRate=0, characterErrorRate=0,
                                               hypothesisWords=0, exactReferenceMatch=False)
+            row['proposedText'] = ''
         self.assertEqual(self.run_observation(self.mutated(corrupt))['outcome'],
                          'invalid-observation')
 
