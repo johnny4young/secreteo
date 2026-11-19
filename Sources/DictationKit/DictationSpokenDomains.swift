@@ -6,9 +6,9 @@ enum DictationSpokenDomains {
     // No "es": "el punto es que" is everyday Spanish.
     static let topLevelDomains = ["com", "org", "net", "io", "dev", "co", "ai", "app", "edu", "gov", "mx"]
     // "The dot com bubble" and "a polka dot app" name things, not addresses.
-    static let determiners: Set<String> = [
-        "the", "a", "an", "el", "la", "los", "las", "un", "una", "unos", "unas"
-    ]
+    // Per language: Spanish "a" is "to" ("entra a amazon punto com").
+    static let englishDeterminers: Set<String> = ["the", "a", "an"]
+    static let spanishDeterminers: Set<String> = ["el", "la", "los", "las", "un", "una", "unos", "unas"]
 
     private static let separator = "[ \\t]+(dot|punto)[ \\t]+"
     private static let expression = try? NSRegularExpression(
@@ -26,10 +26,12 @@ enum DictationSpokenDomains {
             let labels = source.substring(with: match.range(at: 1))
                 .replacingOccurrences(of: separator, with: "\n", options: [.regularExpression, .caseInsensitive])
                 .split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
+            let spanish = source.substring(with: match.range(at: 2)).lowercased() == "punto"
+            let determiners = spanish ? spanishDeterminers : englishDeterminers
             guard let first = labels.first?.lowercased(), !determiners.contains(first),
                   !determiners.contains(word(before: match.range.location, in: source)),
                   !claimed(source.substring(with: match.range)),
-                  !isProse(first, spanish: source.substring(with: match.range(at: 2)).lowercased() == "punto",
+                  !isProse(first, spanish: spanish,
                            followedByWord: startsWithWord(after: NSMaxRange(match.range), in: source))
             else { continue }
             let domain = (labels + [source.substring(with: match.range(at: 3))]).joined(separator: ".")
