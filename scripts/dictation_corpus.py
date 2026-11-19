@@ -17,8 +17,8 @@ import wave
 
 ROOT = Path(__file__).resolve().parents[1]
 CORPUS = ROOT / "Fixtures/DictationValidation/public-synthetic-v1.json"
-CORPUS_SHA256 = "92de308a11ea180e10f0120b41cf2c24e713b1f4e15dc26b50b55312ef3022e3"
-GROUP_COUNTS = {"en": 20, "es": 20, "mixed": 10, "adversarial": 10}
+CORPUS_SHA256 = "e4d0d477fbc2e9a413cac4dce4c34d46be2cf9a755ce0fc152898e5dbf4b8f6d"
+GROUP_COUNTS = {"en": 20, "es": 20, "mixed": 10, "adversarial": 10, "stress": 12}
 SPLITS = {"tuning", "holdout"}
 AUDIO_KINDS = {"speech", "silence", "noise", "tone", "impulses"}
 IDENTIFIER = re.compile(r"[a-z][a-z0-9-]{0,63}\Z")
@@ -135,7 +135,7 @@ def validate_corpus(document):
             and document["source"] == "portavoz-original-synthetic"
             and document["textLicense"] == "MIT", "unsupported corpus provenance")
     families, profiles = document["families"], document["profiles"]
-    require(type(families) is list and len(families) == 60
+    require(type(families) is list and len(families) == sum(GROUP_COUNTS.values())
             and type(profiles) is list and len(profiles) == 8, "corpus inventory mismatch")
     for family in families:
         validate_family(family)

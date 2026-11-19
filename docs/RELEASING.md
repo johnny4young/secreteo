@@ -143,6 +143,10 @@ make test-model-gated
 
 `summary.json` in the output says which lane failed. `observed` means a lane completed, not that a quality threshold passed.
 
+## Compare two builds
+
+Before switching an engine, a library or a text rule, run the [controller matrix](../Fixtures/DictationValidation/README.md#observe-the-complete-controller-matrix-in-bounded-cohorts) on the same audio with each build, then `python3 -I scripts/compare_dictation_controller_matrix.py BEFORE_DIR AFTER_DIR`. It prints WER/CER and empty speech per cohort, latency p50/p95 and every case whose text changed; mismatched or empty runs exit 2.
+
 ## Rollback
 
 The owner decides on a rollback. Delete the release and its tag, then revert the tap commit. With a `latest` feed, deleting the release restores the previous feed.

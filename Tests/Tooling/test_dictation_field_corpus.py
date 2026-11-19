@@ -36,12 +36,12 @@ class FieldCorpusTests(unittest.TestCase):
             write_wav(self.root / f'{case}.wav', value=index)
 
     def test_every_speech_family_is_recorded_once_and_non_speech_never(self):
-        self.assertEqual(len(SPEECH), 56)
+        self.assertEqual(len(SPEECH), 68)
         self.assertFalse(any(case.startswith('non-speech') for case in SPEECH))
         manifest, missing = field.build(self.root, 'built-in', DOCUMENT)
         self.assertEqual(missing, [])
         self.assertEqual(field.validate(manifest, self.root, DOCUMENT),
-                         {'fieldCellCount': 56, 'microphone': 'built-in'})
+                         {'fieldCellCount': 68, 'microphone': 'built-in'})
 
     def test_missing_recordings_are_named_instead_of_admitted(self):
         (self.root / 'en-accent.field.wav').unlink()

@@ -20,6 +20,8 @@ final class DictationControllerModelTests: XCTestCase {
         let repetitions: Int
         let inputSeconds: Double
         let runtimeState: String
+        // Recognized text, so the receipt stays outside the repository.
+        let proposedText: String
         let proposedOutputScore: DictationModelProbe.Score
         let controller: DictationSessionMeasurement
         let footprint: DictationFootprintObservation.Receipt
@@ -29,9 +31,18 @@ final class DictationControllerModelTests: XCTestCase {
         let work: [ParakeetLiveWorkSample]
     }
 
+    func testReceiptsAreRefusedInsideTheRepositoryHoweverItIsSpelled() {
+        let root = DictationModelFixture.root.path
+        for spelling in [root, root.uppercased(), "/System/Volumes/Data" + root]
+        where FileManager.default.fileExists(atPath: spelling) {
+            XCTAssertTrue(DictationModelFixture.isInsideRepository(spelling + "/results/model.json"), spelling)
+        }
+        XCTAssertFalse(DictationModelFixture.isInsideRepository(NSTemporaryDirectory() + "results/model.json"))
+    }
+
     struct Receipt: Encodable {
         let kind = "dictation-controller-model-observation"
-        let schemaVersion = 1
+        let schemaVersion = 2
         let corpusSHA256 = DictationModelFixture.sourceDigest
         let manifestSHA256: String
         let modelID: String
@@ -67,6 +78,7 @@ final class DictationControllerModelTests: XCTestCase {
             guard let ids = environment["SECRETEO_DICTATION_BASELINE_CASES"],
                   let output = environment["SECRETEO_DICTATION_BASELINE_OUTPUT"], output.hasPrefix("/"),
                   !FileManager.default.fileExists(atPath: output),
+                  !DictationModelFixture.isInsideRepository(output),
                   let repetitions = Int(environment["SECRETEO_DICTATION_REPETITIONS"] ?? "1"),
                   (1...12).contains(repetitions) else { throw DictationModelProbe.Failure.invalidInput }
             let fixture = try DictationModelFixture(
@@ -133,7 +145,7 @@ final class DictationControllerModelTests: XCTestCase {
             caseID: id, audioSHA256: sequence.entry.audioSHA256, group: family.group,
             cohort: family.cohort, shape: family.shape, split: family.split, critical: family.critical,
             pass: pass, repetitions: repetitions, inputSeconds: Double(sequence.samples.count) / 16_000, runtimeState: state,
-            proposedOutputScore: try DictationModelProbe.score(
+            proposedText: result.proposedText, proposedOutputScore: try DictationModelProbe.score(
                 hypothesis: result.proposedText, legacyCleanedText: result.proposedText, references: sequence.references),
             controller: result.measurement, footprint: result.footprint, inputCompleted: result.inputCompleted,
             fedFrames: result.frames, pipelineCompleted: pipelineCompleted, work: observations)

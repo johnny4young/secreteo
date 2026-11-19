@@ -57,6 +57,7 @@ def run(audio_root, cases, bundle, output, xctest, *, maximum_cells=16, models=N
     binary_digest = identity[0][0]
     plan = [{'id': f'cohort-{index:04d}', 'cases': group,
              'timeoutSeconds': runner.run_deadline(entries, group, False)} for index, group in enumerate(groups)]
+    runner.require_private_output(output)
     output.mkdir(mode=0o700)
     publish_json(output / 'matrix-request.json', {
         'kind': 'dictation-controller-matrix-request', 'schemaVersion': 1,
