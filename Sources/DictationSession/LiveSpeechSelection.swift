@@ -9,6 +9,8 @@ enum LiveSpeechSelection: String, CaseIterable {
     case appleSpeech
 
     static let dictationKey = "dictationLiveSpeechEngine"
+    /// Every engine must keep dictation within these, Auto included.
+    static let dictationLanguages: Set<String> = ["es", "en"]
     static let dictationDefault = Self.parakeetUltra
 
     static func dictation(defaults: UserDefaults = .standard) -> Self {
@@ -30,7 +32,7 @@ enum LiveSpeechPurpose {
 
     func language(in defaults: UserDefaults) -> String? {
         let value = defaults.string(forKey: DictationController.languageKey)
-        return ["en", "es"].contains(value) ? value : nil
+        return value.flatMap { LiveSpeechSelection.dictationLanguages.contains($0) ? $0 : nil }
     }
 }
 

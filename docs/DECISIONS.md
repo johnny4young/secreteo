@@ -143,3 +143,7 @@ Instrument Serif (OFL-1.1) is bundled unmodified in `Contents/Resources/Fonts` a
 ## D32. Holding Fn dictates by default
 
 Holding Fn is the push-to-talk key out of the box, and ⌃⌥⌘D ([D19](#d19-the-default-shortcut-is-d)) stays as the shortcut. A saved choice, Off included, is kept. Portavoz no longer offers dictation, so the two apps do not compete for the key, and ownership still decides if they ever do. macOS's own “Press 🌐 key to” action fires too unless it is set to Do Nothing, so the menu and Settings say so, with a way to open Keyboard settings, only while it is set to something else.
+
+## D33. Dictation stays in Spanish and English, Auto included
+
+Dictation tells every speech engine the languages it may write, `TranscriptionHints.allowedLanguages`, set to Spanish and English even when the language is Auto. An engine that can narrow its output must: Parakeet applies FluidAudio's Latin-script filter, which keeps Spanish and English code-switched and stops Auto from writing Cyrillic, and Apple Speech runs one installed locale. A new engine has to say how it keeps this before `DictationLanguageContractTests` compiles. Meetings send no list, so captions keep every script that was spoken.
