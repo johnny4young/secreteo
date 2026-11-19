@@ -4,6 +4,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- ⚡ **Text arrives sooner**: when you have already stopped speaking, letting go of the key no longer waits the full quarter second before the words go out.
 - 🔗 **Say web addresses**: “x dot com” and “github punto com” type `x.com` and `github.com`; Literal mode keeps the words as spoken.
 - 🔤 **Auto stays in Spanish and English**: with the language on Auto, short dictations no longer come out in another alphabet, such as Cyrillic.
 
