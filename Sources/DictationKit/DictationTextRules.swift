@@ -40,7 +40,8 @@ public enum DictationTextRules {
         _ text: String,
         replacements: [DictationReplacement],
         removeFillers: Bool,
-        spokenCommands: Bool = false
+        spokenCommands: Bool = false,
+        lexicon: DictationLexicon = .system
     ) -> String {
         var result = text
         if removeFillers {
@@ -50,7 +51,8 @@ public enum DictationTextRules {
         if spokenCommands {
             let commanded = applyingSpokenCommands(to: result, except: replacements.map(\.trigger))
             keepsBreaks = commanded != result
-            result = DictationSpokenDomains.applying(to: commanded, claimed: claims(replacements.map(\.trigger)))
+            result = DictationSpokenDomains.applying(
+                to: commanded, claimed: claims(replacements.map(\.trigger)), lexicon: lexicon)
         }
         result = applying(replacements, to: result)
         // A break the user asked for at either end is part of the text.

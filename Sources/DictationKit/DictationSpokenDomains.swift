@@ -1,6 +1,20 @@
 import Foundation
 import NaturalLanguage
 
+/// Answers whether a word is in a language's dictionary, or nil when that dictionary is missing.
+public struct DictationLexicon: Sendable {
+    let contains: @Sendable (_ word: String, _ spanish: Bool) -> Bool?
+
+    public init(contains: @escaping @Sendable (_ word: String, _ spanish: Bool) -> Bool?) {
+        self.contains = contains
+    }
+
+    /// Apple's on-device word embeddings, which some Macs do not have for every language.
+    public static let system = Self { word, spanish in
+        NLEmbedding.wordEmbedding(for: spanish ? .spanish : .english)?.contains(word)
+    }
+}
+
 /// Spoken web addresses: "x dot com" and "x punto com" become "x.com".
 enum DictationSpokenDomains {
     // No "es": "el punto es que" is everyday Spanish.
@@ -17,7 +31,7 @@ enum DictationSpokenDomains {
         options: [.caseInsensitive])
 
     /// `claimed` keeps a phrase holding a user's trigger literal.
-    static func applying(to text: String, claimed: (String) -> Bool) -> String {
+    static func applying(to text: String, claimed: (String) -> Bool, lexicon: DictationLexicon) -> String {
         guard let expression else { return text }
         let source = text as NSString
         let result = NSMutableString(string: text)
@@ -31,7 +45,7 @@ enum DictationSpokenDomains {
             guard let first = labels.first?.lowercased(), !determiners.contains(first),
                   !determiners.contains(word(before: match.range.location, in: source)),
                   !claimed(source.substring(with: match.range)),
-                  !isProse(first, spanish: spanish,
+                  !isProse(first, spanish: spanish, lexicon: lexicon,
                            followedByWord: startsWithWord(after: NSMaxRange(match.range), in: source))
             else { continue }
             let domain = (labels + [source.substring(with: match.range(at: 3))]).joined(separator: ".")
@@ -43,10 +57,11 @@ enum DictationSpokenDomains {
     /// A dictionary word before "punto com" is Spanish prose ("las empresas punto com"); before
     /// "dot com" it is prose only when a word follows ("many dot com companies"), since English
     /// knows brands such as "apple". Without the dictionary the words stay as spoken.
-    private static func isProse(_ label: String, spanish: Bool, followedByWord: Bool) -> Bool {
+    private static func isProse(
+        _ label: String, spanish: Bool, lexicon: DictationLexicon, followedByWord: Bool
+    ) -> Bool {
         guard spanish || followedByWord else { return false }
-        guard let words = NLEmbedding.wordEmbedding(for: spanish ? .spanish : .english) else { return true }
-        return words.contains(label)
+        return lexicon.contains(label, spanish) ?? true
     }
 
     private static func word(before location: Int, in source: NSString) -> String {

@@ -175,7 +175,7 @@ final class DictationTextRulesTests: XCTestCase {
         ]
         for (heard, typed) in cases {
             XCTAssertEqual(DictationTextRules.apply(heard, replacements: [], removeFillers: false,
-                                                    spokenCommands: true), typed, heard)
+                                                    spokenCommands: true, lexicon: Self.lexicon), typed, heard)
         }
     }
 
@@ -195,7 +195,7 @@ final class DictationTextRulesTests: XCTestCase {
         ]
         for text in prose {
             XCTAssertEqual(DictationTextRules.apply(text, replacements: [], removeFillers: false,
-                                                    spokenCommands: true), text)
+                                                    spokenCommands: true, lexicon: Self.lexicon), text)
         }
         XCTAssertEqual(DictationTextRules.apply("x dot com", replacements: [], removeFillers: false,
                                                 spokenCommands: false), "x dot com")
@@ -204,11 +204,30 @@ final class DictationTextRulesTests: XCTestCase {
     func testSpokenDomainsYieldToUserTriggersAndKeepTrimming() {
         let rules = [DictationReplacement(trigger: "acme dot com", replacement: "ACME.com")]
         XCTAssertEqual(DictationTextRules.apply("Buy at acme dot com", replacements: rules,
-                                                removeFillers: false, spokenCommands: true),
+                                                removeFillers: false, spokenCommands: true, lexicon: Self.lexicon),
                        "Buy at ACME.com")
         let signature = [DictationReplacement(trigger: "sig", replacement: "Best\n")]
         XCTAssertEqual(DictationTextRules.apply("x dot com sig", replacements: signature,
-                                                removeFillers: false, spokenCommands: true),
+                                                removeFillers: false, spokenCommands: true, lexicon: Self.lexicon),
                        "x.com Best", "an address is not a break the user asked for")
+    }
+
+    func testSpokenDomainsStayWordsWhereTheDictionaryIsMissing() {
+        let missing = DictationLexicon { _, _ in nil }
+        let cases = [
+            ("Visita github punto com", "Visita github punto com"),
+            ("Many dot com companies", "Many dot com companies"),
+            ("Open x dot com.", "Open x.com.")
+        ]
+        for (heard, typed) in cases {
+            XCTAssertEqual(DictationTextRules.apply(heard, replacements: [], removeFillers: false,
+                                                    spokenCommands: true, lexicon: missing), typed, heard)
+        }
+    }
+
+    /// A fixed dictionary, so the result never depends on the language assets a Mac has.
+    private static let lexicon = DictationLexicon { word, spanish in
+        (spanish ? ["burbuja", "empresas", "era", "punto"] : ["many", "early", "polka", "google", "apple", "the"])
+            .contains(word)
     }
 }
