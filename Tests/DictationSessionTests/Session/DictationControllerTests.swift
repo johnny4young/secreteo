@@ -386,7 +386,7 @@ final class DictationControllerTests: XCTestCase {
         XCTAssertTrue(reached4)
         XCTAssertEqual(harness.insertions, ["Café Swift $5\\path"])
         XCTAssertEqual(harness.hints?.language, "es")
-        XCTAssertEqual(harness.hints?.filtersLiveScript, true)
+        XCTAssertEqual(harness.hints?.allowedLanguages, ["es", "en"])
         XCTAssertEqual(harness.hints?.vocabulary, ["Kubernetes", "Café"])
         harness.controller.cancel()
         let reached5 = await awaitEventually { harness.finishes == 1 }

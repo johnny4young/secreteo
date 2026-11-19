@@ -4,6 +4,8 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- 🔤 **Auto stays in Spanish and English**: with the language on Auto, short dictations no longer come out in another alphabet, such as Cyrillic.
+
 ## 1.2.1
 
 - 🤫 **Dictate, paste, done**: words that reach the app leave nothing on screen, no word count and no “Sent, not verified” notice. Only text that could not be sent still opens its card, and a dictation that could not be saved to your history shows on the menu bar icon for a moment.
