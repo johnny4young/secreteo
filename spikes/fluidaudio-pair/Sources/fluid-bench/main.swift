@@ -88,7 +88,7 @@ case "run":
         var segments: [TranscriptSegment] = []
         var failure: String?
         do {
-            for try await segment in observed.transcribe(stream, hints: TranscriptionHints(language: language, filtersLiveScript: true)) {
+            for try await segment in observed.transcribe(stream, hints: TranscriptionHints(language: language, allowedLanguages: [language])) {
                 if first == nil, !segment.text.isEmpty { first = (clock.now - began) / .seconds(1) }
                 segments.append(segment)
             }
