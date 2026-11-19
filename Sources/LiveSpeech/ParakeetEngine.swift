@@ -200,10 +200,7 @@ public final class ParakeetEngine: TranscriptionEngine, Sendable {
                 var consumer: Task<Void, Error>?
                 let channelHolder = ParakeetStreamChannel()
                 do {
-                    // Parakeet's hint filters writing systems, not languages
-                    // sharing an alphabet: Spanish and English remain multilingual.
-                    let configuration = Self.liveWindowConfig.applying(
-                        language: hints.filtersLiveScript == true ? Self.fluidLanguage(hints) : nil)
+                    let configuration = Self.liveWindowConfig.applying(language: Self.scriptFilter(hints))
                     let manager = try await prepareLiveManager(configuration)
                     preparedManager = manager
                     try await manager.startStreaming(source: .microphone)
@@ -262,6 +259,17 @@ public final class ParakeetEngine: TranscriptionEngine, Sendable {
 
     private static func fluidLanguage(_ hints: TranscriptionHints) -> Language? {
         hints.language.flatMap { Language(rawValue: $0) }
+    }
+
+    /// Parakeet's hint filters writing systems, not languages sharing one, so any allowed
+    /// language stands for all of them and Spanish with English stays code-switched.
+    /// Allowed languages in different scripts cannot be expressed and filter nothing.
+    static func scriptFilter(_ hints: TranscriptionHints) -> Language? {
+        let allowed = hints.allowedLanguages.compactMap(Language.init(rawValue:))
+        guard !allowed.isEmpty, allowed.count == hints.allowedLanguages.count,
+              Set(allowed.map(\.script)).count == 1 else { return nil }
+        if let hinted = fluidLanguage(hints), allowed.contains(hinted) { return hinted }
+        return allowed.min { $0.rawValue < $1.rawValue }
     }
 
     static func consume(
@@ -348,7 +356,7 @@ public final class ParakeetEngine: TranscriptionEngine, Sendable {
         )
         let manager = try await prepareBatchManager(config)
 
-        let language = Self.fluidLanguage(hints)
+        let language = Self.scriptFilter(hints) ?? Self.fluidLanguage(hints)
         var decoderState = try TdtDecoderState()
         let started = Date()
         let result = try await manager.transcribe(url, decoderState: &decoderState, language: language)

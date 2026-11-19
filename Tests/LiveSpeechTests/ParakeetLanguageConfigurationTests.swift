@@ -12,22 +12,28 @@ import Testing
 struct ParakeetLanguageConfigurationTests {
     struct LanguageCase: Sendable {
         let requested: String?
+        let allowed: Set<String>
         let expected: String?
     }
 
     enum PreparationFailure: Error, Equatable { case live, batch, unexpectedRoute }
 
+    static let dictation: Set<String> = ["es", "en"]
+
     @Test(arguments: [
-        LanguageCase(requested: nil, expected: nil),
-        LanguageCase(requested: "es", expected: "es"),
-        LanguageCase(requested: "en", expected: "en"),
-        LanguageCase(requested: "el", expected: "el"),
-        LanguageCase(requested: "ru", expected: "ru"),
-        LanguageCase(requested: "", expected: nil),
-        LanguageCase(requested: "ES", expected: nil),
-        LanguageCase(requested: "es-ES", expected: nil),
-        LanguageCase(requested: " es ", expected: nil),
-        LanguageCase(requested: "日本語", expected: nil)
+        LanguageCase(requested: nil, allowed: dictation, expected: "en"),
+        LanguageCase(requested: "es", allowed: dictation, expected: "es"),
+        LanguageCase(requested: "en", allowed: dictation, expected: "en"),
+        LanguageCase(requested: "ru", allowed: dictation, expected: "en"),
+        LanguageCase(requested: "", allowed: dictation, expected: "en"),
+        LanguageCase(requested: "ES", allowed: dictation, expected: "en"),
+        LanguageCase(requested: "es-ES", allowed: dictation, expected: "en"),
+        LanguageCase(requested: "日本語", allowed: dictation, expected: "en"),
+        LanguageCase(requested: nil, allowed: ["ru"], expected: "ru"),
+        LanguageCase(requested: "el", allowed: ["el"], expected: "el"),
+        LanguageCase(requested: nil, allowed: ["es", "ru"], expected: nil),
+        LanguageCase(requested: nil, allowed: ["es", "ja"], expected: nil),
+        LanguageCase(requested: "es", allowed: [], expected: nil)
     ])
     func liveHintReachesPreparationWithoutChangingWindow(_ language: LanguageCase) async throws {
         let observed = OSAllocatedUnfairLock<SlidingWindowAsrConfig?>(initialState: nil)
@@ -41,7 +47,7 @@ struct ParakeetLanguageConfigurationTests {
 
         await #expect(throws: PreparationFailure.live) {
             for try await _ in engine.transcribe(
-                audio, hints: .init(language: language.requested, filtersLiveScript: true)) {
+                audio, hints: .init(language: language.requested, allowedLanguages: language.allowed)) {
                 Issue.record("Preparation failure must not emit a transcript segment")
             }
         }
@@ -55,6 +61,12 @@ struct ParakeetLanguageConfigurationTests {
         #expect(configuration.minContextForConfirmation == 10)
         #expect(configuration.confirmationThreshold == 0.8)
         #expect(configuration.tdtConfig == nil)
+    }
+
+    @Test(arguments: [nil, "es", "en"])
+    func dictationLanguagesFilterTheLatinScript(_ language: String?) {
+        let hints = TranscriptionHints(language: language, allowedLanguages: Self.dictation)
+        #expect(ParakeetEngine.scriptFilter(hints)?.script == .latin)
     }
 
     @Test(arguments: ["es", "en", "ru", "el"])
@@ -91,10 +103,11 @@ struct ParakeetLanguageConfigurationTests {
 
         await withTaskGroup(of: Void.self) { group in
             for language in languages {
+                let allowed: Set<String> = language.map { [$0] } ?? []
                 group.addTask {
                     await #expect(throws: PreparationFailure.live) {
                         for try await _ in engine.transcribe(
-                            AsyncStream { $0.finish() }, hints: .init(language: language, filtersLiveScript: true)) {
+                            AsyncStream { $0.finish() }, hints: .init(language: language, allowedLanguages: allowed)) {
                             Issue.record("Preparation failure must not yield a segment")
                         }
                     }

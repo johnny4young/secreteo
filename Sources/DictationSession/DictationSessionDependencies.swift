@@ -98,10 +98,10 @@ struct DictationSessionDependencies {
     func transcriptionHints() -> TranscriptionHints {
         let language = defaults.string(forKey: DictationController.languageKey)
         return TranscriptionHints(
-            language: ["es", "en"].contains(language) ? language : nil,
+            language: language.flatMap { LiveSpeechSelection.dictationLanguages.contains($0) ? $0 : nil },
             vocabulary: VocabularyPrompt.parse(defaults.string(forKey: "customVocabulary") ?? ""),
             meetingID: MeetingID(),
-            filtersLiveScript: true)
+            allowedLanguages: LiveSpeechSelection.dictationLanguages)
     }
 
     static func live(
