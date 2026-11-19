@@ -160,4 +160,48 @@ final class DictationTextRulesTests: XCTestCase {
                                                 spokenCommands: true),
                        "Punto y Aparte", "a user trigger inside a phrase keeps it literal")
     }
+
+    func testSpokenDomainsBecomeAddressesInBothLanguages() {
+        let cases = [
+            ("x dot com", "x.com"),
+            ("Open X dot com.", "Open x.com."),
+            ("Visita github punto com hoy", "Visita github.com hoy"),
+            ("www dot apple dot com", "www.apple.com"),
+            ("docs punto my-site punto io", "docs.my-site.io"),
+            ("Write to claude dot ai, please", "Write to claude.ai, please"),
+            ("sat punto gob punto mx", "sat.gob.mx")
+        ]
+        for (heard, typed) in cases {
+            XCTAssertEqual(DictationTextRules.apply(heard, replacements: [], removeFillers: false,
+                                                    spokenCommands: true), typed, heard)
+        }
+    }
+
+    func testSpokenDomainsLeaveProseAndLiteralModeAlone() {
+        let prose = [
+            "El punto es que no llegó",
+            "The dot com bubble burst",
+            "La punto com de mi primo",
+            "Connect the dots com later",
+            "We met at the dot",
+            "x dot comedy"
+        ]
+        for text in prose {
+            XCTAssertEqual(DictationTextRules.apply(text, replacements: [], removeFillers: false,
+                                                    spokenCommands: true), text)
+        }
+        XCTAssertEqual(DictationTextRules.apply("x dot com", replacements: [], removeFillers: false,
+                                                spokenCommands: false), "x dot com")
+    }
+
+    func testSpokenDomainsYieldToUserTriggersAndKeepTrimming() {
+        let rules = [DictationReplacement(trigger: "acme dot com", replacement: "ACME.com")]
+        XCTAssertEqual(DictationTextRules.apply("Buy at acme dot com", replacements: rules,
+                                                removeFillers: false, spokenCommands: true),
+                       "Buy at ACME.com")
+        let signature = [DictationReplacement(trigger: "sig", replacement: "Best\n")]
+        XCTAssertEqual(DictationTextRules.apply("x dot com sig", replacements: signature,
+                                                removeFillers: false, spokenCommands: true),
+                       "x.com Best", "an address is not a break the user asked for")
+    }
 }

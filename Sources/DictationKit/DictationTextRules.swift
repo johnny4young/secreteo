@@ -50,7 +50,7 @@ public enum DictationTextRules {
         if spokenCommands {
             let commanded = applyingSpokenCommands(to: result, except: replacements.map(\.trigger))
             keepsBreaks = commanded != result
-            result = commanded
+            result = DictationSpokenDomains.applying(to: commanded, claimed: claims(replacements.map(\.trigger)))
         }
         result = applying(replacements, to: result)
         // A break the user asked for at either end is part of the text.
@@ -61,15 +61,7 @@ public enum DictationTextRules {
     /// punctuation the recognizer adds around a command are dropped; sentence
     /// punctuation before it stays ("Hi. New line. World" → "Hi.\nWorld").
     static func applyingSpokenCommands(to text: String, except triggers: [String]) -> String {
-        // Any user trigger inside a phrase, as whole words, keeps that phrase literal.
-        let claimed = { (phrase: String) in
-            triggers.contains { trigger in
-                let pattern = "(?<![\\p{L}\\p{N}])"
-                    + NSRegularExpression.escapedPattern(for: trigger.trimmingCharacters(in: .whitespaces))
-                    + "(?![\\p{L}\\p{N}])"
-                return phrase.range(of: pattern, options: [.regularExpression, .caseInsensitive]) != nil
-            }
-        }
+        let claimed = claims(triggers)
         // Decomposed accents (i + U+0301) must match the precomposed phrases.
         var result = text.precomposedStringWithCanonicalMapping
         for (phrases, replacement) in [(paragraphCommands, "\n\n"), (lineBreakCommands, "\n")] {
@@ -81,6 +73,18 @@ public enum DictationTextRules {
                 of: pattern, with: replacement, options: [.regularExpression, .caseInsensitive])
         }
         return result
+    }
+
+    /// Any user trigger inside a phrase, as whole words, keeps that phrase literal.
+    static func claims(_ triggers: [String]) -> (String) -> Bool {
+        { phrase in
+            triggers.contains { trigger in
+                let pattern = "(?<![\\p{L}\\p{N}])"
+                    + NSRegularExpression.escapedPattern(for: trigger.trimmingCharacters(in: .whitespaces))
+                    + "(?![\\p{L}\\p{N}])"
+                return phrase.range(of: pattern, options: [.regularExpression, .caseInsensitive]) != nil
+            }
+        }
     }
 
     /// Removes standalone fillers plus one trailing comma/semicolon each
