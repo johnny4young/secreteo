@@ -4,7 +4,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
-- 🔗 **Say web addresses**: “x dot com” and “github punto com” type `x.com` and `github.com`; Literal mode keeps the words as spoken.
+- 🔗 **Say web addresses**: “x dot com”, “github punto com” and “w w w dot apple dot com” type `x.com`, `github.com` and `www.apple.com`; Literal mode keeps the words as spoken.
 - 🔤 **Auto stays in Spanish and English**: with the language on Auto, short dictations no longer come out in another alphabet, such as Cyrillic.
 
 ## 1.2.1

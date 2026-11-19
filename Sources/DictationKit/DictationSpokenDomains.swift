@@ -30,9 +30,17 @@ enum DictationSpokenDomains {
             + topLevelDomains.joined(separator: "|") + ")(?![\\p{L}\\p{N}])",
         options: [.caseInsensitive])
 
+    // The recognizer spells "www" as letters, and may also write it after them: "W W www.apple.com".
+    private static let lettersBeforeWeb = try? NSRegularExpression(
+        pattern: "(?<![\\p{L}\\p{N}.])(?:w[ \\t]+){1,3}(?=www\\.)", options: [.caseInsensitive])
+    private static let spelledWeb = try? NSRegularExpression(
+        pattern: "(?<![\\p{L}\\p{N}.])w\\.?[ \\t]+w\\.?[ \\t]+w\\.?(?=[ \\t]+(dot|punto)[ \\t])",
+        options: [.caseInsensitive])
+
     /// `claimed` keeps a phrase holding a user's trigger literal.
     static func applying(to text: String, claimed: (String) -> Bool, lexicon: DictationLexicon) -> String {
         guard let expression else { return text }
+        let text = joiningSpelledWeb(text)
         let source = text as NSString
         let result = NSMutableString(string: text)
         let matches = expression.matches(in: text, range: NSRange(location: 0, length: source.length))
@@ -60,8 +68,18 @@ enum DictationSpokenDomains {
     private static func isProse(
         _ label: String, spanish: Bool, lexicon: DictationLexicon, followedByWord: Bool
     ) -> Bool {
-        guard spanish || followedByWord else { return false }
+        guard label != "www", spanish || followedByWord else { return false }
         return lexicon.contains(label, spanish) ?? true
+    }
+
+    static func joiningSpelledWeb(_ text: String) -> String {
+        var result = text
+        for (pattern, replacement) in [(lettersBeforeWeb, ""), (spelledWeb, "www")] {
+            guard let pattern else { continue }
+            result = pattern.stringByReplacingMatches(
+                in: result, range: NSRange(location: 0, length: (result as NSString).length), withTemplate: replacement)
+        }
+        return result
     }
 
     private static func word(before location: Int, in source: NSString) -> String {

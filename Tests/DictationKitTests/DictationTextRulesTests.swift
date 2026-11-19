@@ -171,7 +171,11 @@ final class DictationTextRulesTests: XCTestCase {
             ("Write to claude dot ai, please", "Write to claude.ai, please"),
             ("sat punto gob punto mx", "sat.gob.mx"),
             ("Go to google dot com.", "Go to google.com."),
-            ("Entra a amazon punto com y compra", "Entra a amazon.com y compra")
+            ("Entra a amazon punto com y compra", "Entra a amazon.com y compra"),
+            ("Visit W W www.apple.com today.", "Visit www.apple.com today."),
+            ("Visit W W W dot apple dot com today.", "Visit www.apple.com today."),
+            ("Entra a w. w. w. punto google punto com", "Entra a www.google.com"),
+            ("Open www dot github dot com now", "Open www.github.com now")
         ]
         for (heard, typed) in cases {
             XCTAssertEqual(DictationTextRules.apply(heard, replacements: [], removeFillers: false,
@@ -191,7 +195,9 @@ final class DictationTextRulesTests: XCTestCase {
             "Las empresas punto com quebraron",
             "Many dot com companies failed",
             "The early dot com days",
-            "She built a polka dot app"
+            "She built a polka dot app",
+            "W W W wrestling is back",
+            "Draw a w w"
         ]
         for text in prose {
             XCTAssertEqual(DictationTextRules.apply(text, replacements: [], removeFillers: false,
@@ -227,7 +233,7 @@ final class DictationTextRulesTests: XCTestCase {
 
     /// A fixed dictionary, so the result never depends on the language assets a Mac has.
     private static let lexicon = DictationLexicon { word, spanish in
-        (spanish ? ["burbuja", "empresas", "era", "punto"] : ["many", "early", "polka", "google", "apple", "the"])
+        (spanish ? ["burbuja", "empresas", "era", "punto"] : ["many", "early", "polka", "google", "apple", "the", "www"])
             .contains(word)
     }
 }
