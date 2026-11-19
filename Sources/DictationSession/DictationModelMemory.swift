@@ -63,8 +63,8 @@ final class DictationMemoryPressure {
     }
 }
 
-/// Opt-in warm load for dictation. It never pins the model: the hold ends at
-/// once, so idle and pressure release still apply.
+/// When dictation loads its model ahead of use: an opt-in warm load, or a load at launch
+/// that lets go at once. Neither pins the model, so idle and pressure release still apply.
 enum DictationPrewarmPolicy {
     static let defaultsKey = "dictationPrewarm"
 
@@ -79,8 +79,13 @@ enum DictationPrewarmPolicy {
     }
 
     static func shouldWarm(_ conditions: Conditions) -> Bool {
-        conditions.dictationEnabled && conditions.prewarmEnabled
-            && conditions.profile == .balanced && [.parakeet, .parakeetUltra].contains(conditions.engine)
+        conditions.prewarmEnabled && conditions.profile == .balanced && shouldCompile(conditions)
+    }
+
+    /// Core ML keeps its compiled model per macOS build, so the first load after a macOS
+    /// update takes seconds. Loading once at launch moves that wait off the first dictation.
+    static func shouldCompile(_ conditions: Conditions) -> Bool {
+        conditions.dictationEnabled && [.parakeet, .parakeetUltra].contains(conditions.engine)
             && !conditions.underPressure && !conditions.lowPowerMode
             && !conditions.temporaryStore
     }

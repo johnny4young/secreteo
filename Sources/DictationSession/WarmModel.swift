@@ -14,6 +14,8 @@ final class WarmModel<Model: Sendable> {
     private var users = 0
     /// Bumped by `release`, so a load that started before it is not kept or shared after it.
     private var generation = 0
+    /// Counts every `acquire`, so `compileAhead` sees whether a session used the model meanwhile.
+    private var acquisitions = 0
 
     var isHoldingModel: Bool { model != nil }
     /// The wait the next idle period would get.
@@ -34,6 +36,7 @@ final class WarmModel<Model: Sendable> {
         idleRelease?.cancel()
         idleRelease = nil
         users += 1
+        acquisitions += 1
         do {
             return try await loadedModel()
         } catch {
@@ -98,6 +101,22 @@ final class WarmModel<Model: Sendable> {
         return Task {
             guard (try? await acquire()) != nil else { return }
             releaseWhenIdle()
+        }
+    }
+
+    /// Loads once so Core ML compiles the model before the first dictation, then lets it go.
+    /// A session that used the model during the load keeps its usual idle clock instead.
+    /// The task says whether the load finished.
+    @discardableResult
+    func compileAhead() -> Task<Bool, Never>? {
+        guard users == 0, model == nil, loading == nil else { return nil }
+        let before = acquisitions
+        return Task {
+            guard mayKeep(), (try? await acquire()) != nil else { return false }
+            users = max(0, users - 1)
+            guard users == 0 else { return true }
+            if acquisitions == before + 1 { model = nil } else { scheduleIdleRelease() }
+            return true
         }
     }
 }
