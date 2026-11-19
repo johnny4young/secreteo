@@ -175,7 +175,9 @@ final class DictationTextRulesTests: XCTestCase {
             ("Visit W W www.apple.com today.", "Visit www.apple.com today."),
             ("Visit W W W dot apple dot com today.", "Visit www.apple.com today."),
             ("Entra a w. w. w. punto google punto com", "Entra a www.google.com"),
-            ("Open www dot github dot com now", "Open www.github.com now")
+            ("Open www dot github dot com now", "Open www.github.com now"),
+            ("Visit W.W.W. dot apple dot com", "Visit www.apple.com"),
+            ("Visit W. W. www.apple.com today.", "Visit www.apple.com today.")
         ]
         for (heard, typed) in cases {
             XCTAssertEqual(DictationTextRules.apply(heard, replacements: [], removeFillers: false,
@@ -197,7 +199,9 @@ final class DictationTextRulesTests: XCTestCase {
             "The early dot com days",
             "She built a polka dot app",
             "W W W wrestling is back",
-            "Draw a w w"
+            "Draw a w w",
+            "W W W dot apple dot fr",
+            "Visita w w w punto apple punto fr"
         ]
         for text in prose {
             XCTAssertEqual(DictationTextRules.apply(text, replacements: [], removeFillers: false,
@@ -212,6 +216,12 @@ final class DictationTextRulesTests: XCTestCase {
         XCTAssertEqual(DictationTextRules.apply("Buy at acme dot com", replacements: rules,
                                                 removeFillers: false, spokenCommands: true, lexicon: Self.lexicon),
                        "Buy at ACME.com")
+        for trigger in ["w w w dot acme dot com", "w www.acme.com"] {
+            let spelled = [DictationReplacement(trigger: trigger, replacement: "our site")]
+            XCTAssertEqual(DictationTextRules.apply("Visit \(trigger)", replacements: spelled, removeFillers: false,
+                                                    spokenCommands: true, lexicon: Self.lexicon),
+                           "Visit our site", trigger)
+        }
         let signature = [DictationReplacement(trigger: "sig", replacement: "Best\n")]
         XCTAssertEqual(DictationTextRules.apply("x dot com sig", replacements: signature,
                                                 removeFillers: false, spokenCommands: true, lexicon: Self.lexicon),
