@@ -9,7 +9,7 @@ import SpeechCore
 @MainActor
 final class DictationMicrophoneReadiness {
     /// About -80 dBFS: below any live microphone's noise floor, above digital silence.
-    static let signalFloor: Float = 1e-4
+    static let signalFloor = DictationSessionDiagnostics.audiblePeak
     /// Outlasts a Bluetooth headset's switch to its call profile, so only a truly silent input waits this long.
     static let silentFallback: Double = 1.5
 
