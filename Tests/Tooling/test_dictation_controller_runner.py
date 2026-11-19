@@ -157,7 +157,10 @@ class DictationControllerRunnerTests(unittest.TestCase):
                        controller=True, invoke=self.controller_double)
         self.assertFalse(f.calls)
         self.assertFalse((runner.ROOT / 'controller-results').exists())
-        for spelling in (str(runner.ROOT).swapcase(), '/System/Volumes/Data' + str(runner.ROOT)):
+        # Aliases exist only on a case-insensitive volume or behind the macOS Data firmlink.
+        aliases = [s for s in (str(runner.ROOT).swapcase(), '/System/Volumes/Data' + str(runner.ROOT))
+                   if Path(s).exists()]
+        for spelling in aliases:
             with self.subTest(spelling=spelling), self.assertRaises(corpus.CorpusError):
                 runner.require_private_output(Path(spelling) / 'controller-results')
 

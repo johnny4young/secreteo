@@ -33,7 +33,8 @@ final class DictationControllerModelTests: XCTestCase {
 
     func testReceiptsAreRefusedInsideTheRepositoryHoweverItIsSpelled() {
         let root = DictationModelFixture.root.path
-        for spelling in [root, root.uppercased(), "/System/Volumes/Data" + root] {
+        for spelling in [root, root.uppercased(), "/System/Volumes/Data" + root]
+        where FileManager.default.fileExists(atPath: spelling) {
             XCTAssertTrue(DictationModelFixture.isInsideRepository(spelling + "/results/model.json"), spelling)
         }
         XCTAssertFalse(DictationModelFixture.isInsideRepository(NSTemporaryDirectory() + "results/model.json"))
