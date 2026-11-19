@@ -106,15 +106,17 @@ final class WarmModel<Model: Sendable> {
 
     /// Loads once so Core ML compiles the model before the first dictation, then lets it go.
     /// A session that used the model during the load keeps its usual idle clock instead.
+    /// The task says whether the load finished.
     @discardableResult
-    func compileAhead() -> Task<Void, Never>? {
+    func compileAhead() -> Task<Bool, Never>? {
         guard users == 0, model == nil, loading == nil else { return nil }
         let before = acquisitions
         return Task {
-            guard (try? await acquire()) != nil else { return }
+            guard mayKeep(), (try? await acquire()) != nil else { return false }
             users = max(0, users - 1)
-            guard users == 0 else { return }
+            guard users == 0 else { return true }
             if acquisitions == before + 1 { model = nil } else { scheduleIdleRelease() }
+            return true
         }
     }
 }

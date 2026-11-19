@@ -12,7 +12,7 @@ Secreteo requires Apple silicon. Every measurement so far comes from one M4 Max 
 
 ## G3. Core ML compiles per app
 
-Even with one shared download, each app compiles its own Core ML copy: the result depends on both the path and the app. Parakeet takes about 14 seconds on an M4 Max, and smaller chips are unmeasured. Onboarding shows a warm-up step ([measurements](spikes/model-path-and-specialization.md)). The compiled copy is kept per macOS build, so after a macOS update the app loads the model once at launch and lets it go, and the first dictation does not wait for the compile.
+Even with one shared download, each app compiles its own Core ML copy: the result depends on both the path and the app. Parakeet takes about 14 seconds on an M4 Max, and smaller chips are unmeasured. Onboarding shows a warm-up step ([measurements](spikes/model-path-and-specialization.md)). The compiled copy is kept per macOS build, so the app loads the model once at each launch and lets it go, and the first dictation after a macOS update does not wait for the compile.
 
 ## G4. Second download with an older Portavoz
 

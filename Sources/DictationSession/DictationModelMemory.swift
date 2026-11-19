@@ -63,8 +63,8 @@ final class DictationMemoryPressure {
     }
 }
 
-/// Opt-in warm load for dictation. It never pins the model: the hold ends at
-/// once, so idle and pressure release still apply.
+/// When dictation loads its model ahead of use: an opt-in warm load, or a load at launch
+/// that lets go at once. Neither pins the model, so idle and pressure release still apply.
 enum DictationPrewarmPolicy {
     static let defaultsKey = "dictationPrewarm"
 
