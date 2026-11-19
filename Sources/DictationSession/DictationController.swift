@@ -622,7 +622,7 @@ private extension DictationController {
         measurement: DictationSessionMeasurementRecorder?
     ) -> DictationMicrophoneReadiness {
         let readiness = DictationMicrophoneReadiness(now: dependencies.now, onReady: { [weak self] in
-            guard let self, activeSessionID == id else { return }
+            guard let self, activeSessionID == id, phase == .preparing else { return }
             phase = .listening
         }, onFailure: { [weak self] failure in
             guard let self, activeSessionID == id else { return }
@@ -951,6 +951,8 @@ extension DictationController {
         let waitForTail = dependencies.waitForStopTail
         let silence = analysis.tail
         silence.finishRequested()
+        // A stopping session is past preparing, so a later press or handoff cannot discard its words.
+        if phase == .preparing { phase = .listening }
         stopTask = Task { [weak self] in
             guard await Self.stopTailEnded(wait: waitForTail, silence: silence) else { return }
             guard let self, self.activeSessionID == sessionID else { return }

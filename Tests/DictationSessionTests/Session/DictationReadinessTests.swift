@@ -251,7 +251,7 @@ final class DictationReadinessTests: XCTestCase {
             } else {
                 let consumed = await eventually { harness.observedChunks == 1 }
                 XCTAssertTrue(consumed)
-                XCTAssertEqual(harness.controller.phase, .listening)
+                XCTAssertEqual(harness.controller.phase, .preparing, "Silence disarms the deadline but is not listening yet")
                 XCTAssertEqual(harness.observedChunks, 1)
             }
             harness.controller.cancel()
@@ -259,6 +259,29 @@ final class DictationReadinessTests: XCTestCase {
             XCTAssertTrue(cleaned)
             XCTAssertTrue(harness.insertions.isEmpty)
         }
+    }
+
+    func testAReleaseWhilePreparingStopsAndASecondPressKeepsTheWords() async {
+        let harness = ReadinessHarness(text: "Said in the stop tail")
+        harness.controller.toggle(using: harness.dependencies)
+        let opened = await eventually { harness.engineStarted }
+        XCTAssertTrue(opened)
+        await harness.microphone.emit(samples: [0, 0, 0])
+        let consumed = await eventually { harness.observedChunks == 1 }
+        XCTAssertTrue(consumed)
+        XCTAssertEqual(harness.controller.phase, .preparing)
+        await harness.microphone.holdStop()
+        harness.now += 1
+        harness.controller.finishAndInsert()
+        XCTAssertEqual(harness.controller.phase, .listening, "A stopping session is no longer preparing")
+        let stopping = await eventuallyAsync { await harness.microphone.stopCalls == 1 }
+        XCTAssertTrue(stopping)
+        harness.controller.toggle(using: harness.dependencies)
+        XCTAssertEqual(harness.controller.phase, .listening, "A second press during the stop must not cancel")
+        await harness.microphone.releaseStop()
+        let delivered = await eventually { harness.insertions == ["Said in the stop tail"] }
+        XCTAssertTrue(delivered)
+        harness.controller.cancel()
     }
 
     func testEarlyStreamTerminationBeforeFirstPCMFailsAtTheController() async {
