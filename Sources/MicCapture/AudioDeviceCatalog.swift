@@ -10,6 +10,14 @@ public struct AudioInputDevice: Sendable, Identifiable {
     public let name: String
 }
 
+/// How an input device connects, as far as dictation cares.
+public enum AudioInputTransport: String, Codable, Sendable {
+    case builtIn
+    case bluetooth
+    case usb
+    case other
+}
+
 /// Enumerates audio input devices via Core Audio.
 public enum AudioDeviceCatalog {
     public static func inputDevices() throws -> [AudioInputDevice] {
@@ -79,6 +87,44 @@ public enum AudioDeviceCatalog {
         guard AudioObjectGetPropertyData(deviceID, &address, 0, nil, &size, &transport) == noErr
         else { return false }
         return transport == kAudioDeviceTransportTypeBluetooth
+    }
+
+    /// The system default input device, or nil if none.
+    public static func defaultInputDeviceID() -> AudioObjectID? {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultInputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var deviceID = AudioObjectID(kAudioObjectUnknown)
+        var size = UInt32(MemoryLayout<AudioObjectID>.size)
+        let status = AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &deviceID)
+        guard status == noErr, deviceID != AudioObjectID(kAudioObjectUnknown) else { return nil }
+        return deviceID
+    }
+
+    public static func inputTransport(_ deviceID: AudioObjectID) -> AudioInputTransport {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyTransportType,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var transport: UInt32 = 0
+        var size = UInt32(MemoryLayout<UInt32>.size)
+        guard AudioObjectGetPropertyData(deviceID, &address, 0, nil, &size, &transport) == noErr
+        else { return .other }
+        switch transport {
+        case kAudioDeviceTransportTypeBuiltIn: return .builtIn
+        case kAudioDeviceTransportTypeBluetooth, kAudioDeviceTransportTypeBluetoothLE: return .bluetooth
+        case kAudioDeviceTransportTypeUSB: return .usb
+        default: return .other
+        }
+    }
+
+    /// The Mac's own microphone, or nil when it has none.
+    public static func builtInInput() -> AudioInputDevice? {
+        (try? inputDevices())?.first { inputTransport($0.id) == .builtIn }
     }
 
     /// Whether the current default OUTPUT is a Bluetooth device.

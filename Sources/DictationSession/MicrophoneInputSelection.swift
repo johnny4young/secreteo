@@ -1,11 +1,13 @@
 import MicCapture
 import Foundation
+import IOKit
 
 /// Shared interpretation of the existing Audio preference. A temporarily
 /// missing device falls back for this capture without erasing the user's UID.
 struct MicrophoneInputSelection: Equatable {
     let deviceIdentifier: String?
     let usesSystemFallback: Bool
+    var replacesBluetooth = false
 
     static let preferenceKey = "preferredInputUID"
     static let systemDefault = "default"
@@ -26,5 +28,48 @@ struct MicrophoneInputSelection: Equatable {
         return isAvailable(preferredIdentifier)
             ? Self(deviceIdentifier: preferredIdentifier, usesSystemFallback: false)
             : Self(deviceIdentifier: nil, usesSystemFallback: true)
+    }
+
+    /// A Bluetooth headset's microphone switches it to its call profile: it opens late, loses
+    /// the first words and records narrowband. The Mac's own microphone is used instead,
+    /// unless the person chose the headset.
+    func avoidingBluetoothDefault(_ system: SystemInput) -> Self {
+        guard deviceIdentifier == nil, system.defaultTransport == .bluetooth,
+              let builtIn = system.builtInIdentifier else { return self }
+        return Self(deviceIdentifier: builtIn, usesSystemFallback: usesSystemFallback, replacesBluetooth: true)
+    }
+}
+
+/// The system's default input and the Mac's own microphone, read when a dictation starts.
+struct SystemInput: Equatable {
+    var defaultTransport: AudioInputTransport?
+    var builtInIdentifier: String?
+    /// How the chosen device connects, for the timing log.
+    var transport: (String?) -> AudioInputTransport? = { _ in nil }
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.defaultTransport == rhs.defaultTransport && lhs.builtInIdentifier == rhs.builtInIdentifier
+    }
+
+    static func live() -> Self {
+        Self(
+            defaultTransport: AudioDeviceCatalog.defaultInputDeviceID().map(AudioDeviceCatalog.inputTransport),
+            builtInIdentifier: lidIsClosed() ? nil : AudioDeviceCatalog.builtInInput()?.uid,
+            transport: { identifier in
+                guard let identifier else {
+                    return AudioDeviceCatalog.defaultInputDeviceID().map(AudioDeviceCatalog.inputTransport)
+                }
+                let device = try? AudioDeviceCatalog.inputDevice(matching: identifier)
+                return device.map { AudioDeviceCatalog.inputTransport($0.id) }
+            })
+    }
+
+    /// A closed laptop lid mutes the built-in microphone.
+    static func lidIsClosed() -> Bool {
+        let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPMrootDomain"))
+        guard service != 0 else { return false }
+        defer { IOObjectRelease(service) }
+        let state = IORegistryEntryCreateCFProperty(service, "AppleClamshellState" as CFString, kCFAllocatorDefault, 0)
+        return (state?.takeRetainedValue() as? Bool) ?? false
     }
 }

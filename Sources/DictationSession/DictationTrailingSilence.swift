@@ -16,7 +16,18 @@ final class DictationTrailingSilence: Sendable {
     static let loudestQuiet: Float = 0.01
     static let window: TimeInterval = 0.01
 
+    /// The decision in numbers, for the timing log.
+    struct Report: Codable, Equatable, Sendable {
+        var floor: Float?
+        var threshold: Float
+        var loudestAfterGesture: Float
+        var quietSeconds: TimeInterval
+        var heardSound: Bool
+        var endedEarly: Bool
+    }
+
     private struct State {
+        var loudestAfterGesture: Float = 0
         var floor: Float?
         /// Audio offered so far and when, so the gesture can be placed in audio time.
         var offeredEnd: TimeInterval = 0
@@ -53,9 +64,10 @@ final class DictationTrailingSilence: Sendable {
                 if loudness > 0 { state.floor = min(state.floor ?? loudness, loudness) }
                 return nil
             }
+            state.loudestAfterGesture = max(state.loudestAfterGesture, loudness)
             // A restarted stream pads with zeros, which says nothing about the room.
             guard !state.heardSound, !state.silent, loudness > 0 else { return nil }
-            let threshold = max(Self.absoluteQuiet, min(Self.loudestQuiet, (state.floor ?? 0) * Self.floorMultiple))
+            let threshold = Self.threshold(floor: state.floor)
             guard loudness <= threshold else {
                 state.heardSound = true
                 return nil
@@ -68,6 +80,18 @@ final class DictationTrailingSilence: Sendable {
             return state.onSilence
         }
         fire?()
+    }
+
+    var report: Report {
+        state.withLock {
+            Report(floor: $0.floor, threshold: Self.threshold(floor: $0.floor),
+                   loudestAfterGesture: $0.loudestAfterGesture, quietSeconds: $0.quiet,
+                   heardSound: $0.heardSound, endedEarly: $0.silent)
+        }
+    }
+
+    static func threshold(floor: Float?) -> Float {
+        max(absoluteQuiet, min(loudestQuiet, (floor ?? 0) * floorMultiple))
     }
 
     /// Audio offered from now on is the tail.

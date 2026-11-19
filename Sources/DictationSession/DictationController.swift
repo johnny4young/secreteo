@@ -327,6 +327,7 @@ final class DictationController {
             microphone = input.source
             self.microphone = input.source
             measurement?.observeCapture(input.source)
+            measurement?.noteInput(input.transport, replacedBluetooth: input.replacesBluetooth)
             microphoneNotice = input.usesSystemFallback ? L10n.text(
                 "Your preferred microphone is unavailable. Using the system default for this dictation.") : nil
             // Audio-first: speech during a cold load waits in the bounded relay.
@@ -679,6 +680,7 @@ private extension DictationController {
             updateMeter: { [weak self] peak in
                 guard let self, activeSessionID == sessionID else { return }
                 measurement?.record(.firstBufferHandled)
+                measurement?.noteBuffer(peak: peak)
                 micLevel = max(peak, micLevel * 0.8)
             })
     }
@@ -953,6 +955,7 @@ extension DictationController {
         stopTask = Task { [weak self] in
             guard await Self.stopTailEnded(wait: waitForTail, silence: silence) else { return }
             guard let self, self.activeSessionID == sessionID else { return }
+            self.measurement?.noteTail(silence.report)
             self.stopIssuedSessionID = sessionID
             await microphone?.stop()
             playCue(.stop)
