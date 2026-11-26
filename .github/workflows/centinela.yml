@@ -65,7 +65,7 @@ jobs:
       # Lets the job prove its identity to the Claude API (WIF).
       id-token: write
     steps:
-      - uses: johnny4young/centinela@112e36b0ef133bf9b03cf857447294f82596de6a # v1.9.0
+      - uses: johnny4young/centinela@2d1ed38fd6f47dfefe4fbc136342c5daf473d431 # v1.11.1
         with:
           shared-memory-repo: ${{ vars.CENTINELA_MEMORY_REPO }}
           app-client-id: ${{ vars.CENTINELA_APP_CLIENT_ID }}
@@ -90,7 +90,7 @@ jobs:
       statuses: write
       id-token: write
     steps:
-      - uses: johnny4young/centinela@112e36b0ef133bf9b03cf857447294f82596de6a # v1.9.0
+      - uses: johnny4young/centinela@2d1ed38fd6f47dfefe4fbc136342c5daf473d431 # v1.11.1
         with:
           shared-memory-repo: ${{ vars.CENTINELA_MEMORY_REPO }}
           allow-learning-prs: 'true'
