@@ -4,6 +4,9 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- 🔋 **Lighter in the background**: Secreteo wakes your Mac less often while idle and gives memory back sooner when the Mac runs short.
+- ⚡ **Dictations in a row start faster**: the voice detector stays loaded between dictations instead of loading again each time.
+- ⌨️ **Typing never waits on Secreteo**: with Fn or a modifier as the hold key, keystrokes no longer pause while the app is busy.
 - 🛡️ **Interrupted dictations keep your words reachable**: if audio capture fails or your Mac sleeps after words were already recognized, Secreteo opens a recovery card with Copy and Discard and protects those words from being overwritten by another trigger until you dismiss it.
 - ⚡ **Short hold-to-talk replies land cleanly**: holding Fn, a modifier or a mouse button for quick replies like “Sí” or “OK” delivers from 0.25 s, and a global shortcut held past half a second delivers on release, instead of cancelling silently.
 - 📋 **Faster clipboard return and clearer refusal**: verified pastes restore your previous clipboard ~50 ms after confirmation instead of holding it for 1.5 s, and a clipboard that could not be backed up says why before offering Copy or Reinsert.

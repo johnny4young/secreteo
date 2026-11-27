@@ -93,6 +93,11 @@ struct AffordanceWatchdogTests {
         #expect(flag.lost == 0)
     }
 
+    @Test func theDefaultIdleIntervalKeepsAnUnannouncedLossWithinSevenSeconds() {
+        let watchdog = AffordanceWatchdog(hasAffordance: { true }, onLost: {})
+        #expect(watchdog.nextInterval == 5)
+    }
+
     @Test func anEventPutsItOnTheFastScheduleForAFewChecks() {
         let flag = Flag()
         let watchdog = AffordanceWatchdog(hasAffordance: { flag.value }, onLost: {}, idleInterval: 10, checkInterval: 1)

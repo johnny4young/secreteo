@@ -1,6 +1,7 @@
 import Carbon.HIToolbox
 import CoreGraphics
 import Foundation
+import Synchronization
 import XCTest
 
 @testable import DictationSession
@@ -78,5 +79,68 @@ final class ModifierKeyGestureTests: XCTestCase {
                        "the left Option key is not the trigger")
         XCTAssertEqual(input(.flagsChanged, kVK_RightOption, .maskAlternate, .rightOption), .up,
                        "left Option still held while the right one is released ends the hold")
+    }
+
+    func testTapRouterFastPathHoldChordDisableAndInvalidate() async {
+        let events = Mutex<[String]>([])
+        let delivery = DispatchQueue(label: "test.modifier-ptt-delivery")
+        let router = ModifierKeyTapRouter(
+            setting: .function,
+            startDelay: .milliseconds(25),
+            deliveryQueue: delivery,
+            onPress: { events.withLock { $0.append("press") } },
+            onRelease: { events.withLock { $0.append("release") } },
+            onChord: { events.withLock { $0.append("chord") } })
+        let fnFlag = CGEventFlags.maskSecondaryFn.rawValue
+
+        // Unrelated typing while idle exits on the fast path with no callbacks.
+        XCTAssertFalse(router.handleEvent(type: .keyDown, keyCode: Int64(kVK_ANSI_A), flags: 0))
+        XCTAssertFalse(router.handleEvent(
+            type: .flagsChanged, keyCode: Int64(kVK_Shift), flags: CGEventFlags.maskShift.rawValue))
+        delivery.sync {}
+        XCTAssertEqual(events.withLock { $0 }, [])
+
+        // Quick release before delay and chord during pending both cancel the start.
+        XCTAssertFalse(router.handleEvent(type: .flagsChanged, keyCode: Int64(kVK_Function), flags: fnFlag))
+        XCTAssertFalse(router.handleEvent(type: .flagsChanged, keyCode: Int64(kVK_Function), flags: 0))
+        XCTAssertFalse(router.handleEvent(type: .flagsChanged, keyCode: Int64(kVK_Function), flags: fnFlag))
+        XCTAssertFalse(router.handleEvent(type: .keyDown, keyCode: Int64(kVK_RightArrow), flags: fnFlag))
+        XCTAssertFalse(router.handleEvent(type: .flagsChanged, keyCode: Int64(kVK_Function), flags: 0))
+        try? await Task.sleep(for: .milliseconds(50))
+        delivery.sync {}
+        XCTAssertEqual(events.withLock { $0 }, [], "quick taps and pending chords must never fire")
+
+        // Holding Fn past the delay fires press, and releasing fires release in FIFO order.
+        XCTAssertFalse(router.handleEvent(type: .flagsChanged, keyCode: Int64(kVK_Function), flags: fnFlag))
+        let pressed = await TestPolling.until { events.withLock { $0 } == ["press"] }
+        XCTAssertTrue(pressed)
+        XCTAssertFalse(router.handleEvent(type: .flagsChanged, keyCode: Int64(kVK_Function), flags: 0))
+        delivery.sync {}
+        XCTAssertEqual(events.withLock { $0 }, ["press", "release"])
+
+        // Typing another key while held fires chord and ignores the trailing release.
+        XCTAssertFalse(router.handleEvent(type: .flagsChanged, keyCode: Int64(kVK_Function), flags: fnFlag))
+        let heldForChord = await TestPolling.until { events.withLock { $0.count == 3 } }
+        XCTAssertTrue(heldForChord)
+        XCTAssertFalse(router.handleEvent(type: .keyDown, keyCode: Int64(kVK_RightArrow), flags: fnFlag))
+        XCTAssertFalse(router.handleEvent(type: .flagsChanged, keyCode: Int64(kVK_Function), flags: 0))
+        delivery.sync {}
+        XCTAssertEqual(events.withLock { $0 }, ["press", "release", "press", "chord"])
+
+        // Tap disable ends an active hold and requests re-enablement.
+        XCTAssertFalse(router.handleEvent(type: .flagsChanged, keyCode: Int64(kVK_Function), flags: fnFlag))
+        let pressedAgain = await TestPolling.until { events.withLock { $0.count == 5 } }
+        XCTAssertTrue(pressedAgain)
+        XCTAssertTrue(router.handleEvent(type: .tapDisabledByTimeout, keyCode: 0, flags: 0))
+        delivery.sync {}
+        XCTAssertEqual(events.withLock { $0 }, ["press", "release", "press", "chord", "press", "release"])
+
+        // Invalidating cancels a pending start timer and suppresses future events.
+        XCTAssertFalse(router.handleEvent(type: .flagsChanged, keyCode: Int64(kVK_Function), flags: fnFlag))
+        router.invalidate()
+        try? await Task.sleep(for: .milliseconds(60))
+        XCTAssertFalse(router.handleEvent(type: .flagsChanged, keyCode: Int64(kVK_Function), flags: 0))
+        delivery.sync {}
+        XCTAssertEqual(events.withLock { $0 }, ["press", "release", "press", "chord", "press", "release"])
     }
 }

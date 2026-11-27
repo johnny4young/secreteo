@@ -142,13 +142,22 @@ struct DictationSessionDependencies {
             locatePanelAnchor: { DictationPanelAnchor.current() },
             registerCancelKey: { GlobalHotkey(keyCode: UInt32(kVK_Escape), modifiers: 0, onPress: $0) },
             playCue: DictationSoundCue.player(defaults: services.defaults),
-            makeSpeechGate: { [defaults = services.defaults, store = services.modelStore] in
-                DictationSpeechGate.isEnabled(in: defaults) ? .silero(store: store) : nil
+            makeSpeechGate: { [weak services, defaults = services.defaults] in
+                guard DictationSpeechGate.isEnabled(in: defaults), services != nil else { return nil }
+                return .silero { [weak services] in
+                    guard let services else { throw CancellationError() }
+                    return try await services.acquireSpeechDetector(channel: .microphone)
+                }
             },
-            makePauseDetector: { [defaults = services.defaults, store = services.modelStore] onPause in
-                guard DictationAutoStop.isEnabled(in: defaults) else { return nil }
+            makePauseDetector: { [weak services, defaults = services.defaults] onPause in
+                guard DictationAutoStop.isEnabled(in: defaults), services != nil else { return nil }
                 let pause = DictationAutoStop.pause(in: defaults)
-                return DictationAutoStop.silero(store: store, pause: pause, onPause: onPause)
+                return DictationAutoStop.silero(
+                    acquire: { [weak services] in
+                        guard let services else { throw CancellationError() }
+                        return try await services.acquireSpeechDetector(channel: .microphone)
+                    },
+                    pause: pause, onPause: onPause)
             },
             translateDictation: { text, source, target in
                 await TranslateDictation(translator: AppleDictationTranslator())(text, source: source, target: target)

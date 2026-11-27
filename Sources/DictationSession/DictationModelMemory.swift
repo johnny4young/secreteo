@@ -33,6 +33,7 @@ enum DictationModelMemory: String {
 final class DictationMemoryPressure {
     private(set) var isActive = false
     private var releasers: [@MainActor () -> Bool] = []
+    private var pressureActions: [@MainActor () -> Void] = []
     private var afterEnd: [@MainActor () -> Void] = []
     private var tookSomething = false
 
@@ -41,9 +42,19 @@ final class DictationMemoryPressure {
         releases { [weak warm] in warm?.release() ?? false }
     }
 
+    /// Pressure gives an idle model back, and its end restores nothing: the model reloads on next use.
+    func evicts<Model>(_ warm: WarmModel<Model>) {
+        onPressure { [weak warm] in warm?.release() }
+    }
+
     /// Runs on each report of pressure; returns whether it gave anything back.
     func releases(_ release: @escaping @MainActor () -> Bool) {
         releasers.append(release)
+    }
+
+    /// Runs on pressure for caches that reload lazily and do not need prewarm restoration.
+    func onPressure(_ action: @escaping @MainActor () -> Void) {
+        pressureActions.append(action)
     }
 
     /// Runs when pressure that gave something back ends, not on every report of normal memory.
@@ -56,6 +67,7 @@ final class DictationMemoryPressure {
         self.isActive = isActive
         if isActive {
             for release in releasers where release() { tookSomething = true }
+            pressureActions.forEach { $0() }
         }
         guard ended, tookSomething else { return }
         tookSomething = false

@@ -72,7 +72,8 @@ final class DictationModelListTests: XCTestCase {
         let before = try await first(models)
         XCTAssertFalse(before.isClaimedByThisApp)
 
-        await models.adopt(.speech)
+        let adopted = await models.adopt(.speech)
+        XCTAssertTrue(adopted)
 
         let after = try await first(models)
         XCTAssertTrue(after.isClaimedByThisApp)
@@ -82,10 +83,45 @@ final class DictationModelListTests: XCTestCase {
 
     func testAdoptingAMissingModelNeitherClaimsNorDownloads() async throws {
         let models = try models(try store(try makeScratch(), secreteo))
-        await models.adopt(.speech)
+        let adopted = await models.adopt(.speech)
+        XCTAssertFalse(adopted)
         let entries = await models.inventory()
         XCTAssertTrue(entries.isEmpty)
         XCTAssertEqual(CountingURLProtocol.requests.withLock { $0 }, 0)
+    }
+
+    func testRememberSkipsRedundantUserDefaultsWritesWhenUnchanged() async throws {
+        let root = try makeScratch()
+        let liveStore = try store(root, secreteo)
+        try await install(liveStore)
+        let suite = "DictationModelListTests.remember.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        addTeardownBlock { defaults.removePersistentDomain(forName: suite) }
+        let manifest = self.manifest
+        let models = DictationModels.live(
+            store: liveStore, defaults: defaults, seedRoot: root.appendingPathComponent("seed"),
+            manifests: { _ in manifest })
+        let notifications = Mutex(0)
+        let observer = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification, object: defaults, queue: nil
+        ) { _ in notifications.withLock { $0 += 1 } }
+        defer { NotificationCenter.default.removeObserver(observer) }
+
+        await models.remember(.speech, true)
+        let afterFirstWrite = notifications.withLock { $0 }
+        XCTAssertGreaterThan(afterFirstWrite, 0)
+
+        await models.remember(.speech, true)
+        await models.remember(.speech, true)
+        XCTAssertEqual(
+            notifications.withLock { $0 }, afterFirstWrite,
+            "Unchanged readiness checks must not post UserDefaults.didChangeNotification")
+
+        await models.remember(.speech, false)
+        let afterClear = notifications.withLock { $0 }
+        XCTAssertGreaterThan(afterClear, afterFirstWrite)
+        await models.remember(.speech, false)
+        XCTAssertEqual(notifications.withLock { $0 }, afterClear)
     }
 
     /// The path adoption takes when files vanish under the install lock.

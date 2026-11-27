@@ -47,7 +47,7 @@ Delivery logic has only run against scratch pasteboards and injected events. The
 - Unverified pastes return the clipboard on a fixed 1.5 second timer, so an editor that stalls longer pastes the restored contents; verified pastes accelerate restoration to 50 ms after AX readback confirms delivery.
 - One unreadable clipboard type refuses the paste and sends the text to recovery. How often real clipboards do this is unmeasured.
 - A correction whose replacement fails leaves the caret where the selection moved it.
-- The Fn and modifier tap never consumes an event but runs as an active tap on the main thread, so a main-thread stall delays typing everywhere until macOS disables the tap. A listen-only tap may need the Input Monitoring permission.
+- The Fn and modifier tap never consumes an event and runs on a dedicated background run loop so main-thread stalls cannot delay typing. A listen-only tap may still need the Input Monitoring permission, so it remains an active session tap.
 - A synthetic copy can arrive after its one second late window and stay on the clipboard, and a real copy inside that window is replaced by the old contents. The pasteboard does not say who wrote.
 
 ## G10. Words after a failure or a lock

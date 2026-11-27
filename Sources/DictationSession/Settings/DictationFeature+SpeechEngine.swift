@@ -34,6 +34,7 @@ extension DictationFeature {
     /// A failure belonged to the other engine's parts, and Parakeet may not have been hashed.
     func speechEngineChanged() {
         warmEngine.release()
+        adoptedParts.removeAll()
         if modelState == .failed { modelState = .missing }
         applyModelReadiness()
         if speechModelIsRequired { Task { await refreshReadiness() } }

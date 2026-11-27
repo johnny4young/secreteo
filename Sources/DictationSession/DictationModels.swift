@@ -29,7 +29,7 @@ struct DictationModels: Sendable {
     /// `Part` is that list, so every model this app installs must be a case of it.
     var collectUnused: @Sendable () async -> Void
     /// Writes this app's claim on verified files another app installed. Never downloads.
-    var adopt: @Sendable (Part) async -> Void = { _ in }
+    var adopt: @Sendable (Part) async -> Bool = { _ in true }
     /// Every model in the shared folder and the apps that keep it.
     var inventory: @Sendable () async -> [DictationModelEntry] = { [] }
     /// Drops only this app's claim. The files stay while another app keeps them.
@@ -101,7 +101,12 @@ struct DictationModels: Sendable {
                 return await fingerprint(part) == known
             },
             remember: { part, isVerified in
-                defaults.set(isVerified ? await fingerprint(part) : nil, forKey: part.recordKey)
+                let next = isVerified ? await fingerprint(part) : nil
+                let changed = next == nil
+                    ? defaults.object(forKey: part.recordKey) != nil
+                    : defaults.string(forKey: part.recordKey) != next
+                guard changed else { return }
+                defaults.set(next, forKey: part.recordKey)
             },
             install: { part, placedBytes in
                 // Read before the install, which is the only time the store's own files say nothing was there.
@@ -117,9 +122,11 @@ struct DictationModels: Sendable {
                 _ = try? await store.collectGarbage()
             },
             adopt: { part in
-                guard await store.verifiedInstallation(manifests(part)) != nil else { return }
+                guard await store.verifiedInstallation(manifests(part)) != nil else { return false }
                 // Its own task, because a vetoed download cancels the task it runs on.
-                _ = await Task { try await store.ensureAvailableWithoutDownloading(manifests(part)) }.result
+                let result = await Task { try await store.ensureAvailableWithoutDownloading(manifests(part)) }.result
+                if case .success = result { return true }
+                return false
             },
             inventory: {
                 await store.inventory().map { DictationModelEntry($0, ownName: store.consumer.displayName) }

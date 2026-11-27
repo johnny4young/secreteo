@@ -32,6 +32,57 @@ public struct VoiceActivityBatch: Sendable {
     public let observations: [VoiceActivityObservation]
 }
 
+/// Loaded, leased Silero Core ML weights shared across per-session detectors.
+/// `VadManager` is an actor and `VadStreamState` lives per detector, so one loaded
+/// model serves both speech gating and auto-stop and stays warm between dictations.
+public final class SileroVoiceActivityModel: Sendable {
+    private let modelLease: LocalModelStore.ModelLease
+    private let infer: SileroVoiceActivityDetector.Inference
+
+    public static func load(
+        from store: LocalModelStore,
+        computeUnits: MLComputeUnits = .cpuOnly
+    ) async throws -> SileroVoiceActivityModel {
+        try await loadLeased(from: store, manifest: ModelCatalog.sileroVAD) { directory in
+            let url = directory.appendingPathComponent(ModelCatalog.sileroVADBundleDirectory, isDirectory: true)
+            let configuration = MLModelConfiguration()
+            configuration.computeUnits = computeUnits
+            let model = try await MLModel.load(contentsOf: url, configuration: configuration)
+            let manager = VadManager(config: VadConfig(computeUnits: computeUnits), vadModel: model)
+            return { frame, state in try await manager.processStreamingChunk(frame, state: state) }
+        }
+    }
+
+    static func loadLeased(
+        from store: LocalModelStore, manifest: ModelManifest,
+        prepare: @Sendable (URL) async throws -> SileroVoiceActivityDetector.Inference
+    ) async throws -> SileroVoiceActivityModel {
+        let lease: LocalModelStore.ModelLease
+        do {
+            lease = try await store.lease(manifest)
+        } catch LocalModelStore.LocalModelStoreError.notInstalled {
+            throw VoiceActivityDetectionError.modelNotInstalled
+        }
+        try Task.checkCancellation()
+        let infer = try await prepare(lease.directory)
+        try Task.checkCancellation()
+        return SileroVoiceActivityModel(modelLease: lease, infer: infer)
+    }
+
+    init(modelLease: LocalModelStore.ModelLease, infer: @escaping SileroVoiceActivityDetector.Inference) {
+        self.modelLease = modelLease
+        self.infer = infer
+    }
+
+    /// Captures `self` inside the inference closure so the store lease outlives
+    /// both the detector and any in-flight inference even after a warm cache drops it.
+    public func makeDetector(channel: AudioChannel) -> SileroVoiceActivityDetector {
+        SileroVoiceActivityDetector(channel: channel) { [self] frame, state in
+            try await self.infer(frame, state)
+        }
+    }
+}
+
 /// Recording/dictation-scoped Silero stream over mono capture chunks. A caller
 /// consumes this actor from an off-callback task; it never edits or gates the
 /// original capture stream. The model is loaded only from ModelStore's fully
@@ -51,7 +102,6 @@ public actor SileroVoiceActivityDetector {
 
     private let channel: AudioChannel
     private let infer: Inference
-    private let modelLease: LocalModelStore.ModelLease?
     private var resampler = StreamingLinearResampler()
     private var modelState = VadStreamState.initial()
     private var pending: [Float] = []
@@ -67,36 +117,21 @@ public actor SileroVoiceActivityDetector {
         channel: AudioChannel,
         computeUnits: MLComputeUnits = .cpuOnly
     ) async throws -> SileroVoiceActivityDetector {
-        try await loadLeased(from: store, manifest: ModelCatalog.sileroVAD, channel: channel) { directory in
-            let url = directory.appendingPathComponent(ModelCatalog.sileroVADBundleDirectory, isDirectory: true)
-            let configuration = MLModelConfiguration()
-            configuration.computeUnits = computeUnits
-            let model = try await MLModel.load(contentsOf: url, configuration: configuration)
-            let manager = VadManager(config: VadConfig(computeUnits: computeUnits), vadModel: model)
-            return { frame, state in try await manager.processStreamingChunk(frame, state: state) }
-        }
+        let model = try await SileroVoiceActivityModel.load(from: store, computeUnits: computeUnits)
+        return model.makeDetector(channel: channel)
     }
 
     static func loadLeased(
         from store: LocalModelStore, manifest: ModelManifest, channel: AudioChannel,
         prepare: @Sendable (URL) async throws -> Inference
     ) async throws -> SileroVoiceActivityDetector {
-        let lease: LocalModelStore.ModelLease
-        do {
-            lease = try await store.lease(manifest)
-        } catch LocalModelStore.LocalModelStoreError.notInstalled {
-            throw VoiceActivityDetectionError.modelNotInstalled
-        }
-        try Task.checkCancellation()
-        let infer = try await prepare(lease.directory)
-        try Task.checkCancellation()
-        return SileroVoiceActivityDetector(channel: channel, modelLease: lease, infer: infer)
+        let model = try await SileroVoiceActivityModel.loadLeased(from: store, manifest: manifest, prepare: prepare)
+        return model.makeDetector(channel: channel)
     }
 
-    init(channel: AudioChannel, modelLease: LocalModelStore.ModelLease? = nil, infer: @escaping Inference) {
+    init(channel: AudioChannel, infer: @escaping Inference) {
         self.channel = channel
         self.infer = infer
-        self.modelLease = modelLease
     }
 
     /// One ordered producer owns each detector. Reentrant concurrent calls
