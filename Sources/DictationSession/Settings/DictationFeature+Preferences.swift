@@ -3,6 +3,13 @@ import Foundation
 import Polish
 import SwiftUI
 
+/// Three mutually exclusive retention presets backed by `DictationModelMemory` and `DictationPrewarmPolicy`.
+enum DictationModelMemoryChoice: String, Equatable, Sendable {
+    case lightweight
+    case balanced
+    case prewarmed
+}
+
 /// Lets a view outside Settings, such as the open dictation panel, follow a saved value.
 @MainActor
 @Observable
@@ -61,30 +68,32 @@ extension DictationFeature {
             })
     }
 
-    var usesLightweightMemory: Binding<Bool> {
+    var modelMemoryChoice: Binding<DictationModelMemoryChoice> {
         Binding(
             get: {
                 _ = self.preferenceRevision
-                return DictationModelMemory.current(in: self.defaults) == .lightweight
+                if DictationModelMemory.current(in: self.defaults) == .lightweight { return .lightweight }
+                return self.defaults.bool(forKey: DictationPrewarmPolicy.defaultsKey) ? .prewarmed : .balanced
             },
-            set: {
-                let profile: DictationModelMemory = $0 ? .lightweight : .balanced
-                self.store([DictationModelMemory.key: profile.rawValue])
+            set: { choice in
+                switch choice {
+                case .lightweight:
+                    self.store([
+                        DictationModelMemory.key: DictationModelMemory.lightweight.rawValue,
+                        DictationPrewarmPolicy.defaultsKey: false
+                    ])
+                case .balanced:
+                    self.store([
+                        DictationModelMemory.key: DictationModelMemory.balanced.rawValue,
+                        DictationPrewarmPolicy.defaultsKey: false
+                    ])
+                case .prewarmed:
+                    self.store([
+                        DictationModelMemory.key: DictationModelMemory.balanced.rawValue,
+                        DictationPrewarmPolicy.defaultsKey: true
+                    ])
+                }
                 self.modelMemoryChanged()
-            })
-    }
-
-    var prewarmBinding: Binding<Bool> {
-        Binding(
-            get: {
-                _ = self.preferenceRevision
-                // It does nothing with the lightweight profile, so it must not read as on.
-                return self.defaults.bool(forKey: DictationPrewarmPolicy.defaultsKey)
-                    && DictationModelMemory.current(in: self.defaults) == .balanced
-            },
-            set: {
-                self.store([DictationPrewarmPolicy.defaultsKey: $0])
-                self.prewarmIfConfigured()
             })
     }
 

@@ -7,12 +7,14 @@ import SwiftUI
 /// when the next session starts. Literal mode leaves the rules configured but
 /// does not apply them.
 struct DictationDictionaryEditor: View {
+    private enum Field { case trigger, replacement }
+
     /// Read live: a correction learned from the dictation strip must not be lost
     /// when this editor saves its next change.
     @Binding var stored: String
     @State private var newTrigger = ""
     @State private var newReplacement = ""
-    @FocusState private var focusesTrigger: Bool
+    @FocusState private var focusedField: Field?
 
     private var rules: [DictationReplacement] { DictationTextRules.decode(replacements: stored) }
 
@@ -25,7 +27,8 @@ struct DictationDictionaryEditor: View {
                         text: $newTrigger,
                         prompt: Text("Heard"))
                         .frame(width: 110)
-                        .focused($focusesTrigger)
+                        .focused($focusedField, equals: .trigger)
+                        .onSubmit { focusedField = .replacement }
                         .accessibilityLabel(L10n.text("Heard"))
                         .accessibilityIdentifier("settings-dictation-dict-trigger")
                     TextField(
@@ -33,6 +36,12 @@ struct DictationDictionaryEditor: View {
                         text: $newReplacement,
                         prompt: Text("Type Instead"))
                         .frame(width: 110)
+                        .focused($focusedField, equals: .replacement)
+                        .onSubmit {
+                            guard !trimmedTrigger.isEmpty, !trimmedReplacement.isEmpty else { return }
+                            add()
+                            focusedField = .trigger
+                        }
                         .accessibilityLabel(L10n.text("Type Instead"))
                         .accessibilityIdentifier("settings-dictation-dict-replacement")
                     Button {
@@ -78,7 +87,7 @@ struct DictationDictionaryEditor: View {
             Button {
                 newReplacement = term.replacement
                 newTrigger = ""
-                focusesTrigger = true
+                focusedField = .trigger
             } label: {
                 Image(systemName: "plus.circle")
                     .foregroundStyle(.secondary)

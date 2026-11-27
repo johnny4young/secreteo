@@ -110,7 +110,26 @@ jobs:
           restore-keys: swiftpm-build-macos-26-xcode-26.6-${{ hashFiles('Package.swift') }}-
       - run: swift build -Xswiftc -warnings-as-errors
       - run: swift test --parallel -Xswiftc -warnings-as-errors
-      # Otherwise only the release dry run's instrumented build compiles the update seam.
+
+  # Otherwise only the release dry run's instrumented build compiles the update seam. Apart from
+  # unit, so a change that rebuilds DictationSession does not spend unit's budget twice.
+  update-seam:
+    needs: changes
+    if: needs.changes.outputs.code != 'false'
+    runs-on: macos-26
+    timeout-minutes: 5
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: scripts/verify-ci-toolchain.sh 26 26.6
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
+        with:
+          path: .build
+          key: swiftpm-build-macos-26-xcode-26.6-${{ hashFiles('Package.swift') }}-${{ hashFiles('Package.resolved') }}-
+          restore-keys: swiftpm-build-macos-26-xcode-26.6-${{ hashFiles('Package.swift') }}-
       - run: swift build --target DictationSession --traits UpdateDryRun -Xswiftc -warnings-as-errors
 
   ui-smoke:
@@ -180,7 +199,7 @@ jobs:
 
   gate:
     if: always()
-    needs: [hygiene, legacy-tooling, lint, changes, unit, ui-smoke, signed-handoff, release-dryrun]
+    needs: [hygiene, legacy-tooling, lint, changes, unit, update-seam, ui-smoke, signed-handoff, release-dryrun]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:

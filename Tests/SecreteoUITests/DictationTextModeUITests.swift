@@ -53,6 +53,7 @@ final class DictationTextModeUITests: SecreteoUITestCase {
         XCTAssertTrue(renderedText(of: global).contains(cleanTitle), "An application override must not rewrite the default")
         let remove = app.buttons["settings-dictation-profile-remove-com.johnny4young.secreteo.profile.fixture"]
         XCTAssertTrue(app.revealInSettings(remove))
+        XCTAssertTrue(remove.label.hasSuffix(": Fixture"), "The row names the app, not its bundle identifier: \(remove.label)")
         remove.click()
         XCTAssertTrue(profile.waitForDisappearance(timeout: 5))
         XCTAssertEqual(try Data(contentsOf: original), originalBytes)

@@ -166,6 +166,7 @@ public final class DictationFeature: AppServices {
     public func start() {
         practiceIsComplete = practiceStartsComplete
         DictationTextPreferences.initialize(in: defaults, temporary: usesTemporaryMeetingStore)
+        coerceAppleSpeechLanguageIfNeeded()
         // Created here so a Settings body never creates it and writes defaults mid-update.
         _ = textSettings
         ownership.onStateChange = { [weak self] previous in self?.ownershipChanged(from: previous) }

@@ -3,7 +3,7 @@ import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const ALWAYS = ['hygiene', 'legacy-tooling', 'lint', 'changes'];
-const SCOPED = [['code', ['unit', 'ui-smoke']], ['delivery', ['signed-handoff']], ['release', ['release-dryrun']]];
+const SCOPED = [['code', ['unit', 'update-seam', 'ui-smoke']], ['delivery', ['signed-handoff']], ['release', ['release-dryrun']]];
 
 export function failures(needs) {
   const problems = [];

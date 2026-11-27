@@ -19,6 +19,18 @@ struct OnboardingDictationStep: View {
                                 record: { dictation.recordShortcut($0) },
                                 recordingChanged: { dictation.shortcutRecording($0) },
                                 retry: { dictation.triggersChanged() })
+                            if dictation.fnKeyConflicts {
+                                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                    Text("So macOS doesn't also react, set “Press 🌐 key to” to “Do Nothing”.")
+                                        .foregroundStyle(SecreteoDesign.secondaryText)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .accessibilityIdentifier("onboarding-dictation-modifier-fn-note")
+                                    Spacer(minLength: 4)
+                                    Button("Open Keyboard Settings") { dictation.openKeyboardSettings() }
+                                        .buttonStyle(SettingsLinkStyle())
+                                        .accessibilityIdentifier("onboarding-dictation-modifier-fn-settings")
+                                }
+                            }
                         }
                         .font(.system(size: 13))
                     }

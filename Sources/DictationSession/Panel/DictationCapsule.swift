@@ -114,10 +114,10 @@ enum DictationCapsuleMotion {
 /// How the capsule's one line is shared: the words always keep their part, and the chips give way first.
 enum DictationCapsuleBudget {
     static let leading: CGFloat = 16
-    static let trailing: CGFloat = 12
+    static let trailing: CGFloat = 7
     static let spacing: CGFloat = 8
     static let face: CGFloat = 28
-    static let cancel: CGFloat = 18
+    static let cancel: CGFloat = 28
     static let wordsShare: CGFloat = 0.45
 
     static var content: CGFloat { DictationPanelLayout.width - leading - trailing }
@@ -326,6 +326,7 @@ struct DictationCapsuleView: View {
                 .frame(height: 18)
                 .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 4))
                 .overlay { RoundedRectangle(cornerRadius: 4).strokeBorder(.white.opacity(0.22)) }
+                .frame(minWidth: 28, minHeight: 28)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -345,7 +346,8 @@ struct DictationCapsuleView: View {
                 .foregroundStyle(SecreteoPalette.capsuleSecondaryText.color)
                 .frame(width: 18, height: 18)
                 .background(.white.opacity(0.08), in: Circle())
-                .contentShape(Circle())
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         // A posted paste cannot be recalled; cancelling would only hide its outcome.

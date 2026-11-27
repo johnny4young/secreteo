@@ -34,6 +34,23 @@
         }
       }
     },
+    "%@ · On this Mac" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · On this Mac"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · En esta Mac"
+          }
+        }
+      }
+    },
     "%@: %d words" : {
       "localizations" : {
         "en" : {
@@ -162,6 +179,22 @@
         }
       }
     },
+    "%d words inserted." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d words inserted."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d palabras insertadas."
+          }
+        }
+      }
+    },
     "%d words sent to %@" : {
       "localizations" : {
         "en" : {
@@ -190,22 +223,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%d palabras enviadas."
-          }
-        }
-      }
-    },
-    "%d words inserted." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d words inserted."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d palabras insertadas."
           }
         }
       }
@@ -818,6 +835,23 @@
         }
       }
     },
+    "At Launch" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At Launch"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Al iniciar"
+          }
+        }
+      }
+    },
     "Audio capture was interrupted. Nothing was inserted. Try dictating again." : {
       "localizations" : {
         "en" : {
@@ -878,6 +912,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Atrás"
+          }
+        }
+      }
+    },
+    "Back to Setup" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to Setup"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volver a la configuración"
+          }
+        }
+      }
+    },
+    "Balanced" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Balanced"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Equilibrado"
           }
         }
       }
@@ -2306,22 +2374,6 @@
         }
       }
     },
-    "Free the Model Soon After Dictating" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Free the Model Soon After Dictating"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Liberar el modelo poco después de dictar"
-          }
-        }
-      }
-    },
     "Friendly" : {
       "localizations" : {
         "en" : {
@@ -2642,6 +2694,23 @@
         }
       }
     },
+    "Keep Model in Memory" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep Model in Memory"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantener modelo en memoria"
+          }
+        }
+      }
+    },
     "Keep talking. Your words appear once the model is ready." : {
       "localizations" : {
         "en" : {
@@ -2770,6 +2839,23 @@
         }
       }
     },
+    "Lightweight" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lightweight"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ligero"
+          }
+        }
+      }
+    },
     "Limit" : {
       "localizations" : {
         "en" : {
@@ -2814,22 +2900,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Literal"
-          }
-        }
-      }
-    },
-    "Load the Speech Model at Launch" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Load the Speech Model at Launch"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cargar el modelo de voz al abrir"
           }
         }
       }
@@ -4850,22 +4920,6 @@
         }
       }
     },
-    "Secreteo owns dictation · %@ on this Mac" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Secreteo owns dictation · %@ on this Mac"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Secreteo se encarga del dictado · %@ en esta Mac"
-          }
-        }
-      }
-    },
     "Select All" : {
       "localizations" : {
         "en" : {
@@ -4962,22 +5016,6 @@
         }
       }
     },
-    "Set 🌐 Key to Do Nothing…" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Set 🌐 Key to Do Nothing…"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Configurar 🌐 en No hacer nada…"
-          }
-        }
-      }
-    },
     "Set Up Secreteo" : {
       "localizations" : {
         "en" : {
@@ -4990,6 +5028,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Configurar Secreteo"
+          }
+        }
+      }
+    },
+    "Set 🌐 Key to Do Nothing…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set 🌐 Key to Do Nothing…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurar 🌐 en No hacer nada…"
           }
         }
       }
@@ -6418,38 +6472,6 @@
         }
       }
     },
-    "Your dictations will appear here." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your dictations will appear here."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tus dictados aparecerán aquí."
-          }
-        }
-      }
-    },
-    "Your preferred microphone is unavailable. Using the Mac's microphone for this dictation." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your preferred microphone is unavailable. Using the Mac's microphone for this dictation."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tu micrófono preferido no está disponible. Se usará el micrófono del Mac para este dictado."
-          }
-        }
-      }
-    },
     "Your clipboard couldn't be backed up, so nothing was inserted. Copy your text to keep it." : {
       "localizations" : {
         "en" : {
@@ -6478,6 +6500,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No se pudo respaldar tu portapapeles, así que no se insertó nada. Reinserta después de limpiarlo o copia el texto."
+          }
+        }
+      }
+    },
+    "Your dictations will appear here." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your dictations will appear here."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tus dictados aparecerán aquí."
+          }
+        }
+      }
+    },
+    "Your preferred microphone is unavailable. Using the Mac's microphone for this dictation." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your preferred microphone is unavailable. Using the Mac's microphone for this dictation."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu micrófono preferido no está disponible. Se usará el micrófono del Mac para este dictado."
           }
         }
       }

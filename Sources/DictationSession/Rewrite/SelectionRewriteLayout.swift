@@ -7,7 +7,7 @@ enum SelectionRewriteLayout {
     static let horizontalPadding: CGFloat = 20
     static let verticalPadding: CGFloat = 17
     static let contentWidth = width - horizontalPadding * 2
-    static let headerHeight: CGFloat = 24
+    static let headerHeight: CGFloat = 28
     /// A lone header may wrap a failure onto a second line.
     static let loneHeaderHeight: CGFloat = 32
     static let quoteSize = DictationPanelLayout.wordsFontSize

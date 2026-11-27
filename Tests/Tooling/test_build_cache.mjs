@@ -12,9 +12,13 @@ const job = (source, name) => {
   return lines.slice(start, end < 0 ? undefined : end).join('\n');
 };
 const unit = job(workflow('ci.yml'), 'unit');
+const seam = job(workflow('ci.yml'), 'update-seam');
 const cache = job(workflow('build-cache.yml'), 'swift-build');
 
-function validate(unitJob, cacheJob) {
+function validate(unitJob, cacheJob, expected = [
+  'build -Xswiftc -warnings-as-errors',
+  'test --parallel -Xswiftc -warnings-as-errors',
+]) {
   const prefix = source => {
     const image = /runs-on: (\S+)/.exec(source)?.[1];
     const xcode = /Xcode_([\d.]+)\.app/.exec(source)?.[1];
@@ -31,16 +35,16 @@ function validate(unitJob, cacheJob) {
   assert.ok(cacheJob.includes('key: ${{ steps.key.outputs.prefix }}${{ github.run_id }}'));
   assert.ok(!unitJob.includes('actions/cache/save@'), 'PRs must not evict the main cache');
   const commands = source => [...source.matchAll(/^\s*(?:- run: )?swift (.+)$/gm)].map(match => match[1]);
-  assert.deepEqual(commands(unitJob), [
-    'build -Xswiftc -warnings-as-errors',
-    'test --parallel -Xswiftc -warnings-as-errors',
-    'build --target DictationSession --traits UpdateDryRun -Xswiftc -warnings-as-errors',
-  ]);
+  assert.deepEqual(commands(unitJob), expected);
   assert.deepEqual(commands(cacheJob), ['build --build-tests -Xswiftc -warnings-as-errors']);
 }
 
 test('cache keys, toolchains and compiler flags agree with unit, including all test bundles', () => {
   validate(unit, cache);
+});
+
+test('the update seam restores the same cache with strict diagnostics', () => {
+  validate(seam, cache, ['build --target DictationSession --traits UpdateDryRun -Xswiftc -warnings-as-errors']);
 });
 
 for (const [name, changeUnit, changeCache] of [

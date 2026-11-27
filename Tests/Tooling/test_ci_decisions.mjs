@@ -11,7 +11,7 @@ import { failures } from '../../scripts/ci_gate.mjs';
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const all = { code: true, delivery: true, release: true };
 const always = ['hygiene', 'legacy-tooling', 'lint', 'changes'];
-const scoped = { unit: 'code', 'ui-smoke': 'code', 'signed-handoff': 'delivery', 'release-dryrun': 'release' };
+const scoped = { unit: 'code', 'update-seam': 'code', 'ui-smoke': 'code', 'signed-handoff': 'delivery', 'release-dryrun': 'release' };
 function needs(scope = {}, results = {}) {
   const payload = Object.fromEntries([...always, ...Object.keys(scoped)].map(name => [name, {
     result: Object.hasOwn(results, name) ? results[name] : 'success',

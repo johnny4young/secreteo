@@ -50,12 +50,22 @@ public struct OnboardingView: View {
         }
     }
 
-    /// Off, or with no model yet, the field shows disabled rather than explaining why.
+    /// Off, or with no model yet, the field shows disabled alongside a single action back to the missing step.
     private var practice: some View {
-        OnboardingPracticeStep(dictation: dictation)
-            .disabled(!dictation.practiceIsShown)
-            .onAppear { practiceShown(true) }
-            .onDisappear { practiceShown(false) }
+        VStack(alignment: .leading, spacing: 0) {
+            OnboardingPracticeStep(dictation: dictation)
+                .disabled(!dictation.practiceIsShown)
+            if !dictation.practiceIsShown {
+                Button("Back to Setup") {
+                    step = dictation.isEnabled ? 1 : 0
+                }
+                .buttonStyle(OnboardingButtonStyle(isCompact: true))
+                .padding(.top, 14)
+                .accessibilityIdentifier("onboarding-practice-setup")
+            }
+        }
+        .onAppear { practiceShown(true) }
+        .onDisappear { practiceShown(false) }
     }
 
     // MARK: - Chrome

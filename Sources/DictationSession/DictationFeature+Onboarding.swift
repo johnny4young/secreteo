@@ -24,10 +24,13 @@ extension DictationFeature {
         warmEngine.releaseWhenIdle()
     }
 
-    /// macOS posts no change notification for Accessibility, so a visible permission row asks again.
+    /// macOS posts no change notification for Accessibility or the Globe key, so visible setup rows poll.
     func refreshPermissionsIfChanged() async {
         let microphone = environment.microphoneState() == .authorized
-        guard microphone != microphoneIsAuthorized || environment.accessibilityIsGranted() != accessibilityIsGranted
+        let fnIsFree = ModifierKeySetting.systemFnKeyIsFree(usage: environment.fnKeyUsage())
+        guard microphone != microphoneIsAuthorized
+            || environment.accessibilityIsGranted() != accessibilityIsGranted
+            || fnIsFree != fnKeyIsFree
         else { return }
         await refreshReadiness()
     }

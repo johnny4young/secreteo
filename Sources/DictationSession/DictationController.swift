@@ -753,7 +753,7 @@ private extension DictationController {
 }
 
 extension DictationController {
-    private var hasPendingOutput: Bool {
+    var hasPendingOutput: Bool {
         switch phase {
         case .recovery, .noSpeech: true
         case .failed: !recoveryText.isEmpty
