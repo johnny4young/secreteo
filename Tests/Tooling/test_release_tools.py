@@ -299,7 +299,8 @@ class WorkflowContractTests(unittest.TestCase):
 
     def test_each_workflow_reads_only_its_own_secrets(self):
         expected = {"update-cask.yml": {"TAP_DEPLOY_KEY"},
-                    "pages.yml": {"CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"}}
+                    "pages.yml": {"CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"},
+                    "centinela.yml": {"CENTINELA_APP_PRIVATE_KEY"}}
         for name in self.workflow_names():
             if name == "release.yml":
                 continue
