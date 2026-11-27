@@ -15,10 +15,6 @@ struct AcquiredSpeechDetector: Sendable {
         self.detector = detector
         releaseToken = SpeechDetectorRelease(release)
     }
-
-    func finish() {
-        releaseToken.finish()
-    }
 }
 
 /// What the session asks of the app's composition root, which lives outside this target.

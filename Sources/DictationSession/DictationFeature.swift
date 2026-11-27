@@ -640,7 +640,7 @@ extension DictationFeature {
 
     func wireMemoryPressure() {
         pressure.releases(warmEngine)
-        pressure.releases(warmSpeechDetector)
+        pressure.evicts(warmSpeechDetector)
         if let semantic = history.semantic {
             pressure.onPressure { Task { await semantic.invalidate() } }
         }

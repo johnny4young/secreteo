@@ -70,6 +70,23 @@ final class DictationMemoryPressureTests: XCTestCase {
         XCTAssertTrue(ends.reports.isEmpty, "cache eviction alone must not trigger a speech model prewarm")
     }
 
+    func testAnEvictedModelGoesWithoutPrewarmingOnTheEnd() async throws {
+        let pressure = DictationMemoryPressure()
+        let ends = EndLog()
+        let warm = WarmModel<Int>(mayKeep: { true }, load: { 1 })
+        pressure.evicts(warm)
+        pressure.whenItEnds { ends.record(stillActive: pressure.isActive) }
+        _ = try await warm.acquire()
+        warm.releaseWhenIdle()
+        XCTAssertTrue(warm.isHoldingModel)
+
+        pressure.changed(isActive: true)
+        XCTAssertFalse(warm.isHoldingModel)
+        pressure.changed(isActive: false)
+
+        XCTAssertTrue(ends.reports.isEmpty, "a model that reloads on use must not prewarm the speech engine")
+    }
+
     func testMemoryPressureEvictsSemanticLibraryAndNextSearchReloadsIt() async throws {
         let suite = "DictationMemoryPressureTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

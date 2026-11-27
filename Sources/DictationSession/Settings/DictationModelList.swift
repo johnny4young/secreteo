@@ -38,16 +38,22 @@ extension DictationFeature {
 
     func removeModel(_ entry: DictationModelEntry) {
         guard let models = environment.models else { return }
-        if entry.id == models.key(.speechDetector) {
-            warmSpeechDetector.release()
-        } else if entry.id == models.key(.speech) || entry.id == models.key(.speechUltra) {
-            warmEngine.release()
+        switch warmPart(loadedFrom: entry, models: models) {
+        case .speechDetector?: warmSpeechDetector.release()
+        case .some: warmEngine.release()
+        case nil: break
         }
         adoptedParts.removeAll()
         Task {
             await modelList.remove(entry, models: models)
             await refreshReadiness()
         }
+    }
+
+    /// The warm model that may hold this entry's files. Ultra falls back to v3, but v3 never loads Ultra.
+    func warmPart(loadedFrom entry: DictationModelEntry, models: DictationModels) -> DictationModels.Part? {
+        let speech: [DictationModels.Part] = speechEngine == .parakeetUltra ? [.speechUltra, .speech] : [.speech]
+        return ([.speechDetector] + speech).first { models.key($0) == entry.id }
     }
 }
 

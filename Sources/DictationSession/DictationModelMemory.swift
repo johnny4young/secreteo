@@ -42,6 +42,11 @@ final class DictationMemoryPressure {
         releases { [weak warm] in warm?.release() ?? false }
     }
 
+    /// Pressure gives an idle model back, and its end restores nothing: the model reloads on next use.
+    func evicts<Model>(_ warm: WarmModel<Model>) {
+        onPressure { [weak warm] in warm?.release() }
+    }
+
     /// Runs on each report of pressure; returns whether it gave anything back.
     func releases(_ release: @escaping @MainActor () -> Bool) {
         releasers.append(release)

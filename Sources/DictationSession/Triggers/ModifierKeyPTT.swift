@@ -73,7 +73,7 @@ struct ModifierKeyGesture {
         case chord
     }
 
-    static let startDelay: Duration = .milliseconds(200)
+    static let startDelay: DispatchTimeInterval = .milliseconds(200)
 
     /// Maps one tapped keyboard event to a gesture input.
     static func input(
@@ -135,7 +135,7 @@ final class ModifierKeyTapRouter: Sendable {
 
     init(
         setting: ModifierKeySetting,
-        startDelay: DispatchTimeInterval = .milliseconds(200),
+        startDelay: DispatchTimeInterval = ModifierKeyGesture.startDelay,
         deliveryQueue: DispatchQueue = .main,
         onPress: @escaping @Sendable () -> Void,
         onRelease: @escaping @Sendable () -> Void,

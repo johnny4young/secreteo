@@ -51,6 +51,24 @@ final class DictationModelUseTests: XCTestCase {
         XCTAssertFalse(on.canRemove(entry("speechDetector", true)))
     }
 
+    func testRemovingAModelReleasesOnlyTheWarmModelThatMayHoldIt() throws {
+        let entry = { (key: String) in
+            DictationModelEntry(id: key, name: key, bytes: 1, sharedWith: [], isClaimedByThisApp: true)
+        }
+        let feature = try feature(enabled: true)
+        let models = try XCTUnwrap(feature.environment.models)
+
+        feature.speechEngineBinding.wrappedValue = .parakeet
+        XCTAssertNil(feature.warmPart(loadedFrom: entry("speechUltra"), models: models), "v3 stays warm")
+        XCTAssertEqual(feature.warmPart(loadedFrom: entry("speech"), models: models), .speech)
+        XCTAssertEqual(feature.warmPart(loadedFrom: entry("speechDetector"), models: models), .speechDetector)
+
+        feature.speechEngineBinding.wrappedValue = .parakeetUltra
+        XCTAssertEqual(feature.warmPart(loadedFrom: entry("speechUltra"), models: models), .speechUltra)
+        XCTAssertEqual(feature.warmPart(loadedFrom: entry("speech"), models: models), .speech, "Ultra falls back to v3")
+        XCTAssertNil(feature.warmPart(loadedFrom: entry("an-older-revision"), models: models))
+    }
+
     func testRepeatedReadinessRefreshDoesNotReadoptAlreadyClaimedModels() async throws {
         let adopted = Adopted()
         let verified = Mutex(true)
@@ -86,7 +104,11 @@ final class DictationModelUseTests: XCTestCase {
         XCTAssertEqual(adopted.parts.withLock { $0 }.count, 6)
 
         // Switching engines clears the cached adoption set.
+        // The change starts its own refresh, whose adopt may still be on its way.
         feature.speechEngineChanged()
+        await feature.refreshReadiness()
+        let readopted = await TestPolling.until { adopted.parts.withLock { $0 }.count >= 8 }
+        XCTAssertTrue(readopted)
         await feature.refreshReadiness()
         XCTAssertEqual(adopted.parts.withLock { $0 }.count, 8)
     }
