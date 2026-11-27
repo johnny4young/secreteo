@@ -318,6 +318,19 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         attachScreenshot(named: "pr-settings-apple-speech")
     }
 
+    func testAppleSpeechOffersOnlyConcreteLanguages() throws {
+        let app = try launchEnabled(defaults: #""dictationLiveSpeechEngine":"appleSpeech","dictationLanguage":"auto""#)
+        defer { finishUITestApplication(app) }
+        let language = app.control(withIdentifier: "settings-dictation-language")
+        XCTAssertTrue(app.revealInSettings(language))
+        XCTAssertTrue(language.waitForHittable(timeout: 5))
+        language.click()
+        XCTAssertTrue(app.menuItems["settings-dictation-language-en"].waitForExistenceFast(timeout: 5))
+        XCTAssertTrue(app.menuItems["settings-dictation-language-es"].exists)
+        XCTAssertFalse(app.menuItems["settings-dictation-language-auto"].exists)
+        app.typeKey(.escape, modifierFlags: [])
+    }
+
     func testFreeingTheModelSoonRulesOutLoadingItAtLaunch() throws {
         let app = try launchEnabled(defaults: #""dictationPrewarm":true"#)
         defer { finishUITestApplication(app) }

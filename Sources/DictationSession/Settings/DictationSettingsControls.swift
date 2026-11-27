@@ -58,9 +58,12 @@ struct DictationSettingsControls: View {
                 Picker(selection: dictation.dictationLanguageBinding) {
                     if dictation.speechEngine != .appleSpeech {
                         Text("Automatic").tag("auto")
+                            .accessibilityIdentifier("settings-dictation-language-auto")
                     }
                     Text("Spanish").tag("es")
+                        .accessibilityIdentifier("settings-dictation-language-es")
                     Text("English").tag("en")
+                        .accessibilityIdentifier("settings-dictation-language-en")
                 } label: {
                     Text("Language")
                 }

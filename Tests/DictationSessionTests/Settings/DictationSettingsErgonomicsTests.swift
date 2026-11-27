@@ -52,6 +52,27 @@ struct DictationSettingsErgonomicsTests {
     }
 
     @Test
+    func aMissingApplicationIsResolvedAgainOnceItAppears() throws {
+        let suite = "DictationSettingsErgonomicsTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let model = DictationTextSettingsModel(defaults: defaults, temporary: false)
+        var installed = false
+        var lookups = 0
+        model.resolveApplication = { identifier in
+            lookups += 1
+            return installed
+                ? DictationApplicationDisplay(name: "Notes", icon: NSImage(size: NSSize(width: 16, height: 16)))
+                : DictationApplicationDisplay(name: identifier, icon: nil)
+        }
+        #expect(model.applicationDisplay(for: "com.example.notes").name == "com.example.notes")
+        installed = true
+        #expect(model.applicationDisplay(for: "com.example.notes").name == "Notes")
+        #expect(model.applicationDisplay(for: "com.example.notes").name == "Notes")
+        #expect(lookups == 2)
+    }
+
+    @Test
     func preferredConcreteLanguageFollowsTheResolvedLocale() {
         #expect(DictationFeature.preferredConcreteLanguage(locale: Locale(identifier: "es_CO")) == "es")
         #expect(DictationFeature.preferredConcreteLanguage(locale: Locale(identifier: "es")) == "es")

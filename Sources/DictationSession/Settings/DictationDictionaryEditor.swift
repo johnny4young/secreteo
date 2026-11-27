@@ -7,10 +7,10 @@ import SwiftUI
 /// when the next session starts. Literal mode leaves the rules configured but
 /// does not apply them.
 struct DictationDictionaryEditor: View {
-    /// Read live: a correction learned from the dictation strip must not be lost
-    /// when this editor saves its next change.
     private enum Field { case trigger, replacement }
 
+    /// Read live: a correction learned from the dictation strip must not be lost
+    /// when this editor saves its next change.
     @Binding var stored: String
     @State private var newTrigger = ""
     @State private var newReplacement = ""

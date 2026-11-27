@@ -25,11 +25,15 @@ final class DictationTextSettingsModel {
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let temporary: Bool
     @ObservationIgnored private var applicationDisplays: [String: DictationApplicationDisplay] = [:]
+    @ObservationIgnored var resolveApplication: (String) -> DictationApplicationDisplay = {
+        DictationApplicationDisplay.resolve(bundleIdentifier: $0)
+    }
 
+    /// A missing app is resolved again on the next render, so a later install or mount shows up.
     func applicationDisplay(for bundleIdentifier: String) -> DictationApplicationDisplay {
         if let cached = applicationDisplays[bundleIdentifier] { return cached }
-        let resolved = DictationApplicationDisplay.resolve(bundleIdentifier: bundleIdentifier)
-        applicationDisplays[bundleIdentifier] = resolved
+        let resolved = resolveApplication(bundleIdentifier)
+        if resolved.icon != nil { applicationDisplays[bundleIdentifier] = resolved }
         return resolved
     }
 
