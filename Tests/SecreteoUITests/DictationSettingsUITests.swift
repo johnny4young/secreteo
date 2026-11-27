@@ -325,10 +325,13 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         XCTAssertTrue(app.revealInSettings(language))
         XCTAssertTrue(language.waitForHittable(timeout: 5))
         language.click()
-        XCTAssertTrue(app.menuItems["settings-dictation-language-en"].waitForExistenceFast(timeout: 5))
-        XCTAssertTrue(app.menuItems["settings-dictation-language-es"].exists)
-        XCTAssertFalse(app.menuItems["settings-dictation-language-auto"].exists)
+        let spanish = UITestLocale.environmentLocale == "es"
+        // Picker options cannot carry identifiers: the selected one would replace the popup's.
+        XCTAssertTrue(language.menuItems[spanish ? "Inglés" : "English"].waitForExistenceFast(timeout: 5))
+        XCTAssertTrue(language.menuItems[spanish ? "Español" : "Spanish"].exists)
+        XCTAssertFalse(language.menuItems[spanish ? "Automático" : "Automatic"].exists)
         app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(app.control(withIdentifier: "settings-dictation-language").exists)
     }
 
     func testFreeingTheModelSoonRulesOutLoadingItAtLaunch() throws {
