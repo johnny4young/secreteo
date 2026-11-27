@@ -43,7 +43,7 @@ Dictation on, Secreteo the owner: if the menu offers Use Secreteo for Dictation,
 | Step | Expect | Updates |
 |---|---|---|
 | Dictate into Notes, Slack or another Electron app, and Safari's address bar | Text lands once in each, nothing extra on the clipboard | Readback and verified delivery, G9 |
-| Copy an image, dictate, then paste with ⌘V | The image comes back after 1.5 s | Clipboard restored, G9 |
+| Copy an image, dictate, then paste with ⌘V | The image comes back after 1.5 s, or right after the paste is verified | Clipboard restored, G9 |
 | Dictate with the caret mid-sentence after a lowercase word | No capital and one space | Capitals and spacing from the caret |
 | Dictate into a password field | Nothing is pasted; the words wait in the panel | Retry with no double paste |
 | Start a dictation, switch apps before it pastes, then press Retry in the panel | The words land once, in the app you retried in | Retry with no double paste, Text recovery |

@@ -172,13 +172,13 @@ final class DictationController {
             onPress: { [weak self, weak services] in
                 DispatchQueue.main.async {
                     guard let self, let services else { return }
-                    self.handleMouse(.press, services: services)
+                    self.handleMouse(.press) { self.start(services: services) }
                 }
             },
             onRelease: { [weak self, weak services] in
                 DispatchQueue.main.async {
                     guard let self, let services else { return }
-                    self.handleMouse(.release, services: services)
+                    self.handleMouse(.release) { self.start(services: services) }
                 }
             })
         else { return }
@@ -1307,22 +1307,21 @@ private extension DictationController {
 
 // The mouse trigger reads private session state, so it stays in this file.
 extension DictationController {
-    fileprivate func handleMouse(
-        _ event: MousePTTGesture.Event, services: AppServices
-    ) {
+    func handleMouse(_ event: MousePTTGesture.Event, start beginSession: () -> Void) {
         switch MousePTTGesture.action(
             for: event,
             isListening: isActive,
             mouseOwnsSession: mouseOwnsSession) {
         case .start:
             mouseOwnsSession = true
-            start(services: services)
+            beginSession()
             // A refused start (missing Accessibility trust) must not leave
             // the button claiming a session that never began.
             if !isActive { mouseOwnsSession = false }
         case .finish:
             mouseOwnsSession = false
-            finishAndInsert(isHeld: true)
+            // A press that ends another trigger's session proved no hold.
+            finishAndInsert(isHeld: event == .release)
         case .ignore:
             break
         }

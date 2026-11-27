@@ -1,7 +1,7 @@
 /// Pure decision table for the mouse-button push-to-talk trigger. A spare
 /// mouse button is a dedicated PTT surface: press starts capture, release
 /// delivers. Unlike the keyboard hotkey there is no tap-vs-hold
-/// discriminator — the capture-minimum policy already cancels an
+/// discriminator — the held-capture minimum already cancels an
 /// accidental click's too-short session. It lives in the app executable's
 /// input boundary and is unit-tested through the app target; it does not
 /// belong to the transcription engine.

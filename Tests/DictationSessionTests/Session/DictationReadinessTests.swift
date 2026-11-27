@@ -85,6 +85,25 @@ final class DictationReadinessTests: XCTestCase {
         }
     }
 
+    func testAMousePressThatEndsATapStartedDictationKeepsTheTapMinimum() async {
+        for owned in [false, true] {
+            let harness = ReadinessHarness(text: "Sí")
+            let start = { harness.controller.toggle(using: harness.dependencies) }
+            if owned { harness.controller.handleMouse(.press, start: start) } else { start() }
+            let opened = await eventually { harness.engineStarted }
+            XCTAssertTrue(opened)
+            await harness.microphone.emit(samples: [0.1, -0.1])
+            let partial = await eventually { harness.controller.partialText == "Sí" }
+            XCTAssertTrue(partial)
+            harness.now += 0.4
+            harness.controller.handleMouse(owned ? .release : .press, start: start)
+            let finished = await eventually { harness.finishes == 1 }
+            XCTAssertTrue(finished)
+            XCTAssertEqual(harness.insertions, owned ? ["Sí"] : [], owned ? "held button" : "press during a tap")
+            harness.controller.cancel()
+        }
+    }
+
     func testFinishWithoutFirstBufferCancelsImmediatelyInsteadOfAddingTail() async {
         let harness = ReadinessHarness(text: "No audio, no delivery")
         harness.controller.toggle(using: harness.dependencies)

@@ -367,7 +367,7 @@ final class DictationUITests: SecreteoUITestCase {
         app.buttons["dictation-recovery-copy"].click()
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { board.string(forType: .string) == recoveryFixtureText })
         XCTAssertTrue(text.exists, "Copy does not discard the user's recovery option")
-        app.buttons["dictation-recovery-reinsert"].click()
+        app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(waitForQuietDelivery(app), "Reinserted words close the card without a result")
         XCTAssertFalse(text.exists)
     }
@@ -399,7 +399,8 @@ final class DictationUITests: SecreteoUITestCase {
         guard discard.isHittable else {
             return XCTFail("Activating the disposable menu window must not occlude recovery")
         }
-        discard.click()
+        text.click()
+        app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { !app.dialogs["dictation-panel"].exists },
                       "Discard must close the whole panel before another global trigger")
         XCTAssertTrue(dictate.waitForStableFrame(timeout: 5))
@@ -464,7 +465,7 @@ final class DictationUITests: SecreteoUITestCase {
         XCTAssertTrue(app.control(withIdentifier: "dictation-no-speech-copy-status").waitForExistenceFast(timeout: 5))
         let discard = app.buttons["dictation-no-speech-discard"]
         XCTAssertTrue(discard.waitForStableFrame(timeout: 5))
-        discard.click()
+        app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { !app.dialogs["dictation-panel"].exists })
     }
 
@@ -509,7 +510,7 @@ final class DictationUITests: SecreteoUITestCase {
                 XCTAssertTrue(waitForUITestCondition(timeout: 5) { board.string(forType: .string) == expectedText })
                 let discard = app.buttons["dictation-recovery-discard"]
                 XCTAssertTrue(discard.waitForStableFrame(timeout: 5))
-                discard.click()
+                app.typeKey(.escape, modifierFlags: [])
                 XCTAssertTrue(waitForUITestCondition(timeout: 5) { !discard.exists })
             } else {
                 let state = app.staticTexts["dictation-panel-state"]
