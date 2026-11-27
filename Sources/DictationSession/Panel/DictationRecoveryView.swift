@@ -16,16 +16,21 @@ struct DictationRecoveryView: View {
             if controller.canRetryDelivery {
                 Button("Reinsert", action: controller.retryUndeliveredText)
                     .buttonStyle(DictationCardButtonStyle(kind: .primary))
+                    .modifier(DictationCardFocusRing())
+                    .keyboardShortcut(.defaultAction)
                     .accessibilityIdentifier("dictation-recovery-reinsert")
                     .disabled(controller.isRetryingDelivery)
             }
             Button("Copy", action: controller.copyPendingText)
                 .buttonStyle(DictationCardButtonStyle(kind: controller.canRetryDelivery ? .quiet : .primary))
+                .modifier(DictationCardFocusRing())
                 .accessibilityIdentifier("dictation-recovery-copy")
                 .disabled(controller.isRetryingDelivery)
             // This abandons the pending operation; it does not delete an already saved history entry.
             Button("Discard", role: .cancel, action: controller.cancel)
                 .buttonStyle(DictationCardButtonStyle(kind: .bare))
+                .modifier(DictationCardFocusRing())
+                .keyboardShortcut(.cancelAction)
                 .accessibilityIdentifier("dictation-recovery-discard")
             DictationCopyStatusLabel(
                 status: controller.copyStatus, privacy: controller.deliveryPrivacyLine,
@@ -50,7 +55,12 @@ struct DictationRecoveryView: View {
             return L10n.text("The original field can't be verified. Your text is still available to copy.")
         case .ownershipChanged:
             return L10n.text("Another app took over dictation, so nothing was inserted. Copy your text to keep it.")
-        case .clipboardUnavailable, .eventUnavailable, .cancelled, .emptyText:
+        case .clipboardUnavailable:
+            return L10n.text(
+                // One-line UI copy.
+                // swiftlint:disable:next line_length
+                "Your clipboard couldn't be backed up, so nothing was inserted. Reinsert after clearing it, or copy your text.")
+        case .eventUnavailable, .cancelled, .emptyText:
             return L10n.text("Delivery didn't complete. Reinsert into the original field, or copy your text.")
         }
     }
@@ -60,10 +70,41 @@ struct DictationRecoveryView: View {
         switch failure {
         case .targetChanged:
             L10n.text("The destination changed. Copy your text to keep it.")
-        case .modifiersStillPressed, .clipboardUnavailable, .eventUnavailable, .cancelled, .emptyText:
+        case .clipboardUnavailable:
+            L10n.text("Your clipboard couldn't be backed up, so nothing was inserted. Copy your text to keep it.")
+        case .modifiersStillPressed, .eventUnavailable, .cancelled, .emptyText:
             L10n.text("Delivery didn't complete. Copy your text to keep it.")
         case .secureField, .focusUnavailable, .ownershipChanged:
             nil
+        }
+    }
+}
+
+/// A capture failure or sleep that already heard words opens a copyable card instead of hiding them.
+struct DictationFailureRecoveryView: View {
+    let controller: DictationController
+    let message: String
+
+    var body: some View {
+        DictationOutcomeCard(
+            face: .notSent, title: L10n.text("Text wasn't sent"), reason: message, words: controller.recoveryText,
+            titleIdentifier: "dictation-recovery-title", reasonIdentifier: "dictation-recovery-reason",
+            textIdentifier: "dictation-recovery-text"
+        ) {
+            Button("Copy", action: controller.copyPendingText)
+                .buttonStyle(DictationCardButtonStyle(kind: .primary))
+                .modifier(DictationCardFocusRing())
+                .accessibilityIdentifier("dictation-recovery-copy")
+                .disabled(controller.isRetryingDelivery)
+            Button("Discard", role: .cancel, action: controller.cancel)
+                .buttonStyle(DictationCardButtonStyle(kind: .bare))
+                .modifier(DictationCardFocusRing())
+                .keyboardShortcut(.cancelAction)
+                .accessibilityIdentifier("dictation-recovery-discard")
+            DictationCopyStatusLabel(
+                status: controller.copyStatus, privacy: controller.deliveryPrivacyLine,
+                inHistory: controller.historyKeptDelivery)
+                .accessibilityIdentifier("dictation-recovery-copy-status")
         }
     }
 }

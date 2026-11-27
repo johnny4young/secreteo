@@ -37,6 +37,8 @@ enum TextInserter {
     /// event posts; restoring the clipboard earlier makes them paste the OLD
     /// contents instead of the dictation.
     static let restoreDelay: Duration = .milliseconds(1500)
+    /// Once AX readback confirms the target received the paste, the board can return promptly.
+    static let verifiedRestoreDelay: Duration = .milliseconds(50)
 
     /// Explicit recovery Copy is a user-initiated Copy command, not a paste:
     /// like any Copy it replaces whatever the clipboard held, including several
@@ -157,6 +159,7 @@ enum TextInserter {
         // Beyond post, no observation failure can make retry safe.
         guard let baseline, let readback = target.readback else { return .dispatched }
         guard await readback.verify(output, from: baseline, target: target) else { return .dispatched }
+        clipboard.accelerateRestoration(loan, on: pasteboard, after: verifiedRestoreDelay)
         onVerified?(NSRange(location: baseline.selection.location, length: output.utf16.count), output)
         return .verified
     }

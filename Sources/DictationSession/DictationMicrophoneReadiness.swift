@@ -33,7 +33,7 @@ final class DictationMicrophoneReadiness {
             case .permissionRequired:
                 L10n.text("Allow microphone access in System Settings, then try dictation again.")
             case .noAudio:
-                L10n.text("No microphone audio arrived. Check the microphone in Audio settings and try again.")
+                L10n.text("No microphone audio arrived. Check the microphone in Dictation settings and try again.")
             case .invalidAudio:
                 L10n.text("The microphone sent unusable audio. Check the input device and try again.")
             case .interrupted:
@@ -45,7 +45,7 @@ final class DictationMicrophoneReadiness {
     static func preparationMessage(for error: Error) -> String? {
         if let failure = error as? Failure { return failure.message }
         if case AudioCaptureError.noInputDevice = error {
-            return L10n.text("No microphone is available. Choose an input in Audio settings and try again.")
+            return L10n.text("No microphone is available. Choose an input in Dictation settings and try again.")
         }
         return nil
     }

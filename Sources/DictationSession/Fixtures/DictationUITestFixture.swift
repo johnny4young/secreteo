@@ -16,7 +16,8 @@ final class DictationUITestFixture {
     let deliveryOutcome: DictationDeliveryOutcome?
     /// Real clipboard borrowing on a named board, with inert native effects.
     let exerciseClipboard: Bool
-    var presentsRecoveryControls: Bool { recoversDestination || deliveryOutcome == .dispatched }
+    let sourceEOF: Bool
+    var presentsRecoveryControls: Bool { recoversDestination || deliveryOutcome == .dispatched || sourceEOF }
     let streamsDeltas: Bool
     let deniesMicrophoneOnce: Bool
     let missesAudioOnce: Bool
@@ -43,6 +44,7 @@ final class DictationUITestFixture {
         deliveryOutcome = arguments.contains("-seed-dictation-delivery")
             ? (arguments.contains("-seed-dictation-verified") ? .verified : .dispatched) : nil
         finishesNextCapture = arguments.contains("-seed-dictation-source-eof")
+        sourceEOF = finishesNextCapture
         streamsDeltas = arguments.contains("-seed-dictation-streaming")
         deniesMicrophoneOnce = arguments.contains("-seed-dictation-microphone-denied")
         missesAudioOnce = arguments.contains("-seed-dictation-microphone-no-audio")
@@ -130,8 +132,8 @@ final class DictationUITestFixture {
                 guard let fixture, await fixture.modelArrives() else { throw CancellationError() }
                 return LiveTranscriptionRuntime(
                     engine: DictationFixtureEngine(
-                        text: fixture.nextSessionText(),
-                        streamsDeltas: fixture.streamsDeltas,
+                        text: fixture.nextSessionText(), streamsDeltas: fixture.streamsDeltas,
+                        yieldsCaption: !fixture.captureFailure,
                         onFirstCaption: { await fixture.triggerCaptureFailure() }),
                     completion: {})
             },
@@ -291,6 +293,7 @@ private actor DictationFixtureMicrophone: AudioCaptureSource {
 private struct DictationFixtureEngine: TranscriptionEngine {
     let text: String
     let streamsDeltas: Bool
+    let yieldsCaption: Bool
     let onFirstCaption: @Sendable () async -> Void
     let descriptor = EngineDescriptor(
         id: "dictation-ui-fixture", displayName: "Dictation fixture",
@@ -307,14 +310,16 @@ private struct DictationFixtureEngine: TranscriptionEngine {
                 guard !Task.isCancelled else { break }
                 if !emitted {
                     emitted = true
-                    continuation.yield(TranscriptSegment(
-                        meetingID: hints.meetingID ?? MeetingID(),
-                        channel: .microphone, text: text, startTime: 0, endTime: 1))
-                    if streamsDeltas {
-                        for (delta, time) in [("Café", 8.0), ("C++", 8.2), (".", 8.4), ("Final", 16.0)] {
-                            continuation.yield(TranscriptSegment(
-                                meetingID: hints.meetingID ?? MeetingID(), channel: .microphone,
-                                text: delta, startTime: time, endTime: time + 0.1))
+                    if yieldsCaption {
+                        continuation.yield(TranscriptSegment(
+                            meetingID: hints.meetingID ?? MeetingID(),
+                            channel: .microphone, text: text, startTime: 0, endTime: 1))
+                        if streamsDeltas {
+                            for (delta, time) in [("Café", 8.0), ("C++", 8.2), (".", 8.4), ("Final", 16.0)] {
+                                continuation.yield(TranscriptSegment(
+                                    meetingID: hints.meetingID ?? MeetingID(), channel: .microphone,
+                                    text: delta, startTime: time, endTime: time + 0.1))
+                            }
                         }
                     }
                     await onFirstCaption()

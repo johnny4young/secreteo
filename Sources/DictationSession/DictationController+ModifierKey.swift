@@ -66,7 +66,7 @@ extension DictationController {
             if !isActive { modifierTrigger.ownsSession = false }
         case .finish:
             modifierTrigger.ownsSession = false
-            finishAndInsert()
+            finishAndInsert(isHeld: true)
         case .ignore:
             break
         }

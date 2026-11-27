@@ -3090,34 +3090,34 @@
         }
       }
     },
-    "No microphone audio arrived. Check the microphone in Audio settings and try again." : {
+    "No microphone audio arrived. Check the microphone in Dictation settings and try again." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No microphone audio arrived. Check the microphone in Audio settings and try again."
+            "value" : "No microphone audio arrived. Check the microphone in Dictation settings and try again."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No llegó audio del micrófono. Revisa el micrófono en los ajustes de Audio e inténtalo de nuevo."
+            "value" : "No llegó audio del micrófono. Revisa el micrófono en los ajustes de Dictado e inténtalo de nuevo."
           }
         }
       }
     },
-    "No microphone is available. Choose an input in Audio settings and try again." : {
+    "No microphone is available. Choose an input in Dictation settings and try again." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No microphone is available. Choose an input in Audio settings and try again."
+            "value" : "No microphone is available. Choose an input in Dictation settings and try again."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No hay un micrófono disponible. Elige una entrada en los ajustes de Audio e inténtalo de nuevo."
+            "value" : "No hay un micrófono disponible. Elige una entrada en los ajustes de Dictado e inténtalo de nuevo."
           }
         }
       }
@@ -6446,6 +6446,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tu micrófono preferido no está disponible. Se usará el micrófono del Mac para este dictado."
+          }
+        }
+      }
+    },
+    "Your clipboard couldn't be backed up, so nothing was inserted. Copy your text to keep it." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your clipboard couldn't be backed up, so nothing was inserted. Copy your text to keep it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo respaldar tu portapapeles, así que no se insertó nada. Copia el texto para conservarlo."
+          }
+        }
+      }
+    },
+    "Your clipboard couldn't be backed up, so nothing was inserted. Reinsert after clearing it, or copy your text." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your clipboard couldn't be backed up, so nothing was inserted. Reinsert after clearing it, or copy your text."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo respaldar tu portapapeles, así que no se insertó nada. Reinserta después de limpiarlo o copia el texto."
           }
         }
       }

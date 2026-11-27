@@ -39,6 +39,6 @@ extension DictationController {
         pressedAt = nil
         pressedSessionID = nil
         guard ownsSession, isActive, heldLongEnough else { return }
-        finishAndInsert()
+        finishAndInsert(isHeld: true)
     }
 }

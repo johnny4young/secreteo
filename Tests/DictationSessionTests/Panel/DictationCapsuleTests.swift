@@ -130,6 +130,11 @@ struct DictationCapsuleTests {
             #expect(!DictationPanelLayout.isCard(phase) && !DictationPanelLayout.isCapsule(phase), "words went out")
         }
         #expect(!DictationPanelLayout.isCard(.idle) && !DictationPanelLayout.isCapsule(.idle))
+        #expect(DictationPanelLayout.isCard(.failed("x"), hasRecoveryWords: true))
+        #expect(!DictationPanelLayout.isCapsule(.failed("x"), hasRecoveryWords: true))
+        #expect(DictationPanelOutcome(phase: .failed("x"), delivery: UUID(), hasRecoveryWords: true)?.kind == .failed)
+        #expect(DictationCapsuleMotion.settledChange(to: .failed("x"), hasRecoveryWords: true, duration: 0.32) != nil)
+        #expect(DictationCapsuleMotion.settledChange(to: .failed("x"), hasRecoveryWords: false, duration: 0.32) == nil)
     }
 
     @Test
