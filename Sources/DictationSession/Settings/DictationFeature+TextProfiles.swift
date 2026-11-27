@@ -27,9 +27,19 @@ extension DictationFeature {
             textSettings.reportSelectionError()
             return
         }
-        // Choosing an application that already has a profile keeps its saved mode.
+        // Choosing an application that already has a profile keeps its saved mode;
+        // a newly chosen known Chat, Email or Code/Terminal app seeds its preset.
         textSettings.rememberApplicationURL(url, for: identifier)
-        let existing = textSettings.profiles.first { $0.bundleIdentifier == identifier }?.mode
-        textSettings.setProfile(bundleIdentifier: identifier, mode: existing ?? textSettings.globalMode)
+        if let existing = textSettings.profiles.first(where: { $0.bundleIdentifier == identifier }) {
+            textSettings.setProfile(
+                bundleIdentifier: identifier, choice: existing.choice,
+                preservesCodeTokens: existing.preservesCodeTokens)
+        } else if let preset = DictationProfilePreset.suggested(for: identifier) {
+            textSettings.setProfile(
+                bundleIdentifier: identifier, choice: preset.choice,
+                preservesCodeTokens: preset.preservesCodeTokens ? true : nil)
+        } else {
+            textSettings.setProfile(bundleIdentifier: identifier, mode: textSettings.globalMode)
+        }
     }
 }

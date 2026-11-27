@@ -50,6 +50,7 @@ struct DictationTextModePicker: View {
         case "builtin.friendly": return L10n.text("Friendly")
         case "builtin.bullets": return L10n.text("Bullet list")
         case "builtin.concise": return L10n.text("Concise")
+        case "builtin.code": return L10n.text("Code")
         default: return L10n.text(recipe.name)
         }
     }

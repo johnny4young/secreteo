@@ -28,32 +28,178 @@ public enum DictationPolishFidelity {
         "here is", "here's", "sure", "certainly", "rewritten", "polished", "corrected",
         "aqu\u{ED} est\u{E1}", "aqu\u{ED} tienes", "claro", "por supuesto", "texto corregido", "texto pulido"
     ]
+    /// Clause-delimited self-correction cues with non-empty follow-up text, so prose
+    /// ("actually no budget", "espera no pagar", "Actually no.") never matches.
+    private static let selfCorrectionCuePattern =
+        #"(?:^|[,;:.!?\x{2026}\x{2014}-][ \t]+)"#
+        + #"(actually\s+no|wait\s+no|no\s+wait|sorry\s+no|scratch\s+that|i\s+mean"#
+        + #"|mejor\s+dicho|espera\s+no|perd[\x{F3}o]n\s+no|borra\s+eso|olvida\s+eso)"#
+        + #"(?=[,;:\x{2014}.][ \t]+\S)"#
+    private static let noTermStopwords: Set<String> = [
+        "es", "is", "us", "as", "te", "me", "se", "le", "de", "la",
+        "el", "lo", "va", "he", "we", "be", "to", "do", "in", "on"
+    ]
 
     /// Returns the first rule the candidate breaks, or nil when it is safe to paste.
-    /// `protectedTerms` are the user's own spellings (dictionary replacements). A recipe
-    /// may restructure: its length is free and list markers are not numbers.
+    /// `protectedTerms` are the user's own spellings (dictionary replacements and vocabulary).
+    /// A recipe may restructure: its length is free and list markers are not numbers.
     public static func violation(
         original: String, candidate: String, protectedTerms: [String] = [], allowsRestructuring: Bool = false
     ) -> Violation? {
         var candidate = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !candidate.isEmpty else { return .empty }
         if allowsRestructuring { candidate = strippingListMarkers(candidate) }
-        if numbers(in: original) != numbers(in: candidate) { return .numbers }
+        if !numbersMatch(original: original, candidate: candidate) { return .numbers }
         if identifiers(in: original) != identifiers(in: candidate) { return .identifiers }
         let proseOriginal = strippingIdentifiers(from: original)
         let proseCandidate = strippingIdentifiers(from: candidate)
         for term in protectedTerms where containsWord(term, in: proseOriginal, caseSensitive: true) {
             if !containsWord(term, in: proseCandidate, caseSensitive: true) { return .protectedTerm }
         }
-        if negationMarkers(in: original) != negationMarkers(in: candidate) { return .negation }
-        let ratio = Double(words(in: candidate).count) / Double(max(words(in: original).count, 1))
-        if !allowsRestructuring, ratio < minimumLengthRatio || ratio > maximumLengthRatio { return .length }
+        if !negationsMatch(
+            proseOriginal: proseOriginal, proseCandidate: proseCandidate, protectedTerms: protectedTerms) {
+            return .negation
+        }
+        if !allowsRestructuring, !lengthMatches(original: original, candidate: candidate) { return .length }
         if startsWithPreamble(candidate) && !startsWithPreamble(original) { return .preamble }
         if let before = dominantLanguage(of: original), let after = dominantLanguage(of: candidate),
            before != after {
             return .language
         }
         return nil
+    }
+
+    private static func numbersMatch(original: String, candidate: String) -> Bool {
+        let before = numbers(in: original)
+        let after = numbers(in: candidate)
+        if before == after { return true }
+        // When the speaker explicitly self-corrected ("at 3, actually no, at 4"),
+        // Polish may drop superseded numbers inside the discarded clause right before the cue,
+        // never numbers in earlier sentences or after the cue, and never invent new ones.
+        let normalized = original.precomposedStringWithCanonicalMapping
+        guard let cue = lastSelfCorrectionCueRange(in: normalized) else { return false }
+        let discardedStart = DictationCleanCommands.startOfPrecedingClause(before: cue.lowerBound, in: normalized)
+        let requiredBefore = numbers(in: String(normalized[..<discardedStart]))
+        let requiredAfter = numbers(in: String(normalized[cue.upperBound...]))
+        guard !requiredAfter.isEmpty else { return false }
+        return multisetContains(after, sub: requiredBefore + requiredAfter)
+            && multisetContains(before, sub: after)
+    }
+
+    private static func negationsMatch(
+        proseOriginal: String, proseCandidate: String, protectedTerms: [String]
+    ) -> Bool {
+        let originalMarkers = negationMarkers(in: proseOriginal)
+        let candidateMarkers = negationMarkers(in: proseCandidate)
+        if originalMarkers == candidateMarkers { return true }
+        let strippedOriginal = strippingSafeNegationArtifacts(
+            from: proseOriginal, candidate: proseCandidate, protectedTerms: protectedTerms)
+        let requiredMarkers = negationMarkers(in: strippedOriginal)
+        // Candidate must keep every required negation and never invent a negation absent from original.
+        return requiredMarkers.isSubset(of: candidateMarkers) && candidateMarkers.isSubset(of: originalMarkers)
+    }
+
+    private static func lengthMatches(original: String, candidate: String) -> Bool {
+        let candidateCount = Double(words(in: candidate).count)
+        let originalCount = Double(max(words(in: original).count, 1))
+        let baseRatio = candidateCount / originalCount
+        if baseRatio >= minimumLengthRatio && baseRatio <= maximumLengthRatio { return true }
+        let normalized = original.precomposedStringWithCanonicalMapping
+        guard let cue = lastSelfCorrectionCueRange(in: normalized) else { return false }
+        let discardedStart = DictationCleanCommands.startOfPrecedingClause(before: cue.lowerBound, in: normalized)
+        let surviving = String(normalized[..<discardedStart]) + " " + String(normalized[cue.upperBound...])
+        let survivingCount = Double(max(words(in: surviving).count, 1))
+        let lowerBound = min(originalCount, survivingCount) * minimumLengthRatio
+        let upperBound = max(originalCount, survivingCount) * maximumLengthRatio
+        return candidateCount >= lowerBound && candidateCount <= upperBound
+    }
+
+    private static func multisetContains(_ superset: [String], sub: [String]) -> Bool {
+        var counts: [String: Int] = [:]
+        for item in superset { counts[item, default: 0] += 1 }
+        for item in sub {
+            guard let remaining = counts[item], remaining > 0 else { return false }
+            counts[item] = remaining - 1
+        }
+        return true
+    }
+
+    private static func lastSelfCorrectionCueRange(in normalized: String) -> Range<String.Index>? {
+        guard let regex = try? NSRegularExpression(pattern: selfCorrectionCuePattern, options: [.caseInsensitive])
+        else { return nil }
+        guard let last = regex.matches(in: normalized, range: NSRange(normalized.startIndex..., in: normalized)).last
+        else { return nil }
+        return Range(last.range(at: 1), in: normalized)
+    }
+
+    /// Removes negation words that belong strictly to a clause-delimited self-correction cue
+    /// or to a phonetic "no <frag>" mishearing resolved into a newly introduced `No*` vocabulary term.
+    private static func strippingSafeNegationArtifacts(
+        from original: String, candidate: String, protectedTerms: [String]
+    ) -> String {
+        var cleaned = original.precomposedStringWithCanonicalMapping
+        if let regex = try? NSRegularExpression(pattern: selfCorrectionCuePattern, options: [.caseInsensitive]) {
+            let matches = regex.matches(in: cleaned, range: NSRange(cleaned.startIndex..., in: cleaned))
+            for match in matches.reversed() {
+                if let cueRange = Range(match.range(at: 1), in: cleaned) {
+                    cleaned.replaceSubrange(cueRange, with: " ")
+                }
+            }
+        }
+        var termBudgets: [(term: String, remaining: Int)] = []
+        for term in protectedTerms {
+            let folded = term.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+            guard folded.hasPrefix("no"), folded.count >= 4,
+                  !containsWord(term, in: original, caseSensitive: false) else { continue }
+            let introducedCount = wordMatchCount(term, in: candidate, caseSensitive: true)
+            if introducedCount > 0 { termBudgets.append((term, introducedCount)) }
+        }
+        guard !termBudgets.isEmpty,
+              let regex = try? NSRegularExpression(
+                pattern: #"(?<![\p{L}\p{N}])no[.,]?\s+([\p{L}\p{N}]+)(?![\p{L}\p{N}])"#,
+                options: [.caseInsensitive]) else { return cleaned }
+        let matches = regex.matches(in: cleaned, range: NSRange(cleaned.startIndex..., in: cleaned))
+        for match in matches.reversed() {
+            guard let full = Range(match.range, in: cleaned),
+                  let second = Range(match.range(at: 1), in: cleaned) else { continue }
+            let fragment = cleaned[second].lowercased()
+            if let index = termBudgets.firstIndex(where: {
+                $0.remaining > 0 && matchesNoTermTail(fragment: fragment, term: $0.term)
+            }) {
+                termBudgets[index].remaining -= 1
+                cleaned.replaceSubrange(full, with: " ")
+            }
+        }
+        return cleaned
+    }
+
+    private static func matchesNoTermTail(fragment: String, term: String) -> Bool {
+        guard !noTermStopwords.contains(fragment) else { return false }
+        let folded = term.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+        let parts = folded.split { !($0.isLetter || $0.isNumber) }.map(String.init)
+        if parts.count >= 2, let tail = parts.last, tail.count >= 2 {
+            if fragment == tail || isShortPhoneticTailMatch(fragment: fragment, tail: tail) {
+                return true
+            }
+            if tail.count >= 4,
+               DictationVocabularyNormalizer.damerauLevenshteinDistance(fragment, tail, limit: 1) <= 1 {
+                return true
+            }
+        }
+        let remainder = String(folded.dropFirst(2))
+        guard remainder.count >= 2 else { return false }
+        if fragment == remainder { return true }
+        return remainder.count >= 4
+            && DictationVocabularyNormalizer.damerauLevenshteinDistance(fragment, remainder, limit: 1) <= 1
+    }
+
+    /// Allows Spanish/English phonetic j/g swap on short tails (e.g. "gs" for "js" in Node.js)
+    /// without opening distance-1 matching to unrelated 2-letter words like "es" or "te".
+    private static func isShortPhoneticTailMatch(fragment: String, tail: String) -> Bool {
+        guard fragment.count == tail.count, fragment.count >= 2,
+              let fFirst = fragment.first, let tFirst = tail.first,
+              fragment.dropFirst() == tail.dropFirst() else { return false }
+        return (fFirst == "g" && tFirst == "j") || (fFirst == "j" && tFirst == "g")
     }
 
     /// Digit runs with their grouping removed, so "1,000" and "1000" compare equal.
@@ -109,12 +255,16 @@ public enum DictationPolishFidelity {
     }
 
     private static func containsWord(_ term: String, in text: String, caseSensitive: Bool) -> Bool {
+        wordMatchCount(term, in: text, caseSensitive: caseSensitive) > 0
+    }
+
+    private static func wordMatchCount(_ term: String, in text: String, caseSensitive: Bool) -> Int {
         let trimmed = term.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return false }
+        guard !trimmed.isEmpty else { return 0 }
         let pattern = "(?<![\\p{L}\\p{N}])" + NSRegularExpression.escapedPattern(for: trimmed) + "(?![\\p{L}\\p{N}])"
-        var options: String.CompareOptions = [.regularExpression]
-        if !caseSensitive { options.insert(.caseInsensitive) }
-        return text.range(of: pattern, options: options) != nil
+        let options: NSRegularExpression.Options = caseSensitive ? [] : [.caseInsensitive]
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: options) else { return 0 }
+        return regex.numberOfMatches(in: text, range: NSRange(text.startIndex..., in: text))
     }
 
     private static func startsWithPreamble(_ text: String) -> Bool {

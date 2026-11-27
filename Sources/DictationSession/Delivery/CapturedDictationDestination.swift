@@ -68,7 +68,9 @@ extension TextInserter {
                                 result: initialSecurity == .secure ? .secureField : .focusUnavailable)
         }
         var readback = DictationTextReadback.accessibility(element)
-        readback?.caretCase = caretCase
+        let preservesCode = application.bundleIdentifier
+            .map { caretCase?.codeBundleIdentifiers.contains($0) == true } ?? false
+        readback?.caretCase = preservesCode ? nil : caretCase
         let target = Target(processID: application.processIdentifier, readback: readback) {
             guard canInsert(promptIfNeeded: false) else { return .focusUnavailable }
             // Apple specifies NSRunningApplication equality for process identity,

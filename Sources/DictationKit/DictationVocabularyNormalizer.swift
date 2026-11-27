@@ -54,6 +54,10 @@ public enum DictationVocabularyNormalizer {
 
     private static let tokenExpression = try? NSRegularExpression(pattern: #"[\p{L}\p{N}]+"#)
 
+    private static let codeTokenExpression = try? NSRegularExpression(
+        pattern: #"`[^`]+`|(?<![\p{L}\p{N}_-])--?[a-zA-Z0-9][a-zA-Z0-9-]*(?:=[a-zA-Z0-9._/-]+)?"#
+            + #"|\b[a-z][a-z0-9]*[A-Z][a-zA-Z0-9]*\b"#)
+
     /// Parses the comma- or newline-separated vocabulary string stored in preferences.
     public static func parse(_ raw: String) -> [String] {
         raw.split(whereSeparator: { $0 == "," || $0.isNewline })
@@ -66,6 +70,7 @@ public enum DictationVocabularyNormalizer {
         to rawText: String,
         claimed: (String) -> Bool = { _ in false },
         excludedRanges: [Range<String.Index>] = [],
+        preservesCodeTokens: Bool = false,
         lexicon: DictationLexicon = .system
     ) -> String {
         let entries = prepareEntries(vocabulary)
@@ -74,7 +79,10 @@ public enum DictationVocabularyNormalizer {
         let text = rawText.precomposedStringWithCanonicalMapping
         let mappedExclusions = mapExcludedRanges(excludedRanges, from: rawText, to: text)
         let dotEntries = Set(entries.filter(\.hasInternalDot).map { fold($0.spelling) })
-        let protected = protectedRanges(in: text, exemptDotTerms: dotEntries) + mappedExclusions
+        var protected = protectedRanges(in: text, exemptDotTerms: dotEntries) + mappedExclusions
+        if preservesCodeTokens {
+            protected += codeTokenRanges(in: text)
+        }
         let tokens = extractTokens(in: text, excluding: protected)
         guard !tokens.isEmpty else { return rawText }
 
@@ -341,6 +349,12 @@ public enum DictationVocabularyNormalizer {
                 }
                 return range
             }
+    }
+
+    private static func codeTokenRanges(in text: String) -> [Range<String.Index>] {
+        guard let codeTokenExpression else { return [] }
+        return codeTokenExpression.matches(in: text, range: NSRange(text.startIndex..., in: text))
+            .compactMap { Range($0.range, in: text) }
     }
 
     private static func extractTokens(in text: String, excluding protected: [Range<String.Index>]) -> [Token] {

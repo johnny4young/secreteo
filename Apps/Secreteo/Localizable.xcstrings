@@ -355,6 +355,22 @@
         }
       }
     },
+    "Add Preset" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Preset"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agregar preajuste"
+          }
+        }
+      }
+    },
     "Add Replacement" : {
       "localizations" : {
         "en" : {
@@ -1062,6 +1078,22 @@
         }
       }
     },
+    "Chat" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chat"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mensajería"
+          }
+        }
+      }
+    },
     "Check Again" : {
       "localizations" : {
         "en" : {
@@ -1250,6 +1282,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cercanos en significado"
+          }
+        }
+      }
+    },
+    "Code" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Código"
+          }
+        }
+      }
+    },
+    "Code / Terminal" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code / Terminal"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Código / Terminal"
           }
         }
       }
@@ -2242,6 +2306,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edición"
+          }
+        }
+      }
+    },
+    "Email" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Correo"
           }
         }
       }
@@ -3460,6 +3540,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ollama no se está ejecutando en este Mac."
+          }
+        }
+      }
+    },
+    "On" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activado"
           }
         }
       }
