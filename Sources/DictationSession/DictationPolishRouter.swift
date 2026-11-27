@@ -45,13 +45,13 @@ struct DictationPolishRouter: DictationTextPolishing {
     let makeApple: @MainActor @Sendable () -> any DictationTextPolishing
     let makeOllama: @Sendable (_ endpoint: URL, _ model: String) -> any DictationTextPolishing
 
-    func polish(_ text: String, recipe: String?) async throws -> String {
+    func polish(_ text: String, recipe: String?, vocabulary: [String]) async throws -> String {
         guard let current = await selection() else {
             throw DictationPolishUnavailable(reason: L10n.text("Polish is unavailable right now."))
         }
         let polisher = try await resolve(current)
         do {
-            return try await polisher.polish(text, recipe: recipe)
+            return try await polisher.polish(text, recipe: recipe, vocabulary: vocabulary)
         } catch {
             throw Self.presented(error)
         }

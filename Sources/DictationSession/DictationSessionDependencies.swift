@@ -106,14 +106,17 @@ struct DictationSessionDependencies {
     var translateDictation: (String, String?, String) async -> DictationTranslationOutcome = { _, _, _ in
         .kept(.unsupported)
     }
-    /// Polish mode only: the clean text, the user's own spellings to keep and an optional recipe.
-    var polishDictation: (String, [String], String?) async -> DictationPolishOutcome = { _, _, _ in .kept(.failed) }
+    /// Polish mode only: the clean text, replacement spellings to protect, personal vocabulary, and an optional recipe.
+    var polishDictation: (String, [String], [String], String?) async -> DictationPolishOutcome = { _, _, _, _ in
+        .kept(.failed)
+    }
 
     func transcriptionHints() -> TranscriptionHints {
         let language = defaults.string(forKey: DictationController.languageKey)
         return TranscriptionHints(
             language: language.flatMap { LiveSpeechSelection.dictationLanguages.contains($0) ? $0 : nil },
-            vocabulary: VocabularyPrompt.parse(defaults.string(forKey: "customVocabulary") ?? ""),
+            vocabulary: DictationVocabularyNormalizer.parse(
+                defaults.string(forKey: DictationController.vocabularyKey) ?? ""),
             meetingID: MeetingID(),
             allowedLanguages: LiveSpeechSelection.dictationLanguages)
     }
@@ -162,8 +165,9 @@ struct DictationSessionDependencies {
             translateDictation: { text, source, target in
                 await TranslateDictation(translator: AppleDictationTranslator())(text, source: source, target: target)
             },
-            polishDictation: { [polisher = services.dictationPolisher] text, terms, recipe in
-                await PolishDictation(polisher: polisher)(text, protectedTerms: terms, recipe: recipe)
+            polishDictation: { [polisher = services.dictationPolisher] text, terms, vocabulary, recipe in
+                await PolishDictation(polisher: polisher)(
+                    text, protectedTerms: terms, vocabulary: vocabulary, recipe: recipe)
             })
     }
 }

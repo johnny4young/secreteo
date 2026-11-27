@@ -14,13 +14,10 @@ public struct DictationReplacement: Codable, Equatable, Sendable {
     }
 }
 
-/// The deterministic tier of the two-tier dictation dictionary. The other
-/// tier is the vocabulary prompt, which biases WhisperEngine (prompt tokens)
-/// and SpeechAnalyzerEngine (contextual strings) during transcription but is
-/// not consumed by the live Parakeet path that dictation runs, so for
-/// dictation these rules are the only dictionary that changes the text.
-/// They run AFTER transcription, on the final text only — never on meeting
-/// transcripts, which must stay verbatim records.
+/// The deterministic tier of the dictation dictionary: explicit trigger rules,
+/// filler removal, spoken layout/domain commands, and personal vocabulary
+/// normalization. Runs AFTER transcription on the final text only — never on
+/// meeting transcripts, which must stay verbatim records.
 public enum DictationTextRules {
     /// Non-lexical hesitation fillers in the two supported dictation
     /// languages. Deliberately conservative: every entry is meaningless in
@@ -41,20 +38,28 @@ public enum DictationTextRules {
         replacements: [DictationReplacement],
         removeFillers: Bool,
         spokenCommands: Bool = false,
+        vocabulary: [String] = [],
         lexicon: DictationLexicon = .system
     ) -> String {
         var result = text
         if removeFillers {
             result = strippingFillers(result)
         }
+        let ordered = canonical(replacements)
+        let triggers = ordered.map(\.trigger)
+        let claimed = claims(triggers)
         var keepsBreaks = false
         if spokenCommands {
-            let commanded = applyingSpokenCommands(to: result, except: replacements.map(\.trigger))
+            let commanded = applyingSpokenCommands(to: result, except: triggers)
             keepsBreaks = commanded != result
-            result = DictationSpokenDomains.applying(
-                to: commanded, claimed: claims(replacements.map(\.trigger)), lexicon: lexicon)
+            result = DictationSpokenDomains.applying(to: commanded, claimed: claimed, lexicon: lexicon)
         }
-        result = applying(replacements, to: result)
+        if !vocabulary.isEmpty {
+            let excluded = replacementRanges(for: ordered, in: result)
+            result = DictationVocabularyNormalizer.applying(
+                vocabulary, to: result, claimed: claimed, excludedRanges: excluded, lexicon: lexicon)
+        }
+        result = applying(ordered, to: result)
         // A break the user asked for at either end is part of the text.
         return result.trimmingCharacters(in: keepsBreaks ? .whitespaces : .whitespacesAndNewlines)
     }
@@ -142,6 +147,23 @@ public enum DictationTextRules {
             result.replaceCharacters(in: match.range, with: rule.replacement)
         }
         return result as String
+    }
+
+    /// Ranges in `text` that explicit replacement rules will claim, so earlier
+    /// passes (such as personal vocabulary) leave multi-word triggers intact.
+    static func replacementRanges(
+        for replacements: [DictationReplacement], in text: String
+    ) -> [Range<String.Index>] {
+        let ordered = canonical(replacements).sorted { $0.trigger.count > $1.trigger.count }
+        guard !ordered.isEmpty, !text.isEmpty else { return [] }
+        let alternatives = ordered
+            .map { NSRegularExpression.escapedPattern(for: $0.trigger) }
+            .joined(separator: "|")
+        let pattern = "(?<![\\p{L}\\p{N}])(?:\(alternatives))(?![\\p{L}\\p{N}])"
+        guard let expression = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive])
+        else { return [] }
+        return expression.matches(in: text, range: NSRange(text.startIndex..., in: text))
+            .compactMap { Range($0.range, in: text) }
     }
 
     // MARK: - Storage codec (UserDefaults carries the rules as one JSON string)

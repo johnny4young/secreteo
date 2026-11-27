@@ -21,12 +21,12 @@ struct DictationDictionaryEditor: View {
     var body: some View {
         LabeledContent("Text Replacements") {
             VStack(alignment: .trailing, spacing: 6) {
-                HStack(spacing: 6) {
+                HStack(alignment: .top, spacing: 6) {
                     TextField(
                         "",
                         text: $newTrigger,
                         prompt: Text("Heard"))
-                        .frame(width: 110)
+                        .frame(width: 100)
                         .focused($focusedField, equals: .trigger)
                         .onSubmit { focusedField = .replacement }
                         .accessibilityLabel(L10n.text("Heard"))
@@ -34,8 +34,10 @@ struct DictationDictionaryEditor: View {
                     TextField(
                         "",
                         text: $newReplacement,
-                        prompt: Text("Type Instead"))
-                        .frame(width: 110)
+                        prompt: Text("Type Instead"),
+                        axis: .vertical)
+                        .lineLimit(1...4)
+                        .frame(minWidth: 112, maxWidth: 138)
                         .focused($focusedField, equals: .replacement)
                         .onSubmit {
                             guard !trimmedTrigger.isEmpty, !trimmedReplacement.isEmpty else { return }
@@ -50,6 +52,7 @@ struct DictationDictionaryEditor: View {
                         Image(systemName: "plus.circle.fill")
                     }
                     .buttonStyle(.plain)
+                    .padding(.top, 3)
                     .disabled(trimmedTrigger.isEmpty || trimmedReplacement.isEmpty)
                     .accessibilityLabel(L10n.text("Add Replacement"))
                     .accessibilityIdentifier("settings-dictation-dict-add")
@@ -64,10 +67,13 @@ struct DictationDictionaryEditor: View {
     }
 
     private func termRow(_ term: DictationTerm) -> some View {
-        HStack(spacing: 6) {
+        let label = replacementSummary(term.replacement)
+        return HStack(alignment: .firstTextBaseline, spacing: 6) {
             ForEach(term.heard, id: \.self) { heard in
                 HStack(spacing: 2) {
                     Text(heard)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                     Button {
                         remove(heard)
                     } label: {
@@ -84,6 +90,9 @@ struct DictationDictionaryEditor: View {
                 .foregroundStyle(.tertiary)
             Text(term.replacement)
                 .fontWeight(.medium)
+                .lineLimit(4)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
             Button {
                 newReplacement = term.replacement
                 newTrigger = ""
@@ -93,11 +102,20 @@ struct DictationDictionaryEditor: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
-            .help(L10n.format("Add another way “%@” is heard", term.replacement))
-            .accessibilityLabel(L10n.format("Add another way “%@” is heard", term.replacement))
+            .help(L10n.format("Add another way “%@” is heard", label))
+            .accessibilityLabel(L10n.format("Add another way “%@” is heard", label))
             .accessibilityIdentifier("settings-dictation-dict-add-heard")
         }
         .font(.callout)
+    }
+
+    private func replacementSummary(_ replacement: String) -> String {
+        let lines = replacement
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        guard let first = lines.first else { return replacement }
+        return lines.count > 1 ? first + "…" : first
     }
 
     private var trimmedTrigger: String {

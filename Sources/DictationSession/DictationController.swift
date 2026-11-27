@@ -32,6 +32,7 @@ final class DictationController {
     /// The deterministic replacement rules as one JSON string
     /// (`DictationTextRules` codec).
     static let replacementsKey = "dictationReplacements"
+    static let vocabularyKey = "customVocabulary"
 
     static func fillerFilterEnabled(in defaults: UserDefaults) -> Bool {
         (defaults.object(forKey: fillerFilterKey) as? Bool) ?? true
@@ -1023,7 +1024,7 @@ private extension DictationController {
     static func correctionSummary(
         for command: DictationCorrectionCommand, edit: DictationCorrectionCommand.Edit, in text: String
     ) -> String {
-        let removed = (text as NSString).substring(with: edit.range).trimmingCharacters(in: .whitespaces)
+        let removed = (text as NSString).substring(with: edit.range).trimmingCharacters(in: .whitespacesAndNewlines)
         switch command {
         case .replace: return L10n.format("Changed “%@” to “%@”.", removed, edit.replacement)
         case .delete: return L10n.format("Deleted “%@”.", removed)
@@ -1067,9 +1068,10 @@ private extension DictationController {
         _ clean: String, original: String, sessionID: UUID, dependencies: DictationSessionDependencies
     ) async -> DictationDeliveryText? {
         let terms = textPolicy.replacements.map(\.replacement)
+        let vocabulary = textPolicy.vocabulary
         let recipe = textPolicy.polishRecipe?.instruction
         let end = await runTransform(.polish, sessionID: sessionID, dependencies: dependencies) {
-            .polish(await dependencies.polishDictation(clean, terms, recipe))
+            .polish(await dependencies.polishDictation(clean, terms, vocabulary, recipe))
         }
         switch end {
         case .ended:
@@ -1350,7 +1352,7 @@ struct DictationLearnableCorrection {
         dependencies: DictationSessionDependencies
     ) {
         guard case .replace = command else { return nil }
-        let heard = (text as NSString).substring(with: edit.range).trimmingCharacters(in: .whitespaces)
+        let heard = (text as NSString).substring(with: edit.range).trimmingCharacters(in: .whitespacesAndNewlines)
         let rules = Self.rules(in: dependencies.defaults)
         guard DictationTextRules.learning(heard, as: edit.replacement, into: rules) != nil else { return nil }
         rule = DictationReplacement(trigger: heard, replacement: edit.replacement)

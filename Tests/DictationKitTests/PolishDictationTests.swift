@@ -5,7 +5,7 @@ struct PolishDictationTests {
     private struct Polisher: DictationTextPolishing {
         let reply: @Sendable (String) async throws -> String
 
-        func polish(_ text: String, recipe: String?) async throws -> String { try await reply(text) }
+        func polish(_ text: String, recipe: String?, vocabulary _: [String]) async throws -> String { try await reply(text) }
     }
 
     private struct Failure: Error {}

@@ -168,10 +168,10 @@ final class DictationUITestFixture {
 
     static func polishing(
         _ fixture: DictationUITestFixture?
-    ) -> (String, [String], String?) async -> DictationPolishOutcome {
-        { text, terms, recipe in
+    ) -> (String, [String], [String], String?) async -> DictationPolishOutcome {
+        { text, terms, vocabulary, recipe in
             await PolishDictation(polisher: FixturePolisher(behavior: fixture?.polish ?? .polishes))(
-                text, protectedTerms: terms, recipe: recipe)
+                text, protectedTerms: terms, vocabulary: vocabulary, recipe: recipe)
         }
     }
 
@@ -179,7 +179,7 @@ final class DictationUITestFixture {
     private struct FixturePolisher: DictationTextPolishing {
         let behavior: PolishBehavior
 
-        func polish(_ text: String, recipe: String?) async throws -> String {
+        func polish(_ text: String, recipe: String?, vocabulary _: [String]) async throws -> String {
             switch behavior {
             case .polishes:
                 // A recipe turns the sentence into a one-item list.

@@ -30,12 +30,25 @@ final class DeliveryFixesTests: XCTestCase {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         defaults.set(true, forKey: DictationCaretCase.defaultsKey)
-        defaults.set(DictationTextRules.encode([.init(trigger: "mac", replacement: "macOS,")]),
-                     forKey: DictationController.replacementsKey)
+        defaults.set(
+            DictationTextRules.encode([
+                .init(trigger: "mac", replacement: "macOS,"),
+                .init(trigger: "signoff", replacement: "Thanks for reaching out.\nBest regards,\nJohnny")
+            ]),
+            forKey: DictationController.replacementsKey)
+        defaults.set("Secreteo, FastAPI, Node.js, Base64", forKey: DictationController.vocabularyKey)
 
         let caretCase = try XCTUnwrap(DictationCaretCase.live(defaults))
 
-        XCTAssertEqual(caretCase.protectedWords, ["macOS"])
+        XCTAssertEqual(caretCase.protectedWords, ["macOS", "Secreteo", "FastAPI", "Node.js", "Base64"])
+        XCTAssertEqual(
+            caretCase.adapt("for example", after: "Done. ", atFieldStart: false), "For example",
+            "multiline snippet words must not block sentence-start capitalization")
+        XCTAssertEqual(
+            caretCase.adapt("Thanks for reaching out.\nBest regards,\nJohnny", after: "hi ", atFieldStart: false),
+            "Thanks for reaching out.\nBest regards,\nJohnny")
+        XCTAssertEqual(caretCase.adapt("Node.js works", after: "using ", atFieldStart: false), "Node.js works")
+        XCTAssertEqual(caretCase.adapt("Base64 string", after: "a ", atFieldStart: false), "Base64 string")
     }
 
     func testALateCopyAfterTheTimeoutStillGivesTheClipboardBack() async {

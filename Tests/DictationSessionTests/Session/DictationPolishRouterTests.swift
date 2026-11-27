@@ -165,10 +165,12 @@ private final class BuildCounter: @unchecked Sendable {
 
 private struct FixedPolisher: DictationTextPolishing {
     let text: String
-    func polish(_: String, recipe: String?) async throws -> String { recipe.map { text + "|" + $0 } ?? text }
+    func polish(_: String, recipe: String?, vocabulary _: [String]) async throws -> String {
+        recipe.map { text + "|" + $0 } ?? text
+    }
 }
 
 private struct ThrowingPolisher: DictationTextPolishing {
     let error: any Error
-    func polish(_: String, recipe: String?) async throws -> String { throw error }
+    func polish(_: String, recipe: String?, vocabulary _: [String]) async throws -> String { throw error }
 }

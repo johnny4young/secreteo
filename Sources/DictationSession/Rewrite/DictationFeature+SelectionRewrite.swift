@@ -60,10 +60,13 @@ extension DictationFeature {
                 replacements: defaults.string(forKey: DictationController.replacementsKey) ?? ""
             ).map(\.replacement)
         }
+        let vocabulary = {
+            DictationVocabularyNormalizer.parse(defaults.string(forKey: DictationController.vocabularyKey) ?? "")
+        }
         var dependencies = usesTemporaryMeetingStore
             ? SelectionRewriteUITestFixture(arguments: launchArguments)
                 .dependencies(admission: dictationAdmission, recipes: recipes)
-            : liveSelectionRewriteDependencies(recipes: recipes, terms: terms)
+            : liveSelectionRewriteDependencies(recipes: recipes, terms: terms, vocabulary: vocabulary)
         dependencies.startDictation = { [weak self] in self?.toggleDictation() }
         dependencies.finishDictation = { [weak self] in self?.controller.finishAndInsert() }
         dependencies.isDictating = { [weak self] in self?.controller.isActive ?? false }
@@ -75,14 +78,17 @@ extension DictationFeature {
     }
 
     private func liveSelectionRewriteDependencies(
-        recipes: @escaping () -> [DictationRecipe], terms: @escaping () -> [String]
+        recipes: @escaping () -> [DictationRecipe],
+        terms: @escaping () -> [String],
+        vocabulary: @escaping () -> [String]
     ) -> SelectionRewriteController.Dependencies {
         SelectionRewriteController.Dependencies(
             admission: dictationAdmission,
             capture: { await TextInserter.captureSelection() },
             polish: { [polisher = dictationPolisher] text, protectedTerms, recipe in
-                await PolishDictation(polisher: polisher, timeout: SelectionRewriteController.timeout)(
-                    text, protectedTerms: protectedTerms, recipe: recipe)
+                let vocab = vocabulary()
+                return await PolishDictation(polisher: polisher, timeout: SelectionRewriteController.timeout)(
+                    text, protectedTerms: protectedTerms, vocabulary: vocab, recipe: recipe)
             },
             recipes: recipes,
             protectedTerms: terms,
@@ -118,7 +124,9 @@ struct SelectionRewriteUITestFixture {
                     destination: CapturedDictationDestination(
                         name: "Rewrite test receiver", canRetry: false) { _ in .verified }))
             },
-            polish: DictationUITestFixture.polishing(nil),
+            polish: { text, terms, recipe in
+                await DictationUITestFixture.polishing(nil)(text, terms, [], recipe)
+            },
             recipes: recipes,
             protectedTerms: { [] },
             copyText: { _ in true },

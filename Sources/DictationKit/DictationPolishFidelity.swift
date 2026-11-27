@@ -40,8 +40,10 @@ public enum DictationPolishFidelity {
         if allowsRestructuring { candidate = strippingListMarkers(candidate) }
         if numbers(in: original) != numbers(in: candidate) { return .numbers }
         if identifiers(in: original) != identifiers(in: candidate) { return .identifiers }
-        for term in protectedTerms where containsWord(term, in: original, caseSensitive: false) {
-            if !containsWord(term, in: candidate, caseSensitive: true) { return .protectedTerm }
+        let proseOriginal = strippingIdentifiers(from: original)
+        let proseCandidate = strippingIdentifiers(from: candidate)
+        for term in protectedTerms where containsWord(term, in: proseOriginal, caseSensitive: true) {
+            if !containsWord(term, in: proseCandidate, caseSensitive: true) { return .protectedTerm }
         }
         if negationMarkers(in: original) != negationMarkers(in: candidate) { return .negation }
         let ratio = Double(words(in: candidate).count) / Double(max(words(in: original).count, 1))
@@ -63,10 +65,22 @@ public enum DictationPolishFidelity {
 
     /// URLs, emails, @mentions and #tags must survive byte for byte.
     static func identifiers(in text: String) -> [String] {
-        let pattern = #"(?:https?://|www\.)[^\s]+[^\s.,;:!?)\]]"#
-            + #"|[\w.+-]+@[\w-]+(?:\.[\w-]+)+"#
-            + #"|(?<![\w@])[@#][\p{L}\p{N}_]+"#
-        return matches(of: pattern, in: text).sorted()
+        matches(of: identifierPattern, in: text).sorted()
+    }
+
+    private static let identifierPattern = #"(?:https?://|www\.)[^\s]+[^\s.,;:!?)\]]"#
+        + #"|[\w.+-]+@[\w-]+(?:\.[\w-]+)+"#
+        + #"|(?<![\w@])[@#][\p{L}\p{N}_]+"#
+
+    private static let pathPattern = #"(?:~|\.\.?|[\p{L}\p{N}_-]+)?(?:/[\p{L}\p{N}_.-]+){2,}"#
+        + #"|(?:~|\.\.?)/[\p{L}\p{N}_.-]+"#
+        + #"|/[\p{L}\p{N}_.-]+"#
+
+    /// Masks identifiers and file paths before checking protected spellings so
+    /// a lowercase token inside a URL or path never conflicts with exact-case terms.
+    private static func strippingIdentifiers(from text: String) -> String {
+        let pattern = identifierPattern + "|" + pathPattern
+        return text.replacingOccurrences(of: pattern, with: " ", options: .regularExpression)
     }
 
     /// "1. ", "2) " or "- " at a line start: list structure a recipe may add.
