@@ -172,13 +172,13 @@ final class DictationController {
             onPress: { [weak self, weak services] in
                 DispatchQueue.main.async {
                     guard let self, let services else { return }
-                    self.handleMouse(.press, services: services)
+                    self.handleMouse(.press) { self.start(services: services) }
                 }
             },
             onRelease: { [weak self, weak services] in
                 DispatchQueue.main.async {
                     guard let self, let services else { return }
-                    self.handleMouse(.release, services: services)
+                    self.handleMouse(.release) { self.start(services: services) }
                 }
             })
         else { return }
@@ -206,6 +206,7 @@ final class DictationController {
     }
 
     func toggle(using dependencies: DictationSessionDependencies) {
+        if holdsProtectedRecovery { showPanel(); return }
         switch phase {
         case .idle, .failed, .verified, .dispatched, .noSpeech:
             start(using: dependencies)
@@ -213,10 +214,8 @@ final class DictationController {
             cancel()
         case .listening:
             finishAndInsert()
-        case .delivering:
+        case .delivering, .recovery:
             break
-        case .recovery:
-            showPanel()
         }
     }
 
@@ -225,10 +224,10 @@ final class DictationController {
     }
 
     private func start(using dependencies: DictationSessionDependencies) {
-        // A global trigger cannot silently replace refused, undelivered words.
-        // A dispatched result was already sent: a new dictation replaces it
-        // and never re-sends the old output.
-        if case .recovery = phase { showPanel(); return }
+        // A global trigger cannot silently replace refused or interrupted words
+        // waiting in recovery. A dispatched result was already sent: a new
+        // dictation replaces it and never re-sends the old output.
+        if holdsProtectedRecovery { showPanel(); return }
         guard phase != .delivering,
               case .success(let lease) = dependencies.admission.acquire(dependencies.admissionKind)
         else { return }
@@ -506,23 +505,33 @@ final class DictationController {
         mouseOwnsSession = false
         modifierTrigger.ownsSession = false
     }
+}
+
+private extension DictationController {
+    var holdsProtectedRecovery: Bool {
+        switch phase {
+        case .recovery: true
+        case .failed: !recoveryText.isEmpty
+        default: false
+        }
+    }
 
     /// - Parameter keepsWords: a capture failure leaves what was heard reachable for Copy
     ///   and Paste last, since nothing else can bring those words back.
-    private func failSession(id: UUID, message: String, autoDismiss: Bool = true, keepsWords: Bool = false) {
+    func failSession(id: UUID, message: String, autoDismiss: Bool = true, keepsWords: Bool = false) {
         guard activeSessionID == id else { return }
         let wait: @MainActor (Duration) async throws -> Void = sessionFeedbackWait
             ?? { try await Task.sleep(for: $0) }
         let heard = keepsWords ? heardWords() : nil
         completeSession(id: id)
         destination = nil
+        if heard != nil { deliveryID = id }
         keepAfterFailure(heard)
         phase = .failed(message)
+        if heard != nil { showPanel() }
         if autoDismiss, heard == nil { scheduleFeedbackDismiss(after: .seconds(6), wait: wait) }
     }
-}
 
-private extension DictationController {
     func systemWillSleep() {
         // A dispatched edit must finish its clipboard restore. Anything before it, polish
         // included, can still be cancelled without pasting, with Stop and the lease draining normally.
@@ -537,6 +546,7 @@ private extension DictationController {
         // Copy uses the session's sink; its destination and retry token stay cancelled.
         dependencies = recoveryDependencies
         recoveryText = heard ?? ""
+        if heard != nil { deliveryID = UUID() }
         holdRecoveryForUpdate()
         phase = .failed(DictationMicrophoneReadiness.Failure.interrupted.message)
         showPanel()
@@ -926,14 +936,14 @@ extension DictationController {
         return silence.isSilent
     }
 
-    /// Second hotkey press: stop the mic; the drained stream delivers.
-    func finishAndInsert() {
+    /// Second hotkey press or release of a held trigger: stop the mic; the drained stream delivers.
+    func finishAndInsert(isHeld: Bool = false) {
         guard phase == .preparing || phase == .listening else { return }
         guard stopTask == nil else { return }
         measurement?.record(.stopRequested)
         guard DictationCapturePolicy.finishDecision(
             captureStartedAt: microphoneReadiness?.firstFrameAt,
-            now: sessionClock?() ?? Date()) == .stopAfterTail
+            now: sessionClock?() ?? Date(), isHeld: isHeld) == .stopAfterTail
         else {
             cancel()
             return
@@ -1297,22 +1307,21 @@ private extension DictationController {
 
 // The mouse trigger reads private session state, so it stays in this file.
 extension DictationController {
-    fileprivate func handleMouse(
-        _ event: MousePTTGesture.Event, services: AppServices
-    ) {
+    func handleMouse(_ event: MousePTTGesture.Event, start beginSession: () -> Void) {
         switch MousePTTGesture.action(
             for: event,
             isListening: isActive,
             mouseOwnsSession: mouseOwnsSession) {
         case .start:
             mouseOwnsSession = true
-            start(services: services)
+            beginSession()
             // A refused start (missing Accessibility trust) must not leave
             // the button claiming a session that never began.
             if !isActive { mouseOwnsSession = false }
         case .finish:
             mouseOwnsSession = false
-            finishAndInsert()
+            // A press that ends another trigger's session proved no hold.
+            finishAndInsert(isHeld: event == .release)
         case .ignore:
             break
         }

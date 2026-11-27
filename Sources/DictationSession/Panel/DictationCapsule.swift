@@ -96,10 +96,13 @@ enum DictationCapsuleMotion {
     }
 
     /// A settled outcome has no delivery left to hold back, so the indicator may grow into the
-    /// card of a refusal or of no speech. Never on the way into or out of delivering.
-    static func settledChange(to phase: DictationController.Phase, duration: TimeInterval) -> Animation? {
+    /// card of a refusal, no speech, or a failure with words to keep. Never on the way into or out of delivering.
+    static func settledChange(
+        to phase: DictationController.Phase, hasRecoveryWords: Bool = false, duration: TimeInterval
+    ) -> Animation? {
         switch phase {
         case .recovery, .noSpeech: .easeOut(duration: duration)
+        case .failed where hasRecoveryWords: .easeOut(duration: duration)
         default: nil
         }
     }

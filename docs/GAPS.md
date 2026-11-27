@@ -42,9 +42,9 @@ The [release dry run](RELEASING.md#dry-run) proves the Sparkle, hook and relaunc
 
 Delivery logic has only run against scratch pasteboards and injected events. These remain open:
 
-- A session-route paste checks the frontmost app and that the focused field is not secure, but not that the field belongs to that app. Another app's non-activating panel could receive it.
+- A session-route paste verifies that the system-wide focused element belongs to the frontmost app's PID. Legitimate out-of-process XPC/ViewBridge fields (such as Open/Save panels) therefore fail closed to recovery instead of pasting blindly.
 - The pasteboard offers no atomic compare and replace, so another app's write in the instant between the check and the replacement is lost.
-- The clipboard returns on a fixed 1.5 second timer. An editor that stalls longer pastes the restored contents, and a verified paste still holds the clipboard for the whole window.
+- Unverified pastes return the clipboard on a fixed 1.5 second timer, so an editor that stalls longer pastes the restored contents; verified pastes accelerate restoration to 50 ms after AX readback confirms delivery.
 - One unreadable clipboard type refuses the paste and sends the text to recovery. How often real clipboards do this is unmeasured.
 - A correction whose replacement fails leaves the caret where the selection moved it.
 - The Fn and modifier tap never consumes an event but runs as an active tap on the main thread, so a main-thread stall delays typing everywhere until macOS disables the tap. A listen-only tap may need the Input Monitoring permission.

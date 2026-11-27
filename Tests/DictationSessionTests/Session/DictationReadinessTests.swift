@@ -40,6 +40,70 @@ final class DictationReadinessTests: XCTestCase {
         }
     }
 
+    func testHeldTriggersDeliverShortUtterancesAndEliminateHotkeyDeadZone() async {
+        let start = Date(timeIntervalSince1970: 1_000)
+        XCTAssertEqual(
+            DictationCapturePolicy.finishDecision(
+                captureStartedAt: start, now: start.addingTimeInterval(0.24), isHeld: true),
+            .cancel)
+        XCTAssertEqual(
+            DictationCapturePolicy.finishDecision(
+                captureStartedAt: start, now: start.addingTimeInterval(0.25), isHeld: true),
+            .stopAfterTail)
+        XCTAssertEqual(
+            DictationCapturePolicy.finishDecision(
+                captureStartedAt: start, now: start.addingTimeInterval(0.74), isHeld: false),
+            .cancel)
+
+        // Held push-to-talk (0.35 s) and held hotkey past holdThreshold (0.55 s) both deliver.
+        for elapsed in [0.05, 0.35, 0.55] {
+            let harness = ReadinessHarness(text: "Sí")
+            let pressTime = Date(timeIntervalSince1970: 2_000)
+            harness.now = pressTime.timeIntervalSince1970
+            if elapsed == 0.55 {
+                harness.controller.handleHotkeyPress(using: harness.dependencies, at: pressTime)
+            } else {
+                harness.controller.toggle(using: harness.dependencies)
+            }
+            let opened = await eventually { harness.engineStarted }
+            XCTAssertTrue(opened)
+            await harness.microphone.emit(samples: [0.1, -0.1])
+            let partial = await eventually { harness.controller.partialText == "Sí" }
+            XCTAssertTrue(partial)
+            harness.now += elapsed
+            if elapsed == 0.55 {
+                harness.controller.handleHotkeyRelease(at: pressTime.addingTimeInterval(elapsed))
+            } else {
+                harness.controller.finishAndInsert(isHeld: true)
+            }
+            let finished = await eventually { harness.finishes == 1 }
+            XCTAssertTrue(finished)
+            XCTAssertEqual(
+                harness.insertions, elapsed < DictationCapturePolicy.minimumHoldCapture ? [] : ["Sí"],
+                "Held trigger at \(elapsed)s")
+            harness.controller.cancel()
+        }
+    }
+
+    func testAMousePressThatEndsATapStartedDictationKeepsTheTapMinimum() async {
+        for owned in [false, true] {
+            let harness = ReadinessHarness(text: "Sí")
+            let start = { harness.controller.toggle(using: harness.dependencies) }
+            if owned { harness.controller.handleMouse(.press, start: start) } else { start() }
+            let opened = await eventually { harness.engineStarted }
+            XCTAssertTrue(opened)
+            await harness.microphone.emit(samples: [0.1, -0.1])
+            let partial = await eventually { harness.controller.partialText == "Sí" }
+            XCTAssertTrue(partial)
+            harness.now += 0.4
+            harness.controller.handleMouse(owned ? .release : .press, start: start)
+            let finished = await eventually { harness.finishes == 1 }
+            XCTAssertTrue(finished)
+            XCTAssertEqual(harness.insertions, owned ? ["Sí"] : [], owned ? "held button" : "press during a tap")
+            harness.controller.cancel()
+        }
+    }
+
     func testFinishWithoutFirstBufferCancelsImmediatelyInsteadOfAddingTail() async {
         let harness = ReadinessHarness(text: "No audio, no delivery")
         harness.controller.toggle(using: harness.dependencies)
@@ -167,7 +231,7 @@ final class DictationReadinessTests: XCTestCase {
         XCTAssertFalse(harness.engineStarted)
         XCTAssertTrue(harness.insertions.isEmpty)
         XCTAssertEqual(harness.controller.phase, .failed(
-            L10n.text("No microphone is available. Choose an input in Audio settings and try again.")))
+            L10n.text("No microphone is available. Choose an input in Dictation settings and try again.")))
         harness.controller.cancel()
     }
 
@@ -304,7 +368,7 @@ final class DictationReadinessTests: XCTestCase {
                     }
                     let rejected = await eventually {
                         harness.controller.phase == .failed(L10n.text(
-                            "No microphone audio arrived. Check the microphone in Audio settings and try again."))
+                            "No microphone audio arrived. Check the microphone in Dictation settings and try again."))
                     }
                     XCTAssertTrue(rejected, "Early stream termination must not complete an empty dictation")
                     let cleaned = await eventually { harness.finishes == 1 }

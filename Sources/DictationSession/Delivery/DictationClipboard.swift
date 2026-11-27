@@ -146,9 +146,19 @@ final class DictationClipboard {
             while self.isMutating {
                 do { try await Task.sleep(for: .milliseconds(10)) } catch { return }
             }
+            guard !Task.isCancelled else { return }
             self.restore(loan, on: pasteboard)
         }
         states[loan.name]?.restoration = (task, ContinuousClock.now.advanced(by: delay + restorationMargin))
+    }
+
+    /// Shortens a pending restoration once the target has confirmed the paste.
+    func accelerateRestoration(_ loan: Loan, on pasteboard: NSPasteboard, after delay: Duration) {
+        guard loan.name == pasteboard.name, let existing = states[loan.name],
+              existing.loan == loan, let restoration = existing.restoration else { return }
+        restoration.task.cancel()
+        states[loan.name]?.restoration = nil
+        restoreLater(loan, on: pasteboard, after: delay)
     }
 
     private func restoreOwned(_ loan: Loan, on pasteboard: NSPasteboard) {

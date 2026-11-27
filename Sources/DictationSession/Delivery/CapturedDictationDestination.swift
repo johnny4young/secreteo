@@ -124,7 +124,7 @@ extension TextInserter {
             guard sessionStreamReachesFrontmostApplication(
                 appIsActive: app.isActive, appHasKeyWindow: app.keyWindow != nil
             ) else { return .focusUnavailable }
-            switch sessionFocusedFieldSecurity() {
+            switch sessionFocusedFieldSecurity(expectedProcessID: application.processIdentifier) {
             case .regular: return nil
             case .secure: return .secureField
             case .unavailable: return .focusUnavailable
@@ -146,11 +146,27 @@ extension TextInserter {
         appIsActive || !appHasKeyWindow
     }
 
+    /// Pure decision, split out for tests: a system-wide focused element must
+    /// belong to the captured frontmost application, not another app's panel.
+    static func sessionFocusedElementBelongsToApplication(
+        focusedPID: pid_t?, expectedPID: pid_t
+    ) -> Bool {
+        guard expectedPID > 0, let focusedPID else { return false }
+        return focusedPID == expectedPID
+    }
+
     /// Classification of whatever field currently owns system-wide keyboard
     /// focus; any failed or malformed inspection is unavailable, never regular.
     @MainActor
-    static func sessionFocusedFieldSecurity() -> FocusedFieldSecurity {
+    static func sessionFocusedFieldSecurity(expectedProcessID: pid_t) -> FocusedFieldSecurity {
         guard AXIsProcessTrusted(), let element = focusedElement(in: AXUIElementCreateSystemWide()) else {
+            return .unavailable
+        }
+        var focusedPID: pid_t = 0
+        let status = AXUIElementGetPid(element, &focusedPID)
+        guard sessionFocusedElementBelongsToApplication(
+            focusedPID: status == .success ? focusedPID : nil, expectedPID: expectedProcessID
+        ) else {
             return .unavailable
         }
         return fieldSecurity(of: element)

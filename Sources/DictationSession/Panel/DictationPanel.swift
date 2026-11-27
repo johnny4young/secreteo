@@ -73,7 +73,9 @@ final class DictationPanelController {
     }
 
     private func track(_ controller: DictationController, presented: Bool) {
-        let shown = DictationPanelOutcome(phase: controller.phase, delivery: controller.deliveryID)
+        let shown = DictationPanelOutcome(
+            phase: controller.phase, delivery: controller.deliveryID,
+            hasRecoveryWords: !controller.recoveryText.isEmpty)
         if DictationPanelLayout.startsNewOutcome(shown, after: outcome, presented: presented) {
             placement.outcomeSerial += 1
             outcomeHeight = nil
@@ -138,7 +140,7 @@ final class DictationPanelController {
     private func shade(_ panel: NSPanel, for controller: DictationController) {
         let wanted = DictationCompactIndicator.applies(to: controller)
             ? DictationCompactIndicator.Options.current().showsBackdrop
-            : DictationPanelLayout.isCard(controller.phase)
+            : DictationPanelLayout.isCard(controller.phase, hasRecoveryWords: !controller.recoveryText.isEmpty)
         guard panel.hasShadow != wanted else { return }
         panel.hasShadow = wanted
         panel.invalidateShadow()
@@ -148,7 +150,8 @@ final class DictationPanelController {
     private func resize(_ panel: NSPanel, to size: NSSize, for controller: DictationController) {
         let grows = showsIndicator
         showsIndicator = DictationCompactIndicator.applies(to: controller)
-        if grows, !showsIndicator, !DictationPanelLayout.isCapsule(controller.phase) {
+        if grows, !showsIndicator,
+           !DictationPanelLayout.isCapsule(controller.phase, hasRecoveryWords: !controller.recoveryText.isEmpty) {
             placement.outcomeGrowsFromGlyph = true
         }
         guard panel.frame.size != size else { return }
@@ -245,12 +248,14 @@ private struct DictationStripView: View {
 
     var body: some View {
         let showsIndicator = DictationCompactIndicator.applies(to: controller)
+        let hasRecoveryWords = !controller.recoveryText.isEmpty
+        let isCapsule = DictationPanelLayout.isCapsule(controller.phase, hasRecoveryWords: hasRecoveryWords)
         let options = options
         Group {
             if showsIndicator {
                 DictationAsideView(controller: controller, options: options)
                     .transition(.identity)
-            } else if DictationPanelLayout.isCapsule(controller.phase) {
+            } else if isCapsule {
                 DictationCapsuleView(controller: controller)
                     .transition(.asymmetric(insertion: growth, removal: .identity))
             } else {
@@ -271,7 +276,8 @@ private struct DictationStripView: View {
                     .opacity(shown ? 1 : 0)
                     .animation(
                         DictationCapsuleMotion.settledChange(
-                            to: controller.phase, duration: DictationCompactIndicator.growth),
+                            to: controller.phase, hasRecoveryWords: hasRecoveryWords,
+                            duration: DictationCompactIndicator.growth),
                         value: shown)
                     .transition(.identity)
             }
@@ -286,7 +292,7 @@ private struct DictationStripView: View {
             maxWidth: .infinity, maxHeight: .infinity,
             alignment: placement.pinnedEdge == .top ? .topLeading : .bottomLeading)
         .onChange(of: DictationPanelLayout.size(for: controller, options: options)) { relayout(nil) }
-        .onChange(of: DictationPanelLayout.isCapsule(controller.phase)) { relayout(nil) }
+        .onChange(of: isCapsule) { relayout(nil) }
     }
 
     private var growthAnchor: UnitPoint {
@@ -305,6 +311,8 @@ private struct DictationStripView: View {
         case .recovery(let failure): DictationRecoveryView(controller: controller, failure: failure)
         case .verified(let words), .dispatched(let words): DictationResultPill(controller: controller, words: words)
         case .noSpeech: DictationNoSpeechView(controller: controller)
+        case .failed(let message) where !controller.recoveryText.isEmpty:
+            DictationFailureRecoveryView(controller: controller, message: message)
         default: EmptyView()
         }
     }

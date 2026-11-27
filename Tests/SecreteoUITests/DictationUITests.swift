@@ -183,8 +183,8 @@ final class DictationUITests: SecreteoUITestCase {
         dictate.click()
         let state = app.staticTexts["dictation-panel-state"]
         let message = UITestLocale.environmentLocale == "es"
-            ? "No llegó audio del micrófono. Revisa el micrófono en los ajustes de Audio e inténtalo de nuevo."
-            : "No microphone audio arrived. Check the microphone in Audio settings and try again."
+            ? "No llegó audio del micrófono. Revisa el micrófono en los ajustes de Dictado e inténtalo de nuevo."
+            : "No microphone audio arrived. Check the microphone in Dictation settings and try again."
         XCTAssertTrue(waitForUITestCondition(timeout: 10) { renderedText(of: state) == message })
         let notice = app.staticTexts["dictation-panel-microphone-notice"]
         XCTAssertTrue(notice.exists)
@@ -367,7 +367,7 @@ final class DictationUITests: SecreteoUITestCase {
         app.buttons["dictation-recovery-copy"].click()
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { board.string(forType: .string) == recoveryFixtureText })
         XCTAssertTrue(text.exists, "Copy does not discard the user's recovery option")
-        app.buttons["dictation-recovery-reinsert"].click()
+        app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(waitForQuietDelivery(app), "Reinserted words close the card without a result")
         XCTAssertFalse(text.exists)
     }
@@ -399,7 +399,8 @@ final class DictationUITests: SecreteoUITestCase {
         guard discard.isHittable else {
             return XCTFail("Activating the disposable menu window must not occlude recovery")
         }
-        discard.click()
+        text.click()
+        app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { !app.dialogs["dictation-panel"].exists },
                       "Discard must close the whole panel before another global trigger")
         XCTAssertTrue(dictate.waitForStableFrame(timeout: 5))
@@ -464,16 +465,21 @@ final class DictationUITests: SecreteoUITestCase {
         XCTAssertTrue(app.control(withIdentifier: "dictation-no-speech-copy-status").waitForExistenceFast(timeout: 5))
         let discard = app.buttons["dictation-no-speech-discard"]
         XCTAssertTrue(discard.waitForStableFrame(timeout: 5))
-        discard.click()
+        app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { !app.dialogs["dictation-panel"].exists })
     }
 
     @MainActor
     func testDictationSourceEOFBeforeStopIsVisibleAndCanRestart() throws {
         let english = UITestLocale.environmentLocale == "en"
+        let name = "com.johnny4young.secreteo.dictation-test." + UUID().uuidString
+        let board = NSPasteboard(name: .init(name))
+        defer { board.releaseGlobally() }
+        board.setString("Original EOF clipboard", forType: .string)
         let app = try XCUIApplication.secreteo(showMenuBarContent: true)
         app.launchArguments += ["-seed-dictation", "-seed-dictation-source-eof"]
         if english { app.launchArguments.append("-seed-dictation-english") }
+        app.launchEnvironment["SECRETEO_UI_TEST_DICTATION_PASTEBOARD"] = name
         app.launchEnvironment["SECRETEO_UI_TEST_DEFAULTS"] = #"{"globalDictationEnabled":true}"#
         app.launchSecreteo()
         defer { finishUITestApplication(app) }
@@ -487,21 +493,38 @@ final class DictationUITests: SecreteoUITestCase {
             let dictate = app.buttons["menu-bar-dictate"]
             XCTAssertTrue(dictate.waitForStableFrame(timeout: 5))
             dictate.click()
-            let state = app.staticTexts["dictation-panel-state"]
-            let expectedState = attempt == 0 ? expectedFailure : (english ? "Dictating" : "Dictando")
-            XCTAssertTrue(waitForUITestCondition(timeout: 5) { renderedText(of: state) == expectedState })
             if attempt == 0 {
+                let reason = app.staticTexts["dictation-recovery-reason"]
+                XCTAssertTrue(waitForUITestCondition(timeout: 5) { renderedText(of: reason) == expectedFailure })
                 XCTAssertFalse(app.descendants(matching: .any)["dictation-panel-meter"].exists)
+                let text = app.descendants(matching: .any)["dictation-recovery-text"]
+                XCTAssertTrue(renderedText(of: text).contains(expectedText))
+                let status = app.staticTexts["dictation-recovery-copy-status"]
+                let initialStatus = renderedText(of: status)
+                let copy = app.buttons["dictation-recovery-copy"]
+                XCTAssertTrue(copy.waitForStableFrame(timeout: 5))
+                copy.click()
+                XCTAssertTrue(waitForUITestCondition(timeout: 5) { renderedText(of: status) != initialStatus })
+                XCTAssertEqual(board.string(forType: .string), "Original EOF clipboard")
+                copy.click()
+                XCTAssertTrue(waitForUITestCondition(timeout: 5) { board.string(forType: .string) == expectedText })
+                let discard = app.buttons["dictation-recovery-discard"]
+                XCTAssertTrue(discard.waitForStableFrame(timeout: 5))
+                app.typeKey(.escape, modifierFlags: [])
+                XCTAssertTrue(waitForUITestCondition(timeout: 5) { !discard.exists })
             } else {
+                let state = app.staticTexts["dictation-panel-state"]
+                let expectedState = english ? "Dictating" : "Dictando"
+                XCTAssertTrue(waitForUITestCondition(timeout: 5) { renderedText(of: state) == expectedState })
                 let transcript = app.staticTexts["dictation-panel-transcript"]
                 XCTAssertTrue(waitForUITestCondition(timeout: 5) {
                     renderedText(of: transcript).contains(expectedText)
                 })
+                let cancel = app.buttons["dictation-panel-cancel"]
+                XCTAssertTrue(cancel.waitForStableFrame(timeout: 5))
+                cancel.click()
+                XCTAssertTrue(waitForUITestCondition(timeout: 5) { !cancel.exists })
             }
-            let cancel = app.buttons["dictation-panel-cancel"]
-            XCTAssertTrue(cancel.waitForStableFrame(timeout: 5))
-            cancel.click()
-            XCTAssertTrue(waitForUITestCondition(timeout: 5) { !cancel.exists })
         }
     }
 

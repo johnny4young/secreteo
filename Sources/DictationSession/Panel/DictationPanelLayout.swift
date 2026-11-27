@@ -44,7 +44,7 @@ enum DictationPanelLayout {
         if DictationCompactIndicator.applies(to: controller) {
             return DictationCompactIndicator.windowSize(for: options)
         }
-        if isCapsule(controller.phase) {
+        if isCapsule(controller.phase, hasRecoveryWords: !controller.recoveryText.isEmpty) {
             return NSSize(width: width, height: capsuleHeight(showsNotice: controller.microphoneNotice != nil))
         }
         // Idle keeps the capsule's height, so a cancelled dictation does not resize a panel still on screen.
@@ -52,16 +52,18 @@ enum DictationPanelLayout {
         return outcomeSize(measuredHeight: outcomeHeight, visible: visible)
     }
 
-    static func isCapsule(_ phase: DictationController.Phase) -> Bool {
+    static func isCapsule(_ phase: DictationController.Phase, hasRecoveryWords: Bool = false) -> Bool {
         switch phase {
-        case .preparing, .listening, .delivering, .failed: true
+        case .preparing, .listening, .delivering: true
+        case .failed: !hasRecoveryWords
         case .idle, .verified, .dispatched, .noSpeech, .recovery: false
         }
     }
 
-    static func isCard(_ phase: DictationController.Phase) -> Bool {
+    static func isCard(_ phase: DictationController.Phase, hasRecoveryWords: Bool = false) -> Bool {
         switch phase {
         case .recovery, .noSpeech: true
+        case .failed: hasRecoveryWords
         default: false
         }
     }
@@ -90,17 +92,20 @@ enum DictationPanelLayout {
 
 /// Which outcome the panel shows, so a new one never inherits the last one's state or measured height.
 struct DictationPanelOutcome: Equatable {
-    enum Kind: Equatable { case result, notSent, noSpeech }
+    enum Kind: Equatable { case result, notSent, noSpeech, failed }
 
     let kind: Kind
     let delivery: UUID?
 
-    init?(phase: DictationController.Phase, delivery: UUID?) {
+    init?(phase: DictationController.Phase, delivery: UUID?, hasRecoveryWords: Bool = false) {
         switch phase {
         case .verified, .dispatched: kind = .result
         case .recovery: kind = .notSent
         case .noSpeech: kind = .noSpeech
-        case .idle, .preparing, .listening, .delivering, .failed: return nil
+        case .failed:
+            guard hasRecoveryWords else { return nil }
+            kind = .failed
+        case .idle, .preparing, .listening, .delivering: return nil
         }
         self.delivery = delivery
     }

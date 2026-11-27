@@ -190,6 +190,14 @@ final class TextInsertionTargetTests: XCTestCase {
         XCTAssertEqual(destination.name, NSRunningApplication.current.localizedName)
     }
 
+    func testSessionRouteRefusesFocusedElementFromAnotherProcess() {
+        XCTAssertTrue(TextInserter.sessionFocusedElementBelongsToApplication(focusedPID: 42, expectedPID: 42))
+        XCTAssertFalse(TextInserter.sessionFocusedElementBelongsToApplication(focusedPID: 99, expectedPID: 42))
+        XCTAssertFalse(TextInserter.sessionFocusedElementBelongsToApplication(focusedPID: nil, expectedPID: 42))
+        XCTAssertFalse(TextInserter.sessionFocusedElementBelongsToApplication(focusedPID: 0, expectedPID: 0))
+        XCTAssertFalse(TextInserter.sessionFocusedElementBelongsToApplication(focusedPID: -1, expectedPID: -1))
+    }
+
     func testExplicitCopyWritesTheFullTextToTheChosenBoard() async {
         let board = makeBoard()
         defer { board.releaseGlobally() }

@@ -7,6 +7,8 @@ import SpeechCore
 /// presentation, so a slow cold start cannot turn a tap into a valid capture.
 struct DictationCapturePolicy {
     static let minimumCapture: TimeInterval = 0.75
+    /// Push-to-talk holds already proved intent, so short replies ("Sí", "OK") are not dropped.
+    static let minimumHoldCapture: TimeInterval = 0.25
 
     enum FinishDecision: Equatable {
         case cancel
@@ -14,10 +16,11 @@ struct DictationCapturePolicy {
     }
 
     static func finishDecision(
-        captureStartedAt: Date?, now: Date
+        captureStartedAt: Date?, now: Date, isHeld: Bool = false
     ) -> FinishDecision {
+        let minimum = isHeld ? minimumHoldCapture : minimumCapture
         guard let captureStartedAt,
-            now.timeIntervalSince(captureStartedAt) >= minimumCapture
+            now.timeIntervalSince(captureStartedAt) >= minimum
         else { return .cancel }
         return .stopAfterTail
     }

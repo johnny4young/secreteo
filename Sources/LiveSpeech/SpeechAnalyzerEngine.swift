@@ -158,12 +158,12 @@ public struct SpeechAnalyzerEngine: Sendable {
         guard let locale = await SpeechTranscriber.supportedLocale(equivalentTo: requested)
         else {
             throw TranscriptionError.engineUnavailable(
-                "SpeechTranscriber no soporta el idioma '\(requested.identifier)'")
+                "Apple Speech does not support the language '\(requested.identifier)'")
         }
         let transcriber = SpeechTranscriber(locale: locale, preset: .progressiveTranscription)
         if let request = try await AssetInventory.assetInstallationRequest(
             supporting: [transcriber]) {
-            progress?("Descargando modelo de voz de macOS para \(locale.identifier)…")
+            progress?("Downloading macOS speech model for \(locale.identifier)…")
             try await request.downloadAndInstall()
         }
         return locale
@@ -201,7 +201,7 @@ public struct SpeechAnalyzerEngine: Sendable {
                             compatibleWith: [transcriber])
                     else {
                         throw TranscriptionError.engineUnavailable(
-                            "SpeechAnalyzer no ofrece formato de audio compatible")
+                            "Apple Speech offered no compatible audio format")
                     }
 
                     // Bridge AudioChunk → AnalyzerInput, converting to the

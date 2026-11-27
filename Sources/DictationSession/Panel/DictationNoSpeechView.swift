@@ -14,9 +14,12 @@ struct DictationNoSpeechView: View {
         ) {
             Button("Copy", action: controller.copyPendingText)
                 .buttonStyle(DictationCardButtonStyle(kind: .primary))
+                .modifier(DictationCardFocusRing())
                 .accessibilityIdentifier("dictation-no-speech-copy")
             Button("Discard", role: .cancel, action: controller.cancel)
                 .buttonStyle(DictationCardButtonStyle(kind: .bare))
+                .modifier(DictationCardFocusRing())
+                .keyboardShortcut(.cancelAction)
                 .accessibilityIdentifier("dictation-no-speech-discard")
             DictationCopyStatusLabel(
                 status: controller.copyStatus, privacy: controller.deliveryPrivacyLine,

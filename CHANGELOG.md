@@ -4,6 +4,12 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- 🛡️ **Interrupted dictations keep your words reachable**: if audio capture fails or your Mac sleeps after words were already recognized, Secreteo opens a recovery card with Copy and Discard and protects those words from being overwritten by another trigger until you dismiss it.
+- ⚡ **Short hold-to-talk replies land cleanly**: holding Fn, a modifier or a mouse button for quick replies like “Sí” or “OK” delivers from 0.25 s, and a global shortcut held past half a second delivers on release, instead of cancelling silently.
+- 📋 **Faster clipboard return and clearer refusal**: verified pastes restore your previous clipboard ~50 ms after confirmation instead of holding it for 1.5 s, and a clipboard that could not be backed up says why before offering Copy or Reinsert.
+- ⌨️ **Cards answer the keyboard**: once a recovery or no-speech card has focus, Return reinserts and Escape discards.
+- 🔒 **Safer fallback delivery**: session-stream delivery now checks that the focused element belongs to the frontmost app before pasting, so another app's floating panel cannot receive the text.
+
 ## 1.3.0
 
 - 🎧 **Bluetooth headsets keep your first words**: the panel says it is listening only once the microphone hears sound, not while a headset is still switching on.

@@ -34,6 +34,9 @@ final class DictationSleepTests: XCTestCase {
         XCTAssertTrue(harness.insertions.isEmpty)
         notifications.post(name: NSWorkspace.willSleepNotification, object: nil)
         XCTAssertEqual(controller.recoveryText, harness.text, "Repeated sleep must preserve recovery")
+        controller.toggle(using: dependencies)
+        XCTAssertFalse(controller.isActive, "A new trigger must not wipe words kept after sleep")
+        XCTAssertEqual(controller.recoveryText, harness.text)
     }
 
     func testSleepCancelsPreparationBeforeMicrophoneAuthorizationReturns() async {

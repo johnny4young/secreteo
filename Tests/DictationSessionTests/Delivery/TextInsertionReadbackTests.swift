@@ -225,6 +225,24 @@ final class TextInsertionReadbackTests: XCTestCase {
         }
         XCTAssertNil(TextInserter.checkedCFValue("not an AX range" as CFString, as: .accessibilityValue))
     }
+
+    func testVerifiedDeliveryAcceleratesClipboardRestoration() async {
+        let receiver = TextReadbackHarness()
+        defer { receiver.board.releaseGlobally() }
+        let started = ContinuousClock.now
+        let result = await receiver.insert("Sí, listo.")
+        XCTAssertEqual(result, .verified)
+        XCTAssertEqual(receiver.board.string(forType: .string), "Sí, listo.")
+        let deadline = ContinuousClock.now.advanced(by: .milliseconds(800))
+        while receiver.board.string(forType: .string) != "Original clipboard", ContinuousClock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        let elapsed = started.duration(to: .now)
+        XCTAssertEqual(receiver.board.string(forType: .string), "Original clipboard")
+        XCTAssertLessThan(
+            elapsed, TextInserter.restoreDelay,
+            "Verified pastes must restore well before the unverified fallback window")
+    }
 }
 
 /// Deterministic receiver behind the real inserter. This does not grant AX or
