@@ -4,12 +4,16 @@ import Foundation
 /// starts only, in the same language and word order. The caller validates the result.
 /// A `recipe` is the user's own instruction about form; nil is the conservative copy edit.
 public protocol DictationTextPolishing: Sendable {
-    func polish(_ text: String, recipe: String?) async throws -> String
+    func polish(_ text: String, recipe: String?, vocabulary: [String]) async throws -> String
 }
 
 extension DictationTextPolishing {
     public func polish(_ text: String) async throws -> String {
-        try await polish(text, recipe: nil)
+        try await polish(text, recipe: nil, vocabulary: [])
+    }
+
+    public func polish(_ text: String, recipe: String?) async throws -> String {
+        try await polish(text, recipe: recipe, vocabulary: [])
     }
 }
 

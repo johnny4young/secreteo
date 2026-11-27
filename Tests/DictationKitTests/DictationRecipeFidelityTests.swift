@@ -23,7 +23,7 @@ struct DictationRecipeFidelityTests {
 struct PolishDictationRecipeTests {
     private struct Echo: DictationTextPolishing {
         let reply: @Sendable (String, String?) -> String
-        func polish(_ text: String, recipe: String?) async throws -> String { reply(text, recipe) }
+        func polish(_ text: String, recipe: String?, vocabulary _: [String]) async throws -> String { reply(text, recipe) }
     }
 
     @Test

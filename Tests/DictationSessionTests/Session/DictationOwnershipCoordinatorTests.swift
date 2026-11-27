@@ -642,7 +642,7 @@ struct DictationOwnershipCoordinatorTests {
         harness.set(DictationTextMode.polish.rawValue, forKey: DictationTextPreferences.modeKey)
         var dependencies = harness.dependencies
         var polished = 0
-        dependencies.polishDictation = { text, _, _ in
+        dependencies.polishDictation = { text, _, _, _ in
             polished += 1
             return .polished(text)
         }

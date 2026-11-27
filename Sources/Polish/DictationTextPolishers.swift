@@ -16,8 +16,8 @@ public struct OpenAICompatibleDictationPolisher: DictationTextPolishing {
         self.gateway = gateway
     }
 
-    public func polish(_ text: String, recipe: String?) async throws -> String {
-        let prompt = try DictationPolishPrompt.make(text, recipe: recipe)
+    public func polish(_ text: String, recipe: String?, vocabulary: [String]) async throws -> String {
+        let prompt = try DictationPolishPrompt.make(text, recipe: recipe, vocabulary: vocabulary)
         let request = try OpenAICompatibleChatCodec.urlRequest(
             endpoint: endpoint,
             model: model,
@@ -54,11 +54,11 @@ public struct FoundationModelDictationPolisher: DictationTextPolishing {
         self.unavailabilityReason = unavailabilityReason
     }
 
-    public func polish(_ text: String, recipe: String?) async throws -> String {
+    public func polish(_ text: String, recipe: String?, vocabulary: [String]) async throws -> String {
         if let reason = unavailabilityReason() {
             throw DictationPolishUnavailable(reason: reason)
         }
-        let prompt = try DictationPolishPrompt.make(text, recipe: recipe)
+        let prompt = try DictationPolishPrompt.make(text, recipe: recipe, vocabulary: vocabulary)
         let session = LanguageModelSession(instructions: prompt.system)
         let content = try await session.respond(
             to: prompt.user,

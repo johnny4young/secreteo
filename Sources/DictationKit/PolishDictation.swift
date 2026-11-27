@@ -30,15 +30,17 @@ public struct PolishDictation: Sendable {
         self.timeout = timeout
     }
 
-    /// A `recipe` reshapes the text as the user asked; facts are still checked.
+    /// A `recipe` reshapes the text as the user asked; facts and personal vocabulary stay fixed.
     public func callAsFunction(
-        _ clean: String, protectedTerms: [String] = [], recipe: String? = nil
+        _ clean: String, protectedTerms: [String] = [], vocabulary: [String] = [], recipe: String? = nil
     ) async -> DictationPolishOutcome {
         guard DictationPolishFidelity.words(in: clean).count >= Self.minimumWords else { return .kept(.tooShort) }
         guard clean.count <= Self.maximumCharacters else { return .kept(.tooLong) }
         let candidate: String
         do {
-            guard let result = try await withDeadline(timeout, { try await polisher.polish(clean, recipe: recipe) })
+            guard let result = try await withDeadline(timeout, {
+                try await polisher.polish(clean, recipe: recipe, vocabulary: vocabulary)
+            })
             else {
                 return .kept(.timedOut)
             }
@@ -49,7 +51,7 @@ public struct PolishDictation: Sendable {
             return .kept(.failed)
         }
         if let violation = DictationPolishFidelity.violation(
-            original: clean, candidate: candidate, protectedTerms: protectedTerms,
+            original: clean, candidate: candidate, protectedTerms: protectedTerms + vocabulary,
             allowsRestructuring: recipe != nil) {
             return .kept(.changedMeaning(violation))
         }

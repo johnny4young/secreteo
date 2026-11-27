@@ -219,7 +219,7 @@ struct DictationSleepBeforeInsertTests {
         switch kind {
         case .polish:
             harness.set(DictationTextMode.polish.rawValue, forKey: DictationTextPreferences.modeKey)
-            dependencies.polishDictation = { _, _, _ in
+            dependencies.polishDictation = { _, _, _, _ in
                 await transform.wait()
                 return .polished("Polished synthetic words.")
             }

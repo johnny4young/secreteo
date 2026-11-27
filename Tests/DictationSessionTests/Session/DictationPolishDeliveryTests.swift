@@ -26,7 +26,7 @@ struct DictationPolishDeliveryTests {
         var dependencies = harness.dependencies
         dependencies.beginCapture = { { recorder.capturesEnded += 1 } }
         dependencies.beginHistory = { { record in recorder.records.append(record); return true } }
-        dependencies.polishDictation = { text, _, recipe in
+        dependencies.polishDictation = { text, _, _, recipe in
             recorder.polishCalls.append(text)
             recorder.recipes.append(recipe)
             recorder.capturesEndedBeforePolish = recorder.capturesEnded

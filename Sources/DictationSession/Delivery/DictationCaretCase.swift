@@ -23,8 +23,10 @@ struct DictationCaretCase {
         "st.", "no.", "p.ej.", "ej.", "ud.", "uds.", "approx.", "aprox."
     ]
 
-    /// Spellings the user chose in the text replacements; never recased.
+    /// Single-word spellings the user chose; never recased.
     var protectedWords: Set<String> = []
+    /// Full replacement and vocabulary phrases matched at the start of the text.
+    var protectedPhrases: [String] = []
     var isCommonWord: @MainActor (String) -> Bool = Self.systemDictionaryKnows
     var isName: @MainActor (_ word: String, _ sentence: String) -> Bool = Self.taggedAsName
 
@@ -38,10 +40,24 @@ struct DictationCaretCase {
         guard isEnabled(in: defaults) else { return nil }
         let rules = DictationTextRules.decode(
             replacements: defaults.string(forKey: DictationController.replacementsKey) ?? "")
-        return Self(protectedWords: Set(rules.flatMap { rule in
-            rule.replacement.split(whereSeparator: \.isWhitespace)
-                .map { $0.trimmingCharacters(in: .punctuationCharacters) }
-        }))
+        let vocabulary = DictationVocabularyNormalizer.parse(
+            defaults.string(forKey: DictationController.vocabularyKey) ?? "")
+        let allTerms = (rules.map(\.replacement) + vocabulary)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        var words = Set<String>()
+        var phrases: [String] = []
+        for term in allTerms {
+            if term.contains(where: \.isWhitespace) {
+                phrases.append(term)
+            } else {
+                let cleaned = term.trimmingCharacters(in: .punctuationCharacters)
+                if !cleaned.isEmpty { words.insert(cleaned) }
+            }
+        }
+        return Self(
+            protectedWords: words,
+            protectedPhrases: phrases.sorted { $0.count > $1.count })
     }
 
     /// - Parameter atFieldStart: true when `preceding` reaches the start of the field.
@@ -71,7 +87,7 @@ struct DictationCaretCase {
             guard text[start].isLowercase, !keepsSpelling(word, in: text[start...]) else { return text }
             return text.replacingCharacters(in: start...start, with: text[start].uppercased())
         case .midSentence:
-            guard keepsCapital(word, sentence: preceding + " " + text) == false else { return text }
+            guard keepsCapital(word, in: text[start...], sentence: preceding + " " + text) == false else { return text }
             return text.replacingCharacters(in: start...start, with: text[start].lowercased())
         case .unknown:
             return text
@@ -80,19 +96,38 @@ struct DictationCaretCase {
 
     /// Spellings a capital would break: the user's own, `iPhone`, `macOS`, and addresses.
     private func keepsSpelling(_ word: String, in text: Substring) -> Bool {
-        if protectedWords.contains(word) || word.contains(where: \.isUppercase) { return true }
+        if startsWithProtectedPhrase(text) { return true }
         let token = text.prefix { !$0.isWhitespace }
-        return token.contains { "/@_".contains($0) }
-            || token.trimmingCharacters(in: .punctuationCharacters).contains(".")
+        let trimmedToken = token.trimmingCharacters(in: .punctuationCharacters)
+        if protectedWords.contains(word) || protectedWords.contains(trimmedToken)
+            || word.contains(where: \.isUppercase) { return true }
+        return token.contains { "/@_".contains($0) } || trimmedToken.contains(".")
     }
 
-    private func keepsCapital(_ word: String, sentence: String) -> Bool {
+    private func keepsCapital(_ word: String, in text: Substring, sentence: String) -> Bool {
         guard let first = word.first, first.isUppercase else { return true }
         let rest = word.dropFirst()
         if word == "I" || word.hasPrefix("I'") || word.hasPrefix("I’") { return true }
         if rest.contains(where: \.isUppercase) { return true }
-        if protectedWords.contains(word) { return true }
+        if startsWithProtectedPhrase(text) { return true }
+        let token = text.prefix { !$0.isWhitespace }
+        let trimmedToken = token.trimmingCharacters(in: .punctuationCharacters)
+        if protectedWords.contains(word) || protectedWords.contains(trimmedToken) { return true }
+        if trimmedToken.contains(".") || trimmedToken.contains(where: \.isNumber)
+            || token.contains(where: { "/@_".contains($0) }) {
+            return true
+        }
         return !isCommonWord(word.lowercased()) || isName(word, sentence)
+    }
+
+    private func startsWithProtectedPhrase(_ text: Substring) -> Bool {
+        for phrase in protectedPhrases where text.hasPrefix(phrase) {
+            let after = text.index(text.startIndex, offsetBy: phrase.count)
+            if after == text.endIndex || !(text[after].isLetter || text[after].isNumber) {
+                return true
+            }
+        }
+        return false
     }
 
     /// "J." in "J. Smith" ends no sentence.

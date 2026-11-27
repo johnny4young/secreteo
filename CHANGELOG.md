@@ -4,6 +4,8 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
+- 📚 **Personal Vocabulary works everywhere**: terms you add in Settings › Text › Vocabulary now fix spelling and casing with Parakeet (including split compounds like “fast api” → `FastAPI` and close misspellings while leaving real words and URLs alone), guide Apple Intelligence and Ollama in Polish and Rewrite, and stay protected from cursor capitalization.
+- 📝 **Multiline voice snippets**: Text Replacements accept multiline blocks (press `⌥↩` in “Type Instead” for a line break) so a spoken trigger can expand a full signature or template.
 - 🧭 **Cleaner Settings, menu and setup**: Application Profiles show real app names and icons instead of bundle IDs, Paste the Last Dictation lives under Dictation › Triggers, Model Memory is a single three-way choice (Lightweight, Balanced, At Launch), switching to Apple Speech picks a concrete language instead of Auto and switching back restores it, onboarding flags a 🌐 Fn conflict on step 1 and offers a direct button back to setup on step 3, and the menu subtitle drops internal ownership wording.
 - ♿ **Easier to click and drive from the keyboard**: close and skip buttons on the capsule, rewrite card and Accessibility guide have 28×28 pt hit areas, recovery cards support ⌘C to copy, and Text Replacements advance and submit on Return.
 - 🔋 **Lighter in the background**: Secreteo wakes your Mac less often while idle and gives memory back sooner when the Mac runs short.

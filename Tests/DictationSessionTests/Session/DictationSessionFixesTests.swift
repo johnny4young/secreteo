@@ -85,7 +85,7 @@ final class DictationSessionFixesTests: XCTestCase {
         }
         var polishing = first.dependencies
         polishing.registerCancelKey = register
-        polishing.polishDictation = { _, _, _ in
+        polishing.polishDictation = { _, _, _, _ in
             try? await Task.sleep(for: .seconds(30))
             return .kept(.failed)
         }

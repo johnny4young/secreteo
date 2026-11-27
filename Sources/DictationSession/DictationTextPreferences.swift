@@ -1,12 +1,12 @@
 import Foundation
 import DictationKit
-import LiveSpeech
 
 /// One bounded preference snapshot for one captured destination. It owns no platform input.
 struct DictationTextPreferenceSnapshot: Sendable {
     var mode: DictationTextMode
     let removeFillers: Bool
     let replacements: [DictationReplacement]
+    var vocabulary: [String] = []
     var recipeID: String?
     /// The built-in and custom recipes read with the snapshot, for a session choice.
     var recipes: [DictationRecipe] = []
@@ -27,7 +27,8 @@ struct DictationTextPreferenceSnapshot: Sendable {
     func applying(to text: String) -> String {
         DictationTextRules.apply(
             text, replacements: mode.appliesCleanRules ? replacements : [],
-            removeFillers: mode.appliesCleanRules && removeFillers, spokenCommands: mode.appliesCleanRules)
+            removeFillers: mode.appliesCleanRules && removeFillers, spokenCommands: mode.appliesCleanRules,
+            vocabulary: mode.appliesCleanRules ? vocabulary : [])
     }
 }
 
@@ -83,6 +84,8 @@ enum DictationTextPreferences {
             removeFillers: DictationController.fillerFilterEnabled(in: defaults),
             replacements: DictationTextRules.decode(
                 replacements: defaults.string(forKey: DictationController.replacementsKey) ?? ""),
+            vocabulary: DictationVocabularyNormalizer.parse(
+                defaults.string(forKey: DictationController.vocabularyKey) ?? ""),
             recipeID: profile.map(\.polishRecipeID) ?? globalRecipeID(in: defaults),
             recipes: recipes(in: defaults),
             translationTarget: profile?.translationTarget ?? globalTranslationTarget(in: defaults))

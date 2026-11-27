@@ -23,7 +23,7 @@ struct DictationTranslationDeliveryTests {
     ) -> DictationSessionDependencies {
         var dependencies = harness.dependencies
         dependencies.beginHistory = { { record in recorder.records.append(record); return true } }
-        dependencies.polishDictation = { text, _, _ in
+        dependencies.polishDictation = { text, _, _, _ in
             recorder.polishCalls.append(text)
             return .polished("No borres estas notas!")
         }
