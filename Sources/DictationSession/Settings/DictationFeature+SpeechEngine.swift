@@ -30,11 +30,42 @@ extension DictationFeature {
         return requiredModels + (speechEngine == .parakeetUltra ? [.speechUltra] : [])
     }
 
+    /// Apple Speech requires a concrete locale rather than Auto.
+    static func preferredConcreteLanguage(locale: Locale = AppLanguage.current.locale) -> String {
+        locale.language.languageCode?.identifier == "es" ? "es" : "en"
+    }
+
+    var dictationLanguageBinding: Binding<String> {
+        Binding(
+            get: {
+                _ = self.preferenceRevision
+                let stored = self.defaults.string(forKey: DictationController.languageKey) ?? "auto"
+                if self.speechEngine == .appleSpeech {
+                    return LiveSpeechSelection.dictationLanguages.contains(stored)
+                        ? stored : Self.preferredConcreteLanguage()
+                }
+                if stored == "auto" || LiveSpeechSelection.dictationLanguages.contains(stored) {
+                    return stored
+                }
+                return "auto"
+            },
+            set: { self.store([DictationController.languageKey: $0]) })
+    }
+
+    func coerceAppleSpeechLanguageIfNeeded() {
+        guard speechEngine == .appleSpeech else { return }
+        let stored = defaults.string(forKey: DictationController.languageKey) ?? "auto"
+        if !LiveSpeechSelection.dictationLanguages.contains(stored) {
+            store([DictationController.languageKey: Self.preferredConcreteLanguage()])
+        }
+    }
+
     /// The warm model may be the other checkpoint, so the next dictation loads afresh.
     /// A failure belonged to the other engine's parts, and Parakeet may not have been hashed.
     func speechEngineChanged() {
         warmEngine.release()
         adoptedParts.removeAll()
+        coerceAppleSpeechLanguageIfNeeded()
         if modelState == .failed { modelState = .missing }
         applyModelReadiness()
         if speechModelIsRequired { Task { await refreshReadiness() } }

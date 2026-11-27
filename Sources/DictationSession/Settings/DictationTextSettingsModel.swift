@@ -24,6 +24,19 @@ final class DictationTextSettingsModel {
     }
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let temporary: Bool
+    @ObservationIgnored private var applicationDisplays: [String: DictationApplicationDisplay] = [:]
+
+    func applicationDisplay(for bundleIdentifier: String) -> DictationApplicationDisplay {
+        if let cached = applicationDisplays[bundleIdentifier] { return cached }
+        let resolved = DictationApplicationDisplay.resolve(bundleIdentifier: bundleIdentifier)
+        applicationDisplays[bundleIdentifier] = resolved
+        return resolved
+    }
+
+    func rememberApplicationURL(_ url: URL, for bundleIdentifier: String) {
+        applicationDisplays[bundleIdentifier] = DictationApplicationDisplay.resolve(
+            bundleIdentifier: bundleIdentifier, knownURL: url)
+    }
 
     init(defaults: UserDefaults, temporary: Bool) {
         self.defaults = defaults

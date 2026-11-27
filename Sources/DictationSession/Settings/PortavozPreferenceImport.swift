@@ -26,14 +26,10 @@ struct PortavozPreferenceImport {
 
     /// Applying `values` and comparing again yields no changes.
     init(portavoz domain: [String: Any], current defaults: UserDefaults) {
-        var source = domain
-        // Portavoz shows Clean when older settings exist but the mode was never saved.
-        let legacyKeys = [DictationController.defaultsKey, DictationController.languageKey,
-                          DictationController.fillerFilterKey, DictationController.replacementsKey]
-        if source[DictationTextPreferences.modeKey] == nil, legacyKeys.contains(where: { domain[$0] != nil }) {
-            source[DictationTextPreferences.modeKey] = DictationTextMode.clean.rawValue
-        }
+        let source = Self.normalizedSource(domain, current: defaults)
+        let legacyKeys = Self.legacyModeKeys
         var changes: [Change] = []
+        var seenChangeNames: Set<String> = []
         var values: [String: Any] = [:]
         // Recipes and profiles replace a list, so they arrive only where Secreteo has none of its own to lose.
         var ownLists: Set<String> = []
@@ -48,7 +44,9 @@ struct PortavozPreferenceImport {
         for entry in Self.entries where !ownLists.contains(entry.key) {
             guard let value = source[entry.key], entry.accepts(value) else { continue }
             guard !(value as AnyObject).isEqual(defaults.object(forKey: entry.key) ?? entry.fallback) else { continue }
-            changes.append(Change(key: entry.key, name: entry.name))
+            if seenChangeNames.insert(entry.name).inserted {
+                changes.append(Change(key: entry.key, name: entry.name))
+            }
             values[entry.key] = value
         }
         // Secreteo derives its mode from the same older keys, so compare with the mode after the import.
@@ -64,6 +62,37 @@ struct PortavozPreferenceImport {
         }
         self.changes = changes
         self.values = values
+    }
+
+    private static let legacyModeKeys = [
+        DictationController.defaultsKey, DictationController.languageKey,
+        DictationController.fillerFilterKey, DictationController.replacementsKey
+    ]
+
+    private static func normalizedSource(_ domain: [String: Any], current defaults: UserDefaults) -> [String: Any] {
+        var source = domain
+        // Portavoz shows Clean when older settings exist but the mode was never saved.
+        if source[DictationTextPreferences.modeKey] == nil, legacyModeKeys.contains(where: { domain[$0] != nil }) {
+            source[DictationTextPreferences.modeKey] = DictationTextMode.clean.rawValue
+        }
+        // Keep Apple Speech and Model Memory coherent with Secreteo's UI constraints so import is idempotent.
+        let effectiveEngine = (source[LiveSpeechSelection.dictationKey] as? String).flatMap(LiveSpeechSelection.init)
+            ?? LiveSpeechSelection.dictation(defaults: defaults)
+        if effectiveEngine == .appleSpeech {
+            let candidate = source[DictationController.languageKey] as? String
+            let current = defaults.string(forKey: DictationController.languageKey)
+            let candidateNeedsLocale = candidate.map { !LiveSpeechSelection.dictationLanguages.contains($0) }
+                ?? (current.map { !LiveSpeechSelection.dictationLanguages.contains($0) } ?? true)
+            if candidateNeedsLocale {
+                source[DictationController.languageKey] = DictationFeature.preferredConcreteLanguage()
+            }
+        }
+        let effectiveMemory = (source[DictationModelMemory.key] as? String).flatMap(DictationModelMemory.init)
+            ?? DictationModelMemory.current(in: defaults)
+        if effectiveMemory == .lightweight, source[DictationPrewarmPolicy.defaultsKey] != nil {
+            source[DictationPrewarmPolicy.defaultsKey] = false
+        }
+        return source
     }
 
     private static var entries: [Entry] {
@@ -91,10 +120,10 @@ struct PortavozPreferenceImport {
                   fallback: DictationAutoStop.defaultPause) { DictationAutoStop.pauses.contains($0 as? Double ?? 0) },
             flag(DictationCorrections.defaultsKey, L10n.text("Correct the Last Dictation by Voice")),
             flag(DictationCaretCase.defaultsKey, L10n.text("Match Capitalization to the Cursor")),
-            choice(DictationModelMemory.key, L10n.text("Free the Model Soon After Dictating"),
+            choice(DictationModelMemory.key, L10n.text("Keep Model in Memory"),
                    [DictationModelMemory.balanced.rawValue, DictationModelMemory.lightweight.rawValue],
                    DictationModelMemory.balanced.rawValue),
-            flag(DictationPrewarmPolicy.defaultsKey, L10n.text("Load the Speech Model at Launch")),
+            flag(DictationPrewarmPolicy.defaultsKey, L10n.text("Keep Model in Memory")),
             // Copied without downloading or loading anything: Ultra still needs its own Download.
             choice(LiveSpeechSelection.dictationKey, L10n.text("Speech Engine"),
                    LiveSpeechSelection.allCases.map(\.rawValue), LiveSpeechSelection.dictationDefault.rawValue),

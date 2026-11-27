@@ -474,13 +474,13 @@ final class DictationFeatureTests: XCTestCase {
         let feature = try makeFeature()
         let defaults = feature.defaults
         defaults.set(true, forKey: DictationPrewarmPolicy.defaultsKey)
-        XCTAssertTrue(feature.prewarmBinding.wrappedValue)
+        XCTAssertEqual(feature.modelMemoryChoice.wrappedValue, .prewarmed)
 
         defaults.set(DictationModelMemory.lightweight.rawValue, forKey: DictationModelMemory.key)
-        XCTAssertFalse(feature.prewarmBinding.wrappedValue)
+        XCTAssertEqual(feature.modelMemoryChoice.wrappedValue, .lightweight)
 
         defaults.set(DictationModelMemory.balanced.rawValue, forKey: DictationModelMemory.key)
-        XCTAssertTrue(feature.prewarmBinding.wrappedValue)
+        XCTAssertEqual(feature.modelMemoryChoice.wrappedValue, .prewarmed)
     }
 
     func testAnUnknownMemoryProfileIsBalanced() throws {

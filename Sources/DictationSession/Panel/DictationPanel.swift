@@ -46,6 +46,11 @@ final class DictationPanelController {
             controller.map { DictationCompactIndicator.applies(to: $0) } ?? false
         }
         panel.indicatorClicked = { [weak controller] in controller?.expandCompactIndicator() }
+        panel.canCopyPendingOutput = { [weak controller] in
+            guard let controller else { return false }
+            return controller.hasPendingOutput && !controller.isRetryingDelivery
+        }
+        panel.copyPendingOutput = { [weak controller] in controller?.copyPendingText() }
         shade(panel, for: controller)
         let content = NSHostingView(
             rootView: DictationStripView(controller: controller, placement: placement) { [weak self] measured in
@@ -175,13 +180,29 @@ final class DictationPanelController {
 }
 
 /// While it shows the small indicator, a click opens the capsule and a drag moves it.
-private final class DictationPanelWindow: NSPanel {
+final class DictationPanelWindow: NSPanel {
     var showsIndicator: () -> Bool = { false }
     var indicatorClicked: () -> Void = {}
+    var canCopyPendingOutput: () -> Bool = { false }
+    var copyPendingOutput: () -> Void = {}
     private var press: (pointer: NSPoint, origin: NSPoint, moved: Bool)?
     private var expandedAt: Date?
 
     override var canBecomeKey: Bool { true }
+
+    /// Responder-chain fallback for Edit › Copy (⌘C): active text selection copies first,
+    /// and when nothing is selected the full pending dictation output is copied.
+    @objc func copy(_ sender: Any?) {
+        guard canCopyPendingOutput() else { return }
+        copyPendingOutput()
+    }
+
+    override func validateUserInterfaceItem(_ item: any NSValidatedUserInterfaceItem) -> Bool {
+        if item.action == #selector(NSText.copy(_:)) {
+            return canCopyPendingOutput()
+        }
+        return super.validateUserInterfaceItem(item)
+    }
 
     override func sendEvent(_ event: NSEvent) {
         let indicator = showsIndicator()

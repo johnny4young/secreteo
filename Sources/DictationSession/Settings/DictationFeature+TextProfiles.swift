@@ -28,6 +28,7 @@ extension DictationFeature {
             return
         }
         // Choosing an application that already has a profile keeps its saved mode.
+        textSettings.rememberApplicationURL(url, for: identifier)
         let existing = textSettings.profiles.first { $0.bundleIdentifier == identifier }?.mode
         textSettings.setProfile(bundleIdentifier: identifier, mode: existing ?? textSettings.globalMode)
     }

@@ -82,12 +82,14 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         assertControlsExist(SettingsTabIdentifier.allCases.map(\.rawValue), in: app)
         assertControlsExist([
             "settings-dictation-practice-field", "settings-dictation-practice-start",
+            "settings-dictation-paste-last-hotkey",
             "settings-dictation-mouse-recorder", "settings-dictation-modifier-key", "settings-dictation-sounds",
             "settings-dictation-compact", "settings-dictation-indicator-capsule", "settings-dictation-speech-gate",
             "settings-dictation-compact-elapsed", "settings-dictation-compact-backdrop",
             "settings-dictation-auto-stop", "settings-dictation-engine", "settings-dictation-language",
             "settings-dictation-microphone-device"
         ], in: app)
+        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-paste-last-taken").exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-mouse-clear").exists, "No button is set")
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-auto-stop-pause").exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-modifier-unavailable").exists)
@@ -113,10 +115,8 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         app.openSettingsTab(.polish)
         assertControlsExist([
             "settings-dictation-polish-engine", "settings-dictation-polish-preview", "settings-dictation-recipes",
-            "settings-dictation-recipe-new", "settings-dictation-translate", "settings-dictation-rewrite-hotkey",
-            "settings-dictation-paste-last-hotkey"
+            "settings-dictation-recipe-new", "settings-dictation-translate", "settings-dictation-rewrite-hotkey"
         ], in: app)
-        XCTAssertFalse(app.control(withIdentifier: "settings-dictation-paste-last-taken").exists)
         XCTAssertFalse(app.control(withIdentifier: "settings-dictation-rewrite-taken").exists)
         attachScreenshot(named: "pr-settings-tab-polish")
 
@@ -125,8 +125,8 @@ final class DictationSettingsUITests: SecreteoUITestCase {
 
         app.openSettingsTab(.general)
         assertControlsExist([
-            "settings-model-memory-lightweight", "settings-dictation-prewarm", "settings-launch-at-login",
-            "settings-version"
+            "settings-model-memory", "settings-model-memory-lightweight", "settings-model-memory-balanced",
+            "settings-model-memory-launch", "settings-launch-at-login", "settings-version"
         ], in: app)
     }
 
@@ -212,7 +212,7 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         let app = try launchEnabled()
         defer { finishUITestApplication(app) }
         let toggle = app.control(withIdentifier: "settings-dictation-paste-last-hotkey")
-        XCTAssertTrue(app.revealInSettings(toggle, tab: .polish))
+        XCTAssertTrue(app.revealInSettings(toggle, tab: .dictation))
         XCTAssertTrue(toggle.label.contains("⌃⌥⌘V"), "The shortcut is read with the switch")
         XCTAssertFalse(toggle.value as? Int == 1 || toggle.value as? String == "1", "Off until chosen")
 
@@ -322,15 +322,17 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         let app = try launchEnabled(defaults: #""dictationPrewarm":true"#)
         defer { finishUITestApplication(app) }
         let lightweight = app.control(withIdentifier: "settings-model-memory-lightweight")
-        let prewarm = app.control(withIdentifier: "settings-dictation-prewarm")
+        let balanced = app.control(withIdentifier: "settings-model-memory-balanced")
+        let launch = app.control(withIdentifier: "settings-model-memory-launch")
         XCTAssertTrue(app.revealInSettings(lightweight, tab: .general))
-        XCTAssertTrue(prewarm.isEnabled)
-        XCTAssertTrue(prewarm.value as? Int == 1 || prewarm.value as? String == "1")
+        XCTAssertTrue(launch.isSelected)
+        XCTAssertFalse(lightweight.isSelected)
 
         lightweight.click()
 
-        XCTAssertTrue(waitForUITestCondition(timeout: 5) { !prewarm.isEnabled })
-        XCTAssertTrue(prewarm.value as? Int == 0 || prewarm.value as? String == "0", "Off, not greyed out on")
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) { lightweight.isSelected && !launch.isSelected })
+        balanced.click()
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) { balanced.isSelected && !lightweight.isSelected })
     }
 
     func testChoosingAShortcutShowsItAndOffersTheDefaultBack() throws {
@@ -378,11 +380,8 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         XCTAssertTrue(app.revealInSettings(trigger, tab: .text))
 
         trigger.click()
-        trigger.typeText("portabos")
-        let replacement = app.control(withIdentifier: "settings-dictation-dict-replacement")
-        replacement.click()
-        replacement.typeText("Portavoz")
-        app.control(withIdentifier: "settings-dictation-dict-add").click()
+        trigger.typeText("portabos\r")
+        app.typeText("Portavoz\r")
 
         let remove = app.control(withIdentifier: "settings-dictation-dict-remove")
         XCTAssertTrue(remove.waitForExistence(timeout: 5))

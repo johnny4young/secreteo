@@ -42,10 +42,10 @@ extension DictationFeature {
         }
     }
 
-    /// Who owns dictation and what hears it; nil when there is nothing true to say.
+    /// What hears dictation, or why it cannot start; nil when there is nothing true to say.
     var menuDetail: String? {
         switch menuState {
-        case .ready, .live: L10n.format("Secreteo owns dictation · %@ on this Mac", speechEngine.displayName)
+        case .ready, .live: L10n.format("%@ · On this Mac", speechEngine.displayName)
         case .standingBy: L10n.text("Another app handles dictation on this Mac")
         case .setUp, .notReady: unavailableMessage
         }

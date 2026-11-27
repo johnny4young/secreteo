@@ -81,10 +81,12 @@ struct SelectionRewriteView: View {
                     .foregroundStyle(SecreteoPalette.capsuleSecondaryText.color)
                     .frame(width: 18, height: 18)
                     .background(.white.opacity(0.08), in: Circle())
-                    .contentShape(Circle())
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .modifier(DictationCardFocusRing(radius: 9, isRound: true))
+            .modifier(DictationCardFocusRing(isRound: true, inset: 2))
+            .padding(.trailing, -5)
             .disabled(controller.phase == .replacing)
             .opacity(controller.phase == .replacing ? 0.4 : 1)
             .accessibilityLabel(L10n.text("Cancel rewrite"))
@@ -372,6 +374,7 @@ struct SelectionRewriteChipStyle: ButtonStyle {
 struct DictationCardFocusRing: ViewModifier {
     var radius: CGFloat = 9
     var isRound = false
+    var inset: CGFloat = -3
     @FocusState private var isFocused: Bool
 
     func body(content: Content) -> some View {
@@ -382,7 +385,7 @@ struct DictationCardFocusRing: ViewModifier {
                 if isFocused {
                     RoundedRectangle(cornerRadius: isRound ? 99 : radius + 3, style: .continuous)
                         .strokeBorder(Color(nsColor: .keyboardFocusIndicatorColor), lineWidth: 3)
-                        .padding(-3)
+                        .padding(inset)
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)
                 }

@@ -34,7 +34,7 @@ final class DictationMenuTests: XCTestCase {
         owner.start()
         XCTAssertEqual(owner.menuState, .ready)
         XCTAssertEqual(owner.menuTitle, "Ready")
-        XCTAssertEqual(owner.menuDetail, "Secreteo owns dictation · Parakeet on this Mac")
+        XCTAssertEqual(owner.menuDetail, "Parakeet · On this Mac")
 
         let other = try makeFeature(makeDefaults(), arguments: ["-seed-dictation-no-owner"])
         other.start()

@@ -20,6 +20,14 @@ struct DictationSettingsControls: View {
                 recordingChanged: { dictation.shortcutRecording($0) },
                 retry: { dictation.triggersChanged() })
             if dictation.isEnabled {
+                SettingsSwitch(
+                    Text("Paste the Last Dictation"), identifier: "settings-dictation-paste-last-hotkey",
+                    shortcut: PasteLastShortcut.setting.label, isOn: dictation.pasteLastShortcutBinding)
+                if dictation.pasteLastShortcutIsUnavailable {
+                    Text("Another shortcut already uses ⌃⌥⌘V.")
+                        .foregroundStyle(SecreteoDesign.notSent)
+                        .accessibilityIdentifier("settings-dictation-paste-last-taken")
+                }
                 MouseButtonRecorder(
                     button: dictation.mouseButton,
                     onRecord: { dictation.recordMouseButton($0) })
@@ -47,8 +55,10 @@ struct DictationSettingsControls: View {
                 ultraRow
             }
             SettingsRow(Text("Language")) {
-                Picker(selection: dictation.preference(DictationController.languageKey, default: "auto")) {
-                    Text("Automatic").tag("auto")
+                Picker(selection: dictation.dictationLanguageBinding) {
+                    if dictation.speechEngine != .appleSpeech {
+                        Text("Automatic").tag("auto")
+                    }
                     Text("Spanish").tag("es")
                     Text("English").tag("en")
                 } label: {

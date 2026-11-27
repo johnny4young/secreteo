@@ -18,7 +18,7 @@ final class MenuDashboardUITests: SecreteoUITestCase {
         XCTAssertTrue(app.control(withIdentifier: "menu-state").exists)
         XCTAssertTrue(renderedText(of: app.control(withIdentifier: "menu-state-title")).contains("Ready"))
         XCTAssertTrue(
-            renderedText(of: app.control(withIdentifier: "menu-state-detail")).contains("Secreteo owns dictation"))
+            renderedText(of: app.control(withIdentifier: "menu-state-detail")).contains("On this Mac"))
         XCTAssertTrue(renderedText(of: dictate).contains("⌃⌥⌘D"), "The key cap is the real shortcut")
         XCTAssertTrue(app.buttons["menu-bar-fn-key-settings"].exists, "Fn is held by default and macOS also reacts")
 

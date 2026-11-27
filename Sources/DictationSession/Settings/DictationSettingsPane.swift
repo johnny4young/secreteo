@@ -37,13 +37,16 @@ public struct DictationSettingsPane: View {
             if dictation.isEnabled {
                 SettingsEyebrow(Text("Model Memory"))
                 SettingsCard {
-                    SettingsSwitch(
-                        Text("Free the Model Soon After Dictating"), identifier: "settings-model-memory-lightweight",
-                        isOn: dictation.usesLightweightMemory)
-                    SettingsSwitch(
-                        Text("Load the Speech Model at Launch"), identifier: "settings-dictation-prewarm",
-                        isOn: dictation.prewarmBinding)
-                        .disabled(dictation.usesLightweightMemory.wrappedValue)
+                    SettingsRow(Text("Keep Model in Memory")) {
+                        SettingsSegments(
+                            identifier: "settings-model-memory", label: Text("Model Memory"),
+                            selection: dictation.modelMemoryChoice,
+                            options: [
+                                .init(value: .lightweight, title: Text("Lightweight"), suffix: "lightweight"),
+                                .init(value: .balanced, title: Text("Balanced"), suffix: "balanced"),
+                                .init(value: .prewarmed, title: Text("At Launch"), suffix: "launch")
+                            ])
+                    }
                 }
             }
         }
@@ -158,14 +161,6 @@ struct DictationPolishTab: View {
                 Text("Another shortcut already uses ⌃⌥⌘R.")
                     .foregroundStyle(SecreteoDesign.notSent)
                     .accessibilityIdentifier("settings-dictation-rewrite-taken")
-            }
-            SettingsSwitch(
-                Text("Paste the Last Dictation"), identifier: "settings-dictation-paste-last-hotkey",
-                shortcut: PasteLastShortcut.setting.label, isOn: dictation.pasteLastShortcutBinding)
-            if dictation.pasteLastShortcutIsUnavailable {
-                Text("Another shortcut already uses ⌃⌥⌘V.")
-                    .foregroundStyle(SecreteoDesign.notSent)
-                    .accessibilityIdentifier("settings-dictation-paste-last-taken")
             }
         }
     }

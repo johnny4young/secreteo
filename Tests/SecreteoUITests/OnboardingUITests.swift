@@ -72,7 +72,9 @@ final class OnboardingUITests: SecreteoUITestCase {
         XCTAssertTrue(app.control(withIdentifier: "onboarding-practice").waitForExistence(timeout: 5))
         let start = app.control(withIdentifier: "onboarding-dictation-practice-start")
         XCTAssertTrue(start.exists)
-        XCTAssertFalse(start.isEnabled, "Off, the field waits instead of explaining")
+        XCTAssertFalse(start.isEnabled, "Off, the field waits alongside a direct button back to setup")
+        let backToSetup = app.control(withIdentifier: "onboarding-practice-setup")
+        XCTAssertTrue(backToSetup.exists)
         XCTAssertTrue(app.control(withIdentifier: "onboarding-dictation-practice-field").exists)
         XCTAssertEqual(app.control(withIdentifier: "onboarding-progress").label, Self.stepLabel(3))
         XCTAssertEqual(
@@ -80,6 +82,12 @@ final class OnboardingUITests: SecreteoUITestCase {
             "Holding Fn is the default key")
         XCTAssertEqual(next.label, "Done")
         attachScreenshot(named: "pr-onboarding-practice")
+
+        backToSetup.click()
+        XCTAssertTrue(app.control(withIdentifier: "onboarding-dictation").waitForExistence(timeout: 5))
+        next.click()
+        next.click()
+        XCTAssertTrue(app.control(withIdentifier: "onboarding-practice").waitForExistence(timeout: 5))
 
         next.click()
         XCTAssertTrue(app.control(withIdentifier: "onboarding-practice").waitForDisappearance(timeout: 5))
@@ -130,6 +138,8 @@ final class OnboardingUITests: SecreteoUITestCase {
         toggle.click()
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { self.isOn(toggle) })
         XCTAssertTrue(app.control(withIdentifier: "settings-dictation-hotkey-recorder").waitForExistence(timeout: 5))
+        XCTAssertTrue(app.control(withIdentifier: "onboarding-dictation-modifier-fn-note").exists)
+        XCTAssertTrue(app.control(withIdentifier: "onboarding-dictation-modifier-fn-settings").exists)
         XCTAssertTrue(app.control(withIdentifier: "onboarding-microphone-allowed").exists)
         XCTAssertTrue(app.control(withIdentifier: "onboarding-accessibility-allowed").exists)
         XCTAssertFalse(app.control(withIdentifier: "onboarding-microphone-allow").exists)
@@ -160,6 +170,7 @@ final class OnboardingUITests: SecreteoUITestCase {
         let start = app.buttons["onboarding-dictation-practice-start"]
         XCTAssertTrue(start.waitForStableFrame(timeout: 5))
         XCTAssertTrue(start.isEnabled)
+        XCTAssertFalse(app.control(withIdentifier: "onboarding-practice-setup").exists)
         XCTAssertFalse(app.buttons["onboarding-dictation-practice-clear"].exists)
         let clipboard = NSPasteboard.general.changeCount
         start.click()
