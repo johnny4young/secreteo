@@ -93,9 +93,9 @@ struct AffordanceWatchdogTests {
         #expect(flag.lost == 0)
     }
 
-    @Test func theDefaultIdleIntervalSleepsThirtySecondsBetweenQuietChecks() {
+    @Test func theDefaultIdleIntervalKeepsAnUnannouncedLossWithinSevenSeconds() {
         let watchdog = AffordanceWatchdog(hasAffordance: { true }, onLost: {})
-        #expect(watchdog.nextInterval == 30)
+        #expect(watchdog.nextInterval == 5)
     }
 
     @Test func anEventPutsItOnTheFastScheduleForAFewChecks() {

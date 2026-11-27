@@ -21,7 +21,7 @@ public final class AffordanceWatchdog {
     public init(
         hasAffordance: @escaping () -> Bool,
         onLost: @escaping () -> Void,
-        idleInterval: TimeInterval = 30,
+        idleInterval: TimeInterval = 5,
         checkInterval: TimeInterval = 0.75
     ) {
         self.hasAffordance = hasAffordance

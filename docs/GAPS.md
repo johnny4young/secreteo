@@ -67,7 +67,7 @@ Dictate and the paste rows give focus back to the app that was frontmost when th
 
 ## G13. An icon loss no event announces
 
-The watchdog's events cover both halves of its check: `isVisible` through key-value observing, and the button's window through a hidden subview. Neither the per-app Menu Bar setting on macOS 26 nor a display change has been tried on a real Mac, so a loss there may only show on the 30 s timer, about 32 s after it happens. The check sees whether the item has a window, not whether it was painted.
+The watchdog's events cover both halves of its check: `isVisible` through key-value observing, and the button's window through a hidden subview. Neither the per-app Menu Bar setting on macOS 26 nor a display change has been tried on a real Mac, so a loss there may only show on the 5 s timer, about 7 s after it happens. The check sees whether the item has a window, not whether it was painted.
 
 ## G14. Portavoz settings left out of the import
 
