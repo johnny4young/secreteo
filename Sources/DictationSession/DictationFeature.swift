@@ -7,6 +7,7 @@ import LiveSpeech
 import LocalModelStore
 import MicCapture
 import Observation
+import SpeechCore
 import Synchronization
 
 /// The dictation half of the composition root. `AppUI` holds one of these and sees nothing else.
@@ -37,6 +38,9 @@ public final class DictationFeature: AppServices {
     @ObservationIgnored private let ownership: DictationOwnershipCoordinator
     @ObservationIgnored let readiness: ReadinessGap
     @ObservationIgnored let warmEngine: WarmModel<ParakeetEngine>
+    @ObservationIgnored let warmSpeechDetector: WarmModel<SileroVoiceActivityModel>
+    /// Parts already claimed on this verified stretch, so 30 s readiness polls skip redundant adoption.
+    @ObservationIgnored var adoptedParts: Set<DictationModels.Part> = []
     /// Engines whose model loaded this launch, so Core ML already holds their compiled copy.
     @ObservationIgnored var compiledEngines: Set<LiveSpeechSelection> = []
     @ObservationIgnored private var readinessPoll: Task<Void, Never>?
@@ -141,7 +145,8 @@ public final class DictationFeature: AppServices {
             idleLimit: { [pressure] in DictationModelMemory.idleLimit(in: defaults, pressure: pressure) },
             mayKeep: { ownership.state == .owned },
             load: { try await Self.loadSpeechModel(store: modelStore, defaults: engineDefaults) })
-        pressure.releases(warmEngine)
+        warmSpeechDetector = Self.makeWarmSpeechDetector(
+            store: modelStore, defaults: defaults, pressure: pressure, ownership: ownership)
         controller = DictationController()
         practice.onForget = { [controller] in controller.practiceLastText.clear() }
         practice.onVerifiedDelivery = { [weak self] in self?.completePractice() }
@@ -155,7 +160,7 @@ public final class DictationFeature: AppServices {
         }
         // A disposable launch owns its own scratch folder, because no user is there to take it.
         if usesTemporaryStore, !arguments.contains("-seed-dictation-no-owner") { ownership.claimScratchOwnership() }
-        pressure.whenItEnds { [weak self] in self?.prewarmIfConfigured() }
+        wireMemoryPressure()
     }
 
     public func start() {
@@ -180,6 +185,12 @@ public final class DictationFeature: AppServices {
         }
         if let models = environment.models {
             Task.detached(priority: .utility) { await models.collectUnused() }
+            Task { [weak self] in
+                for await _ in models.changes() {
+                    guard let self else { break }
+                    self.adoptedParts.removeAll()
+                }
+            }
         }
         watchMemoryPressure()
         prewarmIfConfigured()
@@ -193,7 +204,12 @@ public final class DictationFeature: AppServices {
     public func setEnabled(_ enabled: Bool) {
         store([DictationController.defaultsKey: enabled])
         isEnabled = enabled
-        if !enabled { practice.clear() }
+        if !enabled {
+            practice.clear()
+            warmEngine.release()
+            warmSpeechDetector.release()
+            adoptedParts.removeAll()
+        }
         syncDictationTriggers(promptIfNeeded: enabled)
         Task {
             let outcome = await ownership.preferenceChanged(
@@ -369,7 +385,10 @@ public final class DictationFeature: AppServices {
         syncDictationTriggers()
         if previous.armsTriggers, !ownership.state.armsTriggers { selectionRewrite.releaseGlobalKeys() }
         if ownership.state == .unavailable(.corruptState) { selectionRewrite.revokeReplace() }
-        if previous == .owned, ownership.state != .owned { warmEngine.release() }
+        if previous == .owned, ownership.state != .owned {
+            warmEngine.release()
+            warmSpeechDetector.release()
+        }
         if previous != .owned, ownership.state == .owned { prewarmIfConfigured() }
     }
 
@@ -386,22 +405,12 @@ public final class DictationFeature: AppServices {
 
     func modelMemoryChanged() {
         warmEngine.idleLimitChanged()
+        warmSpeechDetector.idleLimitChanged()
         prewarmIfConfigured()
     }
 
     func memoryPressureChanged(isUnderPressure: Bool) {
         pressure.changed(isActive: isUnderPressure)
-    }
-
-    private func watchMemoryPressure() {
-        guard memoryPressure == nil, !usesTemporaryMeetingStore else { return }
-        let source = DispatchSource.makeMemoryPressureSource(eventMask: [.normal, .warning, .critical], queue: .main)
-        source.setEventHandler { [weak self, weak source] in
-            guard let event = source?.data else { return }
-            MainActor.assumeIsolated { self?.memoryPressureChanged(isUnderPressure: event != .normal) }
-        }
-        source.activate()
-        memoryPressure = source
     }
 
     func triggersChanged(promptIfNeeded: Bool = false) {
@@ -462,8 +471,8 @@ public final class DictationFeature: AppServices {
         await models.remember(.speechDetector, detector)
         // Another app's install, or a crash before this app's claim, leaves files nobody here keeps.
         // Only while dictation uses them, so a model the person removed stays removed.
-        if speech == true, modelsInUse.contains(.speech) { await models.adopt(.speech) }
-        if detector, modelsInUse.contains(.speechDetector) { await models.adopt(.speechDetector) }
+        await adoptVerifiedPart(.speech, isVerified: speech, using: models)
+        await adoptVerifiedPart(.speechDetector, isVerified: detector, using: models)
     }
 
     private func watchReadiness() {
@@ -619,6 +628,56 @@ extension DictationFeature {
 }
 
 extension DictationFeature {
+    static func makeWarmSpeechDetector(
+        store: LocalModelStore, defaults: UserDefaults, pressure: DictationMemoryPressure,
+        ownership: DictationOwnershipCoordinator
+    ) -> WarmModel<SileroVoiceActivityModel> {
+        WarmModel(
+            idleLimit: { [pressure] in DictationModelMemory.idleLimit(in: defaults, pressure: pressure) },
+            mayKeep: { ownership.state == .owned },
+            load: { try await SileroVoiceActivityModel.load(from: store) })
+    }
+
+    func wireMemoryPressure() {
+        pressure.releases(warmEngine)
+        pressure.releases(warmSpeechDetector)
+        if let semantic = history.semantic {
+            pressure.onPressure { Task { await semantic.invalidate() } }
+        }
+        pressure.whenItEnds { [weak self] in self?.prewarmIfConfigured() }
+    }
+
+    fileprivate func watchMemoryPressure() {
+        guard memoryPressure == nil, !usesTemporaryMeetingStore else { return }
+        let source = DispatchSource.makeMemoryPressureSource(eventMask: [.normal, .warning, .critical], queue: .main)
+        source.setEventHandler { [weak self, weak source] in
+            guard let event = source?.data else { return }
+            MainActor.assumeIsolated { self?.memoryPressureChanged(isUnderPressure: event != .normal) }
+        }
+        source.activate()
+        memoryPressure = source
+    }
+
+    func acquireSpeechDetector(channel: AudioChannel) async throws -> AcquiredSpeechDetector {
+        let model = try await warmSpeechDetector.acquire()
+        let detector = model.makeDetector(channel: channel)
+        let warm = warmSpeechDetector
+        return AcquiredSpeechDetector(detector: detector) {
+            Task { @MainActor in warm.releaseWhenIdle() }
+        }
+    }
+
+    func adoptVerifiedPart(_ part: DictationModels.Part, isVerified: Bool?, using models: DictationModels) async {
+        guard isVerified == true, modelsInUse.contains(part) else {
+            adoptedParts.remove(part)
+            return
+        }
+        guard adoptedParts.insert(part).inserted else { return }
+        if !(await models.adopt(part)) {
+            adoptedParts.remove(part)
+        }
+    }
+
     /// Loads only an installed, verified model, because `warmEngine` never downloads.
     func prewarmIfConfigured() {
         let conditions = prewarmConditions

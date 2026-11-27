@@ -38,6 +38,12 @@ extension DictationFeature {
 
     func removeModel(_ entry: DictationModelEntry) {
         guard let models = environment.models else { return }
+        if entry.id == models.key(.speechDetector) {
+            warmSpeechDetector.release()
+        } else if entry.id == models.key(.speech) || entry.id == models.key(.speechUltra) {
+            warmEngine.release()
+        }
+        adoptedParts.removeAll()
         Task {
             await modelList.remove(entry, models: models)
             await refreshReadiness()

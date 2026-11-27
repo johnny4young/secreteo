@@ -26,25 +26,19 @@ extension DictationController {
         if promptIfNeeded { _ = TextInserter.canInsert(promptIfNeeded: true) }
         guard let ptt = ModifierKeyPTT(
             setting: desired,
-            // Admission does file I/O, so it leaves the event tap callback.
+            // Delivered FIFO onto the main queue so release/chord never overtakes press.
             onPress: { [weak self, weak services] in
-                DispatchQueue.main.async {
-                    guard let self, let services else { return }
-                    self.handleModifier(.press) { self.start(services: services) }
-                }
+                guard let self, let services else { return }
+                self.handleModifier(.press) { self.start(services: services) }
             },
             onRelease: { [weak self, weak services] in
-                DispatchQueue.main.async {
-                    guard let self, let services else { return }
-                    self.handleModifier(.release) { self.start(services: services) }
-                }
+                guard let self, let services else { return }
+                self.handleModifier(.release) { self.start(services: services) }
             },
             onChord: { [weak self] in
-                DispatchQueue.main.async {
-                    // A shortcut typed while holding the key was never dictation.
-                    guard let self, self.modifierTrigger.ownsSession, self.isActive else { return }
-                    self.cancel()
-                }
+                // A shortcut typed while holding the key was never dictation.
+                guard let self, self.modifierTrigger.ownsSession, self.isActive else { return }
+                self.cancel()
             })
         else {
             modifierTrigger.unavailable = true

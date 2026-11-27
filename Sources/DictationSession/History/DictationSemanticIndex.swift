@@ -86,6 +86,8 @@ actor DictationSemanticIndex {
         backfilling = nil
     }
 
+    var hasCachedLibrary: Bool { library != nil }
+
     func invalidate() {
         generation += 1
         library = nil

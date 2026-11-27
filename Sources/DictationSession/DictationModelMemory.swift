@@ -33,6 +33,7 @@ enum DictationModelMemory: String {
 final class DictationMemoryPressure {
     private(set) var isActive = false
     private var releasers: [@MainActor () -> Bool] = []
+    private var pressureActions: [@MainActor () -> Void] = []
     private var afterEnd: [@MainActor () -> Void] = []
     private var tookSomething = false
 
@@ -46,6 +47,11 @@ final class DictationMemoryPressure {
         releasers.append(release)
     }
 
+    /// Runs on pressure for caches that reload lazily and do not need prewarm restoration.
+    func onPressure(_ action: @escaping @MainActor () -> Void) {
+        pressureActions.append(action)
+    }
+
     /// Runs when pressure that gave something back ends, not on every report of normal memory.
     func whenItEnds(_ action: @escaping @MainActor () -> Void) {
         afterEnd.append(action)
@@ -56,6 +62,7 @@ final class DictationMemoryPressure {
         self.isActive = isActive
         if isActive {
             for release in releasers where release() { tookSomething = true }
+            pressureActions.forEach { $0() }
         }
         guard ended, tookSomething else { return }
         tookSomething = false

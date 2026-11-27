@@ -22,12 +22,13 @@ enum DictationAutoStop {
 
     /// Uses the speech gate's verified detector; a missing model means no auto-stop.
     static func silero(
-        store: LocalModelStore, pause: TimeInterval, onPause: @escaping @Sendable () -> Void
+        acquire: @escaping @Sendable () async throws -> AcquiredSpeechDetector,
+        pause: TimeInterval, onPause: @escaping @Sendable () -> Void
     ) -> DictationPauseDetector {
         DictationPauseDetector(pause: pause, load: {
-            let detector = try await SileroVoiceActivityDetector.load(from: store, channel: .microphone)
+            let acquired = try await acquire()
             return { chunk in
-                let batch = try await detector.process(chunk)
+                let batch = try await acquired.detector.process(chunk)
                 return batch.observations.isEmpty ? nil : DictationSpeechGate.heardSpeech(batch)
             }
         }, onPause: onPause)

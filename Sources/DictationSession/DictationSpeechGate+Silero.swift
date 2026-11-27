@@ -1,6 +1,26 @@
 import Foundation
 import LiveSpeech
 import LocalModelStore
+import Synchronization
+
+/// Releases a warm speech detector user slot once, even if the owning task is cancelled.
+final class SpeechDetectorRelease: Sendable {
+    private let release: Mutex<(@Sendable () -> Void)?>
+
+    init(_ release: @escaping @Sendable () -> Void) {
+        self.release = Mutex(release)
+    }
+
+    func finish() {
+        let action = release.withLock { current -> (@Sendable () -> Void)? in
+            defer { current = nil }
+            return current
+        }
+        action?()
+    }
+
+    deinit { finish() }
+}
 
 extension DictationSpeechGate {
     static let defaultsKey = "dictationSpeechGate"
@@ -21,10 +41,14 @@ extension DictationSpeechGate {
 
     /// Silero over the verified installation only; a missing model makes the
     /// verdict undetermined (paste as before), never a download.
-    static func silero(store: LocalModelStore) -> DictationSpeechGate {
+    static func silero(
+        acquire: @escaping @Sendable () async throws -> AcquiredSpeechDetector
+    ) -> DictationSpeechGate {
         DictationSpeechGate {
-            let detector = try await SileroVoiceActivityDetector.load(from: store, channel: .microphone)
-            return { chunk in heardSpeech(try await detector.process(chunk)) }
+            let acquired = try await acquire()
+            return { chunk in
+                heardSpeech(try await acquired.detector.process(chunk))
+            }
         }
     }
 }

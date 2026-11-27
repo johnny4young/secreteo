@@ -17,7 +17,10 @@ final class DictationModelUseTests: XCTestCase {
         defaults.set(enabled, forKey: DictationController.defaultsKey)
         var models = DictationModels.heldDownload
         models.isVerified = { _ in true }
-        models.adopt = { part in adopted.parts.withLock { $0.append(part) } }
+        models.adopt = { part in
+            adopted.parts.withLock { $0.append(part) }
+            return true
+        }
         models.key = { "\($0)" }
         return try DictationFeature(
             usesTemporaryStore: true, arguments: [], defaults: defaults,
@@ -46,5 +49,45 @@ final class DictationModelUseTests: XCTestCase {
         let on = try feature(enabled: true)
         XCTAssertFalse(on.canRemove(entry("speech", true)), "Dictation would claim it again")
         XCTAssertFalse(on.canRemove(entry("speechDetector", true)))
+    }
+
+    func testRepeatedReadinessRefreshDoesNotReadoptAlreadyClaimedModels() async throws {
+        let adopted = Adopted()
+        let verified = Mutex(true)
+        let adoptSucceeds = Mutex(false)
+        let suite = "DictationModelUseTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        addTeardownBlock { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(true, forKey: DictationController.defaultsKey)
+        var models = DictationModels.heldDownload
+        models.isVerified = { _ in verified.withLock { $0 } }
+        models.adopt = { part in
+            adopted.parts.withLock { $0.append(part) }
+            return adoptSucceeds.withLock { $0 }
+        }
+        models.key = { "\($0)" }
+        let feature = try DictationFeature(
+            usesTemporaryStore: true, arguments: [], defaults: defaults,
+            environment: .disposable(permissionsAreMissing: false, models: models))
+
+        // A failed adopt is retried on the next poll rather than cached as claimed.
+        await feature.refreshReadiness()
+        XCTAssertEqual(adopted.parts.withLock { $0 }.count, 2)
+        adoptSucceeds.withLock { $0 = true }
+        await feature.refreshReadiness()
+        await feature.refreshReadiness()
+        XCTAssertEqual(adopted.parts.withLock { $0 }.count, 4, "Steady-state polls must not re-adopt claimed models")
+
+        // A model that disappears and returns is adopted again.
+        verified.withLock { $0 = false }
+        await feature.refreshReadiness()
+        verified.withLock { $0 = true }
+        await feature.refreshReadiness()
+        XCTAssertEqual(adopted.parts.withLock { $0 }.count, 6)
+
+        // Switching engines clears the cached adoption set.
+        feature.speechEngineChanged()
+        await feature.refreshReadiness()
+        XCTAssertEqual(adopted.parts.withLock { $0 }.count, 8)
     }
 }

@@ -47,7 +47,7 @@ Delivery logic has only run against scratch pasteboards and injected events. The
 - Unverified pastes return the clipboard on a fixed 1.5 second timer, so an editor that stalls longer pastes the restored contents; verified pastes accelerate restoration to 50 ms after AX readback confirms delivery.
 - One unreadable clipboard type refuses the paste and sends the text to recovery. How often real clipboards do this is unmeasured.
 - A correction whose replacement fails leaves the caret where the selection moved it.
-- The Fn and modifier tap never consumes an event but runs as an active tap on the main thread, so a main-thread stall delays typing everywhere until macOS disables the tap. A listen-only tap may need the Input Monitoring permission.
+- The Fn and modifier tap never consumes an event and runs on a dedicated background run loop so main-thread stalls cannot delay typing. A listen-only tap may still need the Input Monitoring permission, so it remains an active session tap.
 - A synthetic copy can arrive after its one second late window and stay on the clipboard, and a real copy inside that window is replaced by the old contents. The pasteboard does not say who wrote.
 
 ## G10. Words after a failure or a lock
@@ -67,7 +67,7 @@ Dictate and the paste rows give focus back to the app that was frontmost when th
 
 ## G13. An icon loss no event announces
 
-The watchdog's events cover both halves of its check: `isVisible` through key-value observing, and the button's window through a hidden subview. Neither the per-app Menu Bar setting on macOS 26 nor a display change has been tried on a real Mac, so a loss there may only show on the 5 s timer, about 7 s after it happens. The check sees whether the item has a window, not whether it was painted.
+The watchdog's events cover both halves of its check: `isVisible` through key-value observing, and the button's window through a hidden subview. Neither the per-app Menu Bar setting on macOS 26 nor a display change has been tried on a real Mac, so a loss there may only show on the 30 s timer, about 32 s after it happens. The check sees whether the item has a window, not whether it was painted.
 
 ## G14. Portavoz settings left out of the import
 

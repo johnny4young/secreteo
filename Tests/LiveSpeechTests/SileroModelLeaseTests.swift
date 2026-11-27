@@ -129,6 +129,33 @@ struct SileroModelLeaseTests {
         #expect(try Data(contentsOf: artifact) == corrupt)
     }
 
+    @Test
+    func sharedModelDrivesIndependentDetectorsUnderOneLease() async throws {
+        let fixture = try await ModelLeaseFixture()
+        defer { fixture.cleanUp() }
+        var model: SileroVoiceActivityModel? = try await SileroVoiceActivityModel.loadLeased(
+            from: fixture.store, manifest: fixture.manifest
+        ) { _ in Self.infer }
+        var first: SileroVoiceActivityDetector? = model?.makeDetector(channel: .microphone)
+        var second: SileroVoiceActivityDetector? = model?.makeDetector(channel: .microphone)
+        // Drop the cache reference; both detectors still hold the shared model and its lease.
+        model = nil
+        let removal = try await fixture.peer.remove(fixture.manifest, scope: .allConsumers)
+        #expect(removal == .deferred)
+
+        let chunk = AudioChunk(
+            channel: .microphone, samples: [Float](repeating: 0, count: 4_096), sampleRate: 16_000, timestamp: 0)
+        let firstBatch = try await first?.process(chunk)
+        let secondBatch = try await second?.process(chunk)
+        #expect(firstBatch?.observations.count == 1)
+        #expect(secondBatch?.observations.count == 1)
+
+        first = nil
+        #expect(try await fixture.peer.collectGarbage().removed.isEmpty, "second detector still holds the shared lease")
+        second = nil
+        #expect(try await fixture.peer.collectGarbage().removed.count == 1)
+    }
+
     private static let infer: SileroVoiceActivityDetector.Inference = { frame, state in
         var next = state
         next.processedSamples += frame.count

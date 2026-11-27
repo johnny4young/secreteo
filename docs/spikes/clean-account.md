@@ -18,7 +18,7 @@
 | 2 | Click the menu bar icon | The menu opens on the first click, every time in 10 tries |
 | 3 | Go through onboarding | Microphone and Accessibility each prompt once; the model downloads after you agree; practice completes |
 | 4 | Hold the trigger before Accessibility is granted, then grant it | Push to talk works on the next hold, with no relaunch and no activation of Secreteo |
-| 5 | Hide the menu bar icon with the per-app Menu Bar setting of macOS 26, then show it again | The watchdog brings the icon back within 7 s, or Secreteo stays reachable from Settings |
+| 5 | Hide the menu bar icon with the per-app Menu Bar setting of macOS 26, then show it again | The watchdog brings the icon back within 32 s, or Secreteo stays reachable from Settings |
 | 6 | Connect and disconnect a second display | The icon is visible on the menu bar after each change |
 | 7 | Log out and in with Open at Login on | Secreteo starts, with its icon, without a second instance |
 
