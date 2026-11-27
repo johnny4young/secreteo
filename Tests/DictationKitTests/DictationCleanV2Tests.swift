@@ -52,6 +52,12 @@ struct DictationCleanV2Tests {
             "put big question mark and scratch that idea and signo de interrogación",
             replacements: rules, removeFillers: false, spokenCommands: true)
             == "put ??? and DROP and INTERROG")
+        // Accented edits ahead of a trigger must not drift its protected range.
+        let accented = String(repeating: "signo de interrogación ", count: 24)
+        let shifted = DictationTextRules.apply(
+            accented + "x close parenthesis", replacements: [.init(trigger: "x close parenthesis", replacement: "WRAP")],
+            removeFillers: false, spokenCommands: true)
+        #expect(shifted.hasSuffix("WRAP"))
     }
 
     @Test
@@ -78,6 +84,7 @@ struct DictationCleanV2Tests {
             // Mid-clause transitive verbs and literal prose stay untouched.
             ("I will scratch that off the list", "I will scratch that off the list"),
             ("Did you scratch that car?", "Did you scratch that car?"),
+            ("Did you scratch that?", "Did you scratch that?"),
             ("Él borra eso del disco", "Él borra eso del disco"),
             ("Ella siempre olvida eso cuando sale", "Ella siempre olvida eso cuando sale"),
             ("Please don't scratch that finish", "Please don't scratch that finish"),
@@ -188,5 +195,8 @@ struct DictationCleanV2Tests {
             input, replacements: [], removeFillers: false, spokenCommands: true,
             vocabulary: ["Secreteo", "FastAPI", "GitHub"], preservesCodeTokens: true, lexicon: lexicon)
         #expect(actual == "run (--secreteo) --app=secreteo fastApi gitHub `secreteo` with Secreteo and FastAPI")
+        #expect(DictationTextRules.apply(
+            "open my_secreteo_file", replacements: [], removeFillers: false, spokenCommands: true,
+            vocabulary: ["Secreteo"], preservesCodeTokens: true, lexicon: lexicon) == "open my_secreteo_file")
     }
 }

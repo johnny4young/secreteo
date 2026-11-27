@@ -157,9 +157,15 @@ public enum DictationCleanCommands {
             if exclusions.contains(where: { $0.overlaps(range) }) { continue }
             if hasDeterminerBefore(range.lowerBound, in: output) { continue }
             let replacementRange = punctuationSpan(for: range, kind: kind, in: output)
-            let oldLen = output.distance(from: replacementRange.lowerBound, to: replacementRange.upperBound)
+            let editStart = replacementRange.lowerBound.utf16Offset(in: output)
+            let editEnd = replacementRange.upperBound.utf16Offset(in: output)
+            let offsets = exclusions.map {
+                ($0.lowerBound.utf16Offset(in: output), $0.upperBound.utf16Offset(in: output))
+            }
             output.replaceSubrange(replacementRange, with: symbol)
-            exclusions = shiftRanges(exclusions, after: replacementRange, delta: symbol.count - oldLen, in: output)
+            exclusions = shiftOffsets(
+                offsets, editStart: editStart, editEnd: editEnd,
+                delta: symbol.utf16.count - (editEnd - editStart), in: output)
         }
         return output
     }
@@ -216,6 +222,9 @@ public enum DictationCleanCommands {
         if range.lowerBound > text.startIndex, openingQuotes.contains(text[text.index(before: range.lowerBound)]) {
             return true
         }
+        var after = range.upperBound
+        while after < text.endIndex, text[after] == " " || text[after] == "\t" { after = text.index(after: after) }
+        if after < text.endIndex, text[after] == "?" { return true }
         guard let word = previousWord(before: range.lowerBound, in: text) else { return false }
         return literalProseBeforeCue.contains(word)
     }
@@ -371,17 +380,16 @@ public enum DictationCleanCommands {
         }
     }
 
-    private static func shiftRanges(
-        _ ranges: [Range<String.Index>], after edited: Range<String.Index>, delta: Int, in text: String
+    private static func shiftOffsets(
+        _ offsets: [(Int, Int)], editStart: Int, editEnd: Int, delta: Int, in text: String
     ) -> [Range<String.Index>] {
-        guard delta != 0, !ranges.isEmpty else { return ranges }
-        return ranges.compactMap { range in
-            if range.upperBound <= edited.lowerBound { return range }
-            guard range.lowerBound >= edited.upperBound else { return nil }
-            guard let start = text.index(range.lowerBound, offsetBy: delta, limitedBy: text.endIndex),
-                  let end = text.index(range.upperBound, offsetBy: delta, limitedBy: text.endIndex)
-            else { return nil }
-            return start..<end
+        offsets.compactMap { lower, upper in
+            if upper <= editStart {
+                return String.Index(utf16Offset: lower, in: text)..<String.Index(utf16Offset: upper, in: text)
+            }
+            guard lower >= editEnd else { return nil }
+            return String.Index(utf16Offset: lower + delta, in: text)
+                ..< String.Index(utf16Offset: upper + delta, in: text)
         }
     }
 }
