@@ -49,14 +49,24 @@ extension DictationFeature {
                 }
                 return "auto"
             },
-            set: { self.store([DictationController.languageKey: $0]) })
+            set: { self.store([DictationController.languageKey: $0, Self.languageBeforeAppleSpeechKey: ""]) })
     }
 
+    /// The choice Apple Speech replaced, restored on the way back unless the person picked another.
+    static let languageBeforeAppleSpeechKey = "dictationLanguageBeforeAppleSpeech"
+
     func coerceAppleSpeechLanguageIfNeeded() {
-        guard speechEngine == .appleSpeech else { return }
         let stored = defaults.string(forKey: DictationController.languageKey) ?? "auto"
+        guard speechEngine == .appleSpeech else {
+            let previous = defaults.string(forKey: Self.languageBeforeAppleSpeechKey) ?? ""
+            if !previous.isEmpty {
+                store([DictationController.languageKey: previous, Self.languageBeforeAppleSpeechKey: ""])
+            }
+            return
+        }
         if !LiveSpeechSelection.dictationLanguages.contains(stored) {
-            store([DictationController.languageKey: Self.preferredConcreteLanguage()])
+            store([DictationController.languageKey: Self.preferredConcreteLanguage(),
+                   Self.languageBeforeAppleSpeechKey: stored])
         }
     }
 

@@ -91,6 +91,17 @@ struct DictationSettingsErgonomicsTests {
         #expect(LiveSpeechSelection.dictationLanguages.contains(coerced))
         #expect(defaults.string(forKey: DictationController.languageKey) == coerced)
 
+        // Leaving Apple Speech gives Parakeet back its Automatic.
+        feature.speechEngineBinding.wrappedValue = .parakeet
+        #expect(feature.dictationLanguageBinding.wrappedValue == "auto")
+        feature.speechEngineBinding.wrappedValue = .appleSpeech
+
+        // A language picked under Apple Speech is kept on the way back.
+        feature.dictationLanguageBinding.wrappedValue = "en"
+        feature.speechEngineBinding.wrappedValue = .parakeet
+        #expect(feature.dictationLanguageBinding.wrappedValue == "en")
+        feature.speechEngineBinding.wrappedValue = .appleSpeech
+
         // Explicit Spanish stays Spanish.
         feature.dictationLanguageBinding.wrappedValue = "es"
         feature.speechEngineChanged()

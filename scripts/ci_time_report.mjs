@@ -6,7 +6,7 @@ import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 export const BUDGET_MINUTES = 8;
-const MAC_JOBS = ['unit', 'ui-smoke', 'signed-handoff', 'release-dryrun'];
+const MAC_JOBS = ['unit', 'update-seam', 'ui-smoke', 'signed-handoff', 'release-dryrun'];
 
 const time = value => {
   const parsed = typeof value === 'string' ? Date.parse(value) : NaN;

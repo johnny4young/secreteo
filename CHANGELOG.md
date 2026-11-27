@@ -4,7 +4,7 @@ User-visible changes, newest first. Dictation history before Secreteo is in [Por
 
 ## Unreleased
 
-- 🧭 **Cleaner Settings, menu and setup**: Application Profiles show real app names and icons instead of bundle IDs, Paste the Last Dictation lives under Dictation › Triggers, Model Memory is a single three-way choice (Lightweight, Balanced, At Launch), switching to Apple Speech picks a concrete language instead of Auto, onboarding flags a 🌐 Fn conflict on step 1 and offers a direct button back to setup on step 3, and the menu subtitle drops internal ownership wording.
+- 🧭 **Cleaner Settings, menu and setup**: Application Profiles show real app names and icons instead of bundle IDs, Paste the Last Dictation lives under Dictation › Triggers, Model Memory is a single three-way choice (Lightweight, Balanced, At Launch), switching to Apple Speech picks a concrete language instead of Auto and switching back restores it, onboarding flags a 🌐 Fn conflict on step 1 and offers a direct button back to setup on step 3, and the menu subtitle drops internal ownership wording.
 - ♿ **Easier to click and drive from the keyboard**: close and skip buttons on the capsule, rewrite card and Accessibility guide have 28×28 pt hit areas, recovery cards support ⌘C to copy, and Text Replacements advance and submit on Return.
 - 🔋 **Lighter in the background**: Secreteo wakes your Mac less often while idle and gives memory back sooner when the Mac runs short.
 - ⚡ **Dictations in a row start faster**: the voice detector stays loaded between dictations instead of loading again each time.
