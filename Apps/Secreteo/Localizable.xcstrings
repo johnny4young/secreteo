@@ -2887,6 +2887,22 @@
         }
       }
     },
+    "Learn From Your Corrections" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Learn From Your Corrections"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aprender de tus correcciones"
+          }
+        }
+      }
+    },
     "Let Agents and Shortcuts Read History" : {
       "localizations" : {
         "en" : {
@@ -3460,6 +3476,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apagado"
+          }
+        }
+      }
+    },
+    "Offers to save a replacement when you fix a word right after pasting." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offers to save a replacement when you fix a word right after pasting."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ofrece guardar un reemplazo cuando corriges una palabra justo después de pegar."
           }
         }
       }
@@ -4872,6 +4904,22 @@
         }
       }
     },
+    "Saved" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardado"
+          }
+        }
+      }
+    },
     "Saved to your dictation history." : {
       "localizations" : {
         "en" : {
@@ -5572,6 +5620,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Predeterminado del sistema"
+          }
+        }
+      }
+    },
+    "Teach Replacement" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teach Replacement"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enseñar reemplazo"
           }
         }
       }

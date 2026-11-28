@@ -12,6 +12,8 @@ struct CapturedDictationDestination {
     let insert: (String) async -> DictationDeliveryOutcome
     /// The latest verified insertion through this destination, for a spoken correction.
     var lastInsertion: () -> DictationInsertion? = { nil }
+    /// Arms boundary capture for the next insertion; off unless that insertion can be learned from.
+    var armEditAnchors: (Bool) -> Void = { _ in }
 
     static func unavailable(
         name: String?, bundleIdentifier: String? = nil, result: DictationDeliveryOutcome.Refusal
@@ -43,7 +45,7 @@ extension TextInserter {
     @MainActor
     static func captureDestination(
         pasteboard: NSPasteboard = .general, matching expectedApplication: NSRunningApplication? = nil,
-        caretCase: DictationCaretCase? = nil
+        caretCase: DictationCaretCase? = nil, capturesEditAnchors: Bool = false
     ) -> CapturedDictationDestination {
         let application = NSWorkspace.shared.frontmostApplication
         guard canInsert(promptIfNeeded: false), let application,
@@ -94,10 +96,13 @@ extension TextInserter {
             await insert(text, into: target, pasteboard: pasteboard) { span, output in
                 guard let readback = target.readback else { return }
                 recorded.value = DictationInsertion.accessibility(
-                    element: element, readback: readback, validate: target.validate, range: span, text: output)
+                    element: element, readback: readback, validate: target.validate,
+                    range: span, text: output,
+                    capturesEditAnchors: capturesEditAnchors && recorded.capturesEditAnchors)
             }
         }
         destination.lastInsertion = { recorded.value }
+        destination.armEditAnchors = { recorded.capturesEditAnchors = $0 }
         return destination
     }
 

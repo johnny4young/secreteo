@@ -134,6 +134,11 @@ struct DictationTextTab: View {
                 isOn: dictation.preference(DictationCorrections.defaultsKey, default: false))
                 .help(L10n.text("Start a dictation with “change Friday to Monday”, “delete Friday” or “scratch that”."))
             SettingsSwitch(
+                Text("Learn From Your Corrections"), identifier: "settings-dictation-edit-learning",
+                isOn: dictation.preference(DictationEditLearning.defaultsKey, default: false))
+                .help(L10n.text("Offers to save a replacement when you fix a word right after pasting."))
+                .disabled(!text.cleanModeInUse)
+            SettingsSwitch(
                 Text("Match Capitalization to the Cursor"), identifier: "settings-dictation-caret-case",
                 isOn: dictation.preference(DictationCaretCase.defaultsKey, default: false))
         }

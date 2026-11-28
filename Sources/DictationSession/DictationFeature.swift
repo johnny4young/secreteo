@@ -206,6 +206,7 @@ public final class DictationFeature: AppServices {
         store([DictationController.defaultsKey: enabled])
         isEnabled = enabled
         if !enabled {
+            controller.cancelEditLearning()
             practice.clear()
             warmEngine.release()
             warmSpeechDetector.release()
@@ -387,6 +388,7 @@ public final class DictationFeature: AppServices {
         if previous.armsTriggers, !ownership.state.armsTriggers { selectionRewrite.releaseGlobalKeys() }
         if ownership.state == .unavailable(.corruptState) { selectionRewrite.revokeReplace() }
         if previous == .owned, ownership.state != .owned {
+            controller.cancelEditLearning()
             warmEngine.release()
             warmSpeechDetector.release()
         }

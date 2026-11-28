@@ -102,6 +102,8 @@ struct DictationSessionDependencies {
     /// with no Paste last, history, statistics or delivery notice.
     var textModeOverride: DictationTextMode?
     var deliversInternally = false
+    /// Delay before a one-shot readback checks whether the user manually fixed the last insertion.
+    var waitForEditLearning: @MainActor (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     /// Translation only: the text, its language when known, and the target language.
     var translateDictation: (String, String?, String) async -> DictationTranslationOutcome = { _, _, _ in
         .kept(.unsupported)
@@ -136,7 +138,9 @@ struct DictationSessionDependencies {
             },
             canInsert: { TextInserter.canInsert(promptIfNeeded: true) },
             captureDestination: { [defaults = services.defaults] in
-                TextInserter.captureDestination(caretCase: .live(defaults))
+                TextInserter.captureDestination(
+                    caretCase: .live(defaults),
+                    capturesEditAnchors: DictationEditLearning.isEnabled(in: defaults))
             },
             copyText: { TextInserter.copy($0) },
             defaults: services.defaults,

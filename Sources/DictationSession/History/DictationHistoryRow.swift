@@ -72,9 +72,14 @@ struct DictationHistoryRow: View {
     let index: Int
     /// Rows found by meaning are ranked, so each says its own day against this one.
     let day: DictationHistoryDays?
+    var vocabularyTerms: @MainActor () -> [String] = { [] }
+    var canTeach: @MainActor (String, String) -> Bool = { DictationTextRules.learning($0, as: $1, into: []) != nil }
+    var onTeach: @MainActor (String, String) -> Bool = { _, _ in false }
     let onDelete: () -> Void
     @State private var copied = false
     @State private var showsOriginal = false
+    @State private var showsTeach = false
+    @State private var learned = false
 
     private var isNotDelivered: Bool { record.delivery == .notDelivered }
 
@@ -148,6 +153,29 @@ struct DictationHistoryRow: View {
 
     private var actions: some View {
         HStack(spacing: 4) {
+            Button { showsTeach.toggle() } label: {
+                Label("Teach Replacement", systemImage: learned ? "checkmark.circle.fill" : "text.badge.plus")
+                    .labelStyle(.iconOnly)
+                    .foregroundStyle(learned ? SecreteoDesign.accent : SecreteoDesign.secondaryText)
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
+            }
+            .dictationHistoryFocusRing()
+            .help(L10n.text("Teach Replacement"))
+            .accessibilityLabel(L10n.text("Teach Replacement"))
+            .accessibilityValue(learned ? L10n.text("Saved") : "")
+            .accessibilityIdentifier("dictation-history-teach-\(index)")
+            .popover(isPresented: $showsTeach, arrowEdge: .bottom) {
+                DictationHistoryTeachPopover(
+                    sourceText: record.originalText ?? record.text,
+                    vocabulary: vocabularyTerms(),
+                    canSaveRule: canTeach,
+                    onSave: { heard, replacement in
+                        guard onTeach(heard, replacement) else { return }
+                        learned = true
+                        showsTeach = false
+                    })
+            }
             Button { copied = TextInserter.copy(record.text) } label: {
                 Label(copied ? L10n.text("Copied") : L10n.text("Copy"), systemImage: "doc.on.doc")
                     .labelStyle(DictationHistoryCopyStyle(showsTitle: isNotDelivered))
@@ -244,4 +272,96 @@ private struct DictationHistoryFocusRing: ViewModifier {
 
 extension View {
     func dictationHistoryFocusRing() -> some View { modifier(DictationHistoryFocusRing()) }
+}
+
+private struct DictationHistoryTeachPopover: View {
+    let sourceText: String
+    let vocabulary: [String]
+    let canSaveRule: @MainActor (String, String) -> Bool
+    let onSave: (String, String) -> Void
+    @State private var heard = ""
+    @State private var replacement = ""
+    @FocusState private var focusedField: Field?
+
+    private enum Field { case heard, replacement }
+
+    private var words: [String] {
+        var seen = Set<String>()
+        var result: [String] = []
+        for raw in sourceText.split(whereSeparator: \.isWhitespace) {
+            let token = raw.trimmingCharacters(in: .punctuationCharacters)
+            guard !token.isEmpty, seen.insert(token.lowercased()).inserted else { continue }
+            result.append(token)
+            if result.count >= 12 { break }
+        }
+        return result
+    }
+
+    private var canSave: Bool {
+        canSaveRule(heard, replacement)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Teach Replacement")
+                .font(.headline)
+            if !words.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(Array(words.enumerated()), id: \.offset) { chipIndex, word in
+                            Button(word) { appendHeard(word) }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                                .accessibilityIdentifier("dictation-history-teach-word-\(chipIndex)")
+                        }
+                    }
+                }
+            }
+            TextField("", text: $heard, prompt: Text("Heard"))
+                .textFieldStyle(.roundedBorder)
+                .focused($focusedField, equals: .heard)
+                .onSubmit { focusedField = .replacement }
+                .accessibilityLabel(L10n.text("Heard"))
+                .accessibilityIdentifier("dictation-history-teach-heard")
+            TextField("", text: $replacement, prompt: Text("Type Instead"))
+                .textFieldStyle(.roundedBorder)
+                .focused($focusedField, equals: .replacement)
+                .onSubmit { saveIfValid() }
+                .accessibilityLabel(L10n.text("Type Instead"))
+                .accessibilityIdentifier("dictation-history-teach-replacement")
+            if !vocabulary.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(Array(vocabulary.prefix(12).enumerated()), id: \.offset) { chipIndex, term in
+                            Button(term) { replacement = term }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                                .accessibilityIdentifier("dictation-history-teach-vocab-\(chipIndex)")
+                        }
+                    }
+                }
+            }
+            HStack {
+                Spacer()
+                Button("Save") { saveIfValid() }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .disabled(!canSave)
+                    .accessibilityIdentifier("dictation-history-teach-save")
+            }
+        }
+        .padding(14)
+        .frame(width: 300)
+        .onAppear { focusedField = .heard }
+    }
+
+    private func appendHeard(_ word: String) {
+        let trimmed = heard.trimmingCharacters(in: .whitespacesAndNewlines)
+        heard = trimmed.isEmpty ? word : trimmed + " " + word
+    }
+
+    private func saveIfValid() {
+        guard canSave else { return }
+        onSave(heard, replacement)
+    }
 }

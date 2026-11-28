@@ -13,6 +13,7 @@ enum RewriteSelectionShortcut {
 
 extension DictationFeature {
     public func rewriteSelection() {
+        controller.cancelEditLearning()
         selectionRewrite.start(using: makeSelectionRewriteDependencies())
     }
 

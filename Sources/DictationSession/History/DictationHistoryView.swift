@@ -6,17 +6,36 @@ import SwiftUI
 public struct DictationHistoryView: View {
     private let model: DictationHistoryModel
     private let stats: DictationStatsModel
+    private let vocabularyTerms: @MainActor () -> [String]
+    private let canTeachReplacement: @MainActor (String, String) -> Bool
+    private let onTeachReplacement: @MainActor (String, String) -> Bool
     @State private var confirmingDeleteAll = false
     @State private var query = ""
     @State private var days = DictationHistoryDays()
 
     public init(dictation: DictationFeature) {
-        self.init(history: dictation.history, stats: dictation.stats)
+        self.init(
+            history: dictation.history,
+            stats: dictation.stats,
+            vocabularyTerms: { dictation.customVocabularyTerms },
+            canTeachReplacement: { dictation.canLearnReplacement(heard: $0, as: $1) },
+            onTeachReplacement: { dictation.learnReplacement(heard: $0, as: $1) })
     }
 
-    init(history: DictationHistoryModel, stats: DictationStatsModel) {
+    init(
+        history: DictationHistoryModel,
+        stats: DictationStatsModel,
+        vocabularyTerms: @escaping @MainActor () -> [String] = { [] },
+        canTeachReplacement: @escaping @MainActor (String, String) -> Bool = {
+            DictationTextRules.learning($0, as: $1, into: []) != nil
+        },
+        onTeachReplacement: @escaping @MainActor (String, String) -> Bool = { _, _ in false }
+    ) {
         model = history
         self.stats = stats
+        self.vocabularyTerms = vocabularyTerms
+        self.canTeachReplacement = canTeachReplacement
+        self.onTeachReplacement = onTeachReplacement
     }
 
     public var body: some View {
@@ -165,6 +184,9 @@ public struct DictationHistoryView: View {
     private func row(_ entry: DictationDayLog.Entry, datesRow: Bool) -> some View {
         DictationHistoryRow(
             record: entry.record, index: entry.index, day: datesRow ? days : nil,
+            vocabularyTerms: vocabularyTerms,
+            canTeach: canTeachReplacement,
+            onTeach: onTeachReplacement,
             onDelete: { Task { await model.delete(entry.record.id) } })
     }
 

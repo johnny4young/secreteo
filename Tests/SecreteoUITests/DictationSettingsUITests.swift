@@ -108,7 +108,7 @@ final class DictationSettingsUITests: SecreteoUITestCase {
             "settings-dictation-text-mode", "settings-dictation-filler", "settings-dictation-dict-trigger",
             "settings-dictation-dict-replacement", "settings-dictation-dict-add", "settings-dictation-profiles",
             "settings-dictation-vocabulary-field", "settings-dictation-vocabulary-add",
-            "settings-dictation-corrections", "settings-dictation-caret-case"
+            "settings-dictation-corrections", "settings-dictation-edit-learning", "settings-dictation-caret-case"
         ], in: app)
         attachScreenshot(named: "pr-settings-tab-text")
 
@@ -186,6 +186,7 @@ final class DictationSettingsUITests: SecreteoUITestCase {
         let trigger = app.control(withIdentifier: "settings-dictation-dict-trigger")
         XCTAssertTrue(mode.waitForStableFrame(timeout: 5), "No text field takes focus and scrolls the tab")
         XCTAssertTrue(trigger.isEnabled, "Clean mode makes the replacements editable")
+        XCTAssertTrue(app.control(withIdentifier: "settings-dictation-edit-learning").isEnabled)
         XCTAssertLessThan(mode.frame.minY, trigger.frame.minY)
         XCTAssertLessThan(
             mode.frame.minY - app.control(withIdentifier: "settings-tab-text").frame.maxY, 60,
