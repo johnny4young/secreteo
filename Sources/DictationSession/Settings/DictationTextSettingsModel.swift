@@ -25,8 +25,12 @@ final class DictationTextSettingsModel {
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let temporary: Bool
     @ObservationIgnored private var applicationDisplays: [String: DictationApplicationDisplay] = [:]
+    @ObservationIgnored private var installedPresetApps: [String: Bool] = [:]
     @ObservationIgnored var resolveApplication: (String) -> DictationApplicationDisplay = {
         DictationApplicationDisplay.resolve(bundleIdentifier: $0)
+    }
+    @ObservationIgnored var isApplicationInstalled: (String) -> Bool = {
+        DictationApplicationDisplay.isInstalled(bundleIdentifier: $0)
     }
 
     /// A missing app is resolved again on the next render, so a later install or mount shows up.
@@ -93,17 +97,65 @@ final class DictationTextSettingsModel {
         setProfile(bundleIdentifier: bundleIdentifier, choice: DictationTextChoice(mode: mode))
     }
 
-    func setProfile(bundleIdentifier: String, choice: DictationTextChoice) {
+    func setProfile(
+        bundleIdentifier: String,
+        choice: DictationTextChoice,
+        preservesCodeTokens: Bool? = nil
+    ) {
         guard !hasInvalidProfiles, DictationTextPreferences.isValidBundleIdentifier(bundleIdentifier) else {
             selectionError = .invalidApplication
             return
         }
+        let existing = profiles.first { $0.bundleIdentifier == bundleIdentifier }
         var updated = profiles.filter { $0.bundleIdentifier != bundleIdentifier }
-        let translation = profiles.first { $0.bundleIdentifier == bundleIdentifier }?.translationTarget
+        let translation = existing?.translationTarget
+        let keepsCode = preservesCodeTokens ?? existing?.preservesCodeTokens
         updated.append(.init(
             bundleIdentifier: bundleIdentifier, mode: choice.mode, polishRecipeID: choice.recipeID,
-            translationTarget: translation))
+            translationTarget: translation, preservesCodeTokens: keepsCode))
         save(updated)
+    }
+
+    func setProfile(bundleIdentifier: String, preservesCodeTokens: Bool) {
+        guard !hasInvalidProfiles, var profile = profiles.first(where: { $0.bundleIdentifier == bundleIdentifier })
+        else { return }
+        profile.preservesCodeTokens = preservesCodeTokens ? true : nil
+        save(profiles.filter { $0.bundleIdentifier != bundleIdentifier } + [profile])
+    }
+
+    /// Refreshes cached installation status for preset bundle identifiers when the disclosure opens.
+    func refreshInstalledPresets() {
+        installedPresetApps.removeAll()
+        for preset in DictationProfilePreset.allCases {
+            for identifier in preset.bundleIdentifiers {
+                installedPresetApps[identifier] = isApplicationInstalled(identifier)
+            }
+        }
+    }
+
+    /// Installed applications matching `preset` that do not yet have a saved profile.
+    func availableBundleIdentifiers(for preset: DictationProfilePreset) -> [String] {
+        guard !hasInvalidProfiles else { return [] }
+        let existing = Set(profiles.map(\.bundleIdentifier))
+        return preset.bundleIdentifiers.filter { identifier in
+            guard !existing.contains(identifier) else { return false }
+            if let cached = installedPresetApps[identifier] { return cached }
+            let installed = isApplicationInstalled(identifier)
+            installedPresetApps[identifier] = installed
+            return installed
+        }
+    }
+
+    /// Adds profiles for every installed application matching `preset` that is not already configured.
+    @discardableResult
+    func applyPreset(_ preset: DictationProfilePreset) -> Int {
+        guard !hasInvalidProfiles else { return 0 }
+        let room = max(0, DictationTextPreferences.maximumProfiles - profiles.count)
+        let additions = availableBundleIdentifiers(for: preset).prefix(room)
+        guard !additions.isEmpty else { return 0 }
+        let newProfiles = additions.map { preset.makeProfile(bundleIdentifier: $0) }
+        save(profiles + newProfiles)
+        return newProfiles.count
     }
 
     func setGlobalTranslationTarget(_ target: DictationTranslationTarget) {

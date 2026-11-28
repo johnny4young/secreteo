@@ -27,6 +27,8 @@ struct DictationCaretCase {
     var protectedWords: Set<String> = []
     /// Full replacement and vocabulary phrases matched at the start of the text.
     var protectedPhrases: [String] = []
+    /// Bundle identifiers whose Application Profile preserves code tokens and skips cursor recasing.
+    var codeBundleIdentifiers: Set<String> = []
     var isCommonWord: @MainActor (String) -> Bool = Self.systemDictionaryKnows
     var isName: @MainActor (_ word: String, _ sentence: String) -> Bool = Self.taggedAsName
 
@@ -55,9 +57,13 @@ struct DictationCaretCase {
                 if !cleaned.isEmpty { words.insert(cleaned) }
             }
         }
+        let profiles = (try? DictationTextPreferences.decodeProfiles(
+            defaults.string(forKey: DictationTextPreferences.profilesKey) ?? "[]")) ?? []
+        let codeBundles = Set(profiles.filter(\.keepsCodeTokens).map(\.bundleIdentifier))
         return Self(
             protectedWords: words,
-            protectedPhrases: phrases.sorted { $0.count > $1.count })
+            protectedPhrases: phrases.sorted { $0.count > $1.count },
+            codeBundleIdentifiers: codeBundles)
     }
 
     /// - Parameter atFieldStart: true when `preceding` reaches the start of the field.

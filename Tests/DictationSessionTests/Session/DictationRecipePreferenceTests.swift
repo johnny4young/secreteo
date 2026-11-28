@@ -1,3 +1,4 @@
+import AppKit
 import DictationKit
 import Foundation
 import Testing
@@ -101,5 +102,50 @@ struct DictationRecipePreferenceTests {
         #expect(model.translationInUse)
         let quiet = DictationTextSettingsModel(defaults: defaults([:]), temporary: false)
         #expect(!quiet.translationInUse)
+    }
+
+    @Test
+    func presetsAddInstalledApplicationsCacheLookupsAndToggleCodeTokens() throws {
+        let store = defaults([:])
+        let model = DictationTextSettingsModel(defaults: store, temporary: false)
+        let installed: Set<String> = ["com.apple.Terminal", "com.apple.mail", "com.tinyspeck.slackmacgap"]
+        var lookupCount = 0
+        model.isApplicationInstalled = { id in
+            lookupCount += 1
+            return installed.contains(id)
+        }
+
+        #expect(model.availableBundleIdentifiers(for: .code) == ["com.apple.Terminal"])
+        let firstCount = lookupCount
+        // Repeated body reads hit the cache instead of re-querying LaunchServices.
+        #expect(model.availableBundleIdentifiers(for: .code) == ["com.apple.Terminal"])
+        #expect(lookupCount == firstCount)
+
+        #expect(model.applyPreset(.code) == 1)
+        #expect(model.applyPreset(.code) == 0)
+        #expect(model.applyPreset(.email) == 1)
+        #expect(model.applyPreset(.chat) == 1)
+
+        let terminal = try #require(model.profiles.first { $0.bundleIdentifier == "com.apple.Terminal" })
+        #expect(terminal.mode == .clean)
+        #expect(terminal.keepsCodeTokens)
+
+        let mail = try #require(model.profiles.first { $0.bundleIdentifier == "com.apple.mail" })
+        #expect(mail.mode == .polish)
+        #expect(mail.polishRecipeID == "builtin.formal")
+
+        // Changing mode on a Code profile keeps its code-token protection intact.
+        model.setProfile(
+            bundleIdentifier: "com.apple.Terminal",
+            choice: DictationTextChoice(mode: .polish, recipeID: "builtin.code"))
+        let snapshot = DictationTextPreferences.snapshot(in: store, bundleIdentifier: "com.apple.Terminal")
+        #expect(snapshot.preservesCodeTokens)
+        #expect(snapshot.polishRecipe?.id == "builtin.code")
+
+        // Users can toggle code-token protection off or on for any profile.
+        model.setProfile(bundleIdentifier: "com.apple.Terminal", preservesCodeTokens: false)
+        #expect(!DictationTextPreferences.snapshot(in: store, bundleIdentifier: "com.apple.Terminal").preservesCodeTokens)
+        model.setProfile(bundleIdentifier: "com.apple.mail", preservesCodeTokens: true)
+        #expect(DictationTextPreferences.snapshot(in: store, bundleIdentifier: "com.apple.mail").preservesCodeTokens)
     }
 }

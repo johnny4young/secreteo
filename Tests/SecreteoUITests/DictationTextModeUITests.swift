@@ -24,6 +24,7 @@ final class DictationTextModeUITests: SecreteoUITestCase {
         try openProfiles(in: app)
         let add = app.buttons["settings-dictation-profile-add"]
         XCTAssertTrue(app.revealInSettings(add))
+        XCTAssertTrue(app.control(withIdentifier: "settings-dictation-profile-presets").exists)
         XCTAssertFalse(app.staticTexts["settings-dictation-profile-error"].exists)
         add.click()
         let picker = app.sheets.firstMatch
@@ -50,12 +51,25 @@ final class DictationTextModeUITests: SecreteoUITestCase {
         let translation = app.control(
             withIdentifier: "settings-dictation-profile-translate-com.johnny4young.secreteo.profile.fixture")
         XCTAssertTrue(renderedText(of: translation).contains("Default"), "A new profile follows the default translation")
+        let codeToggle = app.buttons["settings-dictation-profile-code-com.johnny4young.secreteo.profile.fixture"]
+        XCTAssertTrue(codeToggle.exists)
+        codeToggle.click()
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) {
+            renderedText(of: codeToggle).contains(UITestLocale.environmentLocale == "es" ? "Activado" : "On")
+        })
         XCTAssertTrue(renderedText(of: global).contains(cleanTitle), "An application override must not rewrite the default")
         let remove = app.buttons["settings-dictation-profile-remove-com.johnny4young.secreteo.profile.fixture"]
         XCTAssertTrue(app.revealInSettings(remove))
         XCTAssertTrue(remove.label.hasSuffix(": Fixture"), "The row names the app, not its bundle identifier: \(remove.label)")
         remove.click()
         XCTAssertTrue(profile.waitForDisappearance(timeout: 5))
+        let presets = app.control(withIdentifier: "settings-dictation-profile-presets")
+        presets.click()
+        for presetID in ["settings-dictation-profile-preset-chat", "settings-dictation-profile-preset-email",
+                         "settings-dictation-profile-preset-code"] {
+            XCTAssertTrue(app.menuItems[presetID].waitForExistence(timeout: 5), "Missing preset \(presetID)")
+        }
+        app.typeKey(.escape, modifierFlags: [])
         XCTAssertEqual(try Data(contentsOf: original), originalBytes)
     }
 

@@ -49,6 +49,23 @@ final class DeliveryFixesTests: XCTestCase {
             "Thanks for reaching out.\nBest regards,\nJohnny")
         XCTAssertEqual(caretCase.adapt("Node.js works", after: "using ", atFieldStart: false), "Node.js works")
         XCTAssertEqual(caretCase.adapt("Base64 string", after: "a ", atFieldStart: false), "Base64 string")
+        XCTAssertEqual(
+            caretCase.adapt("--warnings-as-errors", after: "Done. ", atFieldStart: false), "--warnings-as-errors")
+    }
+
+    func testLiveLoadsCodeProfileBundleIdentifiersForCaretCase() throws {
+        let suite = "com.johnny4young.secreteo.delivery-fixes.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(true, forKey: DictationCaretCase.defaultsKey)
+        let profiles = [
+            DictationProfilePreset.code.makeProfile(bundleIdentifier: "com.apple.Terminal"),
+            DictationProfilePreset.chat.makeProfile(bundleIdentifier: "com.apple.MobileSMS")
+        ]
+        defaults.set(try DictationTextPreferences.encodeProfiles(profiles), forKey: DictationTextPreferences.profilesKey)
+
+        let caretCase = try XCTUnwrap(DictationCaretCase.live(defaults))
+        XCTAssertEqual(caretCase.codeBundleIdentifiers, ["com.apple.Terminal"])
     }
 
     func testALateCopyAfterTheTimeoutStillGivesTheClipboardBack() async {

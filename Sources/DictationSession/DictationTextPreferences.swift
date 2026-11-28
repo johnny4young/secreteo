@@ -7,6 +7,7 @@ struct DictationTextPreferenceSnapshot: Sendable {
     let removeFillers: Bool
     let replacements: [DictationReplacement]
     var vocabulary: [String] = []
+    var preservesCodeTokens: Bool = false
     var recipeID: String?
     /// The built-in and custom recipes read with the snapshot, for a session choice.
     var recipes: [DictationRecipe] = []
@@ -28,7 +29,8 @@ struct DictationTextPreferenceSnapshot: Sendable {
         DictationTextRules.apply(
             text, replacements: mode.appliesCleanRules ? replacements : [],
             removeFillers: mode.appliesCleanRules && removeFillers, spokenCommands: mode.appliesCleanRules,
-            vocabulary: mode.appliesCleanRules ? vocabulary : [])
+            vocabulary: mode.appliesCleanRules ? vocabulary : [],
+            preservesCodeTokens: mode.appliesCleanRules && preservesCodeTokens)
     }
 }
 
@@ -86,6 +88,7 @@ enum DictationTextPreferences {
                 replacements: defaults.string(forKey: DictationController.replacementsKey) ?? ""),
             vocabulary: DictationVocabularyNormalizer.parse(
                 defaults.string(forKey: DictationController.vocabularyKey) ?? ""),
+            preservesCodeTokens: profile?.keepsCodeTokens ?? false,
             recipeID: profile.map(\.polishRecipeID) ?? globalRecipeID(in: defaults),
             recipes: recipes(in: defaults),
             translationTarget: profile?.translationTarget ?? globalTranslationTarget(in: defaults))

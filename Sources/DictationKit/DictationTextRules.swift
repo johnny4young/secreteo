@@ -39,6 +39,7 @@ public enum DictationTextRules {
         removeFillers: Bool,
         spokenCommands: Bool = false,
         vocabulary: [String] = [],
+        preservesCodeTokens: Bool = false,
         lexicon: DictationLexicon = .system
     ) -> String {
         var result = text
@@ -52,12 +53,19 @@ public enum DictationTextRules {
         if spokenCommands {
             let commanded = applyingSpokenCommands(to: result, except: triggers)
             keepsBreaks = commanded != result
-            result = DictationSpokenDomains.applying(to: commanded, claimed: claimed, lexicon: lexicon)
+            let punctExcluded = replacementRanges(for: ordered, in: commanded)
+            result = DictationCleanCommands.applyingSpokenPunctuation(
+                to: commanded, claimed: claimed, excludedRanges: punctExcluded)
+            let correctionExcluded = replacementRanges(for: ordered, in: result)
+            result = DictationCleanCommands.applyingSelfCorrections(
+                to: result, claimed: claimed, excludedRanges: correctionExcluded)
+            result = DictationSpokenDomains.applying(to: result, claimed: claimed, lexicon: lexicon)
         }
         if !vocabulary.isEmpty {
             let excluded = replacementRanges(for: ordered, in: result)
             result = DictationVocabularyNormalizer.applying(
-                vocabulary, to: result, claimed: claimed, excludedRanges: excluded, lexicon: lexicon)
+                vocabulary, to: result, claimed: claimed, excludedRanges: excluded,
+                preservesCodeTokens: preservesCodeTokens, lexicon: lexicon)
         }
         result = applying(ordered, to: result)
         // A break the user asked for at either end is part of the text.
@@ -193,8 +201,8 @@ public enum DictationTextRules {
     ) -> [DictationReplacement] {
         var newestFirst: [DictationReplacement] = []
         for rule in replacements.reversed() {
-            let trigger = rule.trigger.trimmingCharacters(
-                in: .whitespacesAndNewlines)
+            let trigger = rule.trigger.precomposedStringWithCanonicalMapping
+                .trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trigger.isEmpty,
                 !rule.replacement.trimmingCharacters(
                     in: .whitespacesAndNewlines).isEmpty,

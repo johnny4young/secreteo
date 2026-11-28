@@ -26,6 +26,15 @@ struct DictationApplicationDisplay {
         let name = cleaned.isEmpty ? bundleIdentifier : cleaned
         return Self(name: name, icon: icon(url.path))
     }
+
+    static func isInstalled(
+        bundleIdentifier: String,
+        applicationURL: (String) -> URL? = { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) },
+        fileExists: (String) -> Bool = { FileManager.default.fileExists(atPath: $0) }
+    ) -> Bool {
+        guard let url = applicationURL(bundleIdentifier) else { return false }
+        return fileExists(url.path)
+    }
 }
 
 /// A text mode and translation per application, saved by bundle identifier.
@@ -37,6 +46,7 @@ struct DictationProfileSettings: View {
     var body: some View {
         Button {
             showsProfiles.toggle()
+            if showsProfiles { model.refreshInstalledPresets() }
         } label: {
             HStack {
                 Text("Application Profiles")
@@ -65,10 +75,29 @@ struct DictationProfileSettings: View {
                 ForEach(model.profiles) { profile in
                     profileRow(profile)
                 }
-                Button("Add Application Profile…") { Task { await selectApplication() } }
+                HStack(spacing: 8) {
+                    Button("Add Application Profile…") { Task { await selectApplication() } }
+                        .disabled(model.isSelectingApplication
+                            || model.profiles.count >= DictationTextPreferences.maximumProfiles)
+                        .accessibilityIdentifier("settings-dictation-profile-add")
+                    Menu {
+                        ForEach(DictationProfilePreset.allCases) { preset in
+                            let available = model.availableBundleIdentifiers(for: preset)
+                            Button(Self.presetTitle(preset)) {
+                                model.applyPreset(preset)
+                            }
+                            .disabled(available.isEmpty
+                                || model.profiles.count >= DictationTextPreferences.maximumProfiles)
+                            .accessibilityIdentifier("settings-dictation-profile-preset-" + preset.rawValue)
+                        }
+                    } label: {
+                        Text("Add Preset")
+                    }
+                    .fixedSize()
                     .disabled(model.isSelectingApplication
                         || model.profiles.count >= DictationTextPreferences.maximumProfiles)
-                    .accessibilityIdentifier("settings-dictation-profile-add")
+                    .accessibilityIdentifier("settings-dictation-profile-presets")
+                }
             }
             if let error = model.selectionError {
                 selectionErrorText(error)
@@ -91,9 +120,26 @@ struct DictationProfileSettings: View {
             Text(verbatim: display.name)
                 .lineLimit(1)
                 .truncationMode(.tail)
+                .frame(minWidth: 60, alignment: .leading)
                 .layoutPriority(-1)
                 .help(profile.bundleIdentifier)
                 .accessibilityHidden(true)
+            Button {
+                model.setProfile(
+                    bundleIdentifier: profile.bundleIdentifier,
+                    preservesCodeTokens: !profile.keepsCodeTokens)
+            } label: {
+                Image(systemName: "chevron.left.forwardslash.chevron.right")
+                    .font(.caption2)
+                    .foregroundStyle(profile.keepsCodeTokens ? AnyShapeStyle(.tint) : AnyShapeStyle(.quaternary))
+                    .frame(width: 20, height: 20)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(L10n.text("Code"))
+            .accessibilityLabel(L10n.text("Code") + ": " + display.name)
+            .accessibilityValue(profile.keepsCodeTokens ? Text("On") : Text("Off"))
+            .accessibilityIdentifier("settings-dictation-profile-code-" + profile.bundleIdentifier)
             Spacer(minLength: 8)
             DictationTextModePicker(
                 identifier: "settings-dictation-profile-mode-" + profile.bundleIdentifier,
@@ -121,6 +167,14 @@ struct DictationProfileSettings: View {
                 .fixedSize()
                 .accessibilityLabel(L10n.text("Remove Application Profile") + ": " + display.name)
                 .accessibilityIdentifier("settings-dictation-profile-remove-" + profile.bundleIdentifier)
+        }
+    }
+
+    private static func presetTitle(_ preset: DictationProfilePreset) -> String {
+        switch preset {
+        case .chat: L10n.text("Chat")
+        case .email: L10n.text("Email")
+        case .code: L10n.text("Code / Terminal")
         }
     }
 

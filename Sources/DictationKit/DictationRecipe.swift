@@ -41,7 +41,11 @@ public struct DictationRecipe: Codable, Equatable, Identifiable, Sendable {
             instruction: "Turn it into a short bulleted list with one idea per bullet."),
         DictationRecipe(
             id: "builtin.concise", name: "Concise",
-            instruction: "Make it as short and direct as possible without dropping any fact.")
+            instruction: "Make it as short and direct as possible without dropping any fact."),
+        DictationRecipe(
+            id: "builtin.code", name: "Code",
+            instruction: "Keep code identifiers, camelCase, snake_case, CLI flags, file paths, and "
+                + "technical terms verbatim. Fix only surrounding prose grammar and punctuation.")
     ]
 }
 
