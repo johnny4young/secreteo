@@ -215,11 +215,11 @@ struct DictationCorrectionDeliveryTests {
         defer { first.controller.cancel() }
         first.defaults.set(DictationTextMode.clean.rawValue, forKey: DictationTextPreferences.modeKey)
         first.defaults.set(true, forKey: DictationEditLearning.defaultsKey)
-        var observedDelay: Duration?
+        var observedDelays: [Duration] = []
         var editedSpan: String? = "deploy FastAPI today"
         var armed: [Bool] = []
         var deps = dependencies(first, receiver: receiver)
-        deps.waitForEditLearning = { delay in observedDelay = delay }
+        deps.waitForEditLearning = { delay in observedDelays.append(delay) }
         deps.captureDestination = {
             var destination = CapturedDictationDestination(name: "Receiver", canRetry: true) { receiver.insert($0) }
             destination.armEditAnchors = { armed.append($0) }
@@ -234,7 +234,7 @@ struct DictationCorrectionDeliveryTests {
         try await dictate(first, deps)
         try await eventually { first.controller.learnableCorrection != nil }
 
-        #expect(observedDelay == DictationEditLearning.observationDelay)
+        #expect(observedDelays == [DictationEditLearning.observationDelay, DictationEditLearning.settleDelay])
         #expect(armed == [true])
         #expect(first.controller.learnableCorrection?.rule
             == DictationReplacement(trigger: "fase api", replacement: "FastAPI"))
@@ -340,6 +340,32 @@ struct DictationCorrectionDeliveryTests {
         #expect(anchors?.readEditedSpan(
             range: range, originalText: "deploy fase api now.", readback: readback,
             validate: { refusal }, holds: holds) == nil)
+    }
+
+    @Test
+    func postPasteEditLearningWaitsForTheFixToSettle() async throws {
+        let receiver = DictationFixtureReceiver()
+        let harness = DictationControllerHarness(text: "deploy fase api today")
+        defer { harness.controller.cancel() }
+        harness.defaults.set(DictationTextMode.clean.rawValue, forKey: DictationTextPreferences.modeKey)
+        harness.defaults.set(true, forKey: DictationEditLearning.defaultsKey)
+        var reads = ["deploy Fas today", "deploy FastAPI today"]
+        var deps = dependencies(harness, receiver: receiver)
+        deps.waitForEditLearning = { _ in }
+        deps.captureDestination = {
+            var destination = CapturedDictationDestination(name: "Receiver", canRetry: true) { receiver.insert($0) }
+            destination.lastInsertion = {
+                DictationInsertion(
+                    text: "deploy fase api today", insertedAt: harness.now, isIntact: { false },
+                    edit: { _, _ in nil }, readEditedSpan: { reads.isEmpty ? nil : reads.removeFirst() })
+            }
+            return destination
+        }
+
+        try await dictate(harness, deps)
+        try await eventually { reads.isEmpty }
+        try await Task.sleep(for: .milliseconds(30))
+        #expect(harness.controller.learnableCorrection == nil, "A half-typed fix is never offered")
     }
 
     @Test

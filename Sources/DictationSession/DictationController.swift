@@ -888,14 +888,19 @@ extension DictationController {
               DictationEditLearning.isEnabled(in: dependencies.defaults),
               let insertion = lastInsertion else { return }
         let observedAt = insertion.insertedAt
-        editLearningTask = Task { [weak self] in
-            do { try await dependencies.waitForEditLearning(DictationEditLearning.observationDelay) } catch { return }
+        let readEdit = { @MainActor [weak self] () -> String? in
             guard let self, !Task.isCancelled, activeSessionID == nil, !hasPendingOutput,
                   !isRetryingDelivery, retryDeliveryTask == nil,
                   DictationEditLearning.isEnabled(in: dependencies.defaults),
                   dependencies.admission.isEligible(),
-                  lastInsertion?.insertedAt == observedAt,
-                  let edited = insertion.readEditedSpan() else { return }
+                  lastInsertion?.insertedAt == observedAt else { return nil }
+            return insertion.readEditedSpan()
+        }
+        editLearningTask = Task { [weak self] in
+            do { try await dependencies.waitForEditLearning(DictationEditLearning.observationDelay) } catch { return }
+            guard let first = readEdit() else { return }
+            do { try await dependencies.waitForEditLearning(DictationEditLearning.settleDelay) } catch { return }
+            guard let self, let edited = readEdit(), edited == first else { return }
             let rules = DictationLearnableCorrection.rules(in: dependencies.defaults)
             guard let candidate = DictationEditLearner.extract(
                 pasted: insertion.text, edited: edited, existing: rules),
