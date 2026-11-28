@@ -44,7 +44,8 @@ struct PortavozPreferenceImport {
             defaults.string(forKey: DictationTextPreferences.profilesKey) ?? "[]")) ?? []).isEmpty {
             ownLists.insert(DictationTextPreferences.profilesKey)
         }
-        for entry in Self.entries(physicalMemory: physicalMemory) where !ownLists.contains(entry.key) {
+        let entries = Self.entries(current: defaults, physicalMemory: physicalMemory)
+        for entry in entries where !ownLists.contains(entry.key) {
             guard let value = source[entry.key], entry.accepts(value) else { continue }
             guard !(value as AnyObject).isEqual(defaults.object(forKey: entry.key) ?? entry.fallback) else { continue }
             if seenChangeNames.insert(entry.name).inserted {
@@ -92,15 +93,16 @@ struct PortavozPreferenceImport {
                 source[DictationController.languageKey] = DictationFeature.preferredConcreteLanguage()
             }
         }
+        let sourcePrewarms = source[DictationPrewarmPolicy.defaultsKey] as? Bool == true
         let effectiveMemory = (source[DictationModelMemory.key] as? String).flatMap(DictationModelMemory.init)
-            ?? DictationModelMemory.current(in: defaults, physicalMemory: physicalMemory)
+            ?? (sourcePrewarms ? .balanced : DictationModelMemory.current(in: defaults, physicalMemory: physicalMemory))
         if effectiveMemory == .lightweight, source[DictationPrewarmPolicy.defaultsKey] != nil {
             source[DictationPrewarmPolicy.defaultsKey] = false
         }
         return source
     }
 
-    private static func entries(physicalMemory: UInt64) -> [Entry] {
+    private static func entries(current defaults: UserDefaults, physicalMemory: UInt64) -> [Entry] {
         func flag(_ key: String, _ name: String, _ fallback: Bool = false) -> Entry {
             // Any number bridges to Bool, so only a saved Boolean counts.
             Entry(key: key, name: name, fallback: fallback) { CFGetTypeID($0 as CFTypeRef) == CFBooleanGetTypeID() }
@@ -127,7 +129,7 @@ struct PortavozPreferenceImport {
             flag(DictationCaretCase.defaultsKey, L10n.text("Match Capitalization to the Cursor")),
             choice(DictationModelMemory.key, L10n.text("Keep Model in Memory"),
                    [DictationModelMemory.balanced.rawValue, DictationModelMemory.lightweight.rawValue],
-                   DictationModelMemory.defaultProfile(physicalMemory: physicalMemory).rawValue),
+                   DictationModelMemory.current(in: defaults, physicalMemory: physicalMemory).rawValue),
             flag(DictationPrewarmPolicy.defaultsKey, L10n.text("Keep Model in Memory")),
             // Copied without downloading or loading anything: Ultra still needs its own Download.
             choice(LiveSpeechSelection.dictationKey, L10n.text("Speech Engine"),

@@ -23,7 +23,7 @@ if [[ "$(readlink CLAUDE.md || true)" != "AGENTS.md" ]]; then
   report "CLAUDE.md must be a symlink to AGENTS.md:" "$(ls -l CLAUDE.md 2>&1 || true)"
 fi
 
-forbidden_tracked='^(\.agents|\.claude|\.codex|\.planning|\.tickets|\.wrangler|plans|tickets|docs/plans|docs/tickets|artifacts|screenshots|test-results)/|^docs/ROADMAP\.md$|^planning_.*\.md$|(^|/)(DerivedData|xcuserdata)/|\.xcodeproj/|\.xcresult/|\.profraw$|\.profdata$|\.xcactivitylog$'
+forbidden_tracked='^(\.agents|\.claude|\.codex|\.planning|\.tickets|\.wrangler|plans|tickets|docs/plans|docs/tickets|artifacts|screenshots|test-results)/|^docs/ROADMAP\.md$|^planning_.*\.md$|^analisis-.*\.md$|(^|/)(DerivedData|xcuserdata)/|\.xcodeproj/|\.xcresult/|\.profraw$|\.profdata$|\.xcactivitylog$'
 tracked_forbidden="$(git ls-files | grep -E "$forbidden_tracked" || true)"
 if [[ -n "$tracked_forbidden" ]]; then
   report "Ephemeral or generated files must not be tracked:" "$tracked_forbidden"
@@ -136,6 +136,7 @@ ignore_probes=(
   docs/tickets/LOCAL.md
   docs/ROADMAP.md
   planning_voice_20260911.md
+  analisis-local.md
   PLAN.md
   TODO.md
   HANDOFF.md

@@ -184,6 +184,19 @@ struct DictationSettingsErgonomicsTests {
             current: defaults, physicalMemory: eightGB)
         #expect(launch.values[DictationModelMemory.key] as? String == DictationModelMemory.balanced.rawValue)
         #expect(launch.values[DictationPrewarmPolicy.defaultsKey] as? Bool == true)
+
+        // A pre-1.4 Prewarm opt-in has no profile key and must keep Prewarm on 8 GB.
+        let legacy = PortavozPreferenceImport(
+            portavoz: [DictationPrewarmPolicy.defaultsKey: true],
+            current: defaults, physicalMemory: eightGB)
+        #expect(legacy.values[DictationPrewarmPolicy.defaultsKey] as? Bool == true)
+
+        // A local pre-1.4 Prewarm opt-in runs Balanced, so importing Lightweight is a change.
+        defaults.set(true, forKey: DictationPrewarmPolicy.defaultsKey)
+        let toLightweight = PortavozPreferenceImport(
+            portavoz: [DictationModelMemory.key: DictationModelMemory.lightweight.rawValue],
+            current: defaults, physicalMemory: eightGB)
+        #expect(toLightweight.values[DictationModelMemory.key] as? String == DictationModelMemory.lightweight.rawValue)
     }
 
     @Test
