@@ -4,9 +4,12 @@ import XCTest
 /// deleting rows never touches a real one.
 @MainActor
 final class DictationHistoryUITests: SecreteoUITestCase {
-    private func launchHistory(_ arguments: String...) throws -> XCUIApplication {
+    private func launchHistory(_ arguments: String..., defaultsJSON: String? = nil) throws -> XCUIApplication {
         let app = try XCUIApplication.secreteo(showMenuBarContent: true)
         app.launchArguments += arguments
+        if let defaultsJSON {
+            app.launchEnvironment["SECRETEO_UI_TEST_DEFAULTS"] = defaultsJSON
+        }
         app.launchSecreteo()
         let row = app.buttons["menu-bar-history"]
         XCTAssertTrue(row.waitForStableFrame(timeout: 30))
@@ -33,13 +36,33 @@ final class DictationHistoryUITests: SecreteoUITestCase {
     }
 
     func testSavedDictationsCanBeFilteredAndDeletedOneByOneOrAll() throws {
-        let app = try launchHistory("-seed-dictation-history", "-seed-dictation-history-records")
+        let app = try launchHistory(
+            "-seed-dictation-history", "-seed-dictation-history-records",
+            defaultsJSON: #"{"customVocabulary":"FastAPI, Secreteo"}"#)
         defer { finishUITestApplication(app) }
 
         let newest = app.control(withIdentifier: text(0))
         XCTAssertTrue(waitForUITestCondition(timeout: 5) { renderedText(of: newest) == "No borres estas notas." })
         XCTAssertTrue(renderedText(of: app.control(withIdentifier: details(0))).contains("Notes"))
         XCTAssertTrue(app.control(withIdentifier: original(0)).exists)
+        let teachButton = app.buttons[teach(0)]
+        XCTAssertTrue(teachButton.exists)
+        teachButton.click()
+        let teachHeard = app.control(withIdentifier: "dictation-history-teach-heard")
+        XCTAssertTrue(teachHeard.waitForStableFrame(timeout: 5))
+        let wordChip = app.buttons[teachWord(0)]
+        XCTAssertTrue(wordChip.waitForStableFrame(timeout: 5))
+        wordChip.click()
+        let vocabChip = app.buttons[teachVocab(0)]
+        XCTAssertTrue(vocabChip.waitForStableFrame(timeout: 5))
+        vocabChip.click()
+        let teachReplacement = app.control(withIdentifier: "dictation-history-teach-replacement")
+        XCTAssertTrue(teachReplacement.waitForStableFrame(timeout: 5))
+        let teachSave = app.buttons["dictation-history-teach-save"]
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) { teachSave.isEnabled })
+        teachSave.click()
+        XCTAssertTrue(teachHeard.waitForDisappearance(timeout: 5))
+        XCTAssertTrue(waitForUITestCondition(timeout: 5) { (teachButton.value as? String) == "Saved" })
         XCTAssertTrue(app.buttons[copy(0)].exists)
         XCTAssertTrue(renderedText(of: app.control(withIdentifier: details(1))).contains("Not delivered"))
         XCTAssertFalse(app.control(withIdentifier: "dictation-history-more").exists, "Two rows fit one page")
@@ -231,6 +254,9 @@ final class DictationHistoryUITests: SecreteoUITestCase {
 
     private func text(_ index: Int) -> String { "dictation-history-text-\(index)" }
     private func original(_ index: Int) -> String { "dictation-history-original-\(index)" }
+    private func teach(_ index: Int) -> String { "dictation-history-teach-\(index)" }
+    private func teachWord(_ chipIndex: Int) -> String { "dictation-history-teach-word-\(chipIndex)" }
+    private func teachVocab(_ chipIndex: Int) -> String { "dictation-history-teach-vocab-\(chipIndex)" }
     private func details(_ index: Int) -> String { "dictation-history-details-\(index)" }
     private func copy(_ index: Int) -> String { "dictation-history-copy-\(index)" }
     private func delete(_ index: Int) -> String { "dictation-history-delete-\(index)" }

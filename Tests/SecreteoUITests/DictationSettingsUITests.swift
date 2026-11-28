@@ -108,7 +108,7 @@ final class DictationSettingsUITests: SecreteoUITestCase {
             "settings-dictation-text-mode", "settings-dictation-filler", "settings-dictation-dict-trigger",
             "settings-dictation-dict-replacement", "settings-dictation-dict-add", "settings-dictation-profiles",
             "settings-dictation-vocabulary-field", "settings-dictation-vocabulary-add",
-            "settings-dictation-corrections", "settings-dictation-caret-case"
+            "settings-dictation-corrections", "settings-dictation-edit-learning", "settings-dictation-caret-case"
         ], in: app)
         attachScreenshot(named: "pr-settings-tab-text")
 

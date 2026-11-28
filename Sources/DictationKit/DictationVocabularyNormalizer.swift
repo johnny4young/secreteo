@@ -19,6 +19,7 @@ public enum DictationVocabularyNormalizer {
         let spelling: String
         let parts: [String]
         let foldedJoined: String
+        let phoneticKey: String
         let hasInternalDot: Bool
         let hasInternalApostrophe: Bool
         let isSpaceFree: Bool
@@ -162,7 +163,7 @@ public enum DictationVocabularyNormalizer {
         guard stem.count >= minimumPluralStemLength,
               let entry = exactSingle[stem],
               !entry.foldedJoined.hasSuffix("s"),
-              isUnknownToBothDictionaries(token.text.lowercased(), lexicon: lexicon) else { return nil }
+              isUnknownToBothDictionaries(token, lexicon: lexicon) else { return nil }
         let pluralSpelling = entry.spelling + "s"
         return token.text != pluralSpelling ? pluralSpelling : nil
     }
@@ -186,6 +187,7 @@ public enum DictationVocabularyNormalizer {
             guard seen.insert(fold(trimmed)).inserted else { continue }
             result.append(Entry(
                 spelling: trimmed, parts: parts, foldedJoined: joined,
+                phoneticKey: parts.count == 1 ? bilingualPhoneticKey(joined) : "",
                 hasInternalDot: trimmed.contains("."),
                 hasInternalApostrophe: trimmed.contains("'") || trimmed.contains("\u{2019}"),
                 isSpaceFree: !trimmed.contains(" "),
@@ -262,22 +264,51 @@ public enum DictationVocabularyNormalizer {
 
     private static func matchFuzzy(token: Token, pool: [Entry], lexicon: DictationLexicon) -> Entry? {
         guard token.folded.count >= minimumFuzzyLength, !pool.isEmpty else { return nil }
-        let candidates = pool.filter { entry in
+        let distanceOne = pool.filter { entry in
             abs(entry.foldedJoined.count - token.folded.count) <= 1
                 && token.folded != entry.foldedJoined + "s"
                 && entry.foldedJoined != token.folded + "s"
                 && initialsCompatible(token.folded, entry.foldedJoined)
                 && damerauLevenshteinDistance(token.folded, entry.foldedJoined, limit: 1) == 1
         }
-        // Only apply when a single unambiguous vocabulary term is at edit distance 1.
-        guard candidates.count == 1, let winner = candidates.first else { return nil }
-        guard isUnknownToBothDictionaries(token.text.lowercased(), lexicon: lexicon) else { return nil }
+        let winner: Entry?
+        if distanceOne.count == 1 {
+            winner = distanceOne.first
+        } else if distanceOne.isEmpty {
+            let tokenHasDiacritics = token.text.lowercased() != token.folded
+            let tokenPhonetic = bilingualPhoneticKey(token.folded)
+            let phonetic = pool.filter { entry in
+                !entry.phoneticKey.isEmpty
+                    && entry.foldedJoined.count >= 6
+                    && !(tokenHasDiacritics && entry.spelling.lowercased() == entry.foldedJoined)
+                    && entry.phoneticKey == tokenPhonetic
+                    && abs(entry.foldedJoined.count - token.folded.count) <= 2
+                    && token.folded != entry.foldedJoined + "s"
+                    && entry.foldedJoined != token.folded + "s"
+                    && phoneticInitialsCompatible(
+                        token.folded, entry.foldedJoined,
+                        tokenKey: tokenPhonetic, entryKey: entry.phoneticKey)
+                    && damerauLevenshteinDistance(token.folded, entry.foldedJoined, limit: 2) <= 2
+            }
+            winner = phonetic.count == 1 ? phonetic.first : nil
+        } else {
+            winner = nil
+        }
+        guard let winner, isUnknownToBothDictionaries(token, lexicon: lexicon) else { return nil }
         return winner
     }
 
-    /// Requires both English and Spanish dictionaries to be available and confirm the word is unknown.
-    private static func isUnknownToBothDictionaries(_ word: String, lexicon: DictationLexicon) -> Bool {
-        lexicon.contains(word, false) == false && lexicon.contains(word, true) == false
+    /// Requires both English and Spanish dictionaries to be available and confirm the word is unknown
+    /// in both its original casing (preserving capitalized proper names) and lowercased form.
+    private static func isUnknownToBothDictionaries(_ token: Token, lexicon: DictationLexicon) -> Bool {
+        let lowered = token.text.lowercased()
+        guard lexicon.contains(lowered, false) == false,
+              lexicon.contains(lowered, true) == false else { return false }
+        if token.text != lowered {
+            guard lexicon.contains(token.text, false) == false,
+                  lexicon.contains(token.text, true) == false else { return false }
+        }
+        return true
     }
 
     private static func isAllowedPhraseSeparator(_ separator: Substring, entry: Entry) -> Bool {
@@ -285,40 +316,6 @@ public enum DictationVocabularyNormalizer {
         if entry.hasInternalDot, separator == "." { return true }
         if entry.hasInternalApostrophe, separator == "'" || separator == "\u{2019}" { return true }
         return false
-    }
-
-    private static func initialsCompatible(_ lhs: String, _ rhs: String) -> Bool {
-        guard let a = lhs.first, let b = rhs.first else { return false }
-        if a == b { return true }
-        let groups: [Set<Character>] = [["c", "k", "q"], ["f", "p"], ["g", "j"], ["s", "z", "c"], ["b", "v"]]
-        return groups.contains { $0.contains(a) && $0.contains(b) }
-    }
-
-    /// Optimal string alignment distance capped at `limit` (handles substitutions,
-    /// insertions, deletions, and adjacent transpositions).
-    static func damerauLevenshteinDistance(_ lhs: String, _ rhs: String, limit: Int) -> Int {
-        let a = Array(lhs)
-        let b = Array(rhs)
-        if abs(a.count - b.count) > limit { return limit + 1 }
-        if a.isEmpty { return b.count }
-        if b.isEmpty { return a.count }
-        var matrix = Array(repeating: Array(repeating: 0, count: b.count + 1), count: a.count + 1)
-        for i in 0...a.count { matrix[i][0] = i }
-        for j in 0...b.count { matrix[0][j] = j }
-        for i in 1...a.count {
-            var rowMin = limit + 1
-            for j in 1...b.count {
-                let cost = a[i - 1] == b[j - 1] ? 0 : 1
-                var best = min(matrix[i - 1][j] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j - 1] + cost)
-                if i > 1, j > 1, a[i - 1] == b[j - 2], a[i - 2] == b[j - 1] {
-                    best = min(best, matrix[i - 2][j - 2] + 1)
-                }
-                matrix[i][j] = best
-                if best < rowMin { rowMin = best }
-            }
-            if rowMin > limit { return limit + 1 }
-        }
-        return matrix[a.count][b.count]
     }
 
     private static func mapExcludedRanges(
@@ -412,5 +409,105 @@ public enum DictationVocabularyNormalizer {
 
     private static func fold(_ text: String) -> String {
         text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+    }
+}
+
+extension DictationVocabularyNormalizer {
+    /// Bilingual Spanish/English phonetic key for accented mishearings
+    /// (e.g. "cubernetis" -> Kubernetes, "kognosus" -> Cognosos, "sekretio" -> Secreteo).
+    static func bilingualPhoneticKey(_ folded: String) -> String {
+        let chars = Array(folded)
+        var result: [Character] = []
+        var index = 0
+        while index < chars.count {
+            let ch = chars[index]
+            let next: Character? = index + 1 < chars.count ? chars[index + 1] : nil
+            let third: Character? = index + 2 < chars.count ? chars[index + 2] : nil
+            if ch == "s", next == "c", third == "h" {
+                if result.last != "s" { result.append("s") }
+                result.append("k")
+                index += 3
+                continue
+            }
+            let mapped: Character?
+            if ch == "p", next == "h" {
+                mapped = "f"; index += 2
+            } else if ch == "q", next == "u" {
+                mapped = "k"; index += 2
+            } else if ch == "c", next == "k" {
+                mapped = "k"; index += 2
+            } else if ch == "g", next == "u", third == "e" || third == "i" || third == "y" {
+                mapped = "j"; index += 2
+            } else if ch == "l", next == "l" {
+                mapped = "i"; index += 2
+            } else if next == "h", ch == "c" || ch == "s" {
+                mapped = "x"; index += 2
+            } else {
+                mapped = mapPhoneticChar(ch, next: next)
+                index += 1
+            }
+            if let mapped, result.last != mapped { result.append(mapped) }
+        }
+        return String(result)
+    }
+
+    private static func mapPhoneticChar(_ ch: Character, next: Character?) -> Character? {
+        switch ch {
+        case "h": return nil
+        case "c": return (next == "e" || next == "i" || next == "y") ? "s" : "k"
+        case "q": return "k"
+        case "g": return (next == "e" || next == "i" || next == "y") ? "j" : "g"
+        case "v": return "b"
+        case "z": return "s"
+        case "w": return "u"
+        case "e", "i", "y": return "i"
+        case "o", "u": return "u"
+        default: return ch
+        }
+    }
+
+    static func phoneticInitialsCompatible(
+        _ lhs: String, _ rhs: String, tokenKey: String, entryKey: String
+    ) -> Bool {
+        if initialsCompatible(lhs, rhs) { return true }
+        guard let a = lhs.first, let b = rhs.first,
+              let keyA = tokenKey.first, keyA == entryKey.first else { return false }
+        if a == "h" || b == "h" { return true }
+        let vowelGroups: [Set<Character>] = [["w", "u", "o"], ["e", "i", "y"]]
+        return vowelGroups.contains { $0.contains(a) && $0.contains(b) }
+    }
+
+    static func initialsCompatible(_ lhs: String, _ rhs: String) -> Bool {
+        guard let a = lhs.first, let b = rhs.first else { return false }
+        if a == b { return true }
+        let groups: [Set<Character>] = [["c", "k", "q"], ["f", "p"], ["g", "j"], ["s", "z", "c"], ["b", "v"]]
+        return groups.contains { $0.contains(a) && $0.contains(b) }
+    }
+
+    /// Optimal string alignment distance capped at `limit` (handles substitutions,
+    /// insertions, deletions, and adjacent transpositions).
+    static func damerauLevenshteinDistance(_ lhs: String, _ rhs: String, limit: Int) -> Int {
+        let a = Array(lhs)
+        let b = Array(rhs)
+        if abs(a.count - b.count) > limit { return limit + 1 }
+        if a.isEmpty { return b.count }
+        if b.isEmpty { return a.count }
+        var matrix = Array(repeating: Array(repeating: 0, count: b.count + 1), count: a.count + 1)
+        for i in 0...a.count { matrix[i][0] = i }
+        for j in 0...b.count { matrix[0][j] = j }
+        for i in 1...a.count {
+            var rowMin = limit + 1
+            for j in 1...b.count {
+                let cost = a[i - 1] == b[j - 1] ? 0 : 1
+                var best = min(matrix[i - 1][j] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j - 1] + cost)
+                if i > 1, j > 1, a[i - 1] == b[j - 2], a[i - 2] == b[j - 1] {
+                    best = min(best, matrix[i - 2][j - 2] + 1)
+                }
+                matrix[i][j] = best
+                if best < rowMin { rowMin = best }
+            }
+            if rowMin > limit { return limit + 1 }
+        }
+        return matrix[a.count][b.count]
     }
 }

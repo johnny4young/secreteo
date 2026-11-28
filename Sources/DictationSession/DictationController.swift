@@ -106,6 +106,7 @@ final class DictationController {
     private var stopIssuedSessionID: UUID?
     private var relayEndedSessionID: UUID?
     @ObservationIgnored private let feedback = DictationFeedbackTimer()
+    @ObservationIgnored private var editLearningTask: Task<Void, Never>?
     var pressedSessionID: UUID?
     private var sessionFeedbackWait: (@MainActor (Duration) async throws -> Void)?
     private(set) var activeSessionID: UUID?
@@ -388,6 +389,7 @@ final class DictationController {
 
     /// Esc or the panel's cancel control: throw everything away.
     func cancel() {
+        cancelEditLearning()
         releaseCancelKey()
         releaseSpeechGate()
         abandonPolish()
@@ -482,10 +484,12 @@ final class DictationController {
         let stillOwner = dispatchesInsert(sessionID: sessionID)
         let result = stillOwner ? await destination.insert(delivered) : .refused(.ownershipChanged)
         measurement?.finishDelivery(result)
+        let appliedCleanRules = textPolicy.mode.appliesCleanRules
         guard activeSessionID == sessionID else { return }
         completeSession(id: sessionID)
         deliveryID = sessionID
-        presentDelivery(result, text: delivered, alternate: delivery, id: sessionID)
+        presentDelivery(
+            result, text: delivered, alternate: delivery, id: sessionID, canLearnEdits: appliedCleanRules)
     }
 
     private func completeSession(id: UUID) {
@@ -534,6 +538,7 @@ private extension DictationController {
     }
 
     func systemWillSleep() {
+        cancelEditLearning()
         // A dispatched edit must finish its clipboard restore. Anything before it, polish
         // included, can still be cancelled without pasting, with Stop and the lease draining normally.
         if phase == .delivering, dispatched?.id == activeSessionID {
@@ -567,6 +572,7 @@ private extension DictationController {
     /// When Paste last ends, the same words leave the session's state too, unless a session is using them.
     func forgetDictatedText() {
         guard !isActive else { return }
+        cancelEditLearning()
         confirmedText = ""
         partialText = ""
         lastInsertion = nil
@@ -802,6 +808,7 @@ extension DictationController {
             lease.release()
             return false
         }
+        cancelEditLearning()
         cancelFeedbackDismissal()
         self.dependencies = dependencies
         let id = UUID()
@@ -828,7 +835,8 @@ extension DictationController {
     }
 
     private func presentDelivery(
-        _ result: DictationDeliveryOutcome, text: String, alternate: DictationDeliveryText? = nil, id: UUID
+        _ result: DictationDeliveryOutcome, text: String, alternate: DictationDeliveryText? = nil,
+        id: UUID, canLearnEdits: Bool = false
     ) {
         // Words kept from a handoff stay on screen even for a session that delivers internally.
         guard deliveryID == id, let dependencies,
@@ -866,6 +874,43 @@ extension DictationController {
         scheduleFeedbackDismiss(
             after: showsNotice ? Self.noticeFeedbackDuration : Self.resultFeedbackDuration,
             wait: dependencies.waitForFeedbackDismissal)
+        if result == .verified, canLearnEdits {
+            scheduleEditLearning(dependencies: dependencies, sourceDeliveryID: id)
+        }
+    }
+
+    private func scheduleEditLearning(dependencies: DictationSessionDependencies, sourceDeliveryID: UUID) {
+        cancelEditLearning()
+        guard !dependencies.deliversInternally, dependencies.admissionKind == .global,
+              DictationEditLearning.isEnabled(in: dependencies.defaults),
+              let insertion = lastInsertion else { return }
+        let observedAt = insertion.insertedAt
+        editLearningTask = Task { [weak self] in
+            do { try await dependencies.waitForEditLearning(DictationEditLearning.observationDelay) } catch { return }
+            guard let self, !Task.isCancelled, activeSessionID == nil, !hasPendingOutput,
+                  !isRetryingDelivery, retryDeliveryTask == nil,
+                  DictationEditLearning.isEnabled(in: dependencies.defaults),
+                  dependencies.admission.isEligible(),
+                  lastInsertion?.insertedAt == observedAt,
+                  let edited = insertion.readEditedSpan() else { return }
+            let rules = DictationLearnableCorrection.rules(in: dependencies.defaults)
+            guard let candidate = DictationEditLearner.extract(
+                pasted: insertion.text, edited: edited, existing: rules),
+                  let offer = DictationLearnableCorrection(rule: candidate, dependencies: dependencies)
+            else { return }
+            deliveryID = sourceDeliveryID
+            panelAnchor = dependencies.locatePanelAnchor()
+            learnableCorrection = offer
+            correctionSummary = L10n.format("Changed “%@” to “%@”.", candidate.trigger, candidate.replacement)
+            phase = .verified(0)
+            showPanel()
+            scheduleFeedbackDismiss(after: .seconds(6), wait: dependencies.waitForFeedbackDismissal)
+        }
+    }
+
+    func cancelEditLearning() {
+        editLearningTask?.cancel()
+        editLearningTask = nil
     }
 }
 
@@ -1362,6 +1407,16 @@ struct DictationLearnableCorrection {
     }
 
     @MainActor
+    init?(rule: DictationReplacement, dependencies: DictationSessionDependencies) {
+        let rules = Self.rules(in: dependencies.defaults)
+        guard DictationTextRules.learning(rule.trigger, as: rule.replacement, into: rules) != nil else { return nil }
+        self.rule = rule
+        defaults = dependencies.defaults
+        temporary = dependencies.storesPreferencesTemporarily
+        wait = dependencies.waitForFeedbackDismissal
+    }
+
+    @MainActor
     static func rules(in defaults: UserDefaults) -> [DictationReplacement] {
         DictationTextRules.decode(replacements: defaults.string(forKey: DictationController.replacementsKey) ?? "")
     }
@@ -1370,6 +1425,7 @@ struct DictationLearnableCorrection {
 extension DictationController {
     /// Adds the offered correction to the text replacements; the next dictation applies it.
     func learnCorrection() {
+        cancelEditLearning()
         guard let learnable = learnableCorrection else { return }
         learnableCorrection = nil
         let rule = learnable.rule
@@ -1395,6 +1451,7 @@ extension DictationController {
     }
 
     fileprivate func discardPreviousDelivery() {
+        cancelEditLearning()
         historyFailure.clear()
         retryDeliveryTask?.cancel()
         retryDeliveryTask = nil

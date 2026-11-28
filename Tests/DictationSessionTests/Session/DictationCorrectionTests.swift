@@ -207,4 +207,151 @@ struct DictationCorrectionDeliveryTests {
         }
         #expect(receiver.text == beforeCommand)
     }
+
+    @Test
+    func postPasteEditLearningOffersAndSavesReplacementWhenEnabled() async throws {
+        let receiver = DictationFixtureReceiver()
+        let first = DictationControllerHarness(text: "deploy fase api today")
+        defer { first.controller.cancel() }
+        first.defaults.set(DictationTextMode.clean.rawValue, forKey: DictationTextPreferences.modeKey)
+        first.defaults.set(true, forKey: DictationEditLearning.defaultsKey)
+        var observedDelay: Duration?
+        var editedSpan: String? = "deploy FastAPI today"
+        var deps = dependencies(first, receiver: receiver)
+        deps.waitForEditLearning = { delay in observedDelay = delay }
+        deps.captureDestination = {
+            var destination = CapturedDictationDestination(name: "Receiver", canRetry: true) { receiver.insert($0) }
+            destination.lastInsertion = {
+                DictationInsertion(
+                    text: "deploy fase api today", insertedAt: first.now, isIntact: { false },
+                    edit: { _, _ in nil }, readEditedSpan: { editedSpan })
+            }
+            return destination
+        }
+
+        try await dictate(first, deps)
+        try await eventually { first.controller.learnableCorrection != nil }
+
+        #expect(observedDelay == DictationEditLearning.observationDelay)
+        #expect(first.controller.learnableCorrection?.rule
+            == DictationReplacement(trigger: "fase api", replacement: "FastAPI"))
+        #expect(first.controller.correctionSummary == "Changed “fase api” to “FastAPI”.")
+
+        first.controller.learnCorrection()
+        #expect(first.controller.learnableCorrection == nil)
+        let saved = DictationTextRules.decode(
+            replacements: first.defaults.string(forKey: DictationController.replacementsKey) ?? "")
+        #expect(saved == [DictationReplacement(trigger: "fase api", replacement: "FastAPI")])
+
+        editedSpan = nil
+        let next = DictationControllerHarness(text: "ship fase api now", controller: first.controller)
+        var nextDeps = dependencies(next, receiver: receiver)
+        nextDeps.defaults = first.defaults
+        try await dictate(next, nextDeps)
+        #expect(receiver.text.hasSuffix("ship FastAPI now"))
+    }
+
+    @Test
+    func postPasteEditLearningStaysSilentInLiteralModeWhenOptedOutOrCancelled() async throws {
+        let receiver = DictationFixtureReceiver()
+        let first = DictationControllerHarness(text: "deploy fase api today")
+        defer { first.controller.cancel() }
+        var readCalled = false
+        var baseDeps = dependencies(first, receiver: receiver)
+        baseDeps.waitForEditLearning = { _ in }
+        baseDeps.captureDestination = {
+            var destination = CapturedDictationDestination(name: "Receiver", canRetry: true) { receiver.insert($0) }
+            destination.lastInsertion = {
+                DictationInsertion(
+                    text: "deploy fase api today", insertedAt: first.now, isIntact: { false },
+                    edit: { _, _ in nil }, readEditedSpan: { readCalled = true; return "deploy FastAPI today" })
+            }
+            return destination
+        }
+
+        // Literal mode with toggle ON must never observe or offer replacements.
+        first.defaults.set(DictationTextMode.literal.rawValue, forKey: DictationTextPreferences.modeKey)
+        first.defaults.set(true, forKey: DictationEditLearning.defaultsKey)
+        try await dictate(first, baseDeps)
+        try await Task.sleep(for: .milliseconds(30))
+        #expect(!readCalled)
+        #expect(first.controller.learnableCorrection == nil)
+
+        // Clean mode with toggle turned OFF mid-delay must never call readEditedSpan.
+        first.defaults.set(DictationTextMode.clean.rawValue, forKey: DictationTextPreferences.modeKey)
+        var midOptOutDeps = baseDeps
+        midOptOutDeps.waitForEditLearning = { _ in
+            first.defaults.set(false, forKey: DictationEditLearning.defaultsKey)
+        }
+        try await dictate(first, midOptOutDeps)
+        try await Task.sleep(for: .milliseconds(30))
+        #expect(!readCalled)
+        #expect(first.controller.learnableCorrection == nil)
+
+        // Clean mode cancelled before delay ends must never call readEditedSpan.
+        first.defaults.set(true, forKey: DictationEditLearning.defaultsKey)
+        var cancelDeps = baseDeps
+        cancelDeps.waitForEditLearning = { _ in try await Task.sleep(for: .seconds(10)) }
+        try await dictate(first, cancelDeps)
+        first.controller.cancel()
+        try await Task.sleep(for: .milliseconds(30))
+        #expect(!readCalled)
+        #expect(first.controller.learnableCorrection == nil)
+    }
+
+    @Test
+    func spanAnchorsEnforceSecurityBoundariesSurrogatesAndWhitespaceSafety() {
+        var buffer = "Hi 📝 prefix: deploy fase api now. trailing!" as NSString
+        let range = buffer.range(of: "deploy fase api now.")
+        var refusal: DictationDeliveryOutcome.Refusal?
+        let readback = DictationTextReadback(
+            position: { DictationTextReadback.Position(selection: NSRange(location: range.location + range.length, length: 0), characterCount: buffer.length) },
+            string: { span in
+                guard span.location >= 0, span.length >= 0, span.location + span.length <= buffer.length else { return nil }
+                return buffer.substring(with: span)
+            })
+
+        // Fails closed when field becomes secure before capture.
+        refusal = .secureField
+        #expect(DictationInsertion.SpanAnchors.capture(
+            range: range, readback: readback, validate: { refusal }) == nil)
+
+        // Captures cleanly, handles boundary edit inside span, and fails closed when field turns secure.
+        refusal = nil
+        let anchors = DictationInsertion.SpanAnchors.capture(
+            range: range, readback: readback, validate: { refusal })
+        #expect(anchors != nil)
+
+        buffer = "Hi 📝 prefix: deploy FastAPI now. trailing!" as NSString
+        let holds: (NSRange, String) -> Bool = { span, expected in
+            readback.string(span).map { $0.utf16.elementsEqual(expected.utf16) } ?? false
+        }
+        #expect(anchors?.readEditedSpan(
+            range: range, originalText: "deploy fase api now.", readback: readback,
+            validate: { refusal }, holds: holds) == "deploy FastAPI now.")
+
+        refusal = .secureField
+        #expect(anchors?.readEditedSpan(
+            range: range, originalText: "deploy fase api now.", readback: readback,
+            validate: { refusal }, holds: holds) == nil)
+    }
+
+    @Test
+    func featureLearnReplacementAndVocabularyDeduplicateCleanly() throws {
+        let suite = "DictationEditLearningFeatureTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set("FastAPI, fastapi, Secreteo", forKey: DictationController.vocabularyKey)
+        let feature = try DictationFeature(usesTemporaryStore: true, arguments: ["-use-temp-store"], defaults: defaults)
+
+        #expect(feature.customVocabularyTerms == ["FastAPI", "Secreteo"])
+        #expect(feature.canLearnReplacement(heard: "fase API", as: "FastAPI"))
+        #expect(feature.learnReplacement(heard: "fase API", as: "FastAPI"))
+        #expect(!feature.canLearnReplacement(heard: "fase API", as: "FastAPI"))
+        #expect(!feature.learnReplacement(heard: "fase API", as: "FastAPI"))
+        #expect(!feature.learnReplacement(heard: "same", as: "same"))
+        let saved = DictationTextRules.decode(
+            replacements: defaults.string(forKey: DictationController.replacementsKey) ?? "")
+        #expect(saved == [DictationReplacement(trigger: "fase API", replacement: "FastAPI")])
+    }
 }

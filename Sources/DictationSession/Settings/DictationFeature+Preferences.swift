@@ -44,7 +44,34 @@ extension DictationFeature {
 
     func store(_ values: [String: Any]) {
         Self.store(values, in: defaults, temporary: usesTemporaryMeetingStore)
+        if (values[DictationEditLearning.defaultsKey] as? Bool) == false {
+            controller.cancelEditLearning()
+        }
         preferenceRevision += 1
+    }
+
+    var customVocabularyTerms: [String] {
+        _ = preferenceRevision
+        var seen = Set<String>()
+        return DictationVocabularyNormalizer
+            .parse(defaults.string(forKey: DictationController.vocabularyKey) ?? "")
+            .filter { seen.insert($0.lowercased()).inserted }
+    }
+
+    func canLearnReplacement(heard: String, as replacement: String) -> Bool {
+        _ = preferenceRevision
+        let existing = DictationTextRules.decode(
+            replacements: defaults.string(forKey: DictationController.replacementsKey) ?? "")
+        return DictationTextRules.learning(heard, as: replacement, into: existing) != nil
+    }
+
+    @discardableResult
+    func learnReplacement(heard: String, as replacement: String) -> Bool {
+        let existing = DictationTextRules.decode(
+            replacements: defaults.string(forKey: DictationController.replacementsKey) ?? "")
+        guard let updated = DictationTextRules.learning(heard, as: replacement, into: existing) else { return false }
+        store([DictationController.replacementsKey: DictationTextRules.encode(updated)])
+        return true
     }
 
     func preference<Value>(_ key: String, default fallback: Value) -> Binding<Value> {
