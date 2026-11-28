@@ -219,7 +219,7 @@ enum TextInserter {
     }
 
     /// Bounded wait for every physical modifier to be released. The dictation
-    /// hotkey is a modifier chord (⌥⌘D by default); on the toggle path the
+    /// hotkey is a modifier chord (⌃⌥⌘D by default); on the toggle path the
     /// paste can fire milliseconds after the keypress, while the chord is
     /// still down. The bound keeps a stuck key from blocking delivery.
     @MainActor

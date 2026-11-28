@@ -435,7 +435,7 @@ final class DictationFeatureTests: XCTestCase {
         let defaults = makeDefaults()
         let feature = try makeFeature(defaults: defaults)
         XCTAssertFalse(feature.prewarmConditions.prewarmEnabled)
-        XCTAssertEqual(feature.prewarmConditions.profile, .balanced)
+        XCTAssertEqual(feature.prewarmConditions.profile, DictationModelMemory.defaultProfile())
         XCTAssertTrue(feature.prewarmConditions.temporaryStore)
 
         defaults.set(true, forKey: DictationPrewarmPolicy.defaultsKey)
@@ -458,6 +458,7 @@ final class DictationFeatureTests: XCTestCase {
     func testTheWarmModelWaitsByTheProfileAndGetsNoGraceUnderPressure() throws {
         isolateArgumentDomain()
         let feature = try makeFeature()
+        feature.defaults.set(DictationModelMemory.balanced.rawValue, forKey: DictationModelMemory.key)
         XCTAssertEqual(feature.warmEngine.currentIdleLimit, .seconds(600))
 
         feature.defaults.set(DictationModelMemory.lightweight.rawValue, forKey: DictationModelMemory.key)
@@ -483,13 +484,26 @@ final class DictationFeatureTests: XCTestCase {
         XCTAssertEqual(feature.modelMemoryChoice.wrappedValue, .prewarmed)
     }
 
-    func testAnUnknownMemoryProfileIsBalanced() throws {
+    func testAnUnknownMemoryProfileFallsBackToHardwareDefault() throws {
         let defaults = makeDefaults()
-        XCTAssertEqual(DictationModelMemory.current(in: defaults), .balanced)
+        let eightGB: UInt64 = 8 * 1_024 * 1_024 * 1_024
+        let sixteenGB: UInt64 = 16 * 1_024 * 1_024 * 1_024
+
+        XCTAssertEqual(DictationModelMemory.current(in: defaults, physicalMemory: eightGB), .lightweight)
+        XCTAssertEqual(DictationModelMemory.current(in: defaults, physicalMemory: sixteenGB), .balanced)
 
         defaults.set("not a profile", forKey: DictationModelMemory.key)
+        XCTAssertEqual(DictationModelMemory.current(in: defaults, physicalMemory: eightGB), .lightweight)
+        XCTAssertEqual(DictationModelMemory.current(in: defaults, physicalMemory: sixteenGB), .balanced)
 
-        XCTAssertEqual(DictationModelMemory.current(in: defaults), .balanced)
+        // Pre-1.4 explicit prewarm opt-in stays Balanced even on 8 GB Macs.
+        defaults.removeObject(forKey: DictationModelMemory.key)
+        defaults.set(true, forKey: DictationPrewarmPolicy.defaultsKey)
+        XCTAssertEqual(DictationModelMemory.current(in: defaults, physicalMemory: eightGB), .balanced)
+
+        defaults.set(false, forKey: DictationPrewarmPolicy.defaultsKey)
+        defaults.set(DictationModelMemory.balanced.rawValue, forKey: DictationModelMemory.key)
+        XCTAssertEqual(DictationModelMemory.current(in: defaults, physicalMemory: eightGB), .balanced)
         XCTAssertLessThan(
             DictationModelMemory.lightweight.idleLimit(underPressure: false),
             DictationModelMemory.balanced.idleLimit(underPressure: false))

@@ -84,32 +84,26 @@ public final class MicrophoneSource: CaptureReportingSource, @unchecked Sendable
     /// Rate of the first device; the stream promises this rate for its whole
     /// life, so replacement devices get resampled to it. Written once.
     private var streamSampleRate: Double = 0
-    /// Total samples yielded so far, for gap accounting after a device
-    /// change. Touched from the render thread and the restart queue.
-    private let deliveredLock = NSLock()
-    private var samplesDelivered = 0
-    /// Phase carries across callbacks so a rate-mismatched device does not
-    /// drift into a half-second silence pad. Guarded by `deliveredLock`.
-    private var resampler = LinearResampler()
-    /// When muted, the tap yields silence instead of the captured samples —
-    /// so Secreteo stops recording/transcribing YOUR voice while the meeting
-    /// app keeps its own mic (this mutes the app, not the system input). The
-    /// file stays timeline-aligned because silence is still written.
-    private let muteLock = NSLock()
-    private var muted = false
+    private struct DeliveredState {
+        var samplesDelivered = 0
+        var resampler = LinearResampler()
+    }
+
+    /// Total samples yielded so far and resampler phase, touched from the render
+    /// thread and the restart queue.
+    private let delivered = OSAllocatedUnfairLock(initialState: DeliveredState())
+    /// When muted, the tap yields silence instead of the captured samples so the
+    /// timeline stays aligned without recording audio.
+    private let muteState = OSAllocatedUnfairLock(initialState: false)
 
     /// Mute or unmute the mic for Secreteo only. Thread-safe; takes effect on
     /// the next buffer.
     public func setMuted(_ value: Bool) {
-        muteLock.lock()
-        muted = value
-        muteLock.unlock()
+        muteState.withLock { $0 = value }
     }
 
     private var isMuted: Bool {
-        muteLock.lock()
-        defer { muteLock.unlock() }
-        return muted
+        muteState.withLock { $0 }
     }
 
     /// - Parameters:
@@ -248,9 +242,7 @@ public final class MicrophoneSource: CaptureReportingSource, @unchecked Sendable
         // to the retired device, on the far side of the silence pad, and the
         // carried phase is expressed in the old device's frames. Interpolating
         // across that boundary blends two unrelated streams.
-        deliveredLock.lock()
-        resampler.reset()
-        deliveredLock.unlock()
+        delivered.withLock { $0.resampler.reset() }
         let input = engine.inputNode
         let target = streamSampleRate
         guard
@@ -410,21 +402,17 @@ public final class MicrophoneSource: CaptureReportingSource, @unchecked Sendable
         to target: Double,
         muted: Bool
     ) throws -> [Float] {
-        deliveredLock.lock()
-        defer { deliveredLock.unlock() }
-        if muted { resampler.discardCarriedSample() }
-        return try resampler.resample(samples, from: source, to: target)
+        try delivered.withLock { state in
+            if muted { state.resampler.discardCarriedSample() }
+            return try state.resampler.resample(samples, from: source, to: target)
+        }
     }
 
     private func deliveredSnapshot() -> Int {
-        deliveredLock.lock()
-        defer { deliveredLock.unlock() }
-        return samplesDelivered
+        delivered.withLock { $0.samplesDelivered }
     }
 
     private func setDelivered(_ count: Int) {
-        deliveredLock.lock()
-        defer { deliveredLock.unlock() }
-        samplesDelivered = count
+        delivered.withLock { $0.samplesDelivered = count }
     }
 }

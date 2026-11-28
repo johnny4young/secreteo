@@ -1,5 +1,6 @@
 import Foundation
 @testable import Polish
+import Synchronization
 import XCTest
 
 final class OpenAICompatibleChatCodecTests: XCTestCase {
@@ -106,6 +107,51 @@ final class OllamaServiceTests: XCTestCase {
     func testTheServiceIsOnLoopback() {
         XCTAssertEqual(DataEgressDestination(url: OllamaService.openAIEndpoint).scope, .localDevice)
     }
+
+    func testModelsRefusesRedirectsOffLoopback() async {
+        OllamaRedirectStubProtocol.reset()
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [OllamaRedirectStubProtocol.self]
+        let session = URLSession(configuration: configuration)
+        defer { session.invalidateAndCancel() }
+
+        let models = await OllamaService.models(session: session)
+        XCTAssertNil(models)
+        XCTAssertEqual(
+            OllamaRedirectStubProtocol.requestedURLs.withLock { $0 },
+            [OllamaService.baseURL.appendingPathComponent("api/tags")])
+    }
+}
+
+private final class OllamaRedirectStubProtocol: URLProtocol {
+    static let requestedURLs = Mutex<[URL]>([])
+
+    static func reset() { requestedURLs.withLock { $0.removeAll() } }
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        guard let url = request.url else { return }
+        Self.requestedURLs.withLock { $0.append(url) }
+        if url.host == "localhost" {
+            let redirect = HTTPURLResponse(
+                url: url, statusCode: 302, httpVersion: "HTTP/1.1",
+                headerFields: ["Location": "https://example.com/api/tags"])!
+            client?.urlProtocol(
+                self, wasRedirectedTo: URLRequest(url: URL(string: "https://example.com/api/tags")!),
+                redirectResponse: redirect)
+            client?.urlProtocol(self, didReceive: redirect, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocolDidFinishLoading(self)
+        } else {
+            let ok = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: nil)!
+            client?.urlProtocol(self, didReceive: ok, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocol(self, didLoad: Data(#"{"models":[{"name":"leaked"}]}"#.utf8))
+            client?.urlProtocolDidFinishLoading(self)
+        }
+    }
+
+    override func stopLoading() {}
 }
 
 final class ReasoningEnvelopeTests: XCTestCase {

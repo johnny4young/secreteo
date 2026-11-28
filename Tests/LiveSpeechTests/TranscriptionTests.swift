@@ -395,32 +395,6 @@ final class ParakeetSegmentMapperTests: XCTestCase {
     }
 }
 
-final class VocabularyPromptTests: XCTestCase {
-    func testFormatsTermsAsNaturalSentence() {
-        XCTAssertEqual(
-            VocabularyPrompt.text(["QVTL", "Portavoz", "Ilarion"]),
-            "In this meeting we discussed QVTL, Portavoz, Ilarion.")
-    }
-
-    func testFormatsSpanishTermsAsSpanishNaturalSentence() {
-        XCTAssertEqual(
-            VocabularyPrompt.text(["Qord2M", "Zephyr"], language: "es-CO"),
-            "En esta reunión hablamos de Qord2M, Zephyr.")
-    }
-
-    func testEmptyAndBlankTermsYieldNoPrompt() {
-        XCTAssertNil(VocabularyPrompt.text([]))
-        XCTAssertNil(VocabularyPrompt.text(["  ", ""]))
-    }
-
-    func testParseSplitsAndTrimsCommaList() {
-        XCTAssertEqual(
-            VocabularyPrompt.parse(" QVTL , Portavoz,,  Ilarion "),
-            ["QVTL", "Portavoz", "Ilarion"])
-        XCTAssertEqual(VocabularyPrompt.parse(""), [])
-    }
-}
-
 final class SpokenLanguageDetectorTests: XCTestCase {
     func testAutomaticRefineDoesNotPinOneLanguage() {
         XCTAssertNil(SpokenLanguageDetector.transcriptionLanguageHint())
@@ -631,57 +605,6 @@ final class MicBleedFilterTests: XCTestCase {
             "updated all the node asset IDs based on spreadsheets",
             channel: .microphone, start: 101, end: 105)]
         XCTAssertEqual(MicBleedFilter.filter(microphone: mic, system: system).count, 1)
-    }
-}
-
-final class BoundedLiveAudioFeedsTests: XCTestCase {
-    func testColdAttachmentReceivesOnlyNewestBufferedContext() async throws {
-        let feeds = BoundedLiveAudioFeeds(
-            channels: [.microphone],
-            capacityPerChannel: 2)
-        for index in 0..<5 {
-            feeds.yield(AudioChunk(
-                channel: .microphone,
-                samples: [Float(index)],
-                sampleRate: 16_000,
-                timestamp: TimeInterval(index)))
-        }
-        feeds.finish()
-
-        let stream = try XCTUnwrap(feeds.stream(for: .microphone))
-        var timestamps: [TimeInterval] = []
-        for await chunk in stream {
-            timestamps.append(chunk.timestamp)
-        }
-
-        XCTAssertEqual(timestamps, [3, 4])
-    }
-
-    func testChannelsStayIsolated() async throws {
-        let feeds = BoundedLiveAudioFeeds(
-            channels: [.microphone, .system],
-            capacityPerChannel: 2)
-        feeds.yield(AudioChunk(
-            channel: .microphone,
-            samples: [0.1],
-            sampleRate: 16_000,
-            timestamp: 1))
-        feeds.yield(AudioChunk(
-            channel: .system,
-            samples: [0.2],
-            sampleRate: 16_000,
-            timestamp: 2))
-        feeds.finish()
-
-        let mic = try XCTUnwrap(feeds.stream(for: .microphone))
-        let system = try XCTUnwrap(feeds.stream(for: .system))
-        var micTimes: [TimeInterval] = []
-        var systemTimes: [TimeInterval] = []
-        for await chunk in mic { micTimes.append(chunk.timestamp) }
-        for await chunk in system { systemTimes.append(chunk.timestamp) }
-
-        XCTAssertEqual(micTimes, [1])
-        XCTAssertEqual(systemTimes, [2])
     }
 }
 

@@ -1,14 +1,14 @@
-import LiveSpeech
+import DictationKit
 import SwiftUI
 
-/// Names and terms that guide recognition. Kept comma-separated, as `VocabularyPrompt` reads them.
+/// Names and terms that guide recognition and post-ASR vocabulary normalization.
 struct DictationVocabularyEditor: View {
     @Binding var stored: String
     @State private var newTerm = ""
 
     private var terms: [String] {
         var seen = Set<String>()
-        return VocabularyPrompt.parse(stored).filter { seen.insert($0.lowercased()).inserted }
+        return DictationVocabularyNormalizer.parse(stored).filter { seen.insert($0.lowercased()).inserted }
     }
 
     var body: some View {
@@ -44,8 +44,31 @@ struct DictationVocabularyEditor: View {
     }
 
     private func add() {
-        guard !trimmedTerm.isEmpty else { return }
-        stored = (terms + [trimmedTerm]).joined(separator: ", ")
+        let updated = Self.merging(newTerm, into: stored)
+        if updated != stored { stored = updated }
         newTerm = ""
+    }
+
+    /// Parses comma/newline-separated terms, updating casing of existing entries in place.
+    static func merging(_ input: String, into stored: String) -> String {
+        var result: [String] = []
+        var indexByFolded: [String: Int] = [:]
+        for term in DictationVocabularyNormalizer.parse(stored) {
+            let key = term.lowercased()
+            if indexByFolded[key] == nil {
+                indexByFolded[key] = result.count
+                result.append(term)
+            }
+        }
+        for candidate in DictationVocabularyNormalizer.parse(input) {
+            let key = candidate.lowercased()
+            if let existingIndex = indexByFolded[key] {
+                result[existingIndex] = candidate
+            } else {
+                indexByFolded[key] = result.count
+                result.append(candidate)
+            }
+        }
+        return result.joined(separator: ", ")
     }
 }

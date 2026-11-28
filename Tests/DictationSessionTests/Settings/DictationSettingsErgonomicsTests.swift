@@ -119,7 +119,9 @@ struct DictationSettingsErgonomicsTests {
         let (feature, defaults, suite) = try makeFeature()
         defer { defaults.removePersistentDomain(forName: suite) }
 
-        #expect(feature.modelMemoryChoice.wrappedValue == .balanced)
+        let expectedDefault: DictationModelMemoryChoice =
+            DictationModelMemory.defaultProfile() == .lightweight ? .lightweight : .balanced
+        #expect(feature.modelMemoryChoice.wrappedValue == expectedDefault)
 
         feature.modelMemoryChoice.wrappedValue = .prewarmed
         #expect(feature.modelMemoryChoice.wrappedValue == .prewarmed)
@@ -149,14 +151,48 @@ struct DictationSettingsErgonomicsTests {
             DictationModelMemory.key: DictationModelMemory.lightweight.rawValue,
             DictationPrewarmPolicy.defaultsKey: true
         ]
-        let first = PortavozPreferenceImport(portavoz: portavoz, current: defaults)
+        let sixteenGB: UInt64 = 16 * 1_024 * 1_024 * 1_024
+        let first = PortavozPreferenceImport(portavoz: portavoz, current: defaults, physicalMemory: sixteenGB)
         #expect(first.values[DictationController.languageKey] as? String == DictationFeature.preferredConcreteLanguage())
         #expect(first.values[DictationPrewarmPolicy.defaultsKey] == nil, "lightweight clears prewarm to default false")
         #expect(first.changes.filter { $0.name == L10n.text("Keep Model in Memory") }.count == 1)
 
         for (key, value) in first.values { defaults.set(value, forKey: key) }
-        let second = PortavozPreferenceImport(portavoz: portavoz, current: defaults)
+        let second = PortavozPreferenceImport(portavoz: portavoz, current: defaults, physicalMemory: sixteenGB)
         #expect(second.changes.isEmpty, "Re-checking after import must be idempotent")
+    }
+
+    @Test
+    func portavozImportUsesEightGigabyteLightweightFallbackAccurately() throws {
+        let suite = "DictationSettingsErgonomicsTests.import8gb.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let eightGB: UInt64 = 8 * 1_024 * 1_024 * 1_024
+
+        // Already running Lightweight on 8 GB: importing lightweight is a no-op.
+        let same = PortavozPreferenceImport(
+            portavoz: [DictationModelMemory.key: DictationModelMemory.lightweight.rawValue],
+            current: defaults, physicalMemory: eightGB)
+        #expect(same.changes.isEmpty)
+
+        // Importing Balanced + Prewarm on 8 GB writes both keys so At Launch sticks.
+        let launch = PortavozPreferenceImport(
+            portavoz: [
+                DictationModelMemory.key: DictationModelMemory.balanced.rawValue,
+                DictationPrewarmPolicy.defaultsKey: true
+            ],
+            current: defaults, physicalMemory: eightGB)
+        #expect(launch.values[DictationModelMemory.key] as? String == DictationModelMemory.balanced.rawValue)
+        #expect(launch.values[DictationPrewarmPolicy.defaultsKey] as? Bool == true)
+    }
+
+    @Test
+    func vocabularyEditorMergingRecasesInPlaceAndDeduplicatesMultiTermPastes() {
+        #expect(DictationVocabularyEditor.merging("FastAPI", into: "Secreteo, fastapi") == "Secreteo, FastAPI")
+        #expect(
+            DictationVocabularyEditor.merging("FastAPI, Secreteo\nKubernetes", into: "secreteo")
+                == "Secreteo, FastAPI, Kubernetes")
+        #expect(DictationVocabularyEditor.merging("   ", into: "Secreteo") == "Secreteo")
     }
 
     @Test

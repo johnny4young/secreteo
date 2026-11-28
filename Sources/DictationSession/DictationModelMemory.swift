@@ -6,6 +6,8 @@ enum DictationModelMemory: String {
     case lightweight
 
     static let key = "modelMemoryProfile"
+    /// Macs with 8 GiB or less default to Lightweight so speech weights unload quickly when idle.
+    static let lightweightMemoryFloorBytes: UInt64 = 8 * 1_024 * 1_024 * 1_024
 
     /// Lightweight keeps a short grace so dictations in a row reuse a loaded model.
     /// A Mac short of memory gets no grace at all.
@@ -17,8 +19,22 @@ enum DictationModelMemory: String {
         }
     }
 
-    static func current(in defaults: UserDefaults) -> Self {
-        defaults.string(forKey: key).flatMap(Self.init(rawValue:)) ?? .balanced
+    static func defaultProfile(physicalMemory: UInt64 = ProcessInfo.processInfo.physicalMemory) -> Self {
+        physicalMemory <= lightweightMemoryFloorBytes ? .lightweight : .balanced
+    }
+
+    static func current(
+        in defaults: UserDefaults,
+        physicalMemory: UInt64 = ProcessInfo.processInfo.physicalMemory
+    ) -> Self {
+        if let saved = defaults.string(forKey: key).flatMap(Self.init(rawValue:)) {
+            return saved
+        }
+        // Pre-1.4 Prewarm opt-ins wrote only dictationPrewarm without modelMemoryProfile; honor them on 8 GB Macs.
+        if defaults.bool(forKey: DictationPrewarmPolicy.defaultsKey) {
+            return .balanced
+        }
+        return defaultProfile(physicalMemory: physicalMemory)
     }
 
     /// Read each time the warm model goes idle, so a changed profile or pressure applies to the next wait.
