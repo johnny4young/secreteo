@@ -38,7 +38,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/MicCapture/CapturePCMGeometry.swift` | `Sources/AudioCaptureKit/CapturePCMGeometry.swift` | Renames |
 | `Sources/MicCapture/CaptureDeliveryBuffer.swift` | `Sources/AudioCaptureKit/CaptureDeliveryBuffer.swift` | Renames |
 | `Sources/MicCapture/AudioCaptureSource.swift` | `Sources/AudioCaptureKit/AudioCaptureSource.swift` | Seam: no `AudioRetentionPolicy`, which only meetings use |
-| `Sources/MicCapture/MicrophoneSource.swift` | `Sources/AudioCaptureKit/MicrophoneSource.swift` | Seam: queue label and two comments name Secreteo |
+| `Sources/MicCapture/MicrophoneSource.swift` | `Sources/AudioCaptureKit/MicrophoneSource.swift` | Seam: queue label and two comments name Secreteo. Later: `OSAllocatedUnfairLock` replaces `NSLock` for resampler and mute state |
 | `Sources/MicCapture/MicrophonePermissionClient.swift` | `Sources/PlatformKit/MicrophonePermissionClient.swift` | Renames |
 | `Sources/SpeechCore/CaptureReport.swift` | `Sources/PortavozCore/CaptureReport.swift` | Renames |
 | `Sources/SpeechCore/StreamingLinearResampler.swift` | `Sources/PortavozCore/StreamingLinearResampler.swift` | Renames |
@@ -58,9 +58,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/LiveSpeech/TranscriptionTextFilter.swift` | `Sources/TranscriptionKit/TranscriptionTextFilter.swift` | Renames |
 | `Sources/LiveSpeech/SpeechAnalyzerLiveEngine.swift` | `Sources/TranscriptionKit/SpeechAnalyzerLiveEngine.swift` | Renames |
 | `Sources/LiveSpeech/SpeechAnalyzerEngine.swift` | `Sources/TranscriptionKit/SpeechAnalyzerEngine.swift` | Renames. Later: its error and progress messages are English |
-| `Sources/LiveSpeech/BoundedLiveAudioFeeds.swift` | `Sources/TranscriptionKit/BoundedLiveAudioFeeds.swift` | Renames |
 | `Sources/LiveSpeech/SpokenLanguageDetector.swift` | `Sources/TranscriptionKit/SpokenLanguageDetector.swift` | Renames |
-| `Sources/LiveSpeech/VocabularyPrompt.swift` | `Sources/TranscriptionKit/VocabularyPrompt.swift` | Renames |
 | `Sources/LiveSpeech/TranscriptionEngine.swift` | `Sources/TranscriptionKit/TranscriptionEngine.swift` | Renames. Later: `allowedLanguages` replaces `filtersLiveScript` |
 | `Sources/LiveSpeech/FileTranscription.swift` | `Sources/TranscriptionKit/FileTranscription.swift` | Renames |
 | `Sources/LiveSpeech/ParakeetEngine.swift` | `Sources/TranscriptionKit/ParakeetEngine.swift` | Seam: loads through `LocalModelStore`, with v3 named directly instead of a routing table, takes seeds, and holds a store lease while loaded. Later: the script filter follows `allowedLanguages`, Auto included |
@@ -137,6 +135,9 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/DictationSessionTests/Triggers/ModifierKeyGestureTests.swift` | `Tests/PortavozAppTests/ModifierKeyGestureTests.swift` | Renames |
 | `Tests/DictationSessionTests/Triggers/MousePTTGestureTests.swift` | `Tests/PortavozAppTests/MousePTTGestureTests.swift` | Renames |
 | `Sources/DictationSession/DictationController.swift` | `Sources/portavoz-app/DictationController.swift` | Seam: imports the split targets, messages that named Portavoz's engine and panels are rewritten, and the panel is a placeholder for now. Fixes: a cancelled session corrects nothing, an old transform keeps its hands off a new Escape key, a capture failure keeps the words, expired words leave its state, a closed notice frees Paste last, and Paste last says whether it sent anything. Later: the stop tail ends early once the audio after Stop is silent, and a stop while preparing moves the session to listening; the timing log gets the microphone, the first sound and the stop tail's numbers; interrupted words stay in a card no trigger replaces, and a held release finishes as a hold |
+| `Sources/DictationSession/DictationController+Delivery.swift` | `Sources/portavoz-app/DictationController.swift` | Extract: delivery presentation, recovery, replay, Paste last, feedback dismissal and mouse gesture extensions split out of `DictationController.swift` |
+| `Sources/DictationSession/DictationController+Transform.swift` | `Sources/portavoz-app/DictationController.swift` | Extract: text mode selection, Polish, translation, stop tail, pause auto-stop and cancel-key extensions split out of `DictationController.swift` |
+| `Sources/DictationSession/DictationController+Corrections.swift` | `Sources/portavoz-app/DictationController.swift` | Extract: spoken corrections and learnable correction extensions split out of `DictationController.swift`, plus opt-in post-paste edit learning |
 | `Sources/DictationSession/DictationController+History.swift` | `Sources/portavoz-app/DictationController+History.swift` | Seam: imports the split targets, and the draft can be forgotten |
 | `Sources/DictationSession/DictationController+Hotkey.swift` | `Sources/portavoz-app/DictationController+Hotkey.swift` | Renames. Later: a held release finishes as a hold |
 | `Sources/DictationSession/DictationController+ModifierKey.swift` | `Sources/portavoz-app/DictationController+ModifierKey.swift` | Renames. Later: a held release finishes as a hold |
@@ -155,7 +156,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Sources/Polish/ReasoningEnvelope.swift` | `Sources/IntelligenceKit/ReasoningEnvelope.swift` | Renames |
 | `Sources/Polish/GenerationOptions+Greedy.swift` | `Sources/IntelligenceKit/GenerationOptions+Greedy.swift` | Seam: a comment no longer names the source app |
 | `Sources/Polish/OpenAICompatibleChatCodec.swift` | `Sources/IntelligenceKit/BYOK.swift` | Extract: the chat codec, with an error of its own and no answer-only parse |
-| `Sources/Polish/OllamaService.swift` | `Sources/IntelligenceKit/OllamaService.swift` | Extract: the endpoint, the model list, which tells a silent Ollama from one with no models, and the Polish client |
+| `Sources/Polish/OllamaService.swift` | `Sources/IntelligenceKit/OllamaService.swift` | Extract: the endpoint, the model list, which tells a silent Ollama from one with no models, and the Polish client. Later: `/api/tags` refuses redirects through `DataEgressRedirectBlocker` |
 | `Sources/Polish/DictationTextPolishers.swift` | `Sources/IntelligenceKit/DictationTextPolishers.swift` | Seam: imports `DictationKit`, no MLX, no scheduler, and metadata with no meeting, operation or consent fields |
 | `Sources/Polish/FoundationModelsAvailability.swift` | `Sources/IntelligenceKit/FoundationModelSummaryProvider.swift` | Extract: the availability check and its reasons |
 | `Sources/Polish/DataEgress.swift` | `Sources/PortavozCore/DataEgress.swift` | Extract: destination scope, provider disclosure, request, response, error and port, for Polish only |
@@ -221,7 +222,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/DictationSessionTests/Panel/DictationCompactIndicatorTests.swift` | `Tests/PortavozAppTests/DictationCompactIndicatorTests.swift` | Seam. Fixes: the settings test clears the shared argument domain, which outranks its suite |
 | `Sources/DictationSession/Panel/DictationTextPickers.swift` | `Sources/portavoz-app/DictationTextSettingsSection.swift` | Extract: the two pickers the panel uses |
 | `Sources/DictationSession/Settings/DictationSettingsControls.swift` | `Sources/portavoz-app/DictationSection.swift` | Seam: the controls and labels that have behavior here, grouped anew as the Dictation tab's cards, with no helper text, and the microphone picker from `AudioSection.swift` |
-| `Sources/DictationSession/Settings/DictationVocabularyEditor.swift` | `Sources/portavoz-app/SettingsView.swift` | Extract: the vocabulary list and add field, with no suggestions from meetings |
+| `Sources/DictationSession/Settings/DictationVocabularyEditor.swift` | `Sources/portavoz-app/SettingsView.swift` | Extract: the vocabulary list and add field, with no suggestions from meetings. Later: the field takes several comma or line separated terms and recases a known term in place |
 | `Sources/DictationSession/Settings/HotkeyRecorder.swift` | `Sources/portavoz-app/HotkeySetting.swift` | Extract: the recorder view, which hands the setting back instead of saving it and frees the shortcut while listening |
 | `Sources/DictationSession/Settings/MouseButtonRecorder.swift` | `Sources/portavoz-app/MouseButtonPTT.swift` | Extract: the recorder view, which hands the button back instead of saving it |
 | `Sources/DictationSession/Settings/DictationShortcutSettings.swift` | `Sources/portavoz-app/DictationShortcutSettings.swift` | Seam: no helper text, and saving goes through the caller |
@@ -246,7 +247,7 @@ Copied from an export (`git archive`) of one frozen commit of [`johnny4young/por
 | `Tests/DictationAgentsTests/MCPServerTests.swift` | `Tests/PortavozKitTests/MCPServerTests.swift` | Seam: imports and the server name |
 | `Tests/DictationAgentsTests/DictationToolboxTests.swift` | `Tests/PortavozKitTests/DictationToolboxTests.swift` | Seam: imports the split targets, Secreteo's header, and its own server instructions |
 | `Tests/DictationStoreTests/DictationAgentAccessStoreTests.swift` | `Tests/PortavozKitTests/DictationAgentAccessStoreTests.swift` | Extract: without the migration test, because schema v1 already has the column |
-| `Sources/DictationSession/DictationModelMemory.swift` | `Sources/portavoz-app/AppServices+DictationPrewarm.swift` | Extract: the prewarm policy, and the profile and dictation's idle delays from `AppModelMemoryPreferences.swift` and `AppModelIdleReleaseScheduler.swift`. Later: `shouldCompile`, the launch load that runs without the prewarm choice |
+| `Sources/DictationSession/DictationModelMemory.swift` | `Sources/portavoz-app/AppServices+DictationPrewarm.swift` | Extract: the prewarm policy, and the profile and dictation's idle delays from `AppModelMemoryPreferences.swift` and `AppModelIdleReleaseScheduler.swift`. Later: `shouldCompile`, the launch load that runs without the prewarm choice, and the 8 GiB Lightweight default |
 | `Sources/DictationSession/Settings/DictationDictionaryEditor.swift` | `Sources/portavoz-app/DictationDictionaryEditor.swift` | Seam: its text comes through a binding, and imports `DictationKit` |
 | `Sources/DictationSession/Panel/DictationPanelSupport.swift` | `Sources/portavoz-app/PVDesign.swift` | Extract: the accent, three symbols, and the locale modifier from `AppLanguage` |
 | `Sources/DictationSession/Fixtures/UITestDefaults.swift` | `Sources/portavoz-app/UITestDefaults.swift` | Renames |

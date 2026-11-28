@@ -12,6 +12,16 @@ brew install --cask johnny4young/tap/secreteo
 
 Or download the disk image from [the latest release](https://github.com/johnny4young/secreteo/releases/latest). Updates arrive through the app.
 
+## What it does
+
+- **Triggers:** hold-to-talk with `Fn`, a right modifier key, a mouse button, or a held shortcut, or toggle with the global shortcut (`⌃⌥⌘D`).
+- **On-device speech engines:** Parakeet, Parakeet Ultra, or Apple Speech in Spanish and English (including code-switched Automatic), releasing idle weights automatically when memory is tight.
+- **Clean mode:** removes filler words, formats spoken punctuation and self-corrections (English and Spanish), expands multiline voice snippets, and normalizes Personal Vocabulary with bilingual phonetic matching.
+- **Application Profiles:** per-app Chat, Email, and Code / Terminal presets that protect `camelCase`, `snake_case`, and CLI flags.
+- **Local Polish & Selection Rewrite:** optional refinement via Apple Intelligence or a local Ollama server (`http://localhost:11434`).
+- **Adaptive learning:** voice corrections, 1-click **Teach Replacement** from History, and opt-in post-paste edit learning.
+- **Private History & integrations:** optional local database with semantic search, Apple Shortcuts, and a read-only MCP helper (`secreteo-mcp`).
+
 ## Requirements
 
 - macOS 26 or later

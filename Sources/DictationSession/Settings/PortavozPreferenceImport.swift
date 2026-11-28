@@ -25,8 +25,11 @@ struct PortavozPreferenceImport {
     let values: [String: Any]
 
     /// Applying `values` and comparing again yields no changes.
-    init(portavoz domain: [String: Any], current defaults: UserDefaults) {
-        let source = Self.normalizedSource(domain, current: defaults)
+    init(
+        portavoz domain: [String: Any], current defaults: UserDefaults,
+        physicalMemory: UInt64 = ProcessInfo.processInfo.physicalMemory
+    ) {
+        let source = Self.normalizedSource(domain, current: defaults, physicalMemory: physicalMemory)
         let legacyKeys = Self.legacyModeKeys
         var changes: [Change] = []
         var seenChangeNames: Set<String> = []
@@ -41,7 +44,8 @@ struct PortavozPreferenceImport {
             defaults.string(forKey: DictationTextPreferences.profilesKey) ?? "[]")) ?? []).isEmpty {
             ownLists.insert(DictationTextPreferences.profilesKey)
         }
-        for entry in Self.entries where !ownLists.contains(entry.key) {
+        let entries = Self.entries(current: defaults, physicalMemory: physicalMemory)
+        for entry in entries where !ownLists.contains(entry.key) {
             guard let value = source[entry.key], entry.accepts(value) else { continue }
             guard !(value as AnyObject).isEqual(defaults.object(forKey: entry.key) ?? entry.fallback) else { continue }
             if seenChangeNames.insert(entry.name).inserted {
@@ -69,7 +73,9 @@ struct PortavozPreferenceImport {
         DictationController.fillerFilterKey, DictationController.replacementsKey
     ]
 
-    private static func normalizedSource(_ domain: [String: Any], current defaults: UserDefaults) -> [String: Any] {
+    private static func normalizedSource(
+        _ domain: [String: Any], current defaults: UserDefaults, physicalMemory: UInt64
+    ) -> [String: Any] {
         var source = domain
         // Portavoz shows Clean when older settings exist but the mode was never saved.
         if source[DictationTextPreferences.modeKey] == nil, legacyModeKeys.contains(where: { domain[$0] != nil }) {
@@ -87,15 +93,16 @@ struct PortavozPreferenceImport {
                 source[DictationController.languageKey] = DictationFeature.preferredConcreteLanguage()
             }
         }
+        let sourcePrewarms = source[DictationPrewarmPolicy.defaultsKey] as? Bool == true
         let effectiveMemory = (source[DictationModelMemory.key] as? String).flatMap(DictationModelMemory.init)
-            ?? DictationModelMemory.current(in: defaults)
+            ?? (sourcePrewarms ? .balanced : DictationModelMemory.current(in: defaults, physicalMemory: physicalMemory))
         if effectiveMemory == .lightweight, source[DictationPrewarmPolicy.defaultsKey] != nil {
             source[DictationPrewarmPolicy.defaultsKey] = false
         }
         return source
     }
 
-    private static var entries: [Entry] {
+    private static func entries(current defaults: UserDefaults, physicalMemory: UInt64) -> [Entry] {
         func flag(_ key: String, _ name: String, _ fallback: Bool = false) -> Entry {
             // Any number bridges to Bool, so only a saved Boolean counts.
             Entry(key: key, name: name, fallback: fallback) { CFGetTypeID($0 as CFTypeRef) == CFBooleanGetTypeID() }
@@ -122,7 +129,7 @@ struct PortavozPreferenceImport {
             flag(DictationCaretCase.defaultsKey, L10n.text("Match Capitalization to the Cursor")),
             choice(DictationModelMemory.key, L10n.text("Keep Model in Memory"),
                    [DictationModelMemory.balanced.rawValue, DictationModelMemory.lightweight.rawValue],
-                   DictationModelMemory.balanced.rawValue),
+                   DictationModelMemory.current(in: defaults, physicalMemory: physicalMemory).rawValue),
             flag(DictationPrewarmPolicy.defaultsKey, L10n.text("Keep Model in Memory")),
             // Copied without downloading or loading anything: Ultra still needs its own Download.
             choice(LiveSpeechSelection.dictationKey, L10n.text("Speech Engine"),

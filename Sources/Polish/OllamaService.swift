@@ -23,9 +23,28 @@ public enum OllamaService {
     public static func models(session: URLSession = .shared) async -> [Model]? {
         var request = URLRequest(url: baseURL.appendingPathComponent("api/tags"))
         request.timeoutInterval = 3
-        guard let (data, response) = try? await session.data(for: request),
-              (response as? HTTPURLResponse)?.statusCode == 200
+        request.httpShouldHandleCookies = false
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        guard let (bytes, response) = try? await session.bytes(
+            for: request,
+            delegate: DataEgressRedirectBlocker()),
+              let http = response as? HTTPURLResponse,
+              http.statusCode == 200
         else { return nil }
+        let maximumBytes = URLSessionDataEgressGateway.maximumResponseBytes
+        guard http.expectedContentLength <= Int64(maximumBytes) else { return nil }
+        var data = Data()
+        if http.expectedContentLength > 0 {
+            data.reserveCapacity(min(Int(clamping: http.expectedContentLength), maximumBytes))
+        }
+        do {
+            for try await byte in bytes {
+                guard data.count < maximumBytes else { return nil }
+                data.append(byte)
+            }
+        } catch {
+            return nil
+        }
         return parseModels(data)
     }
 

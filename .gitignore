@@ -22,12 +22,14 @@ xcuserdata/
 /.codex/
 /.planning/
 /.tickets/
+/.wrangler/
 /plans/
 /tickets/
 /docs/plans/
 /docs/tickets/
 /docs/ROADMAP.md
 /planning_*.md
+/analisis-*.md
 /PLAN.md
 /PLANS.md
 /TODO.md

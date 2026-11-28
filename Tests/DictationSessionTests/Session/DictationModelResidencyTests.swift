@@ -257,6 +257,7 @@ final class DictationModelResidencyTests: XCTestCase {
     private func makeRig(mayKeep: @escaping @MainActor () -> Bool = { true }, loadFails: Bool = false) -> Rig {
         let name = "DictationModelResidencyTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: name)!
+        defaults.set(DictationModelMemory.balanced.rawValue, forKey: DictationModelMemory.key)
         addTeardownBlock { defaults.removePersistentDomain(forName: name) }
         let pressure = DictationMemoryPressure()
         let clock = ControlledTestSleep()
