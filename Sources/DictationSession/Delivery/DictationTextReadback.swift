@@ -2,7 +2,8 @@ import Foundation
 
 /// Verification reads only the proposed insertion's span. The other reads are
 /// at most `contextLength` units on each side of the selection, to space the
-/// insertion; none is kept. The whole external document is never needed.
+/// insertion; none is kept, except the short boundary anchors opted-in edit
+/// learning holds until the next insertion. The whole external document is never needed.
 @MainActor
 struct DictationTextReadback {
     struct Position: Equatable {

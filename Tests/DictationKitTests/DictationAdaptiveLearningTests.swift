@@ -87,6 +87,11 @@ struct DictationAdaptiveLearningTests {
             pasted: "I'll send it now thanks", edited: "I'll send it now. Thanks") == nil)
         #expect(DictationEditLearner.extract(
             pasted: "Hola Juan buenos días", edited: "Hola Juan,\nBuenos días") == nil)
+        // Sentence case at the start of the paste
+        #expect(DictationEditLearner.extract(
+            pasted: "hola mundo", edited: "Hola mundo") == nil)
+        #expect(DictationEditLearner.extract(
+            pasted: "Github is down", edited: "github is down") == nil)
         // Numeric fact change
         #expect(DictationEditLearner.extract(
             pasted: "Send 3 copies today", edited: "Send 4 copies today") == nil)

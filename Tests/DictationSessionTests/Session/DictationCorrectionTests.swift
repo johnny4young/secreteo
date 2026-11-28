@@ -217,10 +217,12 @@ struct DictationCorrectionDeliveryTests {
         first.defaults.set(true, forKey: DictationEditLearning.defaultsKey)
         var observedDelay: Duration?
         var editedSpan: String? = "deploy FastAPI today"
+        var armed: [Bool] = []
         var deps = dependencies(first, receiver: receiver)
         deps.waitForEditLearning = { delay in observedDelay = delay }
         deps.captureDestination = {
             var destination = CapturedDictationDestination(name: "Receiver", canRetry: true) { receiver.insert($0) }
+            destination.armEditAnchors = { armed.append($0) }
             destination.lastInsertion = {
                 DictationInsertion(
                     text: "deploy fase api today", insertedAt: first.now, isIntact: { false },
@@ -233,6 +235,7 @@ struct DictationCorrectionDeliveryTests {
         try await eventually { first.controller.learnableCorrection != nil }
 
         #expect(observedDelay == DictationEditLearning.observationDelay)
+        #expect(armed == [true])
         #expect(first.controller.learnableCorrection?.rule
             == DictationReplacement(trigger: "fase api", replacement: "FastAPI"))
         #expect(first.controller.correctionSummary == "Changed “fase api” to “FastAPI”.")
@@ -257,10 +260,12 @@ struct DictationCorrectionDeliveryTests {
         let first = DictationControllerHarness(text: "deploy fase api today")
         defer { first.controller.cancel() }
         var readCalled = false
+        var armed: [Bool] = []
         var baseDeps = dependencies(first, receiver: receiver)
         baseDeps.waitForEditLearning = { _ in }
         baseDeps.captureDestination = {
             var destination = CapturedDictationDestination(name: "Receiver", canRetry: true) { receiver.insert($0) }
+            destination.armEditAnchors = { armed.append($0) }
             destination.lastInsertion = {
                 DictationInsertion(
                     text: "deploy fase api today", insertedAt: first.now, isIntact: { false },
@@ -275,6 +280,7 @@ struct DictationCorrectionDeliveryTests {
         try await dictate(first, baseDeps)
         try await Task.sleep(for: .milliseconds(30))
         #expect(!readCalled)
+        #expect(armed == [false], "Literal mode never reads the text around the paste")
         #expect(first.controller.learnableCorrection == nil)
 
         // Clean mode with toggle turned OFF mid-delay must never call readEditedSpan.
@@ -334,6 +340,66 @@ struct DictationCorrectionDeliveryTests {
         #expect(anchors?.readEditedSpan(
             range: range, originalText: "deploy fase api now.", readback: readback,
             validate: { refusal }, holds: holds) == nil)
+    }
+
+    @Test
+    func postPasteEditLearningSkipsTranslatedText() async throws {
+        let receiver = DictationFixtureReceiver()
+        let harness = DictationControllerHarness(text: "desplegar fase api hoy")
+        defer { harness.controller.cancel() }
+        harness.defaults.set(DictationTextMode.clean.rawValue, forKey: DictationTextPreferences.modeKey)
+        harness.defaults.set(DictationTranslationTarget.english.rawValue, forKey: DictationTextPreferences.translationKey)
+        harness.defaults.set("es", forKey: DictationController.languageKey)
+        harness.defaults.set(true, forKey: DictationEditLearning.defaultsKey)
+        var readCalled = false
+        var armed: [Bool] = []
+        var deps = dependencies(harness, receiver: receiver)
+        deps.waitForEditLearning = { _ in }
+        deps.translateDictation = { _, _, _ in .translated("deploy phase api today") }
+        deps.captureDestination = {
+            var destination = CapturedDictationDestination(name: "Receiver", canRetry: true) { receiver.insert($0) }
+            destination.armEditAnchors = { armed.append($0) }
+            destination.lastInsertion = {
+                DictationInsertion(
+                    text: "deploy phase api today", insertedAt: harness.now, isIntact: { false },
+                    edit: { _, _ in nil }, readEditedSpan: { readCalled = true; return "deploy FastAPI today" })
+            }
+            return destination
+        }
+
+        try await dictate(harness, deps)
+        try await eventually { receiver.text.hasSuffix("deploy phase api today") }
+        try await Task.sleep(for: .milliseconds(30))
+        #expect(armed == [false], "Rules never see the translation, so it cannot teach one")
+        #expect(!readCalled)
+        #expect(harness.controller.learnableCorrection == nil)
+    }
+
+    @Test
+    func spanAnchorsWithoutSurroundingTextRejectARetypedField() {
+        var buffer = "Kubernetes deploy done" as NSString
+        let range = NSRange(location: 0, length: buffer.length)
+        let readback = DictationTextReadback(
+            position: { DictationTextReadback.Position(selection: NSRange(location: buffer.length, length: 0), characterCount: buffer.length) },
+            string: { span in
+                guard span.location >= 0, span.length >= 0, span.location + span.length <= buffer.length else { return nil }
+                return buffer.substring(with: span)
+            })
+        let holds: (NSRange, String) -> Bool = { span, expected in
+            readback.string(span).map { $0.utf16.elementsEqual(expected.utf16) } ?? false
+        }
+        let anchors = DictationInsertion.SpanAnchors.capture(range: range, readback: readback, validate: { nil })
+        #expect(anchors?.prefixLength == 0 && anchors?.suffixLength == 0)
+
+        buffer = "ok thanks team"
+        #expect(anchors?.readEditedSpan(
+            range: range, originalText: "Kubernetes deploy done", readback: readback,
+            validate: { nil }, holds: holds) == nil, "A sent message and a new one share no word")
+
+        buffer = "Kubernetes deploy finished"
+        #expect(anchors?.readEditedSpan(
+            range: range, originalText: "Kubernetes deploy done", readback: readback,
+            validate: { nil }, holds: holds) == "Kubernetes deploy finished")
     }
 
     @Test

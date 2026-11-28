@@ -82,7 +82,9 @@ public enum DictationEditLearner {
         heard: String, replacement: String, prefix: Int,
         oldTokens: [SpanToken], newTokens: [SpanToken], edited: String
     ) -> Bool {
-        guard prefix > 0, heard.caseInsensitiveCompare(replacement) == .orderedSame else { return false }
+        guard heard.caseInsensitiveCompare(replacement) == .orderedSame else { return false }
+        // The text before the paste is unknown, so a first-letter flip there is sentence case, not spelling.
+        guard prefix > 0 else { return heard.dropFirst() == replacement.dropFirst() }
         let oldPrev = oldTokens[prefix - 1].raw
         let newPrev = newTokens[prefix - 1].raw
         let gap = edited[newTokens[prefix - 1].range.upperBound..<newTokens[prefix].range.lowerBound]

@@ -145,6 +145,16 @@ extension DictationInsertion {
             return text
         }
 
+        private static func sharesEdgeWord(_ lhs: String, _ rhs: String) -> Bool {
+            let words = { (text: String) in
+                text.split(whereSeparator: \.isWhitespace)
+                    .map { $0.trimmingCharacters(in: .punctuationCharacters) }.filter { !$0.isEmpty }
+            }
+            let left = words(lhs), right = words(rhs)
+            guard !left.isEmpty, !right.isEmpty else { return false }
+            return left.first == right.first || left.last == right.last
+        }
+
         private static func hasLeadingSplitSurrogate(_ text: String) -> Bool {
             if text.first == "\u{FFFD}" { return true }
             guard let firstUnit = text.utf16.first else { return false }
@@ -182,6 +192,8 @@ extension DictationInsertion {
             guard let observed = Self.validatedRead(
                 NSRange(location: range.location, length: editedLength), readback: readback, validate: validate),
                   observed != originalText else { return nil }
+            // With nothing around the span, a fully retyped field is a new message, not a correction.
+            if prefixLength == 0, suffixLength == 0, !Self.sharesEdgeWord(observed, originalText) { return nil }
             if prefixLength > 0, prefix.allSatisfy(\.isWhitespace),
                observed.first?.isWhitespace == true, originalText.first?.isWhitespace == false {
                 return nil
@@ -203,4 +215,5 @@ extension DictationInsertion {
 @MainActor
 final class DictationInsertionRecord {
     var value: DictationInsertion?
+    var capturesEditAnchors = false
 }

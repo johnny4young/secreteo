@@ -12,6 +12,8 @@ struct CapturedDictationDestination {
     let insert: (String) async -> DictationDeliveryOutcome
     /// The latest verified insertion through this destination, for a spoken correction.
     var lastInsertion: () -> DictationInsertion? = { nil }
+    /// Arms boundary capture for the next insertion; off unless that insertion can be learned from.
+    var armEditAnchors: (Bool) -> Void = { _ in }
 
     static func unavailable(
         name: String?, bundleIdentifier: String? = nil, result: DictationDeliveryOutcome.Refusal
@@ -95,10 +97,12 @@ extension TextInserter {
                 guard let readback = target.readback else { return }
                 recorded.value = DictationInsertion.accessibility(
                     element: element, readback: readback, validate: target.validate,
-                    range: span, text: output, capturesEditAnchors: capturesEditAnchors)
+                    range: span, text: output,
+                    capturesEditAnchors: capturesEditAnchors && recorded.capturesEditAnchors)
             }
         }
         destination.lastInsertion = { recorded.value }
+        destination.armEditAnchors = { recorded.capturesEditAnchors = $0 }
         return destination
     }
 

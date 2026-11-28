@@ -479,17 +479,20 @@ final class DictationController {
             text, original: original, sessionID: sessionID, dependencies: dependencies, capture: capture)
         else { return }
         let delivered = delivery.text
+        // Rules run before Polish and translation, so only text they produced can teach one.
+        let learnsEdits = textPolicy.mode.appliesCleanRules && delivered == text
+            && dependencies.admissionKind == .global && !dependencies.deliversInternally
+        destination.armEditAnchors(learnsEdits)
         measurement?.record(.deliveryStarted)
         // Read again here: polish may have taken a while since the check above.
         let stillOwner = dispatchesInsert(sessionID: sessionID)
         let result = stillOwner ? await destination.insert(delivered) : .refused(.ownershipChanged)
         measurement?.finishDelivery(result)
-        let appliedCleanRules = textPolicy.mode.appliesCleanRules
         guard activeSessionID == sessionID else { return }
         completeSession(id: sessionID)
         deliveryID = sessionID
         presentDelivery(
-            result, text: delivered, alternate: delivery, id: sessionID, canLearnEdits: appliedCleanRules)
+            result, text: delivered, alternate: delivery, id: sessionID, canLearnEdits: learnsEdits)
     }
 
     private func completeSession(id: UUID) {
